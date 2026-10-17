@@ -83,8 +83,12 @@ function goToPortal() { window.location.href = 'portal/portal.html'; }
 window.addEventListener('DOMContentLoaded', async () => {
     const authHome = document.getElementById('thaAuthHome');
     if (authHome) authHome.onclick = goToPortal;
-    showAuthModal(false);
-    openAdminMainPanel();
+    document.querySelectorAll('.admin-collapsible-section').forEach(e => { e.style.display = 'none'; });
+    let s = loadAdminSession();
+    if (s && s.expires_at - nowSec() < 120) { s = (await refreshAdminSession()) ? loadAdminSession() : null; }
+    if (s) { window.SB_ACCESS_TOKEN = s.access_token; showAuthModal(false); openAdminMainPanel(); refreshWordLists(); }
+    else showLoginScreen('');
+    setInterval(() => { const t = loadAdminSession(); if (t && t.expires_at - nowSec() < 600) refreshAdminSession(); }, 240000);
 });
 
 function showAuthModal(show) {
@@ -147,6 +151,7 @@ function friendlyError(txt) {
 async function sbFetch(path, opts) {
     opts = opts || {};
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, Object.assign({}, opts, { headers: sbHeaders(opts.headers) }));
+    if (res.status === 401 && window.SB_ACCESS_TOKEN) onSessionExpired();
     if (!res.ok) throw new Error(friendlyError(await res.text()));
     return res;
 }
@@ -533,3 +538,345 @@ async function openDashboardSubView(actionType) {
 
     subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
+
+/* ==========================================================
+   Admin auth (Supabase email + password). The panel only works with a
+   signed-in session: tables are readable/writable by "authenticated" only.
+   ========================================================== */
+const ADMIN_SESSION_KEY = 'thabit_admin_session';
+const nowSec = () => Math.floor(Date.now() / 1000);
+function saveAdminSession(s) {
+    window.SB_ACCESS_TOKEN = s.access_token;
+    try {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+            access_token: s.access_token, refresh_token: s.refresh_token,
+            expires_at: s.expires_at || (nowSec() + (s.expires_in || 3600))
+        }));
+    } catch (e) {}
+}
+function loadAdminSession() { try { return JSON.parse(sessionStorage.getItem(ADMIN_SESSION_KEY) || 'null'); } catch (e) { return null; } }
+function clearAdminSession() { window.SB_ACCESS_TOKEN = undefined; try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch (e) {} }
+async function authRequest(grant, body) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${grant}`, {
+        method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error_description || j.msg || j.message || 'Login failed');
+    return j;
+}
+async function refreshAdminSession() {
+    const s = loadAdminSession();
+    if (!s || !s.refresh_token) return false;
+    try { saveAdminSession(await authRequest('refresh_token', { refresh_token: s.refresh_token })); return true; } catch (e) { return false; }
+}
+function showLoginScreen(msg) {
+    clearAdminSession();
+    const o = document.getElementById('adminModalOverlay'); if (o) o.classList.remove('open');
+    showAuthModal(true);
+    const err = document.getElementById('thaAuthErr'); if (err) err.textContent = msg || '';
+}
+function onSessionExpired() { showLoginScreen('انتهت الجلسة، سجّل دخول تاني'); }
+function handleLoginEnter(e) { if (e && e.key === 'Enter') handleAdminLogin(); }
+async function handleAdminLogin() {
+    const email = (document.getElementById('thaEmail').value || '').trim();
+    const pass = document.getElementById('thaPass').value || '';
+    const err = document.getElementById('thaAuthErr'), btn = document.getElementById('thaAuthOk');
+    if (!email || !pass) { if (err) err.textContent = 'اكتب الإيميل والباسورد'; return; }
+    if (btn) btn.disabled = true;
+    try {
+        saveAdminSession(await authRequest('password', { email, password: pass }));
+        document.getElementById('thaPass').value = '';
+        if (err) err.textContent = '';
+        showAuthModal(false); openAdminMainPanel(); refreshWordLists();
+    } catch (e) { if (err) err.textContent = e.message; }
+    if (btn) btn.disabled = false;
+}
+async function adminLogout() {
+    try { if (window.SB_ACCESS_TOKEN) await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: 'POST', headers: sbHeaders() }); } catch (e) {}
+    showLoginScreen('');
+}
+
+/* ==========================================================
+   Helpers
+   ========================================================== */
+const $id = id => document.getElementById(id);
+const enc = encodeURIComponent;
+const likeEsc = s => String(s).replace(/[\\%_]/g, m => '\\' + m);
+function fmtDT(v) {
+    if (!v) return '';
+    const s = String(v), d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    return isNaN(d) ? s : d.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/* ==========================================================
+   Reports (table: reports)
+   ========================================================== */
+async function loadReportsList() {
+    const box = $id('reportsContainer'); if (!box) return;
+    box.textContent = '...';
+    try {
+        const rows = await fetchAllRows('reports?select=*&order=created_at.desc');
+        box.innerHTML = rows.length ? rows.map(r => `
+          <div style="border:1px solid rgba(148,163,184,.3);border-radius:12px;padding:10px;margin-bottom:8px;text-align:start">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.75rem">
+              <b dir="auto">${esc(r.name)}</b>
+              <span style="opacity:.7">${esc(r.page || '')} · ${esc(fmtDT(r.created_at))}</span>
+              <button type="button" class="tha-b gray" style="padding:2px 8px" onclick="deleteReport('${esc(r.id)}')"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <div dir="auto" style="margin-top:6px;white-space:pre-wrap;font-size:.85rem">${esc(r.problem)}</div>
+          </div>`).join('') : 'مفيش تقارير.';
+    } catch (e) { box.textContent = ''; showToast('تعذّر تحميل التقارير: ' + e.message, true); }
+}
+// PATCH/DELETE that FAILS LOUDLY: with RLS a blocked write returns 0 rows and no error,
+// which looked like "the button does nothing". Here 0 affected rows = visible error.
+async function mutate(path, method, body) {
+    const res = await sbFetch(path, { method, headers: { Prefer: 'return=representation' }, body: body ? JSON.stringify(body) : undefined });
+    const rows = await res.json().catch(() => []);
+    if (!Array.isArray(rows) || !rows.length) throw new Error('محصلش أي تغيير (غالبًا صلاحيات RLS أو السجل مش موجود)');
+    return rows;
+}
+async function deleteReport(id) {
+    if (!confirm('تمسح التقرير ده؟')) return;
+    try { await mutate(`reports?id=eq.${enc(id)}`, 'DELETE'); showToast('اتمسح ✓'); loadReportsList(); }
+    catch (e) { showToast('فشل المسح: ' + e.message, true); }
+}
+
+/* ==========================================================
+   Voices: word lists (due_words_table / broken_words_table; trash = status 'trash')
+   ========================================================== */
+const WL = { due: [], broken: [], trash: [] };
+const stOf = r => String(r.status || '').toLowerCase();
+
+async function refreshWordLists() {
+    try {
+        const [due, brk] = await Promise.all([
+            fetchAllRows('due_words_table?select=*&order=created_at.desc'),
+            fetchAllRows('broken_words_table?select=*&order=created_at.desc')
+        ]);
+        const active = r => stOf(r) !== 'trash' && stOf(r) !== 'done';
+        WL.due = due.filter(active);
+        WL.broken = brk.filter(active);
+        WL.trash = [].concat(
+            due.filter(r => stOf(r) === 'trash').map(r => Object.assign({ _t: 'due_words_table' }, r)),
+            brk.filter(r => stOf(r) === 'trash').map(r => Object.assign({ _t: 'broken_words_table' }, r)));
+        renderWordLists();
+    } catch (e) { showToast('تعذّر تحميل قوايم الكلمات: ' + e.message, true); }
+}
+
+function wordRow(r, kind, i) {
+    const btn = (fn, ic, title) => `<button type="button" title="${title}" class="px-2 py-1 rounded-lg bg-slate-700 text-[11px]" onclick="${fn}('${kind}',${i})"><i class="fa-solid ${ic}"></i></button>`;
+    const acts = kind === 'trash'
+        ? btn('restoreFromTrash', 'fa-rotate-left', 'Restore') + btn('purgeFromTrash', 'fa-xmark', 'Delete forever')
+        : btn('useListedWord', 'fa-microphone', 'Record') + btn('trashListedWord', 'fa-trash', 'Trash');
+    return `<div class="flex items-center justify-between gap-2 text-xs bg-slate-800/60 rounded-lg p-2">
+      <div class="min-w-0"><b dir="auto" class="break-words">${esc(r.word)}</b>
+      <div class="text-[10px] text-slate-400">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</div></div>
+      <div class="flex gap-1 flex-none">${acts}</div></div>`;
+}
+function renderWordLists() {
+    const put = (id, cnt, list, kind, empty) => {
+        const c = $id(id); if (c) c.innerHTML = list.length ? list.map((r, i) => wordRow(r, kind, i)).join('') : `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`;
+        const n = $id(cnt); if (n) n.textContent = list.length;
+    };
+    put('dueWordsContainer', 'dueWordsCount', WL.due, 'due', 'No pending words right now.');
+    put('brokenWordsContainer', 'brokenWordsCount', WL.broken, 'broken', 'مفيش كلمات مكسورة.');
+    put('trashWordsContainer', 'trashCount', WL.trash, 'trash', 'Trash is empty.');
+    const b = $id('voicesBadge'), pending = WL.due.length + WL.broken.length;
+    if (b) { b.textContent = pending; b.style.display = pending ? 'inline-flex' : 'none'; }
+}
+const tableOf = kind => kind === 'due' ? 'due_words_table' : 'broken_words_table';
+function useListedWord(kind, i) {
+    const r = WL[kind][i]; if (!r) return;
+    const inp = $id('newWordInput'); inp.value = r.word; checkIfWordExistsInDb(r.word); inp.focus();
+}
+async function setRowStatus(table, id, status) {
+    await mutate(`${table}?id=eq.${enc(id)}`, 'PATCH', { status });
+}
+async function trashListedWord(kind, i) {
+    const r = WL[kind][i]; if (!r) return;
+    try { await setRowStatus(tableOf(kind), r.id, 'trash'); showToast('اتنقلت للسلة ✓'); refreshWordLists(); } catch (e) { showToast('فشل: ' + e.message, true); }
+}
+async function restoreFromTrash(_k, i) {
+    const r = WL.trash[i]; if (!r) return;
+    try { await setRowStatus(r._t, r.id, 'pending'); refreshWordLists(); } catch (e) { showToast(e.message, true); }
+}
+async function purgeFromTrash(_k, i) {
+    const r = WL.trash[i]; if (!r || !confirm('تمسح الكلمة نهائي؟')) return;
+    try { await mutate(`${r._t}?id=eq.${enc(r.id)}`, 'DELETE'); showToast('اتمسحت نهائي ✓'); refreshWordLists(); } catch (e) { showToast('فشل المسح: ' + e.message, true); }
+}
+// after a word is recorded, close any open reports about it
+async function markWordHandled(word) {
+    for (const t of ['due_words_table', 'broken_words_table']) {
+        try {
+            await sbFetch(`${t}?word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
+        } catch (e) { /* status values may be restricted; ignore */ }
+    }
+}
+function toggleAdminSection(secId, iconId) {
+    const s = $id(secId), ic = $id(iconId); if (!s) return;
+    s.classList.toggle('collapsed');
+    const closed = s.classList.contains('collapsed');
+    s.style.display = closed ? 'none' : 'flex';
+    if (ic) ic.style.transform = closed ? '' : 'rotate(180deg)';
+}
+
+/* ==========================================================
+   Voices: one word = one URL (table: words_table, bucket: audio-files)
+   - new word  -> record + add
+   - existing  -> "update" (new recording replaces the old URL) or "rename" (new text, same URL)
+   ========================================================== */
+const ADM = { existing: null, action: 'update', blob: null, rec: null, timer: null };
+const urlToPath = u => { const m = String(u || '').match(/\/storage\/v1\/object\/public\/audio-files\/(.+)$/); return m ? decodeURIComponent(m[1]) : null; };
+
+function updateSaveState() {
+    const btn = $id('saveToSupabaseBtn'); if (!btn) return;
+    const rn = $id('renameWordInput');
+    const ok = ADM.existing && ADM.action === 'rename' ? !!(rn && rn.value.trim()) : !!ADM.blob;
+    btn.disabled = !ok;
+    const lbl = $id('uiUploadSaveBtn');
+    if (lbl) lbl.textContent = ADM.existing ? (ADM.action === 'rename' ? 'Rename word' : 'Update voice') : 'Upload & Save to Database';
+}
+function ensureConflictUI() {
+    const box = $id('dbWordConflictBox'); if (!box || $id('renameWordInput')) return;
+    const play = document.createElement('button');
+    play.type = 'button'; play.id = 'playCurrentBtn'; play.textContent = '▶ الصوت الحالي';
+    play.className = 'self-start py-1 px-3 rounded-lg bg-slate-800 text-xs font-semibold';
+    play.onclick = () => { if (ADM.existing && ADM.existing.audio_url) new Audio(ADM.existing.audio_url).play().catch(() => showToast('مش قادر أشغّل الصوت', true)); };
+    const rn = document.createElement('input');
+    rn.id = 'renameWordInput'; rn.placeholder = 'الكلمة الجديدة (الصوت يفضل زي ما هو)';
+    rn.className = 'w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm hidden';
+    rn.addEventListener('input', updateSaveState);
+    box.appendChild(play); box.appendChild(rn);
+}
+let _chkT;
+function checkIfWordExistsInDb(v) {
+    clearTimeout(_chkT);
+    _chkT = setTimeout(async () => {
+        const w = String(v || '').trim(), box = $id('dbWordConflictBox');
+        ADM.existing = null;
+        if (!w) { if (box) box.classList.add('hidden'); updateSaveState(); return; }
+        try {
+            const r = await (await sbFetch(`words_table?select=word,audio_url&word=ilike.${enc(likeEsc(w))}&limit=1`)).json();
+            if (Array.isArray(r) && r.length) { ADM.existing = r[0]; if (box) box.classList.remove('hidden'); setConflictAction(ADM.action || 'update'); }
+            else { if (box) box.classList.add('hidden'); updateSaveState(); }
+        } catch (e) { /* ignore */ }
+    }, 300);
+}
+function setConflictAction(a) {
+    ensureConflictUI();
+    ADM.action = a === 'rename' ? 'rename' : 'update';
+    const on = 'flex-1 py-1.5 px-3 rounded-lg bg-amber-600 text-white text-xs font-semibold transition';
+    const off = 'flex-1 py-1.5 px-3 rounded-lg bg-slate-800 text-xs font-semibold transition';
+    const u = $id('btnActionReplace'), r = $id('btnActionExplain');
+    if (u) { u.className = ADM.action === 'update' ? on : off; u.textContent = 'Update voice'; }
+    if (r) { r.className = ADM.action === 'rename' ? on : off; r.textContent = 'Rename word'; }
+    const rn = $id('renameWordInput'); if (rn) rn.classList.toggle('hidden', ADM.action !== 'rename');
+    const t = $id('conflictWarningText'); if (t) t.textContent = 'الكلمة موجودة. تحدّث الصوت (الـ URL القديم يتشال)، ولا تغيّر الكلمة وتسيب الصوت؟';
+    updateSaveState();
+}
+function handleAdminInputEnter(e) { if (e && e.key === 'Enter') pronounceAdminGoogleTranslation(); }
+function pronounceAdminGoogleTranslation() {
+    const w = ($id('newWordInput').value || '').trim(); if (!w) return;
+    const lang = /[\u0600-\u06FF]/.test(w) ? 'ar' : 'en';
+    new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${enc(w)}`).play().catch(() => showToast('مش قادر أشغّل النطق', true));
+}
+async function toggleAdminRecording() {
+    if (ADM.rec && ADM.rec.state === 'recording') { ADM.rec.stop(); return; }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const rec = new MediaRecorder(stream), chunks = [];
+        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = () => {
+            stream.getTracks().forEach(t => t.stop()); clearInterval(ADM.timer);
+            ADM.blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+            const a = $id('adminAudioPlayback'); a.src = URL.createObjectURL(ADM.blob); a.classList.remove('hidden');
+            $id('adminRecordIcon').className = 'fa-solid fa-microphone';
+            updateSaveState();
+        };
+        ADM.rec = rec; rec.start();
+        $id('adminRecordIcon').className = 'fa-solid fa-stop';
+        let s = 0; $id('adminTimer').textContent = '00:00';
+        ADM.timer = setInterval(() => { s++; $id('adminTimer').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }, 1000);
+    } catch (e) { showToast('مفيش صلاحية للميكروفون', true); }
+}
+async function uploadBlobToBucket(blob, word) {
+    const type = (blob.type || 'audio/webm').split(';')[0];
+    const ext = /mp4|aac/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg' : 'webm';
+    const slug = word.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'word';
+    const fname = `${Date.now()}_${slug}.${ext}`;
+    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/audio-files/${fname}`, {
+        method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + window.SB_ACCESS_TOKEN, 'Content-Type': type, 'x-upsert': 'true' }, body: blob
+    });
+    if (!up.ok) throw new Error(friendlyError(await up.text()));
+    return `${SUPABASE_URL}/storage/v1/object/public/audio-files/${fname}`;
+}
+async function uploadAndSaveToSupabase() {
+    const word = ($id('newWordInput').value || '').trim();
+    if (!word) { showToast('اكتب الكلمة الأول', true); return; }
+    if (!window.SB_ACCESS_TOKEN) { onSessionExpired(); return; }
+    const btn = $id('saveToSupabaseBtn'); btn.disabled = true;
+    const ex = ADM.existing;
+    try {
+        if (ex && ADM.action === 'rename') {
+            const nw = ($id('renameWordInput').value || '').trim();
+            if (!nw) throw new Error('اكتب الكلمة الجديدة');
+            if (nw === ex.word) throw new Error('الكلمة الجديدة نفس القديمة');
+            await mutate(`words_table?word=eq.${enc(ex.word)}`, 'PATCH', { word: nw });
+            await markWordHandled(nw);
+            showToast('اتغيّرت الكلمة، والصوت زي ما هو ✓');
+        } else {
+            if (!ADM.blob) throw new Error('سجّل الصوت الأول');
+            const url = await uploadBlobToBucket(ADM.blob, word);
+            if (ex) {
+                await mutate(`words_table?word=eq.${enc(ex.word)}`, 'PATCH', { audio_url: url });
+                const old = urlToPath(ex.audio_url);   // the old URL is replaced; remove its file too (best effort)
+                if (old) fetch(`${SUPABASE_URL}/storage/v1/object/audio-files/${old.split('/').map(enc).join('/')}`, { method: 'DELETE', headers: sbHeaders() }).catch(() => {});
+                showToast('اتحدّث الصوت ✓');
+            } else {
+                await sbFetch('words_table', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ word, audio_url: url }) });
+                showToast('اتضافت الكلمة ✓');
+            }
+            await markWordHandled(word);
+        }
+        ADM.blob = null; ADM.existing = null;
+        $id('adminAudioPlayback').classList.add('hidden'); $id('adminTimer').textContent = '00:00';
+        $id('newWordInput').value = ''; const rn = $id('renameWordInput'); if (rn) rn.value = '';
+        $id('dbWordConflictBox').classList.add('hidden');
+        updateSaveState(); refreshWordLists();
+    } catch (e) { showToast('فشل الحفظ: ' + e.message, true); updateSaveState(); }
+}
+
+/* ===== suggestions: empty field -> oldest pending due words first ===== */
+function initWordSuggest() {
+    const inp = $id('newWordInput'); if (!inp || inp._sg) return; inp._sg = 1;
+    const dd = document.createElement('div');
+    dd.id = 'wordSuggest';
+    dd.style.cssText = 'display:none;max-height:180px;overflow:auto;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#0f172a';
+    inp.parentElement.parentElement.appendChild(dd);
+    const hide = () => { dd.style.display = 'none'; };
+    const show = () => {
+        if (inp.value.trim()) return hide();
+        const list = WL.due.slice().sort((x, y) => String(x.created_at).localeCompare(String(y.created_at))).slice(0, 30);
+        if (!list.length) return hide();
+        dd.innerHTML = list.map((r, i) => `<div data-i="${i}" style="padding:8px 12px;cursor:pointer;font-size:.8rem;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(148,163,184,.15)"><b dir="auto">${esc(r.word)}</b><span style="opacity:.6;font-size:.7rem">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</span></div>`).join('');
+        dd._list = list; dd.style.display = 'block';
+    };
+    dd.addEventListener('mousedown', e => {
+        const row = e.target.closest('[data-i]'); if (!row) return;
+        e.preventDefault(); inp.value = dd._list[+row.dataset.i].word; hide(); checkIfWordExistsInDb(inp.value);
+    });
+    inp.addEventListener('focus', show);
+    inp.addEventListener('input', show);
+    inp.addEventListener('blur', () => setTimeout(hide, 150));
+}
+window.addEventListener('DOMContentLoaded', initWordSuggest);
+
+// load data when a view opens
+(function () {
+    const orig = showAdminView;
+    showAdminView = function (v) {
+        orig(v);
+        if (v === 'voices') refreshWordLists();
+        if (v === 'reports') loadReportsList();
+    };
+})();
