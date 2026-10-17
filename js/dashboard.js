@@ -4,9 +4,9 @@ const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
 const T = {
   en: { hi: 'Welcome, ', today: 'Today', week: '7 days', month: '30 days', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
-        performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
+        performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', attendance: 'Attendance', metrics: 'Scores & details', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
   ar: { hi: 'أهلاً ', today: 'اليوم', week: '٧ أيام', month: '٣٠ يوم', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
-        performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
+        performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
@@ -44,7 +44,7 @@ function spark(vals) {
   const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * 300},${60 - ((v - mn) / sp) * 50}`).join(' ');
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
-const MET = ['performance', 'attitude', 'soft_skills', 'revision'];
+const MET = ['performance', 'attitude', 'soft_skills', 'revision', 'attendance'];
 const MD = [], TK = [], mk = (title, text) => MD.push([title, text]) - 1;
 let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
@@ -109,7 +109,7 @@ function overall(rows, S) {
   const vals = rows.map(ra).filter(v => v != null);
   if (!vals.length) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
   const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', revision: '#f97316', avg: 'var(--avg)' };
+  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', revision: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
     chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 7, lab: 10 });
@@ -121,7 +121,7 @@ const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div
 function render() {
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
-  $('hello').textContent = t.hi + (p.trainee || '');
+  $('hello').textContent = t.hi + (p.trainee || ''); $('kAccT').textContent = t.metrics;
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" style="display:flex;gap:14px"><div style="flex:1"><h4>${t.sessions}</h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
@@ -198,7 +198,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); render();
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); render(); initFloat();
 }
 async function sendReq() {
   const m = $('rqMsg').value.trim(); if (!m) return;
@@ -218,6 +218,77 @@ document.addEventListener('click', e => {
   const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
   tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
-  const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : r[k + '_details'];
+  const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
   if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
+});
+
+/* phone accordions: tap header to open, tap anywhere else to close */
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('.acc');
+  document.querySelectorAll('.acc.open').forEach(x => { if (x !== a) x.classList.remove('open'); });
+  if (a && e.target.closest('.acch')) a.classList.toggle('open');
+});
+
+/* ---- Next session + Dandana (all times in Cairo wall-clock) ---- */
+const DAYRX = [/sun|اح?د|(^|[\s,\/])حد/i, /mon|اتنين|[إا]ثنين/i, /tue|تلات|ثلاث/i, /wed|[اأ]ربع/i, /thu|خميس/i, /fri|جمع/i, /sat|سبت/i];
+const TX = () => lang === 'en' ? { nxt: 'Next session', startsIn: 'Your session starts in', rip: 'Rest in peace', dnd: 'Dandana', tom: tm => `Your session is tomorrow at ${tm}`, inD: (n, tm) => `Your session is in ${n} days at ${tm}` }
+  : { nxt: 'الجلسة الجاية', startsIn: 'جلستك هتبدأ بعد', rip: 'ريست إن بيس', dnd: 'دندنة', tom: tm => `جلستك بكرة الساعة ${tm}`, inD: (n, tm) => n === 2 ? `جلستك بعد يومين الساعة ${tm}` : `جلستك بعد ${n} أيام الساعة ${tm}` };
+function cairoNow() {
+  const g = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+  return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
+}
+function schedule() {
+  const p = D.profile || {}, rows = D.rows, txt = [p.days_a_week, p.session_time].join(' ');
+  let days = DAYRX.map((r, i) => r.test(txt) ? i : -1).filter(i => i >= 0);
+  if (!days.length) days = [...new Set(rows.slice(-8).map(r => new Date(r.supply_date + 'T00:00:00Z').getUTCDay()))];
+  let h = null, m = 0; const mt = String(p.session_time || '').match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|ص|م)?/i);
+  if (mt) { h = +mt[1]; m = +(mt[2] || 0); const x = (mt[3] || '').toLowerCase(); if ((x === 'pm' || x === 'م') && h < 12) h += 12; else if ((x === 'am' || x === 'ص') && h === 12) h = 0; else if (!x && h >= 1 && h <= 8) h += 12; if (h > 23) h = null; }
+  if (h == null) { const L = [...rows].reverse().find(r => r.start_time); if (L) { h = +L.start_time.slice(0, 2); m = +L.start_time.slice(3, 5); } }
+  return h == null || !days.length ? null : { days, h, m };
+}
+function nextAfter(sc, from) {
+  const d0 = new Date(from); d0.setUTCHours(0, 0, 0, 0);
+  for (let i = 0; i < 15; i++) { const d = new Date(d0.getTime() + i * 864e5); if (!sc.days.includes(d.getUTCDay())) continue; const t = d.getTime() + (sc.h * 60 + sc.m) * 6e4; if (t > from) return t; }
+  return null;
+}
+function nxState() {
+  const sc = schedule(); if (!sc) return null;
+  const now = cairoNow(), t0 = Math.floor(now / 864e5) * 864e5, isDay = sc.days.includes(new Date(now).getUTCDay()), nxt = nextAfter(sc, now);
+  return { sc, nxt, st: isDay ? (now < t0 + (sc.h * 60 + sc.m) * 6e4 ? 'count' : 'started') : 'off', n: nxt ? Math.round((Math.floor(nxt / 864e5) * 864e5 - t0) / 864e5) : 0 };
+}
+function dndState() {
+  const rows = D.rows.filter(r => r.dandana && String(r.dandana).trim()); if (!rows.length) return null;
+  const r = rows[rows.length - 1], sc = schedule();
+  if (sc) { const n = nextAfter(sc, Date.parse(r.supply_date + 'T00:00:00Z') + 864e5); if (n && cairoNow() >= n - 5 * 36e5) return null; }
+  return { r, items: String(r.dandana).split(/[\/\n]+/).map(x => x.trim()).filter(Boolean) };
+}
+const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
+function nextCard(s) {
+  const t = TX(), when = s.n === 1 ? t.tom(fmtT(s.sc)) : t.inD(s.n, fmtT(s.sc));
+  if (s.st === 'count') return { html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
+  return { cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
+}
+const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
+function openPop(cards, from) {
+  const o = $('pop'); o.innerHTML = cards.map(c => `<div class="pc ${c.cls || ''}"><button type="button" class="x">×</button>${c.html}</div>`).join(''); o.classList.add('open');
+  if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
+}
+const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
+function initFloat() {
+  const s = nxState(), d = dndState();
+  $('nxBtn').hidden = !s; $('dnBtn').hidden = !d;
+  if (window._popDone) return; window._popDone = true;
+  setTimeout(() => {
+    const s2 = nxState(), d2 = dndState(), c = [];
+    if (s2 && s2.st === 'count') c.push(nextCard(s2));
+    if (d2) c.push(dndCard(d2));
+    if (c.length) openPop(c, s2 && s2.st === 'count' ? $('nxBtn') : $('dnBtn'));
+  }, 2200);
+}
+window.addEventListener('DOMContentLoaded', () => {
+  let pts = []; for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12, r = i % 2 ? 20 : 24; pts.push((26 + r * Math.sin(a)).toFixed(1) + ',' + (26 - r * Math.cos(a)).toFixed(1)); }
+  $('dnBtn').innerHTML = `<svg viewBox="0 0 52 52" width="52" height="52"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs><polygon points="${pts.join(' ')}" fill="url(#sg)" stroke="#bfdbfe" stroke-width="1.2" stroke-linejoin="round"/><text x="26" y="34" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Cairo,sans-serif">د</text></svg>`;
+  $('dnBtn').onclick = e => { e.stopPropagation(); const d = dndState(); if (d) openPop([dndCard(d)], $('dnBtn')); };
+  $('nxBtn').onclick = e => { e.stopPropagation(); const s = nxState(); if (s) openPop([nextCard(s)], $('nxBtn')); };
+  setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
