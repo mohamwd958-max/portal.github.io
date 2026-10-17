@@ -9,7 +9,7 @@
 <!-- SAME theme file as overall.html: adjust the path if your css folder is elsewhere -->
 <link rel="stylesheet" href="Css/overall.css">
 
-<style>
+ <style>
 body{font-family:Inter,Cairo,sans-serif}
 .wrap{max-width:1100px;margin:0 auto;padding:90px 16px 40px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 18px}
@@ -31,8 +31,8 @@ textarea,select{width:100%;border-radius:12px;padding:10px;background:var(--th-i
 .lo{color:#f43f5e}
 body{--ring:#0f172a;--avg:#a855f7}body.light-theme{--ring:#fff;--avg:#7c3aed}
 svg.c2{width:100%;height:auto;display:block;margin-top:8px}.gl{stroke:var(--border-color);stroke-width:1}.tx{fill:var(--th-muted)}
-.ln{stroke-linejoin:round;stroke-linecap:round}.ln.performance{stroke:#ef4444}.ln.attitude{stroke:#3b82f6}.ln.soft_skills{stroke:#10b981}.ln.revision{stroke:#f97316}.ln.avg{stroke:var(--avg)}
-.dot{stroke:var(--ring);stroke-width:2;cursor:pointer}.dot.performance{fill:#ef4444}.dot.attitude{fill:#3b82f6}.dot.soft_skills{fill:#10b981}.dot.revision{fill:#f97316}
+.ln{stroke-linejoin:round;stroke-linecap:round}.ln.performance{stroke:#ef4444}.ln.attitude{stroke:#3b82f6}.ln.soft_skills{stroke:#10b981}.ln.revision{stroke:#f97316}.ln.attendance{stroke:#06b6d4}.ln.avg{stroke:var(--avg)}
+.dot{stroke:var(--ring);stroke-width:2;cursor:pointer}.dot.performance{fill:#ef4444}.dot.attitude{fill:#3b82f6}.dot.soft_skills{fill:#10b981}.dot.revision{fill:#f97316}.dot.attendance{fill:#06b6d4}
 .lg{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:.75rem;color:var(--th-muted)}.lg i{display:inline-block;width:16px;height:4px;border-radius:2px;margin-inline-end:5px;vertical-align:middle}
 .it{padding:8px 0;border-bottom:1px solid var(--border-color);font-size:.85rem}.it:last-child{border:0}.dt{font-size:.7rem;font-weight:700;color:var(--th-muted)}.lst{max-height:340px;overflow:auto}.lst.caps{max-height:216px}
 #barTip{position:fixed;z-index:9999;pointer-events:none;opacity:0;transform:translate(-50%,-100%);transition:opacity .15s;padding:6px 12px;border-radius:10px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.2);font:700 .75rem Cairo,Inter,sans-serif;white-space:nowrap}
@@ -53,24 +53,52 @@ body.light-theme textarea,body.light-theme select{background:#fff;color:#0f172a}
 .mdl{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.75)}.mdl.open{display:flex}
 .mbox{width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:18px;padding:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.15)}body.light-theme .mbox{background:#fff;color:#0f172a}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.mh button{border:0;border-radius:50%;width:30px;height:30px;cursor:pointer}
+[hidden]{display:none!important}
+.fl{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:60;display:flex;flex-direction:column;gap:12px}
+.fl button{width:52px;height:52px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));transition:transform .2s}
+.fl button:hover{transform:scale(1.1)}.fl .nx{border-radius:50%;background:#fbbf24;color:#111;font-size:1.15rem}
+.pop{position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;background:rgba(2,6,23,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.pop.open{display:flex}
+.pc{position:relative;width:100%;max-width:420px;border-radius:20px;padding:18px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.15);animation:pcIn .45s cubic-bezier(.16,1,.3,1)}body.light-theme .pc{background:#fff;color:#0f172a}
+@keyframes pcIn{from{opacity:0;transform:translate(var(--dx,0),var(--dy,0)) scale(.15)}to{opacity:1;transform:none}}
+.pc .x{position:absolute;top:8px;inset-inline-end:8px;width:28px;height:28px;border:0;border-radius:50%;cursor:pointer;background:rgba(148,163,184,.25);color:inherit}
+.pc h3{margin:0 0 8px;font-size:.8rem;font-weight:700;color:var(--th-muted)}.cdn{font-size:2rem;font-weight:800}.pc.rest .cdn{color:#34d399}
+.chip{display:inline-block;margin:3px;padding:6px 12px;border-radius:999px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.55)}
+@media(max-width:600px){.fl{top:auto;bottom:84px;right:12px;transform:none;flex-direction:row}}
 html{-webkit-text-size-adjust:100%}
 .dot.hit{fill:transparent!important;stroke:none!important}
 .circle-badge-btn .l{display:none}
-@media(max-width:768px){
- #mobileFloatingBar{left:10px!important;right:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 18px)!important;transform:none!important;flex-direction:row!important;justify-content:flex-start!important;width:368px;max-width:calc(100vw - 20px);scrollbar-width:none;max-height:none!important;overflow-x:auto;overflow-y:hidden;gap:5px!important;padding:5px 8px!important;white-space:nowrap}
+.wrap{display:flex;flex-direction:column}
+/* card light sweep: same speed (4.2s), but only once every 10s */
+@keyframes thabitCardSwipeSlow{0%{transform:translate(-30%,-30%)}42%{transform:translate(35%,35%)}100%{transform:translate(35%,35%)}}
+.thabit-card::before,.test-card::before{animation:thabitCardSwipeSlow 10s linear infinite!important}
+@media(prefers-reduced-motion:reduce){.thabit-card::before,.test-card::before{animation:none!important}}
+#kpiAcc>.acch{display:none}
+.tk input{-webkit-appearance:none;appearance:none;width:22px;height:22px;margin-top:1px;border:2px solid rgba(148,163,184,.75);border-radius:50%;background:transparent;cursor:pointer;display:grid;place-content:center;transition:background .15s,border-color .15s}
+.tk input::after{content:"";width:5px;height:10px;border:solid #111;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) scale(0) translate(-1px,-1px);transition:transform .15s}
+.tk input:checked{background:#fbbf24;border-color:#fbbf24}.tk input:checked::after{transform:rotate(45deg) scale(1) translate(-1px,-1px)}
+.tk input:focus-visible{outline:2px solid #fbbf24;outline-offset:2px}
+.cap,.cap:hover,.cap:active,.cap:focus{transform:none!important;box-shadow:none!important;transition:background .15s}
+.cap:hover{background:rgba(148,163,184,.2)}
+@media(max-width:600px){
+ #mobileFloatingBar{left:50%!important;right:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 16px)!important;transform:translateX(-50%)!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;width:auto!important;max-width:calc(100vw - 28px);max-height:none!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:6px!important;padding:6px 10px!important;white-space:nowrap}
  #mobileFloatingBar .bar-divider{width:1px!important;height:22px!important;flex:none;align-self:center;background:rgba(148,163,184,.4)}
- #mobileFloatingBar .circle-badge-btn{flex:none;width:auto!important;min-width:36px;height:36px;padding:0 11px;border-radius:999px!important}
- .circle-badge-btn .s{display:none}.circle-badge-btn .l{display:inline}
+ #mobileFloatingBar .circle-badge-btn{flex:none;width:36px!important;min-width:36px;height:36px!important;padding:0!important;border-radius:50%!important;font-size:11px}
  html{font-size:13px}
  .wrap{padding:64px 10px 110px}
+ .top{order:-3}#overall{order:-2}
  .top h1{font-size:1.15rem}
  .rng button{padding:6px 11px;font-size:.72rem}
  .grid{gap:10px;margin-bottom:10px;grid-template-columns:1fr}
- #kpis,#lists{grid-template-columns:1fr 1fr}#kpis>:first-child,#lists>:nth-child(-n+2){grid-column:1/-1}
+ #kpis,#lists{grid-template-columns:1fr 1fr}#kpis>:first-child,#kpis>:last-child,#lists>:nth-child(-n+2){grid-column:1/-1}
  .lst{max-height:200px}.lst.caps{max-height:164px}
  .dcard{padding:12px;border-radius:16px}
  .big{font-size:1.5rem}
  th,td{padding:6px;white-space:normal}.hm{display:none}
+ .acc>.acch{cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+ .acc>.acch::after{content:"\25BE";transition:transform .2s;font-size:1rem}.acc.open>.acch::after{transform:rotate(180deg)}
+ .acc>.accb{display:none}.acc.open>.accb{display:block}
+ #kpiAcc>.acch{padding:12px 14px;margin-bottom:10px;border-radius:16px;border:1px solid var(--border-color);font-weight:700;font-size:.85rem}
+ #kpiAcc.open>.acch{margin-bottom:10px}
 }
 </style>
 </head>
@@ -95,12 +123,12 @@ html{-webkit-text-size-adjust:100%}
 <div class="wrap">
   <div class="top"><h1 id="hello">...</h1>
     <div class="rng" id="rng"></div></div>
-  <div class="grid" id="kpis"></div>
+  <div class="acc" id="kpiAcc"><div class="acch" id="kAccT">Scores &amp; details</div><div class="accb"><div class="grid" id="kpis"></div></div></div>
   <div class="thabit-card dcard" id="overall" style="margin-bottom:14px"></div>
   <div class="grid" id="lists"></div>
   <div class="grid">
-    <div class="thabit-card dcard"><h4 id="tLast">Last session</h4><div id="last"></div></div>
-    <div class="thabit-card dcard"><h4 id="tInfo">My info</h4><div id="info"></div></div>
+    <div class="thabit-card dcard acc"><h4 id="tLast" class="acch">Last session</h4><div id="last" class="accb"></div></div>
+    <div class="thabit-card dcard acc"><h4 id="tInfo" class="acch">My info</h4><div id="info" class="accb"></div></div>
     <div class="thabit-card dcard"><h4 id="tReq">Send a request</h4>
       <select id="rqType"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
       <textarea id="rqMsg" rows="3" maxlength="2000"></textarea>
@@ -108,6 +136,8 @@ html{-webkit-text-size-adjust:100%}
   </div>
   <div class="thabit-card dcard"><h4 id="tHist">Sessions</h4><div class="tbl" id="hist"></div></div>
 </div>
+<div class="fl"><button type="button" id="dnBtn" hidden aria-label="Dandana"></button><button type="button" id="nxBtn" class="nx" hidden aria-label="Next session"><i class="fa-solid fa-angles-right"></i></button></div>
+<div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
 <script src="js/dashboard.js"></script>
