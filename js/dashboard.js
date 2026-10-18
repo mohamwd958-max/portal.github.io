@@ -296,10 +296,10 @@ window.addEventListener('DOMContentLoaded', () => {
 /* ===== Assistant popup (same widget, shown over the dashboard) =====
    states: closed -> open -> minimized (floating button) -> open ... ; X = closed (frame destroyed) */
 (function () {
-  const SRC = 'assistant.html';
+  const SRC = '../assistant.html';
   const NUDGE_EVERY = 5 * 60 * 1000;   // 5 minutes
   const NUDGE_SHOW = 15 * 1000;        // bubble stays 15s
-  const MSG = { en: 'Do you still need me?', ar: 'هل ما زلت بحاجة إليّ؟', eg: 'لسه محتاجني؟' };
+  const MSG = { en: 'I am sleepy :) ', ar: 'أريد أن أرتاح قليلا ', eg: 'لسه محتاجني؟' };
   const TTL = { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' };
   let state = 'closed', loadedKey = null, nudgeT = null, hideT = null;
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
