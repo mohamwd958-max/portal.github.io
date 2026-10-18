@@ -299,7 +299,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const SRC = 'assistant.html';
   const NUDGE_EVERY = 5 * 60 * 1000;   // 5 minutes
   const NUDGE_SHOW = 15 * 1000;        // bubble stays 15s
-  const MSG = { en: 'I am sleepy :) ', ar: 'أريد أن أرتاح قليلا ', eg: 'لسه محتاجني؟' };
+  const MSG = { en: 'I am sleepy :) ', ar: 'أريد أن أرتاح قليلا', eg: 'لسه محتاجني؟' };
   const TTL = { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' };
   let state = 'closed', loadedKey = null, nudgeT = null, hideT = null;
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
@@ -323,8 +323,9 @@ window.addEventListener('DOMContentLoaded', () => {
   function lockScroll(on) { document.documentElement.style.overflow = on ? 'hidden' : ''; }
 
   window.openAssistant = function (e) {
-    if (e && e.preventDefault) e.preventDefault();
     const f = $('asFrame');
+    if (!f || !$('asm')) { console.error('Assistant popup markup missing in dashboard.html'); return; } // link falls back to opening the page
+    if (e && e.preventDefault) e.preventDefault();
     // load lazily on first open; reload only if language/theme changed since it loaded
     if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
     stopTimers();
@@ -342,7 +343,9 @@ window.addEventListener('DOMContentLoaded', () => {
     $('asFrame').removeAttribute('src'); loadedKey = null;
     state = 'closed'; lockScroll(false); stopTimers();
   };
-  $('asNudge').addEventListener('click', openAssistant);
-  $('asNudge').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openAssistant(e); });
+  if ($('asNudge')) {
+    $('asNudge').addEventListener('click', openAssistant);
+    $('asNudge').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openAssistant(e); });
+  }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') minimizeAssistant(); });
 })();
