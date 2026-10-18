@@ -121,7 +121,7 @@ const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div
 function render() {
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
-  $('hello').textContent = t.hi + (p.trainee || ''); $('kAccT').textContent = t.metrics;
+  $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" style="display:flex;gap:14px"><div style="flex:1"><h4>${t.sessions}</h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
@@ -293,59 +293,66 @@ window.addEventListener('DOMContentLoaded', () => {
   setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
 
-/* ===== Assistant popup (same widget, shown over the dashboard) =====
-   states: closed -> open -> minimized (floating button) -> open ... ; X = closed (frame destroyed) */
-(function () {
-  const SRC = 'assistant.html';
-  const NUDGE_EVERY = 5 * 60 * 1000;   // 5 minutes
-  const NUDGE_SHOW = 15 * 1000;        // bubble stays 15s
+/* ===== Panels: Assistant / Profile open as popups over the dashboard; tapping outside parks them as tabs beside the Next-session button ===== */
+window.Panels = (function () {
+  const SRC = 'assistant.html', NUDGE_EVERY = 5 * 60 * 1000, NUDGE_SHOW = 15 * 1000;
   const MSG = { en: 'I am sleepy :) ', ar: 'أريد أن أرتاح قليلا', eg: 'لسه محتاجني؟' };
-  const TTL = { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' };
-  let state = 'closed', loadedKey = null, nudgeT = null, hideT = null;
+  const TTL = { assistant: { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' }, profile: { en: 'Profile', ar: 'ملفي', eg: 'ملفي' } };
+  const DEF = { assistant: { icon: 'fa-microphone-lines', color: '#34d399' }, profile: { icon: 'fa-user', color: '#fbbf24' } };
+  let cur = null, loadedKey = null, nudgeT = null, hideT = null; const mins = [];
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
   const key = () => L() + (document.body.classList.contains('light-theme') ? 'l' : 'd');
+  const lock = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; };
 
-  function hideNudge() { clearTimeout(hideT); $('asNudge').hidden = true; $('asBtn').classList.remove('shk'); }
-  function stopTimers() { clearTimeout(nudgeT); hideNudge(); }
-  function scheduleNudge() {
+  function dock() {
+    $('dock').innerHTML = mins.map(id => `<div class="aswrap"><button type="button" class="dk" data-p="${id}" style="background:${DEF[id].color}" aria-label="${TTL[id][L()]}" title="${TTL[id][L()]}"><i class="fa-solid ${DEF[id].icon}"></i></button>${id === 'assistant' ? '<div class="asn" id="asNudge" role="button" tabindex="0" hidden></div>' : ''}</div>`).join('');
+    $('dock').querySelectorAll('.dk').forEach(b => b.onclick = e => open(b.dataset.p, e));
+    const n = $('asNudge'); if (n) n.onclick = e => open('assistant', e);
+  }
+  function stopNudge() { clearTimeout(nudgeT); clearTimeout(hideT); }
+  function nudge() {
     clearTimeout(nudgeT);
     nudgeT = setTimeout(() => {
-      if (state !== 'min') return;
-      if (!document.hidden) {
-        const n = $('asNudge'), b = $('asBtn');
+      if (!mins.includes('assistant')) return;
+      const n = $('asNudge'), b = $('dock').querySelector('.dk[data-p="assistant"]');
+      if (n && b && !document.hidden) {
         n.textContent = MSG[L()]; n.hidden = false;
         b.classList.remove('shk'); void b.offsetWidth; b.classList.add('shk');
-        hideT = setTimeout(hideNudge, NUDGE_SHOW);
+        hideT = setTimeout(() => { n.hidden = true; b.classList.remove('shk'); }, NUDGE_SHOW);
       }
-      scheduleNudge();
+      nudge();
     }, NUDGE_EVERY);
   }
-  function lockScroll(on) { document.documentElement.style.overflow = on ? 'hidden' : ''; }
-
-  window.openAssistant = function (e) {
-    const f = $('asFrame');
-    if (!f || !$('asm')) { console.error('Assistant popup markup missing in dashboard.html'); return; } // link falls back to opening the page
-    if (e && e.preventDefault) e.preventDefault();
-    // load lazily on first open; reload only if language/theme changed since it loaded
-    if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
-    stopTimers();
-    $('asm').hidden = false; $('asWrap').hidden = true;
-    $('asBtn').title = TTL[L()];
-    state = 'open'; lockScroll(true);
-  };
-  window.minimizeAssistant = function () {
-    if (state !== 'open') return;
-    $('asm').hidden = true; $('asWrap').hidden = false; $('asBtn').title = TTL[L()];
-    state = 'min'; lockScroll(false); scheduleNudge();
-  };
-  window.closeAssistant = function () {
-    $('asm').hidden = true; $('asWrap').hidden = true;
-    $('asFrame').removeAttribute('src'); loadedKey = null;
-    state = 'closed'; lockScroll(false); stopTimers();
-  };
-  if ($('asNudge')) {
-    $('asNudge').addEventListener('click', openAssistant);
-    $('asNudge').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openAssistant(e); });
+  function show(id) {
+    ['assistant', 'profile'].forEach(p => $('pp-' + p).hidden = p !== id);
+    $('asm').hidden = false; lock(true);
   }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') minimizeAssistant(); });
+  function open(id, e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!DEF[id]) return;
+    if (cur === id) return;
+    if (cur) { mins.push(cur); }                         // the one that was open becomes a tab
+    const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
+    if (id === 'assistant') {
+      const f = $('asFrame');
+      if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
+      stopNudge();
+    }
+    if (id === 'profile') { const c = $('info') && $('info').closest('.thabit-card'); if (c && !$('pcard').contains(c)) { c.classList.remove('acc'); c.style.marginBottom = '0'; $('pcard').appendChild(c); } }
+    cur = id; show(id); dock();
+    if (mins.includes('assistant')) nudge();
+  }
+  function min() {
+    if (!cur) return;
+    mins.push(cur); cur = null; $('asm').hidden = true; lock(false); dock();
+    if (mins.includes('assistant')) nudge();
+  }
+  function close() {
+    if (!cur) return;
+    if (cur === 'assistant') { $('asFrame').removeAttribute('src'); loadedKey = null; stopNudge(); }
+    cur = null; $('asm').hidden = true; lock(false); dock();
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') min(); });
+  return { open, min, close };
 })();
+window.openAssistant = e => Panels.open('assistant', e);
