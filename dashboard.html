@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Thabit - Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- SAME theme file as overall.html: adjust the path if your css folder is elsewhere -->
 <link rel="stylesheet" href="Css/overall.css">
 
- <style>
+<style>
 body{font-family:Inter,Cairo,sans-serif}
 .wrap{max-width:1100px;margin:0 auto;padding:90px 16px 40px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 18px}
@@ -100,6 +100,23 @@ html{-webkit-text-size-adjust:100%}
  #kpiAcc>.acch{padding:12px 14px;margin-bottom:10px;border-radius:16px;border:1px solid var(--border-color);font-weight:700;font-size:.85rem}
  #kpiAcc.open>.acch{margin-bottom:10px}
 }
+/* ===== Assistant popup ===== */
+.asm{position:fixed;inset:0;z-index:10002;display:flex;align-items:stretch;justify-content:center;padding:clamp(14px,4vw,40px);background:rgba(2,6,23,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.asbox{position:relative;width:100%;max-width:1100px;border-radius:20px;border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.5);animation:asIn .3s cubic-bezier(.16,1,.3,1)}
+.asbox iframe{width:100%;height:100%;border:0;border-radius:20px;background:#0f172a;display:block}body.light-theme .asbox iframe{background:#fff}
+.asx{position:absolute;top:-12px;inset-inline-end:-12px;z-index:2;width:34px;height:34px;border:0;border-radius:50%;background:#f43f5e;color:#fff;font-size:1.2rem;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+@keyframes asIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.aswrap{position:relative}
+.fl .as{border-radius:50%;background:#34d399;color:#111;font-size:1.15rem}
+.fl .as.shk{animation:asShk .9s ease-in-out 2}
+@keyframes asShk{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-5px) rotate(-12deg)}30%{transform:translateX(5px) rotate(12deg)}45%{transform:translateX(-4px) rotate(-9deg)}60%{transform:translateX(4px) rotate(9deg)}75%{transform:translateX(-2px) rotate(-4deg)}}
+.asn{position:absolute;inset-inline-end:calc(100% + 10px);top:50%;transform:translateY(-50%);white-space:nowrap;padding:8px 14px;border-radius:14px;background:#34d399;color:#111;font-weight:700;font-size:.8rem;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);animation:pcIn .35s cubic-bezier(.16,1,.3,1)}
+.asn::after{content:"";position:absolute;top:50%;inset-inline-end:-5px;width:10px;height:10px;background:#34d399;transform:translateY(-50%) rotate(45deg)}
+@media(prefers-reduced-motion:reduce){.fl .as.shk{animation:none}.asbox{animation:none}}
+@media(max-width:600px){
+ .asn{inset-inline-end:0;top:auto;bottom:calc(100% + 12px);transform:none}
+ .asn::after{top:auto;bottom:-5px;inset-inline-end:20px;transform:rotate(45deg)}
+}
 </style>
 </head>
 <body id="bodyRoot">
@@ -107,7 +124,7 @@ html{-webkit-text-size-adjust:100%}
 <div class="mobile-floating-bar" id="mobileFloatingBar">
   <button type="button" onclick="location.reload()" class="circle-badge-btn" title="Restart Page" style="color:#3b82f6"><i class="fa-solid fa-rotate text-sm"></i></button>
   <div class="bar-divider"></div>
-  <a href="assistant.html" id="floatBtnAssist" title="Pronunciation Assistant" aria-label="Pronunciation Assistant" class="circle-badge-btn" style="color:#34d399"><i class="fa-solid fa-microphone-lines text-sm"></i></a>
+  <a href="../assistant/assistant.html" onclick="openAssistant(event)" id="floatBtnAssist" title="Pronunciation Assistant" aria-label="Pronunciation Assistant" class="circle-badge-btn" style="color:#34d399"><i class="fa-solid fa-microphone-lines text-sm"></i></a>
   <div class="bar-divider"></div>
   <button type="button" onclick="setLanguage('ar')" id="floatBtnAr" class="circle-badge-btn" title="العربية">عربي</button>
   <button type="button" onclick="setLanguage('en')" id="floatBtnEn" class="circle-badge-btn active" title="English"><span class="s">EN</span><span class="l">English</span></button>
@@ -136,7 +153,10 @@ html{-webkit-text-size-adjust:100%}
   </div>
   <div class="thabit-card dcard"><h4 id="tHist">Sessions</h4><div class="tbl" id="hist"></div></div>
 </div>
-<div class="fl"><button type="button" id="dnBtn" hidden aria-label="Dandana"></button><button type="button" id="nxBtn" class="nx" hidden aria-label="Next session"><i class="fa-solid fa-angles-right"></i></button></div>
+<div class="fl"><button type="button" id="dnBtn" hidden aria-label="Dandana"></button><button type="button" id="nxBtn" class="nx" hidden aria-label="Next session"><i class="fa-solid fa-angles-right"></i></button>
+  <div class="aswrap" id="asWrap" hidden><button type="button" id="asBtn" class="as" onclick="openAssistant(event)" aria-label="Assistant"><i class="fa-solid fa-microphone-lines"></i></button><div class="asn" id="asNudge" role="button" tabindex="0" hidden></div></div>
+</div>
+<div class="asm" id="asm" hidden onclick="if(event.target===this)minimizeAssistant()"><div class="asbox"><button type="button" class="asx" onclick="closeAssistant()" aria-label="Close">&times;</button><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></div></div>
 <div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
