@@ -292,3 +292,57 @@ window.addEventListener('DOMContentLoaded', () => {
   $('nxBtn').onclick = e => { e.stopPropagation(); const s = nxState(); if (s) openPop([nextCard(s)], $('nxBtn')); };
   setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
+
+/* ===== Assistant popup (same widget, shown over the dashboard) =====
+   states: closed -> open -> minimized (floating button) -> open ... ; X = closed (frame destroyed) */
+(function () {
+  const SRC = '../assistant/assistant.html';
+  const NUDGE_EVERY = 5 * 60 * 1000;   // 5 minutes
+  const NUDGE_SHOW = 15 * 1000;        // bubble stays 15s
+  const MSG = { en: 'Do you still need me?', ar: 'هل ما زلت بحاجة إليّ؟', eg: 'لسه محتاجني؟' };
+  const TTL = { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' };
+  let state = 'closed', loadedKey = null, nudgeT = null, hideT = null;
+  const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
+  const key = () => L() + (document.body.classList.contains('light-theme') ? 'l' : 'd');
+
+  function hideNudge() { clearTimeout(hideT); $('asNudge').hidden = true; $('asBtn').classList.remove('shk'); }
+  function stopTimers() { clearTimeout(nudgeT); hideNudge(); }
+  function scheduleNudge() {
+    clearTimeout(nudgeT);
+    nudgeT = setTimeout(() => {
+      if (state !== 'min') return;
+      if (!document.hidden) {
+        const n = $('asNudge'), b = $('asBtn');
+        n.textContent = MSG[L()]; n.hidden = false;
+        b.classList.remove('shk'); void b.offsetWidth; b.classList.add('shk');
+        hideT = setTimeout(hideNudge, NUDGE_SHOW);
+      }
+      scheduleNudge();
+    }, NUDGE_EVERY);
+  }
+  function lockScroll(on) { document.documentElement.style.overflow = on ? 'hidden' : ''; }
+
+  window.openAssistant = function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const f = $('asFrame');
+    // load lazily on first open; reload only if language/theme changed since it loaded
+    if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
+    stopTimers();
+    $('asm').hidden = false; $('asWrap').hidden = true;
+    $('asBtn').title = TTL[L()];
+    state = 'open'; lockScroll(true);
+  };
+  window.minimizeAssistant = function () {
+    if (state !== 'open') return;
+    $('asm').hidden = true; $('asWrap').hidden = false; $('asBtn').title = TTL[L()];
+    state = 'min'; lockScroll(false); scheduleNudge();
+  };
+  window.closeAssistant = function () {
+    $('asm').hidden = true; $('asWrap').hidden = true;
+    $('asFrame').removeAttribute('src'); loadedKey = null;
+    state = 'closed'; lockScroll(false); stopTimers();
+  };
+  $('asNudge').addEventListener('click', openAssistant);
+  $('asNudge').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openAssistant(e); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') minimizeAssistant(); });
+})();
