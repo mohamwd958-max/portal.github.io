@@ -108,6 +108,8 @@ function toggleAdminPanel() {
 }
 
 function showAdminView(v) {
+    const pageLabels = {home:'', dashboardMain:'Dashboard', voices:'Upload Voice to the Database', reports:'Reports', mods:'Modifications', sub:'Dashboard'};
+    setAdminPageTitle(pageLabels[v] || '');
     const panelBox = document.getElementById('adminPanel');
     if (panelBox) panelBox.style.maxWidth = '680px';
     const homeEl = document.getElementById('adminHome');
@@ -522,21 +524,118 @@ window.exportArchiveCsv = function () {
    Dashboard sub views
    ========================================================== */
 
+/* ==========================================================
+   Student list + movable student windows
+   ========================================================== */
+const BASIC_INFO_COLUMNS = [
+  'id','trainee','status_as_of_today','personal_skills_weakness_points','personal_skills_strength_points',
+  'linguistic_lacking','linguistic_strengths','current_plan','consistency_issues','specification',
+  'birth_date','most_recent_picture_url','education_on_joining','schooling','location','residence_mostly',
+  'first_thabit_scoring','first_approved_english_test','first_psychological_approved_test','preferred_phone',
+  'preferred_email','days_a_week','session_time','place','subscription','due_date','joining_date','first_session',
+  'created_at','updated_at','preferred name'
+];
+const BASIC_INFO_LABELS = {
+ id:'ID', trainee:'Student / Trainee', status_as_of_today:'Status as of Today',
+ personal_skills_weakness_points:'Personal Skills — Weakness Points', personal_skills_strength_points:'Personal Skills — Strength Points',
+ linguistic_lacking:'Linguistic Lacking', linguistic_strengths:'Linguistic Strengths', current_plan:'Current Plan',
+ consistency_issues:'Consistency Issues', specification:'Specification', birth_date:'Birth Date',
+ most_recent_picture_url:'Most Recent Picture URL', education_on_joining:'Education on Joining', schooling:'Schooling',
+ location:'Location', residence_mostly:'Residence Mostly', first_thabit_scoring:'First Thabit Scoring',
+ first_approved_english_test:'First Approved English Test', first_psychological_approved_test:'First Psychological Approved Test',
+ preferred_phone:'Preferred Phone', preferred_email:'Preferred Email', days_a_week:'Days a Week', session_time:'Session Time',
+ place:'Place', subscription:'Subscription', due_date:'Due Date', joining_date:'Joining Date', first_session:'First Session',
+ created_at:'Created At', updated_at:'Updated At', 'preferred name':'Preferred Name'
+};
+let studentWindowZ = 10000;
+const studentWindowState = new Map();
+
+function setAdminPageTitle(label) {
+  const h = document.getElementById('uiAdminPageTitle');
+  if (h) h.textContent = label || '';
+}
+function studentWindowStyles() {
+ if (document.getElementById('studentWindowStyles')) return;
+ const st = document.createElement('style'); st.id='studentWindowStyles'; st.textContent = `
+ #uiAdminPageTitle{font-size:14px;color:#fbbf24;font-weight:800;text-align:center;flex:1;padding:0 12px;}
+ .student-float{position:fixed;z-index:10000;left:50%;top:50%;transform:translate(-50%,-50%);width:min(920px,calc(100vw - 36px));height:min(78vh,760px);background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:16px;box-shadow:0 25px 90px #000b;display:flex;flex-direction:column;overflow:hidden}
+ .student-float-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111c30;border-bottom:1px solid #334155;cursor:move;user-select:none;touch-action:none}
+ .student-float-title{font-weight:800;color:#fbbf24;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .student-float-body{padding:16px;overflow:auto;flex:1;min-height:0}
+ .student-grid{width:100%;border-collapse:collapse;font-size:13px}.student-grid th,.student-grid td{border-bottom:1px solid #334155;padding:10px;text-align:left;vertical-align:top}.student-grid th{color:#fbbf24;background:#111827;position:sticky;top:0}
+ .student-action{border:1px solid #64748b;background:#334155;color:#fff;border-radius:8px;padding:6px 11px;font-weight:700;margin:2px;cursor:pointer}.student-action.primary{background:#b77908;border-color:#fbbf24;color:#111827}.student-action:disabled{opacity:.5;cursor:not-allowed}
+ .student-field{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:12px;align-items:start;padding:9px 0;border-bottom:1px solid #263449}.student-field label{font-size:12px;color:#cbd5e1;padding-top:8px;overflow-wrap:anywhere}.student-value{width:100%;background:#020617;border:1px solid #334155;border-radius:7px;color:#e2e8f0;padding:8px;min-width:0}.student-value[readonly]{opacity:.85}
+ .student-text-edit{min-height:56px;resize:vertical;cursor:pointer}.student-text-edit:focus{outline:1px solid #fbbf24}.student-float-foot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px;background:#111c30}
+ .student-textarea{width:100%;min-height:55vh;resize:vertical;background:#020617;border:1px solid #475569;border-radius:8px;color:#f8fafc;padding:12px;line-height:1.6;white-space:pre-wrap}
+ @media(max-width:640px){.student-float{width:calc(100vw - 16px);height:86vh}.student-field{grid-template-columns:1fr;gap:4px}.student-float-head{padding:10px}.student-float-body{padding:10px}}
+ `; document.head.appendChild(st);
+}
+function makeStudentWindow(title, body, opts={}) {
+ studentWindowStyles();
+ const id='student-window-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+ const win=document.createElement('section'); win.className='student-float'; win.id=id; win.style.zIndex=String(++studentWindowZ);
+ win.dataset.dirty='false'; win.dataset.title=title;
+ win.innerHTML=`<header class="student-float-head"><div class="student-float-title">${esc(title)}</div><button type="button" class="student-action" data-win-min title="Move aside">↘</button><button type="button" class="student-action" data-win-close title="Close">✕</button></header><div class="student-float-body">${body}</div>${opts.footer===false?'':`<footer class="student-float-foot">${opts.footer||''}</footer>`}`;
+ document.body.appendChild(win); studentWindowState.set(id,{dirty:false});
+ win.addEventListener('pointerdown',()=>{win.style.zIndex=String(++studentWindowZ)});
+ const head=win.querySelector('.student-float-head'); let drag=null;
+ head.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const r=win.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,left:r.left,top:r.top};win.style.transform='none';head.setPointerCapture(e.pointerId)});
+ head.addEventListener('pointermove',e=>{if(!drag)return;win.style.left=Math.max(0,Math.min(innerWidth-win.offsetWidth,drag.left+e.clientX-drag.x))+'px';win.style.top=Math.max(0,Math.min(innerHeight-70,drag.top+e.clientY-drag.y))+'px'});
+ head.addEventListener('pointerup',()=>drag=null); head.addEventListener('pointercancel',()=>drag=null);
+ win.querySelector('[data-win-min]').onclick=()=>{win.style.transform='none';win.style.left=Math.max(8,innerWidth-win.offsetWidth-24)+'px';win.style.top=Math.max(8,Math.min(innerHeight-win.offsetHeight-12,80+document.querySelectorAll('.student-float').length*24))+'px'};
+ win.querySelector('[data-win-close]').onclick=()=>closeStudentWindow(win);
+ return win;
+}
+function closeStudentWindow(win){
+ if(win.dataset.dirty==='true'&&!confirm('فيه تغييرات لسه ما اتحفظتش. متأكد إنك عايز تقفل النافذة من غير حفظ؟'))return;
+ studentWindowState.delete(win.id);win.remove();
+}
+function markStudentWindowDirty(win,dirty=true){win.dataset.dirty=dirty?'true':'false';}
+function openLongTextEditor(parentWin, label, initialValue, onSave){
+ const body=`<p style="margin:0 0 10px;color:#cbd5e1">${esc(label)} — اكتب أو عدّل النص هنا. تقدر تشوف كل السطور.</p><textarea class="student-textarea" id="longTextValue">${esc(initialValue||'')}</textarea>`;
+ const child=makeStudentWindow('Edit text — '+label,body,{footer:'<button class="student-action" data-cancel>Cancel</button><button class="student-action primary" data-save>Save text</button>'});
+ child.querySelector('[data-cancel]').onclick=()=>closeStudentWindow(child);
+ child.querySelector('[data-save]').onclick=()=>{onSave(child.querySelector('#longTextValue').value);child.remove();};
+}
+function basicInfoFieldHtml(row,key,editable){
+ const label=BASIC_INFO_LABELS[key]||key; const val=row[key]??'';
+ if(!editable || ['id','created_at','updated_at'].includes(key))return `<div class="student-field"><label>${esc(label)}</label><div class="student-value" style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(val)||'<span style="color:#64748b">—</span>'}</div></div>`;
+ const dateType=['birth_date','due_date','joining_date','first_session'].includes(key);
+ const cls='student-value '+(!dateType?'student-text-edit':'');
+ return `<div class="student-field"><label for="edit-${esc(key)}">${esc(label)}</label>${dateType?`<input class="${cls}" id="edit-${esc(key)}" data-col="${esc(key)}" type="date" value="${esc(val)}">`:`<textarea class="${cls}" id="edit-${esc(key)}" data-col="${esc(key)}" rows="2" readonly title="Click to edit in a larger text window">${esc(val)}</textarea>`}</div>`;
+}
+async function loadBasicInfoRows(){
+ const res=await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`); const rows=await res.json(); return Array.isArray(rows)?rows:[];
+}
+async function renderStudentList(){
+ const body=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px"><input id="studentSearch" class="student-value" style="max-width:360px" placeholder="Search student name or status"><span id="studentCount" style="color:#94a3b8;font-size:12px"></span></div><div id="studentListContent">Loading students…</div>`;
+ const win=makeStudentWindow('View Student Page',body,{footer:'<button class="student-action" data-refresh>Refresh list</button>'});
+ const content=win.querySelector('#studentListContent');
+ async function load(){content.textContent='Loading students…';try{const rows=await loadBasicInfoRows();win.__rows=rows;draw(rows); }catch(e){content.innerHTML=`<p style="color:#fda4af">Could not load students: ${esc(e.message)}</p><p style="color:#94a3b8;font-size:12px">تأكد إن حساب الأدمن عنده SELECT على public.basic_info.</p>`}}
+ function draw(rows){const q=(win.querySelector('#studentSearch').value||'').toLowerCase();const filtered=rows.filter(r=>String(r.trainee||'').toLowerCase().includes(q)||String(r.status_as_of_today||'').toLowerCase().includes(q));win.querySelector('#studentCount').textContent=`${filtered.length} student(s)`;if(!filtered.length){content.innerHTML='<p style="padding:20px;text-align:center;color:#94a3b8">No students found.</p>';return;}content.innerHTML=`<table class="student-grid"><thead><tr><th>Student / Trainee</th><th>Status as of Today</th><th>Action</th></tr></thead><tbody>${filtered.map(r=>`<tr><td>${esc(r.trainee||'(Unnamed student)')}</td><td style="white-space:pre-wrap">${esc(r.status_as_of_today||'—')}</td><td><button class="student-action primary" data-view="${esc(r.id)}">View</button><button class="student-action" data-edit="${esc(r.id)}">Edit</button></td></tr>`).join('')}</tbody></table>`;content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.view),false));content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.edit),true));}
+ win.querySelector('#studentSearch').addEventListener('input',()=>draw(win.__rows||[]));win.querySelector('[data-refresh]').onclick=load;load();
+}
+function openStudentRecord(row,editable){
+ if(!row){showToast('مش لاقي سجل الطالب المطلوب',true);return;}
+ const keys=BASIC_INFO_COLUMNS.filter(k=>Object.prototype.hasOwnProperty.call(row,k));
+ const body=`<div style="color:#94a3b8;font-size:12px;margin-bottom:12px">${editable?'Editing only this student. Changes are saved to public.basic_info.':'Read-only profile preview from public.basic_info. The full trainee dashboard needs a secure admin-preview RPC.'}</div><div>${keys.map(k=>basicInfoFieldHtml(row,k,editable)).join('')}</div>`;
+ const win=makeStudentWindow((editable?'Edit Student — ':'View Student — ')+(row.trainee||'Unnamed student'),body,{footer:editable?'<button class="student-action" data-cancel>Cancel</button><button class="student-action primary" data-save>Save changes</button>':'<button class="student-action" data-close>Close</button>'});
+ win.__row=row;win.__dirty=false;
+ if(editable){win.querySelectorAll('textarea[data-col]').forEach(el=>el.addEventListener('click',()=>openLongTextEditor(win,BASIC_INFO_LABELS[el.dataset.col]||el.dataset.col,el.value,v=>{el.value=v;markStudentWindowDirty(win,true)})));
+ win.querySelectorAll('input[data-col]').forEach(el=>el.addEventListener('change',()=>markStudentWindowDirty(win,true)));
+ win.querySelector('[data-cancel]').onclick=()=>closeStudentWindow(win);
+ win.querySelector('[data-save]').onclick=async()=>{const patch={};win.querySelectorAll('[data-col]').forEach(el=>patch[el.dataset.col]=el.value===''?null:el.value);patch.updated_at=new Date().toISOString();const btn=win.querySelector('[data-save]');btn.disabled=true;try{const res=await sbFetch(`${PROFILES_TABLE}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(patch)});const saved=await res.json();if(!Array.isArray(saved)||!saved.length)throw new Error('No row was updated. Check UPDATE policy/RLS.');markStudentWindowDirty(win,false);win.__dirty=false;showToast('تم حفظ بيانات '+(row.trainee||'الطالب')+' بنجاح');win.remove();}catch(e){showToast('فشل حفظ بيانات الطالب: '+e.message,true);btn.disabled=false;}};
+ }else win.querySelector('[data-close]').onclick=()=>closeStudentWindow(win);
+}
 async function openDashboardSubView(actionType) {
-    const dashboardMainEl = document.getElementById('adminViewDashboardMain');
-    const subContainer = document.getElementById('adminDynamicSubContainer');
-    const panelBox = document.getElementById('adminPanel');
-
-    if (dashboardMainEl) dashboardMainEl.style.display = 'none';
-    if (subContainer) subContainer.style.display = 'block';
-    if (panelBox) panelBox.style.maxWidth = '96vw';
-
-    const backBtnHtml = `<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
-
-    if (actionType === 'dailySupply') return renderDailySupply(backBtnHtml);
-    if (actionType === 'archive') return renderArchive(backBtnHtml);
-
-    subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
+ const dashboardMainEl=document.getElementById('adminViewDashboardMain');const subContainer=document.getElementById('adminDynamicSubContainer');const panelBox=document.getElementById('adminPanel');
+ if(dashboardMainEl)dashboardMainEl.style.display='none';if(subContainer)subContainer.style.display='block';if(panelBox)panelBox.style.maxWidth='96vw';
+ const labels={masterProfiles:'Trainee Master Profile',view:'View Student Page',modify:'Modify Student Data',dailySupply:'Insert Daily Supply',exception:'Insert Exception / Request',archive:'Archive'};
+ setAdminPageTitle(labels[actionType]||actionType);
+ const backBtnHtml=`<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
+ if(actionType==='view'||actionType==='modify'||actionType==='masterProfiles') { if(subContainer)subContainer.style.display='none'; return renderStudentList(); }
+ if(actionType==='dailySupply')return renderDailySupply(backBtnHtml);if(actionType==='archive')return renderArchive(backBtnHtml);
+ subContainer.innerHTML=`${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
 
 /* ==========================================================
