@@ -132,10 +132,34 @@ function showAdminView(v) {
    ========================================================== */
 
 // لما نضيف تسجيل دخول: خزّن توكن المستخدم في window.SB_ACCESS_TOKEN وكل الطلبات هتستخدمه تلقائياً
+function getSignedInAccessToken() {
+    // Restore the user's Supabase access token from the Admin Panel session
+    // if another script/view has cleared the in-memory variable.
+    if (window.SB_ACCESS_TOKEN && String(window.SB_ACCESS_TOKEN).split('.').length === 3) {
+        try {
+            const payload = JSON.parse(atob(window.SB_ACCESS_TOKEN.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload.role === 'authenticated' && payload.exp > nowSec()) return window.SB_ACCESS_TOKEN;
+        } catch (e) {}
+    }
+    try {
+        const s = JSON.parse(sessionStorage.getItem(ADMIN_SESSION_KEY) || 'null');
+        const token = s && (s.access_token || s.access);
+        if (token && token.split('.').length === 3) {
+            const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload.role === 'authenticated' && payload.exp > nowSec()) {
+                window.SB_ACCESS_TOKEN = token;
+                return token;
+            }
+        }
+    } catch (e) {}
+    return null;
+}
 function sbHeaders(extra) {
+    const token = getSignedInAccessToken();
+    if (!token) throw new Error('جلسة تسجيل الدخول غير موجودة أو انتهت. سجّل الدخول من لوحة الإدارة مرة أخرى.');
     return Object.assign({
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + (window.SB_ACCESS_TOKEN || SUPABASE_ANON_KEY),
+        'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
     }, extra || {});
 }
@@ -143,7 +167,7 @@ function sbHeaders(extra) {
 function friendlyError(txt) {
     try {
         const j = JSON.parse(txt);
-        if (j.code === '42501') return 'PostgreSQL permission denied (42501): قد تكون صلاحيات GRANT على الجدول/Schema ناقصة؛ سياسة RLS وحدها لا تكفي.';
+        if (j.code === '42501') return 'الصلاحيات ناقصة على الجدول (42501). شغّل سكريبت الـ SQL في Supabase.';
         if (j.code === 'PGRST204') return 'عمود غير موجود في الجدول: ' + (j.message || '');
         if (j.code === '42703') return 'عمود غير موجود: ' + (j.message || '');
         return (j.message || txt) + (j.hint ? ' | ' + j.hint : '');
@@ -607,51 +631,13 @@ function basicInfoFieldHtml(row,key,editable){
 async function loadBasicInfoRows(){
  const res=await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`); const rows=await res.json(); return Array.isArray(rows)?rows:[];
 }
-async function renderStudentList(actionType='view', backBtnHtml=''){
- const subContainer=document.getElementById('adminDynamicSubContainer');
- if(!subContainer) return;
- const pageTitle = actionType==='masterProfiles' ? 'Trainee Master Profile' : actionType==='modify' ? 'Modify Student Data' : 'View Student Page';
- const back = backBtnHtml || `<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
- subContainer.style.display='block';
- subContainer.innerHTML=`${back}
-  <section class="tha-note" style="padding:16px;min-height:260px">
-   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <input id="studentSearch" class="student-value" style="max-width:420px;width:100%" placeholder="Search student name or status" aria-label="Search student name or status">
-    <span id="studentCount" style="color:#94a3b8;font-size:12px"></span>
-    <button type="button" class="student-action" id="refreshStudentList">Refresh list</button>
-   </div>
-   <div id="studentListContent">Loading students…</div>
-  </section>`;
- const content=subContainer.querySelector('#studentListContent');
- const search=subContainer.querySelector('#studentSearch');
- const count=subContainer.querySelector('#studentCount');
- let rows=[];
- async function load(){
-   content.textContent='Loading students…';
-   try { rows=await loadBasicInfoRows(); draw(); }
-   catch(e) {
-     const msg=String(e.message||e);
-     content.innerHTML=`<p style="color:#fda4af;font-weight:700">Could not load students: ${esc(msg)}</p>
-       <p style="color:#cbd5e1;font-size:13px;line-height:1.6;margin-top:8px">لو ظهر الخطأ 42501، فغالبًا المشكلة في صلاحيات PostgreSQL (GRANT) بالإضافة إلى RLS، أو إن صلاحيات Data API للجدول معطّلة. تفعيل Policy وحده لا يمنح صلاحية SQL للقراءة.</p>
-       <p style="color:#94a3b8;font-size:12px;margin-top:6px">لا تفتح بيانات الطلاب لدور anon. امنح صلاحية القراءة لحساب authenticated مع سياسة RLS مخصصة للأدمن.</p>`;
-     count.textContent='';
-   }
- }
- function draw(){
-   const q=String(search.value||'').trim().toLowerCase();
-   const filtered=rows.filter(r=>String(r.trainee||'').toLowerCase().includes(q)||String(r.status_as_of_today||'').toLowerCase().includes(q));
-   count.textContent=`${filtered.length} student(s)`;
-   if(!filtered.length){
-     content.innerHTML=rows.length?'<p style="padding:20px;text-align:center;color:#94a3b8">No matching students.</p>':'<p style="padding:20px;text-align:center;color:#94a3b8">No students found.</p>';
-     return;
-   }
-   content.innerHTML=`<div style="overflow:auto;max-width:100%"><table class="student-grid"><thead><tr><th>Student / Trainee</th><th>Status as of Today</th><th>Action</th></tr></thead><tbody>${filtered.map(r=>`<tr><td>${esc(r.trainee||'(Unnamed student)')}</td><td style="white-space:pre-wrap">${esc(r.status_as_of_today||'—')}</td><td style="white-space:nowrap"><button type="button" class="student-action primary" data-view="${esc(r.id)}">View</button><button type="button" class="student-action" data-edit="${esc(r.id)}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
-   content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>openStudentRecord(rows.find(r=>String(r.id)===b.dataset.view),false));
-   content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openStudentRecord(rows.find(r=>String(r.id)===b.dataset.edit),true));
- }
- search.addEventListener('input',draw);
- subContainer.querySelector('#refreshStudentList').onclick=load;
- await load();
+async function renderStudentList(){
+ const body=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px"><input id="studentSearch" class="student-value" style="max-width:360px" placeholder="Search student name or status"><span id="studentCount" style="color:#94a3b8;font-size:12px"></span></div><div id="studentListContent">Loading students…</div>`;
+ const win=makeStudentWindow('View Student Page',body,{footer:'<button class="student-action" data-refresh>Refresh list</button>'});
+ const content=win.querySelector('#studentListContent');
+ async function load(){content.textContent='Loading students…';try{const rows=await loadBasicInfoRows();win.__rows=rows;draw(rows); }catch(e){content.innerHTML=`<p style="color:#fda4af">Could not load students: ${esc(e.message)}</p><p style="color:#94a3b8;font-size:12px">تأكد إن حساب الأدمن عنده SELECT على public.basic_info.</p>`}}
+ function draw(rows){const q=(win.querySelector('#studentSearch').value||'').toLowerCase();const filtered=rows.filter(r=>String(r.trainee||'').toLowerCase().includes(q)||String(r.status_as_of_today||'').toLowerCase().includes(q));win.querySelector('#studentCount').textContent=`${filtered.length} student(s)`;if(!filtered.length){content.innerHTML='<p style="padding:20px;text-align:center;color:#94a3b8">No students found.</p>';return;}content.innerHTML=`<table class="student-grid"><thead><tr><th>Student / Trainee</th><th>Status as of Today</th><th>Action</th></tr></thead><tbody>${filtered.map(r=>`<tr><td>${esc(r.trainee||'(Unnamed student)')}</td><td style="white-space:pre-wrap">${esc(r.status_as_of_today||'—')}</td><td><button class="student-action primary" data-view="${esc(r.id)}">View</button><button class="student-action" data-edit="${esc(r.id)}">Edit</button></td></tr>`).join('')}</tbody></table>`;content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.view),false));content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.edit),true));}
+ win.querySelector('#studentSearch').addEventListener('input',()=>draw(win.__rows||[]));win.querySelector('[data-refresh]').onclick=load;load();
 }
 function openStudentRecord(row,editable){
  if(!row){showToast('مش لاقي سجل الطالب المطلوب',true);return;}
@@ -671,7 +657,7 @@ async function openDashboardSubView(actionType) {
  const labels={masterProfiles:'Trainee Master Profile',view:'View Student Page',modify:'Modify Student Data',dailySupply:'Insert Daily Supply',exception:'Insert Exception / Request',archive:'Archive'};
  setAdminPageTitle(labels[actionType]||actionType);
  const backBtnHtml=`<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
- if(actionType==='view'||actionType==='modify'||actionType==='masterProfiles') { return renderStudentList(actionType, backBtnHtml); }
+ if(actionType==='view'||actionType==='modify'||actionType==='masterProfiles') { if(subContainer)subContainer.style.display='none'; return renderStudentList(); }
  if(actionType==='dailySupply')return renderDailySupply(backBtnHtml);if(actionType==='archive')return renderArchive(backBtnHtml);
  subContainer.innerHTML=`${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
