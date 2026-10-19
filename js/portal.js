@@ -194,9 +194,9 @@ function togglePassVisibility() {
    trainee -> Dashboard
    The role always comes from the database (my_role()), never from the browser. */
 const ROLE_ROUTES = {
-    admin:   'adminpanel.html',
+    admin:   'links/adminpanel/adminpanel.html',
     trainer: 'links/trainer/trainer.html',      // صفحة الترينر مستقبلاً
-    trainee: 'dashboard.html'
+    trainee: 'links/dashboard/dashboard.html'
 };
 const STAFF_SESSION_KEYS = {
     admin:   'thabit_admin_session',            // نفس المفتاح والصيغة اللي لوحة الأدمن بتقراها
@@ -232,7 +232,17 @@ async function fetchMyRole(accessToken) {
 }
 
 function saveStaffSession(j, role) {
-    const sess = { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
+    // Keep both schemas: portal.js uses access/refresh/exp,
+    // while adminpanel.js expects access_token/refresh_token/expires_at.
+    const expiresAtMs = Date.now() + (j.expires_in || 3600) * 1000;
+    const sess = {
+        access: j.access_token,
+        refresh: j.refresh_token,
+        exp: expiresAtMs,
+        access_token: j.access_token,
+        refresh_token: j.refresh_token,
+        expires_at: Math.floor(expiresAtMs / 1000)
+    };
     try { sessionStorage.setItem(STAFF_SESSION_KEYS[role], JSON.stringify(sess)); } catch (e) {}
 }
 
