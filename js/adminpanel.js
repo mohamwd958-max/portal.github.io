@@ -232,6 +232,8 @@ const SUPPLY_FIELDS = [
     { key: 'attitude_details', type: 'text', w: 'w-32' },
     { key: 'soft_skills', type: 'number', w: 'w-16' },
     { key: 'soft_skills_details', type: 'text', w: 'w-32' },
+    { key: 'attendance', type: 'number', w: 'w-16', min: 1, max: 10 },
+    { key: 'attendance_details', type: 'text', w: 'w-32' },
     { key: 'performance', type: 'number', w: 'w-16' },
     { key: 'why', type: 'text', w: 'w-24' },
     { key: 'performance_details', type: 'text', w: 'w-32' },
