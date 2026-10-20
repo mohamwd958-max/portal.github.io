@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google" content="notranslate">
     <title>Thabit</title>
-    <link rel="icon" type="image/svg+xml" href="assets/thabit-black.png">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={plugins:[function(p){p.addVariant("light-theme",".light-theme &")}]}</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,7 +17,14 @@
     .emb-only{display:none}
     .embedded .mobile-floating-bar,.embedded footer,.embedded #mainHeader{display:none!important}
     .embedded .emb-only{display:block}
-    .embedded main{padding-top:12px!important;padding-bottom:12px!important}
+    /* Inside the dashboard popup the page IS the popup: no card-inside-a-card */
+    .embedded,.embedded body{background:transparent}
+    .embedded main{max-width:none!important;padding:14px 16px 18px!important;gap:12px!important}
+    .embedded .thabit-card{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;
+        backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;transform:none!important;overflow:visible!important}
+    .embedded .thabit-card::before,.embedded .thabit-card::after{display:none!important}
+    .embedded .thabit-card:hover{transform:none!important;box-shadow:none!important}
+    @media (max-width:600px){.embedded main{padding:12px 12px 16px!important}}
     #mainActions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
     #mainActions button.big{min-height:60px;padding:10px 4px;font-size:.8rem}
     </style>
