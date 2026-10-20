@@ -33,7 +33,7 @@
 
 body.light-theme {
     background-color: #f1f0ec;
-    background-image: url('assets/marble-white.jpg');
+    background-image: url('../assets/marble-white.jpg');
     --bg-color: #e9e8e3;
     --text-color: #17191b;
 
@@ -69,7 +69,7 @@ body.light-theme {
 
 body {
     background-color: #0b0d0e;
-    background-image: url('assets/marble-black.jpg');
+    background-image: url('../assets/marble-black.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -272,7 +272,7 @@ body::after {
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-image: url('assets/marble-black.jpg');
+    background-image: url('../assets/marble-black.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -1074,7 +1074,7 @@ body.light-theme .test-input {
 /* ---- body / background / font (same as overall) ---- */
 html body#bodyRoot {
     background-color: #0b0d0e !important;
-    background-image: url('assets/marble-black.jpg') !important;
+    background-image: url('../assets/marble-black.jpg') !important;
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
@@ -1086,7 +1086,7 @@ html body#bodyRoot {
 
 html body#bodyRoot.light-theme {
     background-color: #f1f0ec !important;
-    background-image: url('assets/marble-white.jpg') !important;
+    background-image: url('../assets/marble-white.jpg') !important;
 }
 
 /* old icon-pattern background is replaced by the marble */
