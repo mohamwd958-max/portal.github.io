@@ -120,6 +120,22 @@ html{-webkit-text-size-adjust:100%}
 .pf{overflow:auto;padding:18px;border-radius:20px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.2)}body.light-theme .pf{background:#fff;color:#0f172a}
 .fl .dk{border-radius:50%;color:#111;font-size:1.15rem}
 @media(max-width:700px){.asm{padding-bottom:clamp(96px,26vh,230px)}}
+
+/* ===== Assistant popup = the assistant itself (paste at the END of the <style> in dashboard.html) =====
+   Laptop : roomy box, no frame inside a frame.
+   Phone  : full width, starts at the very top, leaves a finger-sized strip at the bottom.
+            Tapping that strip parks the assistant as a floating tab (Panels.min). X closes it. */
+.asm:has(#pp-assistant:not([hidden])){padding:clamp(12px,3vw,32px)}
+.asm:has(#pp-assistant:not([hidden])) .asbox{max-width:1100px;border:0;background:transparent;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.asm:has(#pp-assistant:not([hidden])) .asbox iframe{border-radius:20px}
+@media (max-width:700px){
+  .asm:has(#pp-assistant:not([hidden])){padding:0 0 calc(60px + env(safe-area-inset-bottom,0px)) 0}
+  .asm:has(#pp-assistant:not([hidden])) .asbox{max-width:none;width:100%;border-radius:0 0 22px 22px;animation:none}
+  .asm:has(#pp-assistant:not([hidden])) .asbox iframe{border-radius:0 0 22px 22px}
+  .asm:has(#pp-assistant:not([hidden])) .asx{top:10px;inset-inline-end:10px}
+}
+
+ 
 </style>
 </head>
 <body id="bodyRoot">
