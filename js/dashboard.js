@@ -479,3 +479,4 @@ window.Panels = (function () {
   return { open, min, close };
 })();
 window.openAssistant = e => Panels.open('assistant', e);
+
