@@ -54,7 +54,7 @@ function val(r, k) {
 const DAYS = { week: 7, month: 30, year: 365 };
 const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const hm = v => { const p = String(v || '').split(':'); return p.length > 1 ? (+p[0]) * 60 + (+p[1]) : null; };
-const mins = r => { const a = hm(r.start_time), b = hm(r.end_time); return a == null || b == null ? 0 : (b >= a ? b - a : b + 1440 - a); };
+const mins = r => { if (r.total_minutes != null) return Number(r.total_minutes) || 0; const a = hm(r.start_time), b = hm(r.end_time); return a == null || b == null ? 0 : (b >= a ? b - a : b + 1440 - a); };
 const fmtDur = m => { const H = lang === 'en' ? 'h' : 'س', M = lang === 'en' ? 'min' : 'د'; return m < 60 ? `${m} ${M}` : `${Math.floor(m / 60)}${H}` + (m % 60 ? ` ${m % 60}${M}` : ''); };
 const delta = d => `<div class="${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${d > 0 ? '▲ +' : d < 0 ? '▼ ' : '■ '}${d}</div>`;
 /* cumulative series: days (<=31 days) or months; y max = 10 x days in the window */
@@ -118,16 +118,64 @@ const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
 const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
 
+/* ===== Sessions popup (opened from the Sessions card at the top) ===== */
+function renderSessions(rows) {
+  const t = T[lang], loc = lang === 'en' ? 'en-GB' : 'ar-EG', parts = D.parts || [];
+  const hm5 = v => v ? String(v).slice(0, 5) : '';
+  $('ssT').textContent = t.hist;
+  $('ssSum').innerHTML = `<span><b>${rows.length}</b> ${t.sessions}</span><span><b>${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</b></span>`;
+  $('ssList').innerHTML = rows.length ? rows.slice().reverse().map(r => {
+    let day = ''; try { day = new Date(r.supply_date + 'T12:00:00').toLocaleDateString(loc, { weekday: 'long' }); } catch (e) {}
+    const ps = parts.filter(p => p.supply_date === r.supply_date).sort((a, b) => a.part_no - b.part_no);
+    const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}–${hm5(r.end_time)}` : '';
+    return `<div class="ssi"><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
+      + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
+      + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${fmtDur(m)}</span>` : ''}</div>`
+      + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} · ${esc(hm5(p.start_time))}–${esc(hm5(p.end_time))}</span>`).join('')}</div>` : '')
+      + `</div>`;
+  }).join('') : `<div class="sm">${t.none}</div>`;
+}
+function openSessions() { $('ssm').classList.add('open'); }
+function closeSessions() { $('ssm').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSessions(); });
+
+/* ===== Requests: what + details + one required follow-up question ===== */
+const RQT = {
+  en: { what: 'What is your request?', whatPh: 'e.g. Move Tuesday’s session', msg: 'Details / reason', fin: 'When will you be able to pay?', ses: 'How long will this situation last?',
+        need: 'Please answer the question before sending', needWhat: 'Please write your request', needMsg: 'Please add the details',
+        durs: [['today', 'Today only'], ['2-3d', '2–3 days'], ['1w', 'About a week'], ['2w', 'About 2 weeks'], ['1m', 'About a month'], ['1m+', 'More than a month']] },
+  ar: { what: 'ما هو طلبك؟', whatPh: 'مثال: تأجيل جلسة الثلاثاء', msg: 'التفاصيل / السبب', fin: 'متى ستتمكن من السداد؟', ses: 'كم ستستمر هذه الظروف؟',
+        need: 'من فضلك أجب عن السؤال قبل الإرسال', needWhat: 'اكتب طلبك من فضلك', needMsg: 'أضف التفاصيل من فضلك',
+        durs: [['today', 'اليوم فقط'], ['2-3d', 'من يومين إلى 3 أيام'], ['1w', 'حوالي أسبوع'], ['2w', 'حوالي أسبوعين'], ['1m', 'حوالي شهر'], ['1m+', 'أكثر من شهر']] },
+  eg: { what: 'إيه طلبك؟', whatPh: 'مثلاً: تأجيل سيشن التلات', msg: 'التفاصيل / السبب', fin: 'هتقدر تدفع إمتى؟', ses: 'الموضوع ده هيطول قد إيه؟',
+        need: 'جاوب على السؤال الأول قبل ما تبعت', needWhat: 'اكتب طلبك الأول', needMsg: 'ضيف التفاصيل الأول',
+        durs: [['today', 'النهاردة بس'], ['2-3d', 'يومين تلاتة'], ['1w', 'حوالي أسبوع'], ['2w', 'حوالي أسبوعين'], ['1m', 'حوالي شهر'], ['1m+', 'أكتر من شهر']] }
+};
+const rqT = () => RQT[lang] || RQT.en;
+function rqLabels() {
+  const t = rqT();
+  $('rqLWhat').textContent = t.what; $('rqWhat').placeholder = t.whatPh; $('rqLMsg').textContent = t.msg;
+  rqFollowUI(false);
+}
+function rqFollowUI(reset) {
+  const t = rqT(), ty = $('rqType').value, c = $('rqFollow'), old = $('rqFollowVal'), keep = !reset && old && c.dataset.type === ty ? old.value : '';
+  c.dataset.type = ty;
+  const star = ' <b style="color:#f87171">*</b>';
+  if (ty === 'financial') c.innerHTML = `<label class="rql">${t.fin}${star}</label><input type="date" id="rqFollowVal" min="${ymd(new Date())}" value="${keep}">`;
+  else if (ty === 'session') c.innerHTML = `<label class="rql">${t.ses}${star}</label><select id="rqFollowVal"><option value="">—</option>${t.durs.map(d => `<option value="${d[0]}"${d[0] === keep ? ' selected' : ''}>${d[1]}</option>`).join('')}</select>`;
+  else c.innerHTML = '';
+}
+
 function render() {
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
-  $('kpis').innerHTML = `<div class="thabit-card dcard" style="display:flex;gap:14px"><div style="flex:1"><h4>${t.sessions}</h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
+  $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
   $('lists').innerHTML = todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
-  ['Last', 'Info', 'Req', 'Hist'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
-  $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph;
+  ['Last', 'Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
+  $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
   const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
     ['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
@@ -139,8 +187,7 @@ function render() {
     ['first_thabit_scoring','First Thabit scoring'],['first_approved_english_test','First English test'],['first_psychological_approved_test','First psychological test'],['preferred_phone','Phone'],['preferred_email','Email']];
   $('info').innerHTML = line('Group', L && L.group_name) + IF.map(f => line(f[1], p[f[0]])).join('');
   $('rqList').innerHTML = (D.requests || []).map(r => `<div class="row"><span>${esc(r.message)}<br><span class="sm">${esc(r.type)} · ${esc(r.status)}</span></span><b>${esc(r.admin_reply || '')}</b></div>`).join('');
-  $('hist').innerHTML = rows.length ? '<table><tr><th>Date</th><th>#</th><th>Title</th><th>Perf.</th><th>Att.</th><th>Soft</th><th class="hm">TEFL</th><th class="hm">QOL</th></tr>' +
-    rows.slice().reverse().map(r => `<tr><td>${r.supply_date}</td><td>${r.session_number}</td><td>${esc(r.session_title)}</td><td>${r.performance ?? ''}</td><td>${r.attitude ?? ''}</td><td>${r.soft_skills ?? ''}</td><td class="hm">${esc(r.tefl)}</td><td class="hm">${esc(r.qol)}</td></tr>`).join('') + '</table>' : `<div class="sm">${t.none}</div>`;
+  renderSessions(rows);
   watchTodo();
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
@@ -201,9 +248,16 @@ async function load() {
   d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); render(); initFloat();
 }
 async function sendReq() {
-  const m = $('rqMsg').value.trim(); if (!m) return;
-  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: $('rqType').value, p_message: m });
-  if (ok === true) { $('rqMsg').value = ''; load(); }
+  const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
+  if (!what) { alert(t.needWhat); $('rqWhat').focus(); return; }
+  if (!det) { alert(t.needMsg); $('rqMsg').focus(); return; }
+  if (ty !== 'other' && !fv) { alert(t.need); $('rqFollowVal').focus(); return; }
+  let tail = '';
+  if (ty === 'financial') tail = `\n\n[PAYMENT DATE] ${fv}`;
+  if (ty === 'session') { const d = RQT.en.durs.find(x => x[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
+  const msg = `[REQUEST] ${what}\n[DETAILS] ${det}${tail}`.slice(0, 2000);
+  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg });
+  if (ok === true) { $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); load(); }
 }
 window.addEventListener('DOMContentLoaded', () => {
   try { if (localStorage.getItem('thabit_theme') === 'light') { $('bodyRoot').classList.add('light-theme'); $('themeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {}
