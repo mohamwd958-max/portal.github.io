@@ -78,7 +78,7 @@ function showToast(message, isError = false, orange = false) {
     }, isError ? 8000 : 3000);
 }
 
-function goToPortal() { window.location.href = 'portal/portal.html'; }
+function goToPortal() { window.location.href = 'index.html'; }
 
 window.addEventListener('DOMContentLoaded', async () => {
     const authHome = document.getElementById('thaAuthHome');
@@ -108,8 +108,6 @@ function toggleAdminPanel() {
 }
 
 function showAdminView(v) {
-    const pageLabels = {home:'', dashboardMain:'Dashboard', voices:'Upload Voice to the Database', reports:'Reports', mods:'Modifications', sub:'Dashboard'};
-    setAdminPageTitle(pageLabels[v] || '');
     const panelBox = document.getElementById('adminPanel');
     if (panelBox) panelBox.style.maxWidth = '680px';
     const homeEl = document.getElementById('adminHome');
@@ -132,34 +130,10 @@ function showAdminView(v) {
    ========================================================== */
 
 // لما نضيف تسجيل دخول: خزّن توكن المستخدم في window.SB_ACCESS_TOKEN وكل الطلبات هتستخدمه تلقائياً
-function getSignedInAccessToken() {
-    // Restore the user's Supabase access token from the Admin Panel session
-    // if another script/view has cleared the in-memory variable.
-    if (window.SB_ACCESS_TOKEN && String(window.SB_ACCESS_TOKEN).split('.').length === 3) {
-        try {
-            const payload = JSON.parse(atob(window.SB_ACCESS_TOKEN.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-            if (payload.role === 'authenticated' && payload.exp > nowSec()) return window.SB_ACCESS_TOKEN;
-        } catch (e) {}
-    }
-    try {
-        const s = JSON.parse(sessionStorage.getItem(ADMIN_SESSION_KEY) || 'null');
-        const token = s && (s.access_token || s.access);
-        if (token && token.split('.').length === 3) {
-            const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-            if (payload.role === 'authenticated' && payload.exp > nowSec()) {
-                window.SB_ACCESS_TOKEN = token;
-                return token;
-            }
-        }
-    } catch (e) {}
-    return null;
-}
 function sbHeaders(extra) {
-    const token = getSignedInAccessToken();
-    if (!token) throw new Error('جلسة تسجيل الدخول غير موجودة أو انتهت. سجّل الدخول من لوحة الإدارة مرة أخرى.');
     return Object.assign({
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer ' + (window.SB_ACCESS_TOKEN || SUPABASE_ANON_KEY),
         'Content-Type': 'application/json'
     }, extra || {});
 }
@@ -267,44 +241,261 @@ const SUPPLY_FIELDS = [
     { key: 'plans', type: 'text', w: 'w-32' }
 ];
 
-let supplyState = { students: [], records: [], range: null };
+let supplyState = { students: [], records: [], range: null, parts: [], items: [] };
 let archiveState = { rows: [], cols: [], from: '', to: '' };
 
 const INPUT_CLS = 'bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white';
+const DS_PART_KEYS = ['start_time', 'end_time', 'notes'];
+const dsUI = {};   // idx -> { type, part, locked }
 
-function supplyCell(f, idx, existing, st, defaultDate, range) {
-    let val = existing[f.key];
-    if (f.key === 'supply_date') val = val || defaultDate;
-    if (f.key === 'group_name') val = val || st.group || '';
-    let attrs = '';
-    if (f.key === 'supply_date') {
-        attrs = ` min="${range.min}" max="${range.max}" onchange="onSupplyDateChange(${idx})" title="اختر يوماً من السبت للخميس هذا الأسبوع"`;
-    } else if (f.min !== undefined) {
-        attrs = ` min="${f.min}" max="${f.max}"`;
-    }
-    return `<td class="p-2"><input type="${f.type}" id="ds_${f.key}_${idx}"${attrs} value="${esc(val)}" class="${INPUT_CLS} ${f.w}"></td>`;
+/* ---------- styles (self-contained, sit above every other layer) ---------- */
+(function () {
+    if (document.getElementById('dsCss')) return;
+    const s = document.createElement('style');
+    s.id = 'dsCss';
+    s.textContent = `
+.ds-pf{min-height:28px;width:11rem;padding:4px 8px;border:1px solid #334155;border-radius:6px;background:#020617;color:#e2e8f0;font-size:12px;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-pf.empty{color:#64748b}
+.ds-locked{opacity:.5;pointer-events:none}
+.ds-seg{display:inline-flex;border:1px solid #475569;border-radius:999px;overflow:hidden;font-size:11px;font-weight:700}
+.ds-seg button{padding:4px 10px;color:#94a3b8;background:transparent}
+.ds-seg button.on{background:#f59e0b;color:#0f172a}
+.ds-chips{display:flex;gap:6px;align-items:center}
+.ds-chip{width:26px;height:26px;border-radius:50%;border:1px solid #475569;color:#94a3b8;font-size:12px;font-weight:700;position:relative}
+.ds-chip.on{background:#f59e0b;color:#0f172a;border-color:#f59e0b}
+.ds-chip.saved::after{content:'';position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#10b981;border:1px solid #0f172a}
+.ds-b{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#475569;white-space:nowrap}
+.ds-b:disabled{opacity:.35;cursor:not-allowed}
+.ds-b.green{background:#059669}.ds-b.amber{background:#d97706}.ds-b.blue{background:#2563eb}.ds-b.red{background:#be123c}.ds-b.ghost{background:transparent;border:1px solid #475569;color:#cbd5e1}
+.ds-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(2,6,23,.85);display:flex;align-items:flex-start;justify-content:center;padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}
+.ds-box{width:min(940px,100%);background:#0f172a;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:14px;color:#e2e8f0;font-family:Cairo,Inter,sans-serif}
+.ds-ta{width:100%;min-height:min(46vh,420px);background:#020617;border:1px solid #334155;border-radius:10px;color:#fff;font-size:16px;line-height:1.75;padding:12px;resize:vertical;font-family:inherit}
+.ds-in{width:100%;background:#020617;border:1px solid #334155;border-radius:8px;color:#fff;font-size:16px;padding:8px 10px;font-family:inherit}
+.ds-slot{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #1e293b;border-radius:10px;background:#020617}
+.ds-slot.saved{border-color:rgba(16,185,129,.45)}
+.ds-no{width:26px;height:26px;border-radius:50%;background:#1e293b;color:#fbbf24;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.ds-tag{font-size:10px;padding:2px 8px;border-radius:999px;background:#1e293b;color:#94a3b8}
+.ds-form{border:1px solid rgba(245,158,11,.5);border-radius:10px;padding:10px;background:#0b1220;display:flex;flex-direction:column;gap:8px}
+.ds-lbl{font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:2px;display:block}`;
+    document.head.appendChild(s);
+})();
+
+/* ---------- helpers ---------- */
+function dsMinutes(s, e) {
+    const p = v => { const m = /^(\d{1,2}):(\d{2})/.exec(v || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+    const a = p(s), b = p(e);
+    if (a === null || b === null) return null;
+    return b >= a ? b - a : b + 1440 - a;
+}
+const dsT5 = v => (v ? String(v).slice(0, 5) : '');
+const dsKey = (st, date) => `trainee_id=eq.${encodeURIComponent(st.id)}&supply_date=eq.${encodeURIComponent(date)}`;
+const dsRec = (st, date) => supplyState.records.find(r => String(r.trainee_id) === String(st.id) && r.supply_date === date) || null;
+const dsPartsOf = (st, date) => supplyState.parts.filter(p => String(p.trainee_id) === String(st.id) && p.supply_date === date);
+const dsItemsOf = (st, date, kind) => supplyState.items.filter(i => String(i.trainee_id) === String(st.id) && i.supply_date === date && i.kind === kind);
+const dsEl = (k, idx) => document.getElementById(`ds_${k}_${idx}`);
+const dsDate = idx => (dsEl('supply_date', idx) || {}).value || '';
+
+/* ---------- wide text popup (every text field) ---------- */
+function dsRefreshPf(id) {
+    const h = document.getElementById(id), pf = document.getElementById(id + '_pf');
+    if (!h || !pf) return;
+    const lines = String(h.value || '').split('\n').filter(l => l.trim());
+    pf.textContent = lines.length ? lines[0] + (lines.length > 1 ? '  …' : '') : 'اضغط للكتابة…';
+    pf.classList.toggle('empty', !lines.length);
 }
 
-// لما تغيّر التاريخ في صف: نحمّل بيانات اليوم ده لو متسجلة (عشان ما تكتبش فوقها بالغلط)
-window.onSupplyDateChange = function (idx) {
-    const st = supplyState.students[idx];
-    const date = document.getElementById(`ds_supply_date_${idx}`).value;
-    const rec = supplyState.records.find(r => String(r.trainee_id) === String(st.id) && r.supply_date === date) || {};
-    SUPPLY_FIELDS.forEach(f => {
-        if (f.key === 'supply_date') return;
-        const el = document.getElementById(`ds_${f.key}_${idx}`);
-        if (!el) return;
-        let v = rec[f.key];
-        if (f.key === 'group_name') v = v || st.group || '';
-        el.value = (v === null || v === undefined) ? '' : v;
+window.dsTextPop = function (hiddenId, label) {
+    const hid = document.getElementById(hiddenId);
+    if (!hid) return;
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.innerHTML = `
+      <div class="ds-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+          <b style="color:#fbbf24;font-size:14px">${esc(label)}</b>
+          <button type="button" class="ds-b green" data-done>تم ✓</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button type="button" class="ds-b ghost" data-fmt="num">1. ترقيم</button>
+          <button type="button" class="ds-b ghost" data-fmt="bul">- نقطة</button>
+          <button type="button" class="ds-b ghost" data-fmt="gap">فاصل بين فكرتين</button>
+        </div>
+        <textarea class="ds-ta" dir="auto" spellcheck="false" placeholder="اكتب هنا…"></textarea>
+        <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">
+          سطر يبدأ بـ <b>1.</b> أو <b>a.</b> = أفكار مرتبطة (بيكمّل الترقيم لوحده مع Enter) ·
+          سطر يبدأ بـ <b>-</b> = نقطة مستقلة · سطر فاضي = فكرة جديدة منفصلة
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const ta = ov.querySelector('textarea');
+    ta.value = hid.value || '';
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 30);
+
+    const close = () => {
+        hid.value = ta.value.replace(/[ \t]+$/gm, '').trim();
+        dsRefreshPf(hiddenId);
+        document.removeEventListener('keydown', onKey, true);
+        ov.remove();
+    };
+    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+    ov.addEventListener('touchstart', e => { if (e.target === ov) close(); }, { passive: true });
+    ov.querySelector('[data-done]').onclick = close;
+
+    const next = (tok) => {
+        if (/^\d+$/.test(tok)) return String(+tok + 1);
+        return String.fromCharCode(tok.charCodeAt(0) + 1);
+    };
+    const lineInfo = () => {
+        const v = ta.value, pos = ta.selectionStart;
+        const ls = v.lastIndexOf('\n', pos - 1) + 1;
+        return { v, pos, ls, line: v.slice(ls, pos) };
+    };
+    ta.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+        const { pos, ls, line } = lineInfo();
+        let m = line.match(/^(\s*)(\d+|[a-y])([.)])\s(.*)$/i);
+        let ins = null;
+        if (m) {
+            if (!m[4].trim()) { e.preventDefault(); ta.setRangeText('', ls, pos, 'end'); return; }
+            ins = `\n${m[1]}${next(m[2])}${m[3]} `;
+        } else if ((m = line.match(/^(\s*)([-•])\s(.*)$/))) {
+            if (!m[3].trim()) { e.preventDefault(); ta.setRangeText('', ls, pos, 'end'); return; }
+            ins = `\n${m[1]}${m[2]} `;
+        }
+        if (ins) { e.preventDefault(); ta.setRangeText(ins, pos, ta.selectionEnd, 'end'); }
+    });
+    ov.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => {
+        const { v, pos, ls } = lineInfo();
+        const atBlank = !v.slice(ls, pos).trim() && !v.slice(pos).split('\n')[0].trim();
+        let prefix = '- ';
+        if (b.dataset.fmt === 'num') {
+            const prev = v.slice(0, ls).replace(/\n+$/, '').split('\n').pop() || '';
+            const pm = prev.match(/^\s*(\d+)[.)]\s/);
+            prefix = (pm ? (+pm[1] + 1) : 1) + '. ';
+        }
+        if (b.dataset.fmt === 'gap') { ta.setRangeText(atBlank ? '\n' : '\n\n', pos, ta.selectionEnd, 'end'); }
+        else { ta.setRangeText((atBlank ? '' : '\n') + prefix, pos, ta.selectionEnd, 'end'); }
+        ta.focus();
     });
 };
 
-function readSupplyForm(idx) {
+function dsPopCell(f, idx) {
+    const id = `ds_${f.key}_${idx}`;
+    return `<td class="p-2"><input type="hidden" id="${id}" value="">
+        <div id="${id}_pf" class="ds-pf empty" onclick="dsTextPop('${id}','${esc(f.key)}')">اضغط للكتابة…</div></td>`;
+}
+
+function dsFieldCell(f, idx, range) {
+    if (f.type === 'text') return dsPopCell(f, idx);
+    let attrs = '';
+    if (f.key === 'supply_date') attrs = ` min="${range.min}" max="${range.max}" onchange="onSupplyDateChange(${idx})" title="اختر يوماً من السبت للخميس هذا الأسبوع"`;
+    else if (f.min !== undefined) attrs = ` min="${f.min}" max="${f.max}"`;
+    return `<td class="p-2"><input type="${f.type}" id="ds_${f.key}_${idx}"${attrs} class="${INPUT_CLS} ${f.w}"></td>`;
+}
+
+/* ---------- row state: load / lock / paint ---------- */
+function dsSetField(f, idx, v) {
+    const el = dsEl(f.key, idx);
+    if (!el) return;
+    el.value = (v === null || v === undefined) ? '' : v;
+    if (f.type === 'text') dsRefreshPf(el.id);
+}
+
+function dsLoadRow(idx, date) {
+    const st = supplyState.students[idx];
+    const rec = dsRec(st, date) || {};
+    const parts = dsPartsOf(st, date).sort((a, b) => a.part_no - b.part_no);
+    const type = rec.session_type === 'separated' ? 'separated' : 'mono';
+    const ui = dsUI[idx] = { type, part: parts.length ? parts[parts.length - 1].part_no : 1, locked: !!rec.trainee_id };
+    SUPPLY_FIELDS.forEach(f => {
+        if (f.key === 'supply_date' || f.key === 'tasks' || !dsEl(f.key, idx)) return;
+        let v = rec[f.key];
+        if (f.key === 'group_name') v = v || st.group || '';
+        if (type === 'separated' && DS_PART_KEYS.includes(f.key)) {
+            const p = parts.find(x => x.part_no === ui.part);
+            v = p ? p[f.key] : '';
+        }
+        dsSetField(f, idx, v);
+    });
+    dsPaint(idx);
+}
+
+function dsPaint(idx) {
+    const st = supplyState.students[idx], ui = dsUI[idx], date = dsDate(idx);
+    const rec = dsRec(st, date), saved = dsPartsOf(st, date).map(p => p.part_no);
+
+    const seg = document.getElementById(`ds_type_${idx}`);
+    if (seg) seg.innerHTML = `<div class="ds-seg ${ui.locked ? 'ds-locked' : ''}">
+        <button type="button" class="${ui.type === 'mono' ? 'on' : ''}" onclick="dsSetType(${idx},'mono')">Mono</button>
+        <button type="button" class="${ui.type === 'separated' ? 'on' : ''}" onclick="dsSetType(${idx},'separated')">Separated</button></div>`;
+
+    const pc = document.getElementById(`ds_parts_${idx}`);
+    if (pc) pc.innerHTML = ui.type === 'separated'
+        ? `<div class="ds-chips">${[1, 2, 3, 4].map(n => `<button type="button" class="ds-chip ${ui.part === n ? 'on' : ''} ${saved.includes(n) ? 'saved' : ''}" onclick="dsPickPart(${idx},${n})">${n}</button>`).join('')}</div>`
+        : '<span class="text-slate-600">—</span>';
+
+    SUPPLY_FIELDS.forEach(f => {
+        if (f.key === 'tasks') return;
+        const el = dsEl(f.key, idx);
+        if (!el) return;
+        if (f.type === 'text') document.getElementById(el.id + '_pf').classList.toggle('ds-locked', ui.locked);
+        else el.disabled = ui.locked;
+    });
+    const row = document.getElementById(`ds_row_${idx}`);
+    if (row) {
+        row.querySelector('[data-act=save]').disabled = ui.locked;
+        row.querySelector('[data-act=edit]').disabled = !ui.locked;
+        const ar = row.querySelector('[data-act=archive]');
+        ar.disabled = !(rec && ui.locked && !rec.archived_at);
+        ar.textContent = rec && rec.archived_at ? 'مؤرشف ✓' : 'Archive';
+    }
+    ['task', 'dandana'].forEach(k => {
+        const b = document.getElementById(`ds_${k}_btn_${idx}`);
+        if (b) b.textContent = `${k === 'task' ? 'Tasks' : 'دندنة'} (${dsItemsOf(st, date, k).length})`;
+    });
+}
+
+function dsStash(idx) {   // keep what's typed for the visible part
+    const ui = dsUI[idx];
+    if (ui.type !== 'separated') return null;
+    const o = {};
+    DS_PART_KEYS.forEach(k => { const el = dsEl(k, idx); o[k] = el ? el.value.trim() || null : null; });
+    return o;
+}
+
+window.dsSetType = function (idx, type) {
+    const ui = dsUI[idx];
+    if (ui.locked) { showToast('اضغط Edit الأول عشان تغيّر النوع', true, true); return; }
+    if (ui.type === type) return;
+    ui.type = type;
+    if (type === 'separated') ui.part = 1;
+    dsPaint(idx);
+};
+
+window.dsPickPart = function (idx, n) {
+    const st = supplyState.students[idx], ui = dsUI[idx], date = dsDate(idx);
+    const savedNos = dsPartsOf(st, date).map(p => p.part_no);
+    const isSaved = savedNos.includes(n);
+    if (ui.locked && !isSaved) { ui.locked = false; }          // new part: unlock to start it
+    ui.part = n;
+    const p = dsPartsOf(st, date).find(x => x.part_no === n) || {};
+    DS_PART_KEYS.forEach(k => {
+        const f = SUPPLY_FIELDS.find(x => x.key === k);
+        dsSetField(f, idx, isSaved ? p[k] : '');
+    });
+    dsPaint(idx);
+};
+
+window.onSupplyDateChange = function (idx) { dsLoadRow(idx, dsDate(idx)); };
+
+function dsReadFields(idx) {
     const body = {};
     SUPPLY_FIELDS.forEach(f => {
-        const el = document.getElementById(`ds_${f.key}_${idx}`);
-        const v = el ? el.value.trim() : '';
+        const el = dsEl(f.key, idx);
+        if (!el || f.key === 'tasks') return;
+        const v = el.value.trim();
         if (v === '') body[f.key] = null;
         else if (f.type === 'number') body[f.key] = Number.isNaN(Number(v)) ? null : Number(v);
         else body[f.key] = v;
@@ -312,12 +503,13 @@ function readSupplyForm(idx) {
     return body;
 }
 
+/* ---------- render ---------- */
 async function renderDailySupply(backBtnHtml) {
     const subContainer = document.getElementById('adminDynamicSubContainer');
     subContainer.innerHTML = `${backBtnHtml}<div class="text-center py-6 text-amber-400">جاري تحميل الطلاب وسجلات الأسبوع...</div>`;
 
     const range = getCurrentWeekRange();
-    let students, records;
+    let students, records, parts = [], items = [];
     try {
         students = await fetchStudentsFromSupabase();
         records = await fetchDailySupplyForWeek(range);
@@ -325,90 +517,272 @@ async function renderDailySupply(backBtnHtml) {
         subContainer.innerHTML = `${backBtnHtml}<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">تعذر تحميل البيانات: ${esc(e.message)}</div>`;
         return;
     }
+    try {
+        const q = `select=*&supply_date=gte.${range.min}&supply_date=lte.${range.max}`;
+        parts = await (await sbFetch(`daily_supply_parts?${q}`)).json();
+        items = await (await sbFetch(`supply_items?${q}`)).json();
+    } catch (e) {
+        showToast('شغّل 01_schema.sql في Supabase الأول (الأجزاء والتاسكس مش جاهزين): ' + e.message, true, true);
+    }
     if (!students.length) {
         subContainer.innerHTML = `${backBtnHtml}<div class="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 text-sm">مفيش طلاب راجعين من جدول ${esc(PROFILES_TABLE)}. لو فيه طلاب فعلاً في الجدول يبقى الصلاحيات أو الـ RLS مانعة القراءة.</div>`;
         return;
     }
-
-    supplyState = { students, records, range };
+    supplyState = { students, records, range, parts: Array.isArray(parts) ? parts : [], items: Array.isArray(items) ? items : [] };
 
     const today = localDateStr(new Date());
     const defaultDate = (today >= range.min && today <= range.max) ? today : range.min;
 
-    let tableRows = '';
-    students.forEach((st, idx) => {
-        const name = st.trainee || st.name || 'طالب';
-        const existing = records.find(r => String(r.trainee_id) === String(st.id) && r.supply_date === defaultDate) || {};
-        const cells = SUPPLY_FIELDS.map(f => supplyCell(f, idx, existing, st, defaultDate, range)).join('');
-        tableRows += `
-            <tr class="border-b border-slate-800 hover:bg-slate-950/50 transition">
-                <td class="p-2 font-bold text-amber-300 sticky left-0 bg-slate-900">${esc(name)}</td>
-                ${cells}
-                <td class="p-2"><button type="button" onclick="saveDailySuplyRow(${idx}, this)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold">حفظ وأرشفة</button></td>
-            </tr>`;
+    // column layout: type toggle before session_title, parts right after it, tasks/dandana replace the old tasks box
+    const cols = [];
+    SUPPLY_FIELDS.forEach(f => {
+        if (f.key === 'tasks') {
+            cols.push({ head: 'tasks', cell: i => `<td class="p-2"><button type="button" id="ds_task_btn_${i}" class="ds-b blue" onclick="dsOpenItems(${i},'task')">Tasks</button></td>` });
+            cols.push({ head: 'دندنة', cell: i => `<td class="p-2"><button type="button" id="ds_dandana_btn_${i}" class="ds-b blue" onclick="dsOpenItems(${i},'dandana')">دندنة</button></td>` });
+            return;
+        }
+        if (f.key === 'session_title') cols.push({ head: 'session_type', cell: i => `<td class="p-2" id="ds_type_${i}"></td>` });
+        cols.push({ head: f.key + (f.key === 'supply_date' ? ' (السبت-الخميس)' : ''), cell: i => dsFieldCell(f, i, range) });
+        if (f.key === 'session_title') cols.push({ head: 'parts', cell: i => `<td class="p-2" id="ds_parts_${i}"></td>` });
     });
 
-    const heads = SUPPLY_FIELDS.map(f => `<th class="p-2">${f.key}${f.key === 'supply_date' ? ' (السبت-الخميس)' : ''}</th>`).join('');
+    let tableRows = '';
+    students.forEach((st, idx) => {
+        tableRows += `
+            <tr id="ds_row_${idx}" class="border-b border-slate-800 hover:bg-slate-950/50 transition">
+                <td class="p-2 font-bold text-amber-300 sticky left-0 bg-slate-900">${esc(st.trainee || st.name || 'طالب')}</td>
+                ${cols.map(c => c.cell(idx)).join('')}
+                <td class="p-2"><div style="display:flex;gap:6px">
+                    <button type="button" data-act="save" class="ds-b green" onclick="dsSave(${idx}, this)">Save</button>
+                    <button type="button" data-act="edit" class="ds-b amber" onclick="dsEdit(${idx})">Edit</button>
+                    <button type="button" data-act="archive" class="ds-b blue" onclick="dsArchive(${idx}, this)">Archive</button></div></td>
+            </tr>`;
+    });
 
     subContainer.innerHTML = `${backBtnHtml}
         <div class="flex flex-col gap-3">
             <div class="flex justify-between items-center flex-wrap gap-2">
                 <h4 class="text-amber-400 font-bold text-base"><i class="fa-solid fa-calendar-days"></i> إدارة جدول DailySupply (الأسبوع الحالي: من السبت للخميس)</h4>
-                <span class="text-xs text-slate-400">💡 الحفظ بيحدّث سجل اليوم ده ويحفظ نسخته في الأرشيف.</span>
+                <span class="text-xs text-slate-400">💡 Save بيحفظ بس · Edit بيرجّع التعديل · Archive يدوي، وأي يوم عدّى بيتأرشف لوحده 12 بالليل بتوقيت القاهرة.</span>
             </div>
             <div class="overflow-x-auto border border-slate-700 rounded-xl max-h-[70vh]">
                 <table class="w-full text-left text-xs text-slate-300">
                     <thead class="bg-slate-950 text-amber-300 uppercase text-[10px] sticky top-0">
-                        <tr>
-                            <th class="p-2 sticky left-0 bg-slate-950">trainee name</th>
-                            ${heads}
-                            <th class="p-2">إجراء</th>
-                        </tr>
+                        <tr><th class="p-2 sticky left-0 bg-slate-950">trainee name</th>
+                            ${cols.map(c => `<th class="p-2">${esc(c.head)}</th>`).join('')}
+                            <th class="p-2">إجراء</th></tr>
                     </thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             </div>
         </div>`;
+    students.forEach((st, idx) => {
+        dsEl('supply_date', idx).value = defaultDate;
+        dsLoadRow(idx, defaultDate);
+    });
 }
 
-window.saveDailySuplyRow = async function (idx, btn) {
-    const st = supplyState.students[idx];
+/* ---------- Save / Edit / Archive ---------- */
+window.dsSave = async function (idx, btn) {
+    const st = supplyState.students[idx], ui = dsUI[idx];
     if (!st) { showToast('حصلت مشكلة في تحديد الطالب، افتح الصفحة تاني', true); return; }
     const name = st.trainee || st.name || 'طالب';
-    if (st.id === undefined || st.id === null || st.id === '') {
-        showToast('الطالب ده مالوش id في جدول ' + PROFILES_TABLE, true);
-        return;
+    if (st.id === undefined || st.id === null || st.id === '') { showToast('الطالب ده مالوش id في جدول ' + PROFILES_TABLE, true); return; }
+    const base = dsReadFields(idx);
+    const date = base.supply_date;
+    if (!date) { showToast('اختار التاريخ الأول', true); return; }
+
+    const body = Object.assign({ trainee_id: st.id }, base, { session_type: ui.type, archived_at: null });
+    let partBody = null, merged = null;
+    if (ui.type === 'separated') {
+        const cur = dsStash(idx);
+        if (!cur.start_time && !cur.end_time && !cur.notes) { showToast(`الجزء ${ui.part} فاضي، اكتب وقت أو ملاحظات الأول`, true); return; }
+        partBody = { trainee_id: st.id, supply_date: date, part_no: ui.part, start_time: cur.start_time, end_time: cur.end_time, notes: cur.notes, updated_at: new Date().toISOString() };
+        merged = {};
+        dsPartsOf(st, date).forEach(p => { merged[p.part_no] = p; });
+        merged[ui.part] = partBody;
+        const nos = Object.keys(merged).map(Number).sort((a, b) => a - b);
+        const starts = nos.map(n => dsT5(merged[n].start_time)).filter(Boolean).sort();
+        const ends = nos.map(n => dsT5(merged[n].end_time)).filter(Boolean).sort();
+        body.start_time = starts[0] || null;
+        body.end_time = ends.length ? ends[ends.length - 1] : null;
+        body.total_minutes = nos.reduce((s, n) => s + (dsMinutes(merged[n].start_time, merged[n].end_time) || 0), 0) || null;
+        body.parts_count = nos.length;
+        const nt = nos.filter(n => (merged[n].notes || '').trim()).map(n => `الجزء ${n}:\n${merged[n].notes.trim()}`);
+        body.notes = nt.length ? nt.join('\n\n') : null;
+    } else {
+        body.total_minutes = dsMinutes(base.start_time, base.end_time);
+        body.parts_count = 1;
     }
 
-    const supplyBody = Object.assign({ trainee_id: st.id }, readSupplyForm(idx));
-    if (!supplyBody.supply_date) { showToast('اختار التاريخ الأول', true); return; }
-
     if (btn) btn.disabled = true;
-    const key = `trainee_id=eq.${encodeURIComponent(st.id)}&supply_date=eq.${encodeURIComponent(supplyBody.supply_date)}`;
-
-    // 1) السجل الأساسي في daily_supply
     let saved;
     try {
-        saved = await upsertByKey(DAILY_SUPPLY_TABLE, key, supplyBody);
+        saved = await upsertByKey(DAILY_SUPPLY_TABLE, dsKey(st, date), body);
+        if (partBody) {
+            const pr = await upsertByKey('daily_supply_parts', `${dsKey(st, date)}&part_no=eq.${ui.part}`, partBody);
+            supplyState.parts = supplyState.parts.filter(p => !(String(p.trainee_id) === String(st.id) && p.supply_date === date && p.part_no === ui.part));
+            supplyState.parts.push(pr || partBody);
+        } else if (dsPartsOf(st, date).length) {
+            await sbFetch(`daily_supply_parts?${dsKey(st, date)}`, { method: 'DELETE' });
+            supplyState.parts = supplyState.parts.filter(p => !(String(p.trainee_id) === String(st.id) && p.supply_date === date));
+        }
     } catch (e) {
         showToast('فشل الحفظ: ' + e.message, true);
         if (btn) btn.disabled = false;
         return;
     }
+    supplyState.records = supplyState.records.filter(r => !(String(r.trainee_id) === String(st.id) && r.supply_date === date));
+    supplyState.records.push(saved || body);
+    ui.locked = true;
+    dsPaint(idx);
+    showToast(ui.type === 'separated' ? `اتحفظ الجزء ${ui.part} (${name}) ✓` : `اتحفظ سجل (${name}) ✓`);
+};
 
-    // تحديث النسخة المحلية عشان تغيير التاريخ ورجوعه يعرض اللي اتحفظ
-    supplyState.records = supplyState.records.filter(r =>
-        !(String(r.trainee_id) === String(st.id) && r.supply_date === supplyBody.supply_date));
-    supplyState.records.push(saved || supplyBody);
+window.dsEdit = function (idx) {
+    const st = supplyState.students[idx], ui = dsUI[idx], date = dsDate(idx);
+    if (ui.type !== 'separated') { ui.locked = false; dsPaint(idx); return; }
+    const saved = dsPartsOf(st, date).sort((a, b) => a.part_no - b.part_no);
+    if (!saved.length) { ui.locked = false; dsPaint(idx); return; }
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.innerHTML = `<div class="ds-box" style="max-width:420px;margin-top:12vh">
+        <b style="color:#fbbf24;display:block;margin-bottom:10px">عايز تعدّل أنهي جزء؟</b>
+        <div style="display:flex;flex-direction:column;gap:8px">
+        ${saved.map(p => `<button type="button" class="ds-b amber" style="padding:10px" data-p="${p.part_no}">الجزء ${p.part_no}${p.start_time || p.end_time ? ` · ${dsT5(p.start_time)}–${dsT5(p.end_time)}` : ''}</button>`).join('')}
+        <button type="button" class="ds-b ghost" data-p="0">إلغاء</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+    ov.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+        const n = +b.dataset.p;
+        ov.remove();
+        if (!n) return;
+        ui.locked = false;
+        dsPickPart(idx, n);
+    });
+};
 
-    // 2) نسخة الأرشيف
+window.dsArchive = async function (idx, btn) {
+    const st = supplyState.students[idx], ui = dsUI[idx], date = dsDate(idx), rec = dsRec(st, date);
+    if (!rec || !ui.locked) { showToast('احفظ الأول، وبعدها اعمل Archive', true, true); return; }
+    if (btn) btn.disabled = true;
     try {
-        await upsertByKey(ARCHIVE_TABLE, key, Object.assign({}, supplyBody, { name }));
-        showToast(`تم حفظ وأرشفة سجل (${name}) ✓`);
+        const res = await sbFetch('rpc/archive_supply_row', { method: 'POST', body: JSON.stringify({ p_trainee_id: String(st.id), p_date: date }) });
+        if ((await res.json()) !== true) throw new Error('السجل مش موجود');
+        rec.archived_at = new Date().toISOString();
+        showToast(`اتأرشف (${st.trainee || st.name || 'طالب'}) ✓`);
     } catch (e) {
-        showToast(`اتحفظ في daily_supply لكن الأرشفة فشلت: ${e.message}`, true, true);
+        showToast('فشلت الأرشفة: ' + e.message + ' (شغّل 01_schema.sql لو لسه)', true);
     }
-    if (btn) btn.disabled = false;
+    dsPaint(idx);
+};
+
+/* ---------- Tasks & دندنة editor (10 numbered slots) ---------- */
+const DS_ITEM_CFG = {
+    task: {
+        title: 'Tasks', repLabel: 'عدد مرات المراجعة (1–5)',
+        fields: [
+            { k: 'title', l: 'اسم التاسك', ph: 'مثال: Mix and Match', rows: 1, dir: 'auto' },
+            { k: 'badge', l: 'معلومة إضافية (بتظهر كوسم صغير)', ph: 'مثال: تمرين / عدد التكرار', rows: 1, dir: 'auto' },
+            { k: 'body', l: 'الوصف (Description)', ph: '', rows: 6, dir: 'auto' }]
+    },
+    dandana: {
+        title: 'دندنة', repLabel: 'عدد مرات المراجعة (1–5)',
+        fields: [
+            { k: 'title', l: 'Description (English)', ph: '', rows: 2, dir: 'ltr' },
+            { k: 'badge', l: 'Arabic', ph: '', rows: 2, dir: 'rtl' },
+            { k: 'body', l: 'Notes / ملاحظات', ph: '', rows: 4, dir: 'auto' }]
+    }
+};
+let dsItemCtx = null;
+
+window.dsOpenItems = function (idx, kind) {
+    const date = dsDate(idx);
+    if (!date) { showToast('اختار التاريخ الأول', true); return; }
+    dsItemCtx = { idx, kind, date, open: null, ov: document.createElement('div') };
+    dsItemCtx.ov.className = 'ds-ov';
+    dsItemCtx.ov.addEventListener('mousedown', e => { if (e.target === dsItemCtx.ov) dsCloseItems(); });
+    document.body.appendChild(dsItemCtx.ov);
+    dsItemsRender();
+};
+
+window.dsCloseItems = function () {
+    if (!dsItemCtx) return;
+    dsItemCtx.ov.remove();
+    const idx = dsItemCtx.idx;
+    dsItemCtx = null;
+    dsPaint(idx);
+};
+
+function dsItemsRender() {
+    const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+    const have = dsItemsOf(st, c.date, c.kind);
+    const slots = [];
+    for (let n = 1; n <= 10; n++) {
+        const it = have.find(x => x.item_no === n);
+        if (c.open === n) {
+            slots.push(`<div class="ds-form">
+                <div style="display:flex;align-items:center;gap:8px"><span class="ds-no">${n}</span><b style="color:#fbbf24;font-size:13px">${esc(cfg.title)} ${n}</b></div>
+                ${cfg.fields.map(f => `<div><span class="ds-lbl">${esc(f.l)}</span>
+                    ${f.rows > 1 ? `<textarea id="dsi_${f.k}" rows="${f.rows}" dir="${f.dir}" class="ds-in" placeholder="${esc(f.ph)}"></textarea>`
+                                 : `<input id="dsi_${f.k}" dir="${f.dir}" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
+                <div><span class="ds-lbl">${esc(cfg.repLabel)}</span>
+                    <select id="dsi_rep" class="ds-in" style="width:auto">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">${r}</option>`).join('')}</select></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button type="button" class="ds-b green" onclick="dsItemSave(${n})">Save</button>
+                    <button type="button" class="ds-b ghost" onclick="dsItemOpen(null)">إلغاء</button>
+                    ${it ? `<button type="button" class="ds-b red" onclick="dsItemDelete(${n})">حذف</button>` : ''}</div></div>`);
+        } else if (it) {
+            slots.push(`<div class="ds-slot saved"><span class="ds-no">${n}</span>
+                <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(it.title || (it.body || '').split('\n')[0] || '—')}</div>
+                ${it.badge ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(String(it.badge).split('\n')[0])}</div>` : ''}</div>
+                <span class="ds-tag">×${it.repeats}</span><span class="ds-tag" style="color:#34d399">Done</span>
+                <button type="button" class="ds-b amber" onclick="dsItemOpen(${n})">تعديل</button></div>`);
+        } else {
+            slots.push(`<button type="button" class="ds-slot" style="color:#64748b;width:100%;text-align:start" onclick="dsItemOpen(${n})"><span class="ds-no" style="color:#64748b">${n}</span> + فاضي</button>`);
+        }
+    }
+    c.ov.innerHTML = `<div class="ds-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <b style="color:#fbbf24;font-size:15px">${esc(cfg.title)} · ${esc(st.trainee || st.name || '')} · ${esc(c.date)}</b>
+            <button type="button" class="ds-b ghost" onclick="dsCloseItems()">إغلاق</button></div>
+        <div style="display:flex;flex-direction:column;gap:8px">${slots.join('')}</div></div>`;
+    if (c.open) {
+        const it = have.find(x => x.item_no === c.open) || {};
+        cfg.fields.forEach(f => { document.getElementById('dsi_' + f.k).value = it[f.k] || ''; });
+        document.getElementById('dsi_rep').value = it.repeats || 1;
+        const first = document.getElementById('dsi_' + cfg.fields[0].k);
+        if (first) setTimeout(() => first.focus(), 30);
+    }
+}
+
+window.dsItemOpen = function (n) { dsItemCtx.open = n; dsItemsRender(); };
+
+window.dsItemSave = async function (n) {
+    const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+    const body = { trainee_id: st.id, supply_date: c.date, kind: c.kind, item_no: n, updated_at: new Date().toISOString() };
+    cfg.fields.forEach(f => { body[f.k] = document.getElementById('dsi_' + f.k).value.trim() || null; });
+    body.repeats = Math.min(5, Math.max(1, +document.getElementById('dsi_rep').value || 1));
+    if (!body.title && !body.body) { showToast('اكتب الاسم أو الوصف الأول', true, true); return; }
+    try {
+        const row = await upsertByKey('supply_items', `${dsKey(st, c.date)}&kind=eq.${c.kind}&item_no=eq.${n}`, body);
+        supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === c.kind && i.item_no === n));
+        supplyState.items.push(row || body);
+        c.open = null;
+        dsItemsRender();
+        showToast(`اتحفظ ${cfg.title} ${n} ✓`);
+    } catch (e) { showToast('فشل الحفظ: ' + e.message, true); }
+};
+
+window.dsItemDelete = async function (n) {
+    const c = dsItemCtx, st = supplyState.students[c.idx];
+    if (!confirm('تحذف العنصر ده؟ (بيتمسح معاه سجل تشيكات الطالب)')) return;
+    try {
+        await sbFetch(`supply_items?${dsKey(st, c.date)}&kind=eq.${c.kind}&item_no=eq.${n}`, { method: 'DELETE' });
+        supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === c.kind && i.item_no === n));
+        c.open = null;
+        dsItemsRender();
+    } catch (e) { showToast('فشل الحذف: ' + e.message, true); }
 };
 
 /* ==========================================================
@@ -548,118 +922,21 @@ window.exportArchiveCsv = function () {
    Dashboard sub views
    ========================================================== */
 
-/* ==========================================================
-   Student list + movable student windows
-   ========================================================== */
-const BASIC_INFO_COLUMNS = [
-  'id','trainee','status_as_of_today','personal_skills_weakness_points','personal_skills_strength_points',
-  'linguistic_lacking','linguistic_strengths','current_plan','consistency_issues','specification',
-  'birth_date','most_recent_picture_url','education_on_joining','schooling','location','residence_mostly',
-  'first_thabit_scoring','first_approved_english_test','first_psychological_approved_test','preferred_phone',
-  'preferred_email','days_a_week','session_time','place','subscription','due_date','joining_date','first_session',
-  'created_at','updated_at','preferred name'
-];
-const BASIC_INFO_LABELS = {
- id:'ID', trainee:'Student / Trainee', status_as_of_today:'Status as of Today',
- personal_skills_weakness_points:'Personal Skills — Weakness Points', personal_skills_strength_points:'Personal Skills — Strength Points',
- linguistic_lacking:'Linguistic Lacking', linguistic_strengths:'Linguistic Strengths', current_plan:'Current Plan',
- consistency_issues:'Consistency Issues', specification:'Specification', birth_date:'Birth Date',
- most_recent_picture_url:'Most Recent Picture URL', education_on_joining:'Education on Joining', schooling:'Schooling',
- location:'Location', residence_mostly:'Residence Mostly', first_thabit_scoring:'First Thabit Scoring',
- first_approved_english_test:'First Approved English Test', first_psychological_approved_test:'First Psychological Approved Test',
- preferred_phone:'Preferred Phone', preferred_email:'Preferred Email', days_a_week:'Days a Week', session_time:'Session Time',
- place:'Place', subscription:'Subscription', due_date:'Due Date', joining_date:'Joining Date', first_session:'First Session',
- created_at:'Created At', updated_at:'Updated At', 'preferred name':'Preferred Name'
-};
-let studentWindowZ = 10000;
-const studentWindowState = new Map();
-
-function setAdminPageTitle(label) {
-  const h = document.getElementById('uiAdminPageTitle');
-  if (h) h.textContent = label || '';
-}
-function studentWindowStyles() {
- if (document.getElementById('studentWindowStyles')) return;
- const st = document.createElement('style'); st.id='studentWindowStyles'; st.textContent = `
- #uiAdminPageTitle{font-size:14px;color:#fbbf24;font-weight:800;text-align:center;flex:1;padding:0 12px;}
- .student-float{position:fixed;z-index:10000;left:50%;top:50%;transform:translate(-50%,-50%);width:min(920px,calc(100vw - 36px));height:min(78vh,760px);background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:16px;box-shadow:0 25px 90px #000b;display:flex;flex-direction:column;overflow:hidden}
- .student-float-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111c30;border-bottom:1px solid #334155;cursor:move;user-select:none;touch-action:none}
- .student-float-title{font-weight:800;color:#fbbf24;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .student-float-body{padding:16px;overflow:auto;flex:1;min-height:0}
- .student-grid{width:100%;border-collapse:collapse;font-size:13px}.student-grid th,.student-grid td{border-bottom:1px solid #334155;padding:10px;text-align:left;vertical-align:top}.student-grid th{color:#fbbf24;background:#111827;position:sticky;top:0}
- .student-action{border:1px solid #64748b;background:#334155;color:#fff;border-radius:8px;padding:6px 11px;font-weight:700;margin:2px;cursor:pointer}.student-action.primary{background:#b77908;border-color:#fbbf24;color:#111827}.student-action:disabled{opacity:.5;cursor:not-allowed}
- .student-field{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:12px;align-items:start;padding:9px 0;border-bottom:1px solid #263449}.student-field label{font-size:12px;color:#cbd5e1;padding-top:8px;overflow-wrap:anywhere}.student-value{width:100%;background:#020617;border:1px solid #334155;border-radius:7px;color:#e2e8f0;padding:8px;min-width:0}.student-value[readonly]{opacity:.85}
- .student-text-edit{min-height:56px;resize:vertical;cursor:pointer}.student-text-edit:focus{outline:1px solid #fbbf24}.student-float-foot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px;background:#111c30}
- .student-textarea{width:100%;min-height:55vh;resize:vertical;background:#020617;border:1px solid #475569;border-radius:8px;color:#f8fafc;padding:12px;line-height:1.6;white-space:pre-wrap}
- @media(max-width:640px){.student-float{width:calc(100vw - 16px);height:86vh}.student-field{grid-template-columns:1fr;gap:4px}.student-float-head{padding:10px}.student-float-body{padding:10px}}
- `; document.head.appendChild(st);
-}
-function makeStudentWindow(title, body, opts={}) {
- studentWindowStyles();
- const id='student-window-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
- const win=document.createElement('section'); win.className='student-float'; win.id=id; win.style.zIndex=String(++studentWindowZ);
- win.dataset.dirty='false'; win.dataset.title=title;
- win.innerHTML=`<header class="student-float-head"><div class="student-float-title">${esc(title)}</div><button type="button" class="student-action" data-win-min title="Move aside">↘</button><button type="button" class="student-action" data-win-close title="Close">✕</button></header><div class="student-float-body">${body}</div>${opts.footer===false?'':`<footer class="student-float-foot">${opts.footer||''}</footer>`}`;
- document.body.appendChild(win); studentWindowState.set(id,{dirty:false});
- win.addEventListener('pointerdown',()=>{win.style.zIndex=String(++studentWindowZ)});
- const head=win.querySelector('.student-float-head'); let drag=null;
- head.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const r=win.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,left:r.left,top:r.top};win.style.transform='none';head.setPointerCapture(e.pointerId)});
- head.addEventListener('pointermove',e=>{if(!drag)return;win.style.left=Math.max(0,Math.min(innerWidth-win.offsetWidth,drag.left+e.clientX-drag.x))+'px';win.style.top=Math.max(0,Math.min(innerHeight-70,drag.top+e.clientY-drag.y))+'px'});
- head.addEventListener('pointerup',()=>drag=null); head.addEventListener('pointercancel',()=>drag=null);
- win.querySelector('[data-win-min]').onclick=()=>{win.style.transform='none';win.style.left=Math.max(8,innerWidth-win.offsetWidth-24)+'px';win.style.top=Math.max(8,Math.min(innerHeight-win.offsetHeight-12,80+document.querySelectorAll('.student-float').length*24))+'px'};
- win.querySelector('[data-win-close]').onclick=()=>closeStudentWindow(win);
- return win;
-}
-function closeStudentWindow(win){
- if(win.dataset.dirty==='true'&&!confirm('فيه تغييرات لسه ما اتحفظتش. متأكد إنك عايز تقفل النافذة من غير حفظ؟'))return;
- studentWindowState.delete(win.id);win.remove();
-}
-function markStudentWindowDirty(win,dirty=true){win.dataset.dirty=dirty?'true':'false';}
-function openLongTextEditor(parentWin, label, initialValue, onSave){
- const body=`<p style="margin:0 0 10px;color:#cbd5e1">${esc(label)} — اكتب أو عدّل النص هنا. تقدر تشوف كل السطور.</p><textarea class="student-textarea" id="longTextValue">${esc(initialValue||'')}</textarea>`;
- const child=makeStudentWindow('Edit text — '+label,body,{footer:'<button class="student-action" data-cancel>Cancel</button><button class="student-action primary" data-save>Save text</button>'});
- child.querySelector('[data-cancel]').onclick=()=>closeStudentWindow(child);
- child.querySelector('[data-save]').onclick=()=>{onSave(child.querySelector('#longTextValue').value);child.remove();};
-}
-function basicInfoFieldHtml(row,key,editable){
- const label=BASIC_INFO_LABELS[key]||key; const val=row[key]??'';
- if(!editable || ['id','created_at','updated_at'].includes(key))return `<div class="student-field"><label>${esc(label)}</label><div class="student-value" style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(val)||'<span style="color:#64748b">—</span>'}</div></div>`;
- const dateType=['birth_date','due_date','joining_date','first_session'].includes(key);
- const cls='student-value '+(!dateType?'student-text-edit':'');
- return `<div class="student-field"><label for="edit-${esc(key)}">${esc(label)}</label>${dateType?`<input class="${cls}" id="edit-${esc(key)}" data-col="${esc(key)}" type="date" value="${esc(val)}">`:`<textarea class="${cls}" id="edit-${esc(key)}" data-col="${esc(key)}" rows="2" readonly title="Click to edit in a larger text window">${esc(val)}</textarea>`}</div>`;
-}
-async function loadBasicInfoRows(){
- const res=await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`); const rows=await res.json(); return Array.isArray(rows)?rows:[];
-}
-async function renderStudentList(){
- const body=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px"><input id="studentSearch" class="student-value" style="max-width:360px" placeholder="Search student name or status"><span id="studentCount" style="color:#94a3b8;font-size:12px"></span></div><div id="studentListContent">Loading students…</div>`;
- const win=makeStudentWindow('View Student Page',body,{footer:'<button class="student-action" data-refresh>Refresh list</button>'});
- const content=win.querySelector('#studentListContent');
- async function load(){content.textContent='Loading students…';try{const rows=await loadBasicInfoRows();win.__rows=rows;draw(rows); }catch(e){content.innerHTML=`<p style="color:#fda4af">Could not load students: ${esc(e.message)}</p><p style="color:#94a3b8;font-size:12px">تأكد إن حساب الأدمن عنده SELECT على public.basic_info.</p>`}}
- function draw(rows){const q=(win.querySelector('#studentSearch').value||'').toLowerCase();const filtered=rows.filter(r=>String(r.trainee||'').toLowerCase().includes(q)||String(r.status_as_of_today||'').toLowerCase().includes(q));win.querySelector('#studentCount').textContent=`${filtered.length} student(s)`;if(!filtered.length){content.innerHTML='<p style="padding:20px;text-align:center;color:#94a3b8">No students found.</p>';return;}content.innerHTML=`<table class="student-grid"><thead><tr><th>Student / Trainee</th><th>Status as of Today</th><th>Action</th></tr></thead><tbody>${filtered.map(r=>`<tr><td>${esc(r.trainee||'(Unnamed student)')}</td><td style="white-space:pre-wrap">${esc(r.status_as_of_today||'—')}</td><td><button class="student-action primary" data-view="${esc(r.id)}">View</button><button class="student-action" data-edit="${esc(r.id)}">Edit</button></td></tr>`).join('')}</tbody></table>`;content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.view),false));content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openStudentRecord(win.__rows.find(r=>r.id===b.dataset.edit),true));}
- win.querySelector('#studentSearch').addEventListener('input',()=>draw(win.__rows||[]));win.querySelector('[data-refresh]').onclick=load;load();
-}
-function openStudentRecord(row,editable){
- if(!row){showToast('مش لاقي سجل الطالب المطلوب',true);return;}
- const keys=BASIC_INFO_COLUMNS.filter(k=>Object.prototype.hasOwnProperty.call(row,k));
- const body=`<div style="color:#94a3b8;font-size:12px;margin-bottom:12px">${editable?'Editing only this student. Changes are saved to public.basic_info.':'Read-only profile preview from public.basic_info. The full trainee dashboard needs a secure admin-preview RPC.'}</div><div>${keys.map(k=>basicInfoFieldHtml(row,k,editable)).join('')}</div>`;
- const win=makeStudentWindow((editable?'Edit Student — ':'View Student — ')+(row.trainee||'Unnamed student'),body,{footer:editable?'<button class="student-action" data-cancel>Cancel</button><button class="student-action primary" data-save>Save changes</button>':'<button class="student-action" data-close>Close</button>'});
- win.__row=row;win.__dirty=false;
- if(editable){win.querySelectorAll('textarea[data-col]').forEach(el=>el.addEventListener('click',()=>openLongTextEditor(win,BASIC_INFO_LABELS[el.dataset.col]||el.dataset.col,el.value,v=>{el.value=v;markStudentWindowDirty(win,true)})));
- win.querySelectorAll('input[data-col]').forEach(el=>el.addEventListener('change',()=>markStudentWindowDirty(win,true)));
- win.querySelector('[data-cancel]').onclick=()=>closeStudentWindow(win);
- win.querySelector('[data-save]').onclick=async()=>{const patch={};win.querySelectorAll('[data-col]').forEach(el=>patch[el.dataset.col]=el.value===''?null:el.value);patch.updated_at=new Date().toISOString();const btn=win.querySelector('[data-save]');btn.disabled=true;try{const res=await sbFetch(`${PROFILES_TABLE}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(patch)});const saved=await res.json();if(!Array.isArray(saved)||!saved.length)throw new Error('No row was updated. Check UPDATE policy/RLS.');markStudentWindowDirty(win,false);win.__dirty=false;showToast('تم حفظ بيانات '+(row.trainee||'الطالب')+' بنجاح');win.remove();}catch(e){showToast('فشل حفظ بيانات الطالب: '+e.message,true);btn.disabled=false;}};
- }else win.querySelector('[data-close]').onclick=()=>closeStudentWindow(win);
-}
 async function openDashboardSubView(actionType) {
- const dashboardMainEl=document.getElementById('adminViewDashboardMain');const subContainer=document.getElementById('adminDynamicSubContainer');const panelBox=document.getElementById('adminPanel');
- if(dashboardMainEl)dashboardMainEl.style.display='none';if(subContainer)subContainer.style.display='block';if(panelBox)panelBox.style.maxWidth='96vw';
- const labels={masterProfiles:'Trainee Master Profile',view:'View Student Page',modify:'Modify Student Data',dailySupply:'Insert Daily Supply',exception:'Insert Exception / Request',archive:'Archive'};
- setAdminPageTitle(labels[actionType]||actionType);
- const backBtnHtml=`<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
- if(actionType==='view'||actionType==='modify'||actionType==='masterProfiles') { if(subContainer)subContainer.style.display='none'; return renderStudentList(); }
- if(actionType==='dailySupply')return renderDailySupply(backBtnHtml);if(actionType==='archive')return renderArchive(backBtnHtml);
- subContainer.innerHTML=`${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
+    const dashboardMainEl = document.getElementById('adminViewDashboardMain');
+    const subContainer = document.getElementById('adminDynamicSubContainer');
+    const panelBox = document.getElementById('adminPanel');
+
+    if (dashboardMainEl) dashboardMainEl.style.display = 'none';
+    if (subContainer) subContainer.style.display = 'block';
+    if (panelBox) panelBox.style.maxWidth = '96vw';
+
+    const backBtnHtml = `<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
+
+    if (actionType === 'dailySupply') return renderDailySupply(backBtnHtml);
+    if (actionType === 'archive') return renderArchive(backBtnHtml);
+
+    subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
 
 /* ==========================================================
