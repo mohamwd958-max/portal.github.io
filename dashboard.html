@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Thabit - Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- SAME theme file as overall.html: adjust the path if your css folder is elsewhere -->
 <link rel="stylesheet" href="Css/overall.css">
 <style>
 body{font-family:Inter,Cairo,sans-serif}
@@ -135,7 +134,24 @@ html{-webkit-text-size-adjust:100%}
   .asm:has(#pp-assistant:not([hidden])) .asx{top:10px;inset-inline-end:10px}
 }
 
- 
+/* ===== Sessions popup (blurred backdrop) ===== */
+.ssm{position:fixed;inset:0;z-index:9990;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.4);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}.ssm.open{display:flex}
+.ssbox{width:min(580px,100%);max-height:86vh;display:flex;flex-direction:column;border-radius:22px;padding:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 70px rgba(0,0,0,.5)}
+body.light-theme .ssbox{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
+.ssh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.ssh b{font-size:1.05rem}
+.ssh button{width:32px;height:32px;border-radius:50%;border:0;background:rgba(148,163,184,.2);color:inherit;font-size:1.2rem;cursor:pointer}
+.sssum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.sssum span{padding:4px 12px;border-radius:999px;background:rgba(251,191,36,.15);color:#fbbf24;font-size:.8rem}
+body.light-theme .sssum span{color:#92400e}
+.sslist{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-inline-end:2px}
+.ssi{padding:10px 12px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
+.ssd{display:flex;align-items:center;gap:8px;font-size:.85rem}.ssd span{opacity:.7;font-size:.78rem}.ssd i{margin-inline-start:auto;font-style:normal;font-weight:800;color:#fbbf24}
+.sst{margin-top:2px;font-size:.85rem}
+.sss,.ssp{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.sss span,.ssp span{font-size:.72rem;padding:2px 9px;border-radius:999px;background:rgba(148,163,184,.18)}
+.ssp span{background:rgba(52,211,153,.15);color:#34d399}
+/* ===== Request form ===== */
+.rql{display:block;font-size:.75rem;margin:4px 2px 4px;opacity:.85;font-weight:600}
+#rqWhat,#rqFollowVal{width:100%;border-radius:12px;padding:10px;background:var(--th-input-bg);border:1px solid var(--th-input-border);color:var(--text-color);margin-bottom:8px;font:inherit}
+body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f172a}
 </style>
 </head>
 <body id="bodyRoot">
@@ -164,21 +180,24 @@ html{-webkit-text-size-adjust:100%}
   <div class="grid" id="lists"></div>
   <div class="grid">
     <div class="thabit-card dcard acc"><h4 id="tLast" class="acch">Last session</h4><div id="last" class="accb"></div></div>
-    <div class="thabit-card dcard acc"><h4 id="tInfo" class="acch">My info</h4><div id="info" class="accb"></div></div>
     <div class="thabit-card dcard"><h4 id="tReq">Send a request</h4>
-      <select id="rqType"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
-      <textarea id="rqMsg" rows="3" maxlength="2000"></textarea>
+      <select id="rqType" onchange="rqFollowUI(true)"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
+      <label class="rql" id="rqLWhat">What is your request?</label><input type="text" id="rqWhat" maxlength="140" autocomplete="off">
+      <label class="rql" id="rqLMsg">Details / reason</label><textarea id="rqMsg" rows="3" maxlength="1500"></textarea>
+      <div id="rqFollow"></div>
       <button class="btn2" onclick="sendReq()" id="rqBtn">Send</button><div id="rqList" style="margin-top:12px"></div></div>
   </div>
-  <div class="thabit-card dcard"><h4 id="tHist">Sessions</h4><div class="tbl" id="hist"></div></div>
 </div>
 <div class="fl"><button type="button" id="dnBtn" hidden aria-label="Dandana"></button><button type="button" id="nxBtn" class="nx" hidden aria-label="Next session"><i class="fa-solid fa-angles-right"></i></button>
   <div id="dock" style="display:contents"></div>
 </div>
 <div class="asm" id="asm" hidden onclick="if(event.target===this)Panels.min()"><div class="asbox"><button type="button" class="asx" onclick="Panels.close()" aria-label="Close">&times;</button>
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
-  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div id="pcard"></div></section>
+  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
+<div class="ssm" id="ssm" onclick="if(event.target===this)closeSessions()"><div class="ssbox">
+  <div class="ssh"><b id="ssT">Sessions</b><button type="button" onclick="closeSessions()" aria-label="Close">&times;</button></div>
+  <div class="sssum" id="ssSum"></div><div class="sslist" id="ssList"></div></div></div>
 <div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
