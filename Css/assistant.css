@@ -210,7 +210,7 @@ body.light-theme .tha-tag{color:#a16207}
 
 body.light-theme {
     background-color: #f1f0ec;
-    background-image: url('assets/marble-white.jpg');
+    background-image: url('../assets/marble-white.jpg');
     --bg-color: #e9e8e3;
     --text-color: #17191b;
 
@@ -246,7 +246,7 @@ body.light-theme {
 
 body {
     background-color: #0b0d0e;
-    background-image: url('assets/marble-black.jpg');
+    background-image: url('../assets/marble-black.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
