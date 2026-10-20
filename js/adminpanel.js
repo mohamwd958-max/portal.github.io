@@ -322,7 +322,7 @@ window.dsTextPop = function (hiddenId, label) {
           <button type="button" class="ds-b ghost" data-fmt="bul">- نقطة</button>
           <button type="button" class="ds-b ghost" data-fmt="gap">فاصل بين فكرتين</button>
         </div>
-        <textarea class="ds-ta" dir="auto" spellcheck="false" placeholder="اكتب هنا…"></textarea>
+        <textarea class="ds-ta" dir="auto" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="اكتب هنا…"></textarea>
         <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">
           سطر يبدأ بـ <b>1.</b> أو <b>a.</b> = أفكار مرتبطة (بيكمّل الترقيم لوحده مع Enter) ·
           سطر يبدأ بـ <b>-</b> = نقطة مستقلة · سطر فاضي = فكرة جديدة منفصلة
@@ -726,8 +726,8 @@ function dsItemsRender() {
             slots.push(`<div class="ds-form">
                 <div style="display:flex;align-items:center;gap:8px"><span class="ds-no">${n}</span><b style="color:#fbbf24;font-size:13px">${esc(cfg.title)} ${n}</b></div>
                 ${cfg.fields.map(f => `<div><span class="ds-lbl">${esc(f.l)}</span>
-                    ${f.rows > 1 ? `<textarea id="dsi_${f.k}" rows="${f.rows}" dir="${f.dir}" class="ds-in" placeholder="${esc(f.ph)}"></textarea>`
-                                 : `<input id="dsi_${f.k}" dir="${f.dir}" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
+                    ${f.rows > 1 ? `<textarea id="dsi_${f.k}" rows="${f.rows}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}"></textarea>`
+                                 : `<input id="dsi_${f.k}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
                 <div><span class="ds-lbl">${esc(cfg.repLabel)}</span>
                     <select id="dsi_rep" class="ds-in" style="width:auto">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">${r}</option>`).join('')}</select></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
