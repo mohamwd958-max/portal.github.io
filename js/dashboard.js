@@ -173,7 +173,7 @@ function render() {
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
-  $('lists').innerHTML = todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  $('lists').innerHTML = itemsCard('task') + itemsCard('dandana') + todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
   ['Last', 'Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
@@ -195,6 +195,72 @@ const cap = (rows, key, title) => {
   const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(String(r[key]).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
+/* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
+function rich(txt) {
+  return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
+    const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
+    if (ls.every(l => NUM.test(l))) return `<ol class="rl" dir="auto"${/^\s*[a-zA-Z][.)]/.test(ls[0]) ? ' type="a"' : ''}>${ls.map(l => `<li>${esc(l.replace(NUM, ''))}</li>`).join('')}</ol>`;
+    if (ls.every(l => BUL.test(l))) return `<ul class="rl" dir="auto">${ls.map(l => `<li>${esc(l.replace(BUL, ''))}</li>`).join('')}</ul>`;
+    return `<p class="rp" dir="auto">${ls.map(esc).join('<br>')}</p>`;
+  }).join('');
+}
+
+/* ===== Tasks & Dandana from supply_items: always visible; the clock only unlocks the check ===== */
+const ITT = {
+  en: { tasks: 'Tasks', dnd: 'Dandana', opens: 'Opens', ready: 'Ready, tap the circle', closed: 'Closed', waiting: 'Opens after your session ends', saved: 'Saved', not_yet: 'Not open yet', all_done: 'Already completed', no_plan: 'Opens after your session ends', fail: 'Could not save, try again' },
+  ar: { tasks: 'المهام', dnd: 'دندنة', opens: 'تفتح', ready: 'جاهزة، اضغط على الدائرة', closed: 'أُغلقت', waiting: 'تفتح بعد انتهاء جلستك', saved: 'تم الحفظ', not_yet: 'لم يحن موعدها بعد', all_done: 'تم إكمالها', no_plan: 'تفتح بعد انتهاء جلستك', fail: 'تعذر الحفظ، حاول مرة أخرى' },
+  eg: { tasks: 'التاسكس', dnd: 'دندنة', opens: 'بتفتح', ready: 'جاهزة، دوس على الدايرة', closed: 'اتقفلت', waiting: 'بتفتح بعد ما السيشن تخلص', saved: 'اتسجلت', not_yet: 'لسه معادها ما جاش', all_done: 'خلصتها قبل كده', no_plan: 'بتفتح بعد ما السيشن تخلص', fail: 'معرفناش نسجل، جرب تاني' }
+};
+const itT = () => ITT[lang] || ITT.en;
+const DTL2 = {};
+function itState(it) {
+  const p = it.plan, done = (it.checks || []).length;
+  if (!p) return { k: 'wait' };
+  if (done >= p.n_eff) return { k: 'done' };
+  const now = cairoNow();
+  if (now > p.deadline) return { k: 'closed' };
+  const o = p.opens[done];
+  return now >= o ? { k: 'open', o } : { k: 'lock', o };
+}
+function fmtOpen(ms) {
+  const d = new Date(ms), n = new Date(cairoNow()), h = d.getUTCHours(), tm = `${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  if (d.toISOString().slice(0, 10) === n.toISOString().slice(0, 10)) return tm;
+  return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', timeZone: 'UTC' }) + ' ' + tm;
+}
+function itemRow(it) {
+  const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
+  const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
+  const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
+  const head = it.kind === 'dandana'
+    ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
+    : `<b dir="auto">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
+  const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
+  const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}` : s.k === 'open' ? t.ready : s.k === 'closed' ? t.closed : s.k === 'wait' ? t.waiting : '';
+  return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
+    + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
+    + `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div><div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
+    + (status ? `<div class="its">${esc(status)}</div>` : '') + `</div>`
+    + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
+}
+function itemsCard(kind) {
+  const t = itT(), its = (D.items || []).filter(x => x.kind === kind);
+  if (!its.length) return '';
+  const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
+    return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
+  const fin = its.filter(x => itState(x).k === 'done'), pend = its.filter(x => itState(x).k !== 'done');
+  return `<div class="thabit-card dcard" id="${kind}Card"><h4>${kind === 'task' ? t.tasks : t.dnd}</h4><div class="lst">${pend.length ? group(pend) : `<div class="sm">${T[lang].alldone}</div>`}</div>`
+    + (fin.length ? `<details class="dtl" ${DTL2[kind] ? 'open' : ''} ontoggle="DTL2['${kind}']=this.open"><summary>${T[lang].donet}</summary><div class="lst">${group(fin)}</div></details>` : '') + '</div>';
+}
+function itToast(m) { const e = document.createElement('div'); e.className = 'ittoast'; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 2400); }
+async function checkItem(id) {
+  const t = itT(), r = await rpc('trainee_check_item', { p_token: tok(), p_item_id: id }).catch(() => null);
+  const f = await rpc('trainee_items', { p_token: tok() }).catch(() => null);
+  if (f && Array.isArray(f.items)) D.items = f.items;
+  render();
+  itToast(r && r.ok ? t.saved : (r && t[r.reason]) || t.fail);
+}
+setInterval(() => { if (typeof D !== 'undefined' && D && (D.items || []).some(it => { const s = itState(it); return s.k === 'lock' && cairoNow() >= s.o; })) render(); }, 20000);
+
 function parseTasks(r) {
   return String(r.tasks || '').split('\n').map(l => l.trim()).filter(Boolean).map((l, i) => {
     const p = l.split('/');
@@ -205,6 +271,7 @@ function parseTasks(r) {
 function todoCard(all) {
   const t = T[lang], done = new Set((D.done || []).map(d => d.supply_date + '#' + d.task_no));
   const days = all.slice().reverse().map(r => ({ date: r.supply_date, tasks: parseTasks(r) })).filter(d => d.tasks.length);
+  if (!days.length && (D.items || []).some(i => i.kind === 'task')) return '';
   const task = (k, dn) => { const i = TK.push(k) - 1; return `<div class="tk${dn ? ' dn' : ''}"><input type="checkbox" ${dn ? 'checked' : ''} onchange="toggleTask(${i},this.checked)"><div class="tkb" dir="auto">${k.type || k.det ? `<div><b>${esc(k.type)}</b> <span class="sm">${esc(k.det)}</span></div>` : ''}<div>${esc(k.text)}</div></div><button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`; };
   const split = f => days.map(d => ({ date: d.date, tasks: d.tasks.filter(k => done.has(k.date + '#' + k.no) === f) })).filter(d => d.tasks.length);
   const blk = (d, f) => `<div class="it"><div class="dt">${d.date}</div>${d.tasks.map(k => task(k, f)).join('')}</div>`;
@@ -219,7 +286,7 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div dir="auto" style="white-space:pre-wrap">${esc(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${rich(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -311,6 +378,8 @@ function nxState() {
   return { sc, nxt, st: isDay ? (now < t0 + (sc.h * 60 + sc.m) * 6e4 ? 'count' : 'started') : 'off', n: nxt ? Math.round((Math.floor(nxt / 864e5) * 864e5 - t0) / 864e5) : 0 };
 }
 function dndState() {
+  const di = (D.items || []).filter(i => i.kind === 'dandana');
+  if (di.length) { const last = di.reduce((m, i) => i.date > m ? i.date : m, ''); return { r: { supply_date: last }, items: di.filter(i => i.date === last).sort((a, b) => a.no - b.no).map(i => [i.title, i.badge].filter(Boolean).join(' - ')) }; }
   const rows = D.rows.filter(r => r.dandana && String(r.dandana).trim()); if (!rows.length) return null;
   const r = rows[rows.length - 1], sc = schedule();
   if (sc) { const n = nextAfter(sc, Date.parse(r.supply_date + 'T00:00:00Z') + 864e5); if (n && cairoNow() >= n - 5 * 36e5) return null; }
