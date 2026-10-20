@@ -936,10 +936,232 @@ async function openDashboardSubView(actionType) {
     const backBtnHtml = `<div class="tha-btns" style="margin-bottom:12px"><button type="button" class="tha-b gray" onclick="showAdminView('dashboardMain')"><i class="fa-solid fa-arrow-left"></i> رجوع</button></div>`;
 
     if (actionType === 'dailySupply') return renderDailySupply(backBtnHtml);
+    if (actionType === 'masterProfiles') return renderMasterProfiles(backBtnHtml);
     if (actionType === 'archive') return renderArchive(backBtnHtml);
 
     subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
+
+
+/* ==========================================================
+   Trainee Master Profile  +  per-trainee Daily Supply popup (|DS)
+   ========================================================== */
+(function () {
+    if (document.getElementById('mpCss')) return;
+    const s = document.createElement('style');
+    s.id = 'mpCss';
+    s.textContent = `
+.mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.mp-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #1e293b;border-radius:14px;background:#0b1220}
+.mp-av{width:46px;height:46px;border-radius:50%;background:#1e293b;color:#fbbf24;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
+.mp-av img{width:100%;height:100%;object-fit:cover}
+.mp-nm{flex:1;min-width:0}.mp-nm b{display:block;font-size:13px;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-nm small{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-late{color:#fb7185!important;font-weight:700}
+.ds-cur{display:inline-flex;align-items:center;gap:2px;padding:5px 10px;border-radius:8px;border:1px solid #475569;background:#020617;color:#fbbf24;font:700 12px/1 ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
+.ds-cur:hover{border-color:#fbbf24}
+.ds-caret{display:inline-block;width:2px;height:14px;background:#fbbf24;animation:dsBlink 1s steps(1) infinite}
+@keyframes dsBlink{50%{opacity:0}}
+.mp-sec{margin-top:14px}.mp-sec>h5{font-size:12px;color:#fbbf24;font-weight:800;margin-bottom:8px;letter-spacing:.5px}
+.mp-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.mp-fields .ds-pf{width:100%;box-sizing:border-box}
+.mp-fields input[type=date]{width:100%;background:#020617;border:1px solid #334155;border-radius:6px;color:#fff;padding:5px 8px;font-size:13px}`;
+    document.head.appendChild(s);
+})();
+
+const dsToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+const dsAddDays = (str, n) => new Date(Date.parse(str + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const dsDayLabel = (date, i) => {
+    let wd = '';
+    try { wd = new Date(date + 'T12:00:00Z').toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'UTC' }); } catch (e) {}
+    const tag = i === 0 ? 'اليوم' : i === 1 ? 'امبارح' : wd;
+    return `<div>${esc(tag)}</div><div style="font-size:10px;color:#94a3b8;font-weight:600">${esc(date)}</div>`;
+};
+
+/* ---------- shared column / row builders ---------- */
+function dsCols(range, fixedDate) {
+    const cols = [];
+    SUPPLY_FIELDS.forEach(f => {
+        if (f.key === 'tasks') {
+            cols.push({ head: 'tasks', cell: i => `<td class="p-2"><button type="button" id="ds_task_btn_${i}" class="ds-b blue" onclick="dsOpenItems(${i},'task')">Tasks</button></td>` });
+            cols.push({ head: 'دندنة', cell: i => `<td class="p-2"><button type="button" id="ds_dandana_btn_${i}" class="ds-b blue" onclick="dsOpenItems(${i},'dandana')">دندنة</button></td>` });
+            return;
+        }
+        if (f.key === 'session_title') cols.push({ head: 'session_type', cell: i => `<td class="p-2" id="ds_type_${i}"></td>` });
+        if (f.key === 'supply_date' && fixedDate) cols.push({ head: 'supply_date', cell: i => `<td class="p-2"><input type="date" id="ds_supply_date_${i}" readonly tabindex="-1" class="${INPUT_CLS} w-36" style="pointer-events:none;opacity:.7"></td>` });
+        else cols.push({ head: f.key, cell: i => dsFieldCell(f, i, range) });
+        if (f.key === 'session_title') cols.push({ head: 'parts', cell: i => `<td class="p-2" id="ds_parts_${i}"></td>` });
+    });
+    return cols;
+}
+function dsRowHtml(idx, labelHtml, cols) {
+    return `<tr id="ds_row_${idx}" class="border-b border-slate-800 hover:bg-slate-950/50 transition">
+        <td class="p-2 font-bold text-amber-300 sticky left-0 bg-slate-900" style="min-width:84px">${labelHtml}</td>
+        ${cols.map(c => c.cell(idx)).join('')}
+        <td class="p-2"><div style="display:flex;gap:6px">
+            <button type="button" data-act="save" class="ds-b green" onclick="dsSave(${idx}, this)">Save</button>
+            <button type="button" data-act="edit" class="ds-b amber" onclick="dsEdit(${idx})">Edit</button>
+            <button type="button" data-act="archive" class="ds-b blue" onclick="dsArchive(${idx}, this)">Archive</button></div></td></tr>`;
+}
+async function dsFetchRange(id, from, to) {
+    const q = `trainee_id=eq.${encodeURIComponent(id)}&supply_date=gte.${from}&supply_date=lte.${to}`;
+    const get = async t => { const j = await (await sbFetch(`${t}?select=*&${q}`)).json(); return Array.isArray(j) ? j : []; };
+    const [records, parts, items] = await Promise.all([get(DAILY_SUPPLY_TABLE), get('daily_supply_parts').catch(() => []), get('supply_items').catch(() => [])]);
+    return { records, parts, items };
+}
+
+/* ---------- |DS : Daily Supply popup for ONE trainee ---------- */
+let dsStu = null;
+window.closeStudentSupply = function () { if (dsStu) { dsStu.ov.remove(); document.removeEventListener('keydown', dsStu.onKey, true); dsStu = null; } };
+
+window.openStudentSupply = async function (id) {
+    closeStudentSupply();
+    const st = (mpState.list.find(x => String(x.id) === String(id))) || { id, trainee: '' };
+    const today = dsToday(), dates = [0, 1, 2, 3].map(n => dsAddDays(today, -n));
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.innerHTML = `<div class="ds-box" style="width:min(1500px,99vw)"><div class="text-center py-6 text-amber-400">جاري التحميل...</div></div>`;
+    document.body.appendChild(ov);
+    const onKey = e => { if (e.key === 'Escape' && !document.querySelector('.ds-ov ~ .ds-ov')) closeStudentSupply(); };
+    document.addEventListener('keydown', onKey, true);
+    dsStu = { ov, st, onKey, shown: dates.length, more: false };
+
+    let data;
+    try { data = await dsFetchRange(id, dates[dates.length - 1], today); }
+    catch (e) { ov.firstElementChild.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
+
+    const range = { min: dsAddDays(today, -31), max: today };
+    supplyState = { students: dates.map(() => st), records: data.records, range, parts: data.parts, items: data.items };
+    dsStu.cols = dsCols(range, true);
+    dsStu.today = today;
+    ov.firstElementChild.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+            <b style="color:#fbbf24;font-size:15px;display:flex;align-items:center;gap:8px"><span class="ds-cur" style="pointer-events:none"><i class="ds-caret"></i>DS</span> ${esc(st.trainee || '')}</b>
+            <button type="button" class="ds-b ghost" onclick="closeStudentSupply()">إغلاق</button></div>
+        <div class="overflow-x-auto border border-slate-700 rounded-xl" style="max-height:74vh">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-amber-300 uppercase text-[10px] sticky top-0"><tr><th class="p-2">day</th>${dsStu.cols.map(c => `<th class="p-2">${esc(c.head)}</th>`).join('')}<th class="p-2">إجراء</th></tr></thead>
+                <tbody id="dsStuBody">${dates.map((d, i) => dsRowHtml(i, dsDayLabel(d, i), dsStu.cols)).join('')}</tbody></table></div>
+        <div style="text-align:center;margin-top:10px"><button type="button" id="dsMoreBtn" class="ds-b ghost" onclick="dsMore()">More · باقي الشهر</button></div>`;
+    dates.forEach((d, i) => { dsEl('supply_date', i).value = d; dsLoadRow(i, d); });
+};
+
+window.dsMore = async function () {
+    if (!dsStu || dsStu.more) return;
+    const btn = document.getElementById('dsMoreBtn'); if (btn) btn.disabled = true;
+    const start = supplyState.students.length, from = dsAddDays(dsStu.today, -30), to = dsAddDays(dsStu.today, -start);
+    const dates = []; for (let n = start; n <= 30; n++) dates.push(dsAddDays(dsStu.today, -n));
+    try {
+        const data = await dsFetchRange(dsStu.st.id, from, to);
+        supplyState.records.push(...data.records); supplyState.parts.push(...data.parts); supplyState.items.push(...data.items);
+    } catch (e) { showToast('تعذر تحميل باقي الشهر: ' + e.message, true); if (btn) btn.disabled = false; return; }
+    dsStu.more = true;
+    const body = document.getElementById('dsStuBody');
+    dates.forEach((d, k) => {
+        const idx = start + k; supplyState.students.push(dsStu.st);
+        body.insertAdjacentHTML('beforeend', dsRowHtml(idx, dsDayLabel(d, idx), dsStu.cols));
+        dsEl('supply_date', idx).value = d; dsLoadRow(idx, d);
+    });
+    if (btn) btn.remove();
+};
+
+/* ---------- Master profiles ---------- */
+const MP_SECTIONS = [
+    ['Identity', [['trainee', 'text', 'Name'], ['preferred name', 'text', 'Preferred name'], ['birth_date', 'date', 'Birth date'], ['location', 'text', 'Location'], ['residence_mostly', 'text', 'Residence (mostly)'], ['preferred_phone', 'text', 'Phone'], ['preferred_email', 'text', 'Email'], ['most_recent_picture_url', 'text', 'Picture URL']]],
+    ['Sessions & subscription', [['days_a_week', 'text', 'Days a week'], ['session_time', 'text', 'Session time'], ['place', 'text', 'Place'], ['first_session', 'date', 'First session'], ['joining_date', 'date', 'Joining date'], ['subscription', 'text', 'Subscription'], ['due_date', 'date', 'Due date']]],
+    ['Background', [['education_on_joining', 'text', 'Education on joining'], ['schooling', 'text', 'Schooling'], ['specification', 'text', 'Specification']]],
+    ['First assessments', [['first_thabit_scoring', 'text', 'First Thabit scoring'], ['first_approved_english_test', 'text', 'First approved English test'], ['first_psychological_approved_test', 'text', 'First psychological test']]],
+    ['Status & plan', [['status_as_of_today', 'text', 'Status as of today'], ['current_plan', 'text', 'Current plan'], ['consistency_issues', 'text', 'Consistency issues']]],
+    ['Skills', [['personal_skills_strength_points', 'text', 'Personal strengths'], ['personal_skills_weakness_points', 'text', 'Personal weaknesses'], ['linguistic_strengths', 'text', 'Linguistic strengths'], ['linguistic_lacking', 'text', 'Linguistic lacking']]]
+];
+const mpState = { list: [], q: '' };
+const mpId = k => 'mp_' + k.replace(/\W/g, '_');
+
+async function renderMasterProfiles(backBtnHtml) {
+    const sub = document.getElementById('adminDynamicSubContainer');
+    sub.innerHTML = `${backBtnHtml}<div class="text-center py-6 text-amber-400">جاري تحميل الطلبة...</div>`;
+    try {
+        const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json();
+        mpState.list = Array.isArray(j) ? j : [];
+    } catch (e) {
+        sub.innerHTML = `${backBtnHtml}<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`;
+        return;
+    }
+    mpState.q = '';
+    sub.innerHTML = `${backBtnHtml}
+        <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <h4 class="text-amber-400 font-bold text-base"><i class="fa-solid fa-id-card"></i> Trainee Master Profile</h4>
+                <input id="mpSearch" placeholder="ابحث بالاسم..." class="${INPUT_CLS}" style="min-width:200px;font-size:13px;padding:6px 10px" oninput="mpSearch(this.value)">
+            </div>
+            <div class="mp-grid" id="mpGrid"></div>
+        </div>`;
+    mpPaintList();
+}
+window.mpSearch = q => { mpState.q = String(q || '').trim().toLowerCase(); mpPaintList(); };
+
+function mpPaintList() {
+    const g = document.getElementById('mpGrid'); if (!g) return;
+    const today = dsToday();
+    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+    g.innerHTML = rows.map(r => {
+        const late = r.due_date && r.due_date < today;
+        const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+        return `<div class="mp-card">
+            <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
+            <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+                <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+                <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small></div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+                <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
+                <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button></div></div>`;
+    }).join('') || '<div class="tha-note">مفيش نتائج.</div>';
+}
+
+let mpCur = null;
+window.mpClose = function () { if (mpCur) { mpCur.ov.remove(); mpCur = null; } };
+window.mpOpen = function (id) {
+    mpClose();
+    const r = mpState.list.find(x => String(x.id) === String(id)); if (!r) return;
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.addEventListener('mousedown', e => { if (e.target === ov) mpClose(); });
+    const fieldHtml = ([k, type, label]) => type === 'date'
+        ? `<div><span class="ds-lbl">${esc(label)}</span><input type="date" id="${mpId(k)}"></div>`
+        : `<div><span class="ds-lbl">${esc(label)}</span><input type="hidden" id="${mpId(k)}"><div id="${mpId(k)}_pf" class="ds-pf empty" onclick="dsTextPop('${mpId(k)}','${esc(label)}')">اضغط للكتابة…</div></div>`;
+    ov.innerHTML = `<div class="ds-box" style="width:min(980px,100%)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b style="color:#fbbf24;font-size:15px">${esc(r.trainee || '')}</b>
+            <div style="display:flex;gap:8px"><button type="button" class="ds-b green" id="mpSaveBtn" onclick="mpSave()">Save</button><button type="button" class="ds-b ghost" onclick="mpClose()">إغلاق</button></div></div>
+        ${MP_SECTIONS.map(([t, fs]) => `<div class="mp-sec"><h5>${esc(t)}</h5><div class="mp-fields">${fs.map(fieldHtml).join('')}</div></div>`).join('')}
+        <div class="text-slate-500" style="font-size:11px;margin-top:14px">id: ${esc(r.id)} · created: ${esc(String(r.created_at || '').slice(0, 10))} · updated: ${esc(String(r.updated_at || '').slice(0, 16).replace('T', ' '))}</div></div>`;
+    document.body.appendChild(ov);
+    mpCur = { ov, id };
+    MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k, type]) => {
+        const el = document.getElementById(mpId(k)); if (!el) return;
+        el.value = r[k] == null ? '' : String(r[k]);
+        if (type !== 'date') dsRefreshPf(mpId(k));
+    }));
+};
+
+window.mpSave = async function () {
+    if (!mpCur) return;
+    const body = {};
+    MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k]) => { const v = document.getElementById(mpId(k)).value.trim(); body[k] = v === '' ? null : v; }));
+    if (!body.trainee) { showToast('الاسم مطلوب', true, true); return; }
+    body.updated_at = new Date().toISOString();
+    const btn = document.getElementById('mpSaveBtn'); if (btn) btn.disabled = true;
+    try {
+        const res = await sbFetch(`${PROFILES_TABLE}?id=eq.${encodeURIComponent(mpCur.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
+        const rows = await res.json();
+        if (!Array.isArray(rows) || !rows.length) throw new Error('لم يتم تحديث أي سجل (تأكد من صلاحيات الجدول)');
+        const i = mpState.list.findIndex(x => String(x.id) === String(mpCur.id));
+        if (i >= 0) mpState.list[i] = rows[0];
+        mpPaintList();
+        showToast('اتحفظت بيانات ' + (rows[0].trainee || '') + ' ✓');
+        mpClose();
+    } catch (e) { showToast('فشل الحفظ: ' + e.message, true); if (btn) btn.disabled = false; }
+};
 
 /* ==========================================================
    Admin auth (Supabase email + password). The panel only works with a
