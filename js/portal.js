@@ -246,6 +246,19 @@ function saveStaffSession(j, role) {
     try { sessionStorage.setItem(STAFF_SESSION_KEYS[role], JSON.stringify(sess)); } catch (e) {}
 }
 
+/* Safe auto-redirect: only leave the portal if the target page really exists.
+   Otherwise stay here (a wrong path used to send everyone to a GitHub 404 on every visit). */
+async function goIfExists(url) {
+    try {
+        const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (r.ok) { window.location.href = url; return true; }
+        console.error('[Thabit] Auto-redirect skipped, page not found (' + r.status + '): ' + new URL(url, location.href).href);
+    } catch (e) {
+        console.error('[Thabit] Auto-redirect skipped, request failed for ' + url, e);
+    }
+    return false;
+}
+
 async function resumeSession() {
     try {
         for (const role of ['admin', 'trainer']) {
@@ -253,12 +266,12 @@ async function resumeSession() {
             try { s = JSON.parse(sessionStorage.getItem(STAFF_SESSION_KEYS[role]) || 'null'); } catch (e) {}
             if (s && s.access && s.exp > Date.now() + 30000) {
                 const real = await fetchMyRole(s.access);
-                if (real === role) { window.location.href = ROLE_ROUTES[role]; return; }
+                if (real === role) { if (await goIfExists(ROLE_ROUTES[role])) return; }
                 try { sessionStorage.removeItem(STAFF_SESSION_KEYS[role]); } catch (e) {}
             }
         }
     } catch (e) {}
-    if (localStorage.getItem('thabit_trainee_token')) window.location.href = ROLE_ROUTES.trainee;
+    if (localStorage.getItem('thabit_trainee_token')) await goIfExists(ROLE_ROUTES.trainee);
 }
 
 async function handleLogin() {
