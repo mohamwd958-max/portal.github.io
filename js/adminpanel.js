@@ -993,7 +993,8 @@ async function handleAdminLogin() {
 }
 async function adminLogout() {
     try { if (window.SB_ACCESS_TOKEN) await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: 'POST', headers: sbHeaders() }); } catch (e) {}
-    showLoginScreen('');
+    clearAdminSession();                       // امسح الجلسة قبل ما نسيب الصفحة، عشان البورتال ما يرجّعنيش تاني
+    window.location.replace('index.html');     // تسجيل الخروج بيودّي على البورتال
 }
 
 /* ==========================================================
@@ -1054,7 +1055,7 @@ async function refreshWordLists() {
             fetchAllRows('broken_words_table?select=*&order=created_at.desc')
         ]);
         const active = r => stOf(r) !== 'trash' && stOf(r) !== 'done';
-        WL.due = due.filter(active);
+        WL.due = due.filter(active).sort((a, b) => (b.priority === 'high') - (a.priority === 'high'));
         WL.broken = brk.filter(active);
         WL.trash = [].concat(
             due.filter(r => stOf(r) === 'trash').map(r => Object.assign({ _t: 'due_words_table' }, r)),
@@ -1069,7 +1070,7 @@ function wordRow(r, kind, i) {
         ? btn('restoreFromTrash', 'fa-rotate-left', 'Restore') + btn('purgeFromTrash', 'fa-xmark', 'Delete forever')
         : btn('useListedWord', 'fa-microphone', 'Record') + btn('trashListedWord', 'fa-trash', 'Trash');
     return `<div class="flex items-center justify-between gap-2 text-xs bg-slate-800/60 rounded-lg p-2">
-      <div class="min-w-0"><b dir="auto" class="break-words">${esc(r.word)}</b>
+      <div class="min-w-0"><b dir="auto" class="break-words">${esc(r.word)}</b>${r.priority === 'high' ? ' <span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold">HIGH</span>' : ''}
       <div class="text-[10px] text-slate-400">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</div></div>
       <div class="flex gap-1 flex-none">${acts}</div></div>`;
 }
@@ -1256,7 +1257,7 @@ function initWordSuggest() {
     const hide = () => { dd.style.display = 'none'; };
     const show = () => {
         if (inp.value.trim()) return hide();
-        const list = WL.due.slice().sort((x, y) => String(x.created_at).localeCompare(String(y.created_at))).slice(0, 30);
+        const list = WL.due.slice().sort((x, y) => ((y.priority === 'high') - (x.priority === 'high')) || String(x.created_at).localeCompare(String(y.created_at))).slice(0, 30);
         if (!list.length) return hide();
         dd.innerHTML = list.map((r, i) => `<div data-i="${i}" style="padding:8px 12px;cursor:pointer;font-size:.8rem;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(148,163,184,.15)"><b dir="auto">${esc(r.word)}</b><span style="opacity:.6;font-size:.7rem">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</span></div>`).join('');
         dd._list = list; dd.style.display = 'block';
