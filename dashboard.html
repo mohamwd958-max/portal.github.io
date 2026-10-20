@@ -152,6 +152,20 @@ body.light-theme .sssum span{color:#92400e}
 .rql{display:block;font-size:.75rem;margin:4px 2px 4px;opacity:.85;font-weight:600}
 #rqWhat,#rqFollowVal{width:100%;border-radius:12px;padding:10px;background:var(--th-input-bg);border:1px solid var(--th-input-border);color:var(--text-color);margin-bottom:8px;font:inherit}
 body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f172a}
+
+/* ===== Tasks & Dandana items ===== */
+.itm{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border-color)}.itm:last-child{border-bottom:0}
+.itc{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid rgba(148,163,184,.55);background:transparent;color:inherit;display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer}
+.itc:disabled{cursor:default;opacity:.55}.itc.open{border-color:#fbbf24;animation:itp 1.8s infinite}.itc.done{background:#10b981;border-color:#10b981;color:#fff;opacity:1}
+@keyframes itp{0%{box-shadow:0 0 0 0 rgba(251,191,36,.5)}70%{box-shadow:0 0 0 8px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
+.itb2{flex:1;min-width:0}.ith{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.itv{display:inline-block;width:2px;height:14px;border-radius:2px;background:currentColor;opacity:.18}.itbd{font-size:.72rem;opacity:.55}.itar{font-size:.95rem;font-family:Cairo,sans-serif}
+.itd{margin-top:4px;font-size:.85rem}
+.itl{display:flex;align-items:center;margin-top:8px}.itl i{width:9px;height:9px;border-radius:50%;background:rgba(148,163,184,.35)}.itl i.on{background:#34d399}.itl i.nx{background:#fbbf24}.itl b{flex:0 0 16px;height:2px;background:rgba(148,163,184,.3)}
+.itg{height:3px;border-radius:2px;background:rgba(148,163,184,.22);margin-top:6px;overflow:hidden}.itg span{display:block;height:100%;background:linear-gradient(90deg,#34d399,#fbbf24)}
+.its{margin-top:4px;font-size:.7rem;opacity:.65}
+.ittoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:12000;padding:8px 16px;border-radius:999px;background:#0f172a;color:#fff;font-size:.82rem;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.rich>.rp,.rich>.rl{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}.rich>.rl{padding-inline-start:30px}
 </style>
 </head>
 <body id="bodyRoot">
@@ -201,5 +215,5 @@ body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f
 <div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
-<script src="js/dashboard.js"></script>
+<script src="js/dashboard.js?v=10"></script>
 </body></html>
