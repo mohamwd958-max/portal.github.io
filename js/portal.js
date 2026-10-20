@@ -194,9 +194,9 @@ function togglePassVisibility() {
    trainee -> Dashboard
    The role always comes from the database (my_role()), never from the browser. */
 const ROLE_ROUTES = {
-    admin:   'links/adminpanel/adminpanel.html',
-    trainer: 'links/trainer/trainer.html',      // صفحة الترينر مستقبلاً
-    trainee: 'links/dashboard/dashboard.html'
+    admin:   'adminpanel.html',
+    trainer: 'trainer.html',      // صفحة الترينر مستقبلاً
+    trainee: 'dashboard.html'
 };
 const STAFF_SESSION_KEYS = {
     admin:   'thabit_admin_session',            // نفس المفتاح والصيغة اللي لوحة الأدمن بتقراها
