@@ -43,7 +43,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function handleAdminTriggerClick() { 
-    window.location.href = 'links/adminpanel/adminpanel.html'; 
+    window.location.href = 'adminpanel.html'; 
 }
 
 function handleMainWordInput(value) {
@@ -350,6 +350,7 @@ function openReportModal() {
 }
 function closeReportModal() { document.getElementById('reportOverlay')?.classList.remove('open'); }
 async function submitReport() {
+  if (typeof ID !== 'undefined' && ID.ok) return idSubmitReport();
   const nameEl = document.getElementById('rpName'), probEl = document.getElementById('rpProblem'), err = document.getElementById('rpErr'), btn = document.getElementById('rpSendBtn');
   const name = nameEl ? nameEl.value.trim() : '', problem = probEl ? probEl.value.trim() : '';
   if (!name) { if (err) err.textContent = T('rpNameReq'); return; }
@@ -364,6 +365,7 @@ async function submitReport() {
 }
 
 async function reportMissingWord() {
+  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('missing');
   const wEl = document.getElementById('wordInput');
   const uEl = document.getElementById('userNameInput');
   const wordVal = wEl ? wEl.value.trim() : '';
@@ -383,6 +385,7 @@ async function reportMissingWord() {
 }
 
 async function reportBrokenWord() {
+  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('broken');
   const wEl = document.getElementById('wordInput');
   const uEl = document.getElementById('userNameInput');
   const wordVal = wEl ? wEl.value.trim() : '';
@@ -814,3 +817,130 @@ async function toggleMainRecording() {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
 })();
+
+/* ==========================================================
+   Trainee identity (from the dashboard login) + QOL suggestions
+   - The name always comes from the database via the login token.
+   - No token (page opened on its own) = old behaviour, typed name.
+   ========================================================== */
+const ID = { ok: false, token: null, name: '', id: null };
+let QOL_DAYS = [];
+const gid = id => document.getElementById(id);
+const idRpc = (fn, body) => fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+});
+const IDT = {
+    en: { sug: 'Suggested words from your QOL', none: 'No QOL words yet', more: 'more', sent: n => n + ' word(s) have no pronunciation yet. Sent to us as high priority.', allMissing: 'None of these have a pronunciation yet. We were notified (high priority).', fail: 'Could not send the missing words' },
+    ar: { sug: 'كلمات مقترحة من QOL الخاص بك', none: 'لا توجد كلمات QOL بعد', more: 'أخرى', sent: n => 'عدد ' + n + ' كلمة ليس لها نطق بعد، وتم إبلاغنا بها بأولوية عالية.', allMissing: 'لا يوجد نطق لأي من هذه الكلمات بعد، وتم إبلاغنا بها بأولوية عالية.', fail: 'تعذر إرسال الكلمات الناقصة' },
+    eg: { sug: 'كلمات مقترحة من الـ QOL بتاعك', none: 'مفيش كلمات QOL لسه', more: 'كمان', sent: n => n + ' كلمة لسه ملهاش نطق، وبلّغنا بيها بأولوية عالية.', allMissing: 'مفيش نطق لأي كلمة منهم لسه، وبلّغنا بيهم بأولوية عالية.', fail: 'معرفناش نبعت الكلمات الناقصة' }
+};
+const idT = k => ((IDT[typeof uiLang !== 'undefined' ? uiLang : 'en'] || IDT.en)[k]);
+
+function qolItems(txt) {
+    const seen = new Set(), out = [];
+    String(txt || '').split(/[\n,،;؛]+/).forEach(s => {
+        const v = s.replace(/^\s*(?:\d+|[a-zA-Z])[.)]\s+/, '').replace(/^\s*[-•*]\s+/, '').trim();
+        const k = v.toLowerCase();
+        if (v && !seen.has(k)) { seen.add(k); out.push(v); }
+    });
+    return out;
+}
+
+async function initIdentity() {
+    let tok = null;
+    try { tok = localStorage.getItem('thabit_trainee_token'); } catch (e) {}
+    if (!tok) return;
+    try {
+        const r = await idRpc('assistant_whoami', { p_token: tok });
+        const j = r.ok ? await r.json() : null;
+        if (!j || !j.name) return;
+        Object.assign(ID, { ok: true, token: tok, name: j.name, id: j.id });
+        const u = gid('userNameInput');
+        if (u) { u.value = j.name; u.readOnly = true; }
+        const lab = gid('uiLabelName'); if (lab && lab.parentElement) lab.parentElement.style.display = 'none';
+        const rp = gid('rpName');
+        if (rp) { rp.value = j.name; rp.readOnly = true; rp.style.display = 'none'; if (rp.previousElementSibling) rp.previousElementSibling.style.display = 'none'; }
+        loadQol();
+    } catch (e) { /* stay in manual-name mode */ }
+}
+window.addEventListener('DOMContentLoaded', initIdentity);
+
+async function loadQol() {
+    try {
+        const r = await idRpc('assistant_qol', { p_token: ID.token, p_days: 7 });
+        QOL_DAYS = r.ok ? await r.json() : [];
+    } catch (e) { QOL_DAYS = []; }
+    if (!Array.isArray(QOL_DAYS)) QOL_DAYS = [];
+    renderQol();
+}
+
+function renderQol() {
+    const w = gid('wordInput'); if (!w) return;
+    const row = w.closest('.flex.items-center.gap-2.w-full') || w.parentElement;
+    let box = gid('qolBox');
+    if (!box) { box = document.createElement('div'); box.id = 'qolBox'; row.insertAdjacentElement('afterend', box); }
+    const days = QOL_DAYS.map((d, i) => ({ d, i, items: qolItems(d.qol) })).filter(x => x.items.length);
+    if (!days.length) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    box.className = 'flex flex-col gap-2 relative z-10';
+    const fmt = s => { try { return new Date(s + 'T12:00:00').toLocaleDateString(uiLang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return s; } };
+    box.innerHTML = `
+      <div class="text-[11px] font-semibold flex items-center gap-2 opacity-90"><i class="fa-solid fa-lightbulb text-amber-400"></i><span>${idT('sug')}</span></div>
+      <div class="flex flex-col gap-2" style="max-height:176px;overflow:auto;padding-inline-end:2px">
+        ${days.map(x => `
+          <button type="button" data-qi="${x.i}" class="th-sub w-full text-start rounded-xl border px-3 py-2 flex flex-col gap-1 hover:border-amber-400 transition" style="cursor:pointer">
+            <span class="flex items-center justify-between gap-2 text-[11px] font-bold text-amber-300"><span>${fmt(x.d.date)}</span><span class="opacity-70 font-medium" dir="auto">${x.d.title ? String(x.d.title).replace(/</g, '&lt;') : ''}</span></span>
+            <span class="text-xs break-words" dir="auto">${x.items.slice(0, 4).map(s => s.replace(/</g, '&lt;')).join(' · ')}${x.items.length > 4 ? ` · +${x.items.length - 4} ${idT('more')}` : ''}</span>
+          </button>`).join('')}
+      </div>`;
+    box.querySelectorAll('[data-qi]').forEach(b => b.onclick = () => useQolDay(+b.dataset.qi, b));
+}
+
+async function useQolDay(i, btn) {
+    const day = QOL_DAYS[i]; if (!day) return;
+    const items = qolItems(day.qol); if (!items.length) return;
+    let list;
+    try { list = await getWordsList(true); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return; }
+    const found = [], missing = [];
+    items.forEach(p => (findAudio(list, p) ? found : missing).push(p));
+
+    const w = gid('wordInput');
+    w.value = found.join(', ');                       // only words that have a pronunciation, comma separated
+    document.querySelectorAll('#qolBox [data-qi]').forEach(b => b.style.borderColor = '');
+    if (btn) btn.style.borderColor = '#fbbf24';
+    handleMainWordInput(w.value);
+
+    if (missing.length) {                             // no pronunciation -> straight to the due list, high priority
+        try {
+            const r = await idRpc('assistant_word_report', { p_token: ID.token, p_kind: 'missing', p_words: missing, p_priority: 'high' });
+            if (!r.ok) throw new Error();
+            showGeneralToast(found.length ? idT('sent')(missing.length) : idT('allMissing'), 'orange');
+        } catch (e) { showGeneralToast(idT('fail'), 'red'); }
+    }
+}
+
+async function idReportWords(kind) {
+    const w = gid('wordInput'), val = w ? w.value.trim() : '';
+    if (!val) { showGeneralToast(T('missingEmpty'), 'red'); return; }
+    showGeneralToast(T('missingSending'), 'orange');
+    try {
+        const r = await idRpc('assistant_word_report', { p_token: ID.token, p_kind: kind, p_words: splitWords(val), p_priority: 'normal' });
+        if (!r.ok) throw new Error();
+        showGeneralToast(T(kind === 'missing' ? 'missingOk' : 'brokenOk'), 'success');
+    } catch (e) { showGeneralToast(T(kind === 'missing' ? 'missingFail' : 'brokenFail'), 'red'); }
+}
+
+async function idSubmitReport() {
+    const probEl = gid('rpProblem'), err = gid('rpErr'), btn = gid('rpSendBtn');
+    const problem = probEl ? probEl.value.trim() : '';
+    if (problem.length < 10) { if (err) err.textContent = T('rpProblemReq'); return; }
+    if (btn) btn.disabled = true;
+    const hdrs = { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+    const saveP = idRpc('assistant_report', { p_token: ID.token, p_problem: problem, p_page: location.pathname }).then(r => r.ok ? r.json() : false).catch(() => false);
+    const tgP = fetch(SUPABASE_URL + '/functions/v1/send-telegram', { method: 'POST', headers: hdrs, body: JSON.stringify({ name: ID.name, problem: problem }) }).then(r => r.ok).catch(() => false);
+    const results = await Promise.all([saveP, tgP]);
+    if (btn) btn.disabled = false;
+    if (results[0] === true || results[1]) { closeReportModal(); showGeneralToast(T('rpSentOk'), 'success'); } else { if (err) err.textContent = T('rpFail'); }
+}
