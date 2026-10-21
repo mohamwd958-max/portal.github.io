@@ -119,20 +119,25 @@ const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn
 const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
 
 /* ===== Sessions popup (opened from the Sessions card at the top) ===== */
+const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
+  ['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
+  ['soft_skills','Soft skills'],['soft_skills_details','Soft skills details'],['attendance','Attendance'],['attendance_details','Attendance details'],['performance','Performance'],['why','Why'],['performance_details','Performance details'],
+  ['weak_points','Weak points'],['tasks','Tasks'],['left_overs','Left overs'],['plans','Plans']];
+const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
 function renderSessions(rows) {
   const t = T[lang], loc = lang === 'en' ? 'en-GB' : 'ar-EG', parts = D.parts || [];
   const hm5 = v => v ? String(v).slice(0, 5) : '';
   $('ssT').textContent = t.hist;
   $('ssSum').innerHTML = `<span><b>${rows.length}</b> ${t.sessions}</span><span><b>${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</b></span>`;
-  $('ssList').innerHTML = rows.length ? rows.slice().reverse().map(r => {
+  $('ssList').innerHTML = rows.length ? rows.slice().reverse().map((r, n) => {      // newest first, always pinned on top
     let day = ''; try { day = new Date(r.supply_date + 'T12:00:00').toLocaleDateString(loc, { weekday: 'long' }); } catch (e) {}
     const ps = parts.filter(p => p.supply_date === r.supply_date).sort((a, b) => a.part_no - b.part_no);
-    const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}–${hm5(r.end_time)}` : '';
-    return `<div class="ssi"><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
+    const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}\u2013${hm5(r.end_time)}` : '';
+    return `<details class="ssi"${n === 0 ? ' open' : ''}><summary><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
       + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
-      + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${fmtDur(m)}</span>` : ''}</div>`
-      + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} · ${esc(hm5(p.start_time))}–${esc(hm5(p.end_time))}</span>`).join('')}</div>` : '')
-      + `</div>`;
+      + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${fmtDur(m)}</span>` : ''}</div></summary>`
+      + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}</span>`).join('')}</div>` : '')
+      + `<div class="ssdet">${LF.map(f => sessLine(f[1], r[f[0]])).join('')}</div></details>`;
   }).join('') : `<div class="sm">${t.none}</div>`;
 }
 function openSessions() { $('ssm').classList.add('open'); }
@@ -173,15 +178,10 @@ function render() {
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
-  $('lists').innerHTML = itemsCard('task') + itemsCard('dandana') + todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
-  ['Last', 'Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
-  const L = all[all.length - 1], line = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
-  const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
-    ['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
-    ['soft_skills','Soft skills'],['soft_skills_details','Soft skills details'],['performance','Performance'],['why','Why'],['performance_details','Performance details'],
-    ['weak_points','Weak points'],['tasks','Tasks'],['left_overs','Left overs'],['plans','Plans']];
-  $('last').innerHTML = L ? LF.map(f => line(f[1], L[f[0]])).join('') : `<div class="sm">${t.none}</div>`;
+  const L = all[all.length - 1], line = sessLine;
   const IF = [['status_as_of_today','Status'],['current_plan','Current plan'],['days_a_week','Days / week'],['session_time','Session time'],['place','Place'],['subscription','Subscription'],['due_date','Due date'],
     ['joining_date','Joined'],['first_session','First session'],['birth_date','Birth date'],['education_on_joining','Education on joining'],['schooling','Schooling'],['location','Location'],['residence_mostly','Residence'],
     ['first_thabit_scoring','First Thabit scoring'],['first_approved_english_test','First English test'],['first_psychological_approved_test','First psychological test'],['preferred_phone','Phone'],['preferred_email','Email']];
@@ -213,6 +213,7 @@ const ITT = {
 };
 const itT = () => ITT[lang] || ITT.en;
 const DTL2 = {};
+const itToday = () => new Date(cairoNow()).toISOString().slice(0, 10);
 function itState(it) {
   const p = it.plan, done = (it.checks || []).length;
   if (!p) return { k: 'wait' };
@@ -231,9 +232,10 @@ function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
   const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
+  const hi = it.priority === 'high' ? '<span class="hi">HIGH</span>' : '';
   const head = it.kind === 'dandana'
     ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
-    : `<b dir="auto">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
+    : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
   const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}` : s.k === 'open' ? t.ready : s.k === 'closed' ? t.closed : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
@@ -242,6 +244,31 @@ function itemRow(it) {
     + (status ? `<div class="its">${esc(status)}</div>` : '') + `</div>`
     + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
 }
+const TKT = {
+  en: { tasks: 'Tasks', urgent: 'Urgent', prev: 'Previous', log: 'Log', logT: 'Done tasks', none: 'Nothing here' },
+  ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
+  eg: { tasks: 'التاسكس', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
+};
+function tasksCard() {
+  const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
+  if (!its.length) return '';
+  const today = itToday(), pend = its.filter(x => itState(x).k !== 'done');
+  const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
+  const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
+  const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
+    return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
+  const sec = (cls, title, list) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${list.length || ''}</b></div>${list.length ? group(list) : `<div class="sm">${t.none}</div>`}</div>`;
+  return `<div class="thabit-card dcard" id="taskCard"><div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
+    + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
+}
+function openLog() {
+  const t = TKT[lang] || TKT.en, fin = (D.items || []).filter(x => x.kind === 'task' && itState(x).k === 'done').sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
+  $('logT').textContent = t.logT;
+  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}</div>`).join('') : `<div class="sm">${t.none}</div>`;
+  $('logm').classList.add('open');
+}
+function closeLog() { $('logm').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLog(); });
 function itemsCard(kind) {
   const t = itT(), its = (D.items || []).filter(x => x.kind === kind);
   if (!its.length) return '';
@@ -421,16 +448,23 @@ window.Panels = (function () {
   const SRC = 'assistant.html', NUDGE_EVERY = 5 * 60 * 1000, NUDGE_SHOW = 15 * 1000;
   const MSG = { en: 'I am sleepy :) ', ar: 'أريد أن أرتاح قليلا', eg: 'لسه محتاجني؟' };
   const TTL = { assistant: { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' }, profile: { en: 'Profile', ar: 'ملفي', eg: 'ملفي' } };
-  const DEF = { assistant: { icon: 'fa-microphone-lines', color: '#34d399' }, profile: { icon: 'fa-user', color: '#fbbf24' } };
+  const ASSIST_SVG = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
+  const DEF = { assistant: { icon: 'fa-microphone-lines', svg: ASSIST_SVG, color: '#34d399' }, profile: { icon: 'fa-user', color: '#fbbf24' } };
   let cur = null, loadedKey = null, nudgeT = null, hideT = null; const mins = [];
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
   const key = () => L() + (document.body.classList.contains('light-theme') ? 'l' : 'd');
   const lock = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; };
 
   function dock() {
-    $('dock').innerHTML = mins.map(id => `<div class="aswrap"><button type="button" class="dk" data-p="${id}" style="background:${DEF[id].color}" aria-label="${TTL[id][L()]}" title="${TTL[id][L()]}"><i class="fa-solid ${DEF[id].icon}"></i></button>${id === 'assistant' ? '<div class="asn" id="asNudge" role="button" tabindex="0" hidden></div>' : ''}</div>`).join('');
+    $('dock').innerHTML = mins.map(id => `<div class="aswrap"><button type="button" class="dk" data-p="${id}" style="background:${DEF[id].color}" aria-label="${TTL[id][L()]}" title="${TTL[id][L()]}">${DEF[id].svg || `<i class="fa-solid ${DEF[id].icon}"></i>`}</button><span class="dkx" data-x="${id}" role="button" tabindex="0" aria-label="Close" title="Close">×</span>${id === 'assistant' ? '<div class="asn" id="asNudge" role="button" tabindex="0" hidden></div>' : ''}</div>`).join('');
     $('dock').querySelectorAll('.dk').forEach(b => b.onclick = e => open(b.dataset.p, e));
+    $('dock').querySelectorAll('.dkx').forEach(x => { x.onclick = e => { e.stopPropagation(); dismiss(x.dataset.x); }; x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismiss(x.dataset.x); } }; });
     const n = $('asNudge'); if (n) n.onclick = e => open('assistant', e);
+  }
+  function dismiss(id) {
+    const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
+    if (id === 'assistant') { $('asFrame').removeAttribute('src'); loadedKey = null; stopNudge(); }
+    dock(); if (mins.includes('assistant')) nudge();
   }
   function stopNudge() { clearTimeout(nudgeT); clearTimeout(hideT); }
   function nudge() {
@@ -476,6 +510,32 @@ window.Panels = (function () {
     cur = null; $('asm').hidden = true; lock(false); dock();
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') min(); });
-  return { open, min, close };
+  return { open, min, close, dismiss };
 })();
 window.openAssistant = e => Panels.open('assistant', e);
+
+/* ===== Custom page scrollbar: arrow up / thumb / arrow down ===== */
+(function () {
+  const bar = document.createElement('div'); bar.id = 'sbar';
+  const ar = d => `<button type="button" class="sbb" data-d="${d}" aria-label="${d < 0 ? 'Scroll up' : 'Scroll down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+  bar.innerHTML = ar(-1) + '<div class="sbt"><div class="sbh"></div></div>' + ar(1);
+  document.body.appendChild(bar);
+  const track = bar.querySelector('.sbt'), thumb = bar.querySelector('.sbh'), root = document.scrollingElement || document.documentElement;
+  function upd() {
+    const sh = root.scrollHeight, ch = root.clientHeight, locked = getComputedStyle(document.documentElement).overflow === 'hidden';
+    if (sh <= ch + 4 || locked) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    const th = track.clientHeight, size = Math.max(34, th * ch / sh), max = th - size, p = root.scrollTop / (sh - ch);
+    thumb.style.height = size + 'px'; thumb.style.transform = 'translateY(' + (max * p) + 'px)';
+  }
+  addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd);
+  if (window.ResizeObserver) new ResizeObserver(upd).observe(document.body);
+  setInterval(upd, 600);
+  let drag = null;
+  thumb.addEventListener('pointerdown', e => { drag = { y: e.clientY, top: root.scrollTop }; thumb.setPointerCapture(e.pointerId); thumb.classList.add('on'); e.preventDefault(); });
+  thumb.addEventListener('pointermove', e => { if (!drag) return; const r = (root.scrollHeight - root.clientHeight) / Math.max(1, track.clientHeight - thumb.offsetHeight); root.scrollTop = drag.top + (e.clientY - drag.y) * r; });
+  ['pointerup', 'pointercancel'].forEach(ev => thumb.addEventListener(ev, () => { drag = null; thumb.classList.remove('on'); }));
+  track.addEventListener('pointerdown', e => { if (e.target === thumb) return; const r = track.getBoundingClientRect(); root.scrollTo({ top: (e.clientY - r.top) / r.height * (root.scrollHeight - root.clientHeight), behavior: 'smooth' }); });
+  bar.querySelectorAll('.sbb').forEach(b => { let tm; const go = () => root.scrollBy({ top: +b.dataset.d * 90 }); b.addEventListener('pointerdown', () => { go(); tm = setInterval(go, 80); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearInterval(tm))); });
+  upd();
+})();
