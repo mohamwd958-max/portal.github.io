@@ -223,6 +223,8 @@ const SUPPLY_FIELDS = [
     { key: 'sub_title', type: 'text', w: 'w-28' },
     { key: 'start_time', type: 'time', w: 'w-24' },
     { key: 'end_time', type: 'time', w: 'w-24' },
+    { key: 'around_h', type: 'number', w: 'w-14', min: 0, max: 23 },
+    { key: 'around_m', type: 'number', w: 'w-14', min: 0, max: 59 },
     { key: 'revision', type: 'text', w: 'w-20' },
     { key: 'revision_details', type: 'text', w: 'w-32' },
     { key: 'notes', type: 'text', w: 'w-32' },
@@ -247,7 +249,10 @@ let supplyState = { students: [], records: [], range: null, parts: [], items: []
 let archiveState = { rows: [], cols: [], from: '', to: '' };
 
 const INPUT_CLS = 'bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white';
-const DS_PART_KEYS = ['start_time', 'end_time', 'notes'];
+const DS_PART_KEYS = ['start_time', 'end_time', 'around_h', 'around_m', 'notes'];
+const DS_ZERO = k => k === 'around_h' || k === 'around_m';
+const dsNum = v => (v === null || v === undefined || v === '') ? null : (Number(v) || 0);
+const dsAround = (h, m) => (Number(h) || 0) * 60 + (Number(m) || 0);
 const dsUI = {};   // idx -> { type, part, locked }
 
 /* ---------- styles (self-contained, sit above every other layer) ---------- */
@@ -268,6 +273,7 @@ const dsUI = {};   // idx -> { type, part, locked }
 .ds-chip.saved::after{content:'';position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#10b981;border:1px solid #0f172a}
 .ds-b{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#475569;white-space:nowrap}
 .ds-b:disabled{opacity:.35;cursor:not-allowed}
+.ds-b.on{background:#d97706!important;color:#fff!important;border-color:#d97706!important}
 .ds-b.green{background:#059669}.ds-b.amber{background:#d97706}.ds-b.blue{background:#2563eb}.ds-b.red{background:#be123c}.ds-b.ghost{background:transparent;border:1px solid #475569;color:#cbd5e1}
 .ds-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(2,6,23,.85);display:flex;align-items:flex-start;justify-content:center;padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}
 .ds-box{width:min(940px,100%);background:#0f172a;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:14px;color:#e2e8f0;font-family:Cairo,Inter,sans-serif}
@@ -317,15 +323,22 @@ window.dsTextPop = function (hiddenId, label) {
           <b style="color:#fbbf24;font-size:14px">${esc(label)}</b>
           <button type="button" class="ds-b green" data-done>تم ✓</button>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-          <button type="button" class="ds-b ghost" data-fmt="num">1. ترقيم</button>
-          <button type="button" class="ds-b ghost" data-fmt="bul">- نقطة</button>
-          <button type="button" class="ds-b ghost" data-fmt="gap">فاصل بين فكرتين</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <button type="button" class="ds-b ghost" data-cap="add">+ كبسولة</button>
+          <span style="font-size:11px;color:#94a3b8">عدد الكبسولات</span>
+          <select data-capn class="ds-in" style="width:auto;padding:4px 8px;font-size:13px"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+          <button type="button" class="ds-b ghost" data-cap="make">ابدأ</button>
+          <span style="width:1px;height:20px;background:#334155;margin:0 4px"></span>
+          <button type="button" class="ds-b ghost on" data-sty="num">1. أرقام</button>
+          <button type="button" class="ds-b ghost" data-sty="dot">• نقط</button>
+          <button type="button" class="ds-b ghost" data-sty="dash">- شرطات</button>
+          <span style="width:1px;height:20px;background:#334155;margin:0 4px"></span>
+          <button type="button" class="ds-b ghost" data-bar title="عمود فاصل بين الكلام في نفس السطر"><span style="display:inline-block;width:2px;height:15px;background:currentColor;opacity:.4;vertical-align:middle"></span> فاصل</button>
         </div>
         <textarea class="ds-ta" dir="auto" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="اكتب هنا…"></textarea>
         <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">
           سطر يبدأ بـ <b>1.</b> أو <b>a.</b> = أفكار مرتبطة (بيكمّل الترقيم لوحده مع Enter) ·
-          سطر يبدأ بـ <b>-</b> = نقطة مستقلة · سطر فاضي = فكرة جديدة منفصلة
+          سطر يبدأ بـ <b>-</b> = نقطة مستقلة · سطر فاضي = كبسولة جديدة منفصلة · <b>|</b> = عمود فاصل بين كلام في نفس السطر
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -368,19 +381,33 @@ window.dsTextPop = function (hiddenId, label) {
         }
         if (ins) { e.preventDefault(); ta.setRangeText(ins, pos, ta.selectionEnd, 'end'); }
     });
-    ov.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => {
-        const { v, pos, ls } = lineInfo();
-        const atBlank = !v.slice(ls, pos).trim() && !v.slice(pos).split('\n')[0].trim();
-        let prefix = '- ';
-        if (b.dataset.fmt === 'num') {
-            const prev = v.slice(0, ls).replace(/\n+$/, '').split('\n').pop() || '';
-            const pm = prev.match(/^\s*(\d+)[.)]\s/);
-            prefix = (pm ? (+pm[1] + 1) : 1) + '. ';
-        }
-        if (b.dataset.fmt === 'gap') { ta.setRangeText(atBlank ? '\n' : '\n\n', pos, ta.selectionEnd, 'end'); }
-        else { ta.setRangeText((atBlank ? '' : '\n') + prefix, pos, ta.selectionEnd, 'end'); }
-        ta.focus();
+    /* capsules = blocks separated by a blank line; style = numbers / dots / dashes; | = thin divider */
+    let style = 'num';
+    const mark = n => style === 'num' ? n + '. ' : style === 'dot' ? '\u2022 ' : '- ';
+    const lineRange = () => { const v = ta.value, a = v.lastIndexOf('\n', ta.selectionStart - 1) + 1; let e = v.indexOf('\n', ta.selectionEnd); if (e < 0) e = v.length; return { v, a, e }; };
+    const restyle = () => {
+        const { v, a, e } = lineRange();
+        if (!v.slice(a, e).trim()) { ta.setRangeText(mark(1), a, e, 'end'); return; }
+        let n = 0;
+        const out = v.slice(a, e).split('\n').map(l => { if (!l.trim()) { n = 0; return l; } n++; return mark(n) + l.replace(/^\s*(?:\d+|[a-zA-Z])[.)]\s+|^\s*[-\u2022*]\s+/, ''); }).join('\n');
+        ta.setRangeText(out, a, e, 'end');
+    };
+    ov.querySelectorAll('[data-sty]').forEach(b => b.onclick = () => {
+        style = b.dataset.sty;
+        ov.querySelectorAll('[data-sty]').forEach(x => x.classList.toggle('on', x === b));
+        restyle(); ta.focus();
     });
+    ov.querySelector('[data-cap=add]').onclick = () => {
+        const { v, e } = lineRange();
+        ta.setRangeText(v.trim() ? '\n\n' + mark(1) : mark(1), e, e, 'end'); ta.focus();
+    };
+    ov.querySelector('[data-cap=make]').onclick = () => {
+        const n = +ov.querySelector('[data-capn]').value || 1, base = ta.value.trimEnd();
+        const first = (base ? base.length + 2 : 0) + mark(1).length;
+        ta.value = (base ? base + '\n\n' : '') + Array.from({ length: n }, () => mark(1)).join('\n\n');
+        ta.focus(); ta.setSelectionRange(first, first);
+    };
+    ov.querySelector('[data-bar]').onclick = () => { ta.setRangeText(' | ', ta.selectionStart, ta.selectionEnd, 'end'); ta.focus(); };
 };
 
 function dsPopCell(f, idx) {
@@ -419,6 +446,7 @@ function dsLoadRow(idx, date) {
             const p = parts.find(x => x.part_no === ui.part);
             v = p ? p[f.key] : '';
         }
+        if (DS_ZERO(f.key) && (v === null || v === undefined || v === '')) v = 0;
         dsSetField(f, idx, v);
     });
     dsPaint(idx);
@@ -485,7 +513,7 @@ window.dsPickPart = function (idx, n) {
     const p = dsPartsOf(st, date).find(x => x.part_no === n) || {};
     DS_PART_KEYS.forEach(k => {
         const f = SUPPLY_FIELDS.find(x => x.key === k);
-        dsSetField(f, idx, isSaved ? p[k] : '');
+        dsSetField(f, idx, isSaved && p[k] != null ? p[k] : (DS_ZERO(k) ? 0 : ''));
     });
     dsPaint(idx);
 };
@@ -598,8 +626,8 @@ window.dsSave = async function (idx, btn) {
     let partBody = null, merged = null;
     if (ui.type === 'separated') {
         const cur = dsStash(idx);
-        if (!cur.start_time && !cur.end_time && !cur.notes) { showToast(`الجزء ${ui.part} فاضي، اكتب وقت أو ملاحظات الأول`, true); return; }
-        partBody = { trainee_id: st.id, supply_date: date, part_no: ui.part, start_time: cur.start_time, end_time: cur.end_time, notes: cur.notes, updated_at: new Date().toISOString() };
+        if (!cur.start_time && !cur.end_time && !cur.notes && !(dsAround(cur.around_h, cur.around_m) > 0)) { showToast(`الجزء ${ui.part} فاضي، اكتب وقت أو ملاحظات الأول`, true); return; }
+        partBody = { trainee_id: st.id, supply_date: date, part_no: ui.part, start_time: cur.start_time, end_time: cur.end_time, around_h: dsNum(cur.around_h), around_m: dsNum(cur.around_m), notes: cur.notes, updated_at: new Date().toISOString() };
         merged = {};
         dsPartsOf(st, date).forEach(p => { merged[p.part_no] = p; });
         merged[ui.part] = partBody;
@@ -608,12 +636,13 @@ window.dsSave = async function (idx, btn) {
         const ends = nos.map(n => dsT5(merged[n].end_time)).filter(Boolean).sort();
         body.start_time = starts[0] || null;
         body.end_time = ends.length ? ends[ends.length - 1] : null;
-        body.total_minutes = nos.reduce((s, n) => s + (dsMinutes(merged[n].start_time, merged[n].end_time) || 0), 0) || null;
+        body.around_h = null; body.around_m = null;      // around lives on each part
+        body.total_minutes = nos.reduce((s, n) => s + (dsAround(merged[n].around_h, merged[n].around_m) || dsMinutes(merged[n].start_time, merged[n].end_time) || 0), 0) || null;
         body.parts_count = nos.length;
         const nt = nos.filter(n => (merged[n].notes || '').trim()).map(n => `الجزء ${n}:\n${merged[n].notes.trim()}`);
         body.notes = nt.length ? nt.join('\n\n') : null;
     } else {
-        body.total_minutes = dsMinutes(base.start_time, base.end_time);
+        body.total_minutes = dsAround(base.around_h, base.around_m) || dsMinutes(base.start_time, base.end_time);
         body.parts_count = 1;
     }
 
