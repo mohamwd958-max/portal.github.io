@@ -4,9 +4,9 @@ const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
 const T = {
   en: { hi: 'Welcome, ', today: 'Today', week: '7 days', month: '30 days', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
-        performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', attendance: 'Attendance', metrics: 'Scores & details', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
+        performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', compliance: 'Compliance', attendance: 'Attendance', metrics: 'Scores & details', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
   ar: { hi: 'أهلاً ', today: 'اليوم', week: '٧ أيام', month: '٣٠ يوم', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
-        performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
+        performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
@@ -44,7 +44,7 @@ function spark(vals) {
   const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * 300},${60 - ((v - mn) / sp) * 50}`).join(' ');
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
-const MET = ['performance', 'attitude', 'soft_skills', 'revision', 'attendance'];
+const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
 const MD = [], TK = [], mk = (title, text) => MD.push([title, text]) - 1;
 let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
@@ -109,7 +109,7 @@ function overall(rows, S) {
   const vals = rows.map(ra).filter(v => v != null);
   if (!vals.length) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
   const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', revision: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
+  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', compliance: 'الالتزام', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
     chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 7, lab: 10 });
@@ -120,7 +120,7 @@ const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div
 
 /* ===== Sessions popup (opened from the Sessions card at the top) ===== */
 const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
-  ['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
+  ['compliance','Compliance'],['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
   ['soft_skills','Soft skills'],['soft_skills_details','Soft skills details'],['attendance','Attendance'],['attendance_details','Attendance details'],['performance','Performance'],['why','Why'],['performance_details','Performance details'],
   ['weak_points','Weak points'],['tasks','Tasks'],['left_overs','Left overs'],['plans','Plans']];
 const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
@@ -137,7 +137,7 @@ function renderSessions(rows) {
     return `<details class="ssi"${n === 0 ? ' open' : ''}><summary><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
       + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
       + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${approx ? '\u2248 ' : ''}${fmtDur(m)}</span>` : ''}</div></summary>`
-      + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}</span>`).join('')}</div>` : '')
+      + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}${p.present === false ? ' \u2717' : ''}</span>`).join('')}</div>` : '')
       + `<div class="ssdet">${LF.map(f => sessLine(f[1], r[f[0]])).join('')}</div></details>`;
   }).join('') : `<div class="sm">${t.none}</div>`;
 }
@@ -209,9 +209,9 @@ function rich(txt) {
 
 /* ===== Tasks & Dandana from supply_items: always visible; the clock only unlocks the check ===== */
 const ITT = {
-  en: { tasks: 'Tasks', dnd: 'Dandana', opens: 'Opens', ready: 'Ready, tap the circle', closed: 'Closed', waiting: 'Opens after your session ends', saved: 'Saved', not_yet: 'Not open yet', all_done: 'Already completed', no_plan: 'Opens after your session ends', fail: 'Could not save, try again', est: ' (estimated)' },
-  ar: { tasks: 'المهام', dnd: 'دندنة', opens: 'تفتح', ready: 'جاهزة، اضغط على الدائرة', closed: 'أُغلقت', waiting: 'تفتح بعد انتهاء جلستك', saved: 'تم الحفظ', not_yet: 'لم يحن موعدها بعد', all_done: 'تم إكمالها', no_plan: 'تفتح بعد انتهاء جلستك', fail: 'تعذر الحفظ، حاول مرة أخرى', est: ' (تقديري)' },
-  eg: { tasks: 'التاسكس', dnd: 'دندنة', opens: 'بتفتح', ready: 'جاهزة، دوس على الدايرة', closed: 'اتقفلت', waiting: 'بتفتح بعد ما السيشن تخلص', saved: 'اتسجلت', not_yet: 'لسه معادها ما جاش', all_done: 'خلصتها قبل كده', no_plan: 'بتفتح بعد ما السيشن تخلص', fail: 'معرفناش نسجل، جرب تاني', est: ' (تقريبًا)' }
+  en: { tasks: 'Tasks', dnd: 'Dandana', opens: 'Opens', ready: 'Ready, tap the circle', closed: 'Closed', waiting: 'Opens after your session ends', saved: 'Saved', not_yet: 'Not open yet', all_done: 'Already completed', no_plan: 'Opens after your session ends', fail: 'Could not save, try again', est: ' (estimated)', endsIn: 'Ends in', closedDue: 'Closed due to:', why_hours18: 'more than 18 hours passed since your last session', why_next_session: 'your next session is close', why_holiday: 'the weekend break', hol: 'You are on the weekend break. Tasks are paused until Saturday.', missed: 'Missed', done: 'Done', u: { d: 'd', h: 'h', m: 'm' } },
+  ar: { tasks: 'المهام', dnd: 'دندنة', opens: 'تفتح', ready: 'جاهزة، اضغط على الدائرة', closed: 'أُغلقت', waiting: 'تفتح بعد انتهاء جلستك', saved: 'تم الحفظ', not_yet: 'لم يحن موعدها بعد', all_done: 'تم إكمالها', no_plan: 'تفتح بعد انتهاء جلستك', fail: 'تعذر الحفظ، حاول مرة أخرى', est: ' (تقديري)', endsIn: 'ينتهي بعد', closedDue: 'أُغلقت بسبب:', why_hours18: 'مرّ أكثر من 18 ساعة على آخر جلسة', why_next_session: 'اقترب موعد جلستك القادمة', why_holiday: 'بدأت الإجازة الأسبوعية', hol: 'أنت في إجازة نهاية الأسبوع. المهام متوقفة حتى السبت.', missed: 'فائتة', done: 'تمت', u: { d: 'ي', h: 'س', m: 'د' } },
+  eg: { tasks: 'التاسكس', dnd: 'دندنة', opens: 'بتفتح', ready: 'جاهزة، دوس على الدايرة', closed: 'اتقفلت', waiting: 'بتفتح بعد ما السيشن تخلص', saved: 'اتسجلت', not_yet: 'لسه معادها ما جاش', all_done: 'خلصتها قبل كده', no_plan: 'بتفتح بعد ما السيشن تخلص', fail: 'معرفناش نسجل، جرب تاني', est: ' (تقريبًا)', endsIn: 'بتنتهي بعد', closedDue: 'اتقفلت بسبب:', why_hours18: 'عدّى أكتر من 18 ساعة على آخر سيشن', why_next_session: 'ميعاد السيشن الجاية قرّب', why_holiday: 'بدأت الإجازة', hol: 'إنت في إجازة نهاية الأسبوع. التاسكس واقفة لحد السبت.', missed: 'فاتت', done: 'خلصت', u: { d: 'ي', h: 'س', m: 'د' } }
 };
 const itT = () => ITT[lang] || ITT.en;
 const DTL2 = {};
@@ -221,7 +221,7 @@ function itState(it) {
   if (!p) return { k: 'wait' };
   if (done >= p.n_eff) return { k: 'done' };
   const now = cairoNow();
-  if (now > p.deadline) return { k: 'closed' };
+  if (now > p.deadline) return { k: 'closed', why: p.deadline_reason };
   const o = p.opens[done];
   return now >= o ? { k: 'open', o } : { k: 'lock', o };
 }
@@ -230,6 +230,18 @@ function fmtOpen(ms) {
   if (d.toISOString().slice(0, 10) === n.toISOString().slice(0, 10)) return tm;
   return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', timeZone: 'UTC' }) + ' ' + tm;
 }
+const itClosedToday = x => !!(x.plan && new Date(x.plan.deadline).toISOString().slice(0, 10) === itToday());
+const itShown = x => { const k = itState(x).k; return k !== 'done' && (k !== 'closed' || itClosedToday(x)); };
+function fmtLeft(ms) {
+  const u = itT().u, m = Math.max(0, Math.floor(ms / 60000)), dd = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  const out = []; if (dd) out.push(dd + u.d); if (h || dd) out.push(h + u.h); if (!dd) out.push(mm + u.m);
+  return out.join(' ');
+}
+const cdHtml = dl => `<i class="fa-regular fa-clock"></i> ${itT().endsIn} ${fmtLeft(dl - cairoNow())} \u00b7 ${fmtOpen(dl)}`;
+const isHoliday = () => { const n = new Date(cairoNow()), w = n.getUTCDay(); return (w === 4 && n.getUTCHours() >= 12) || w === 5; };
+const holBanner = () => isHoliday() ? `<div class="hol"><i class="fa-solid fa-umbrella-beach"></i> ${itT().hol}</div>` : '';
+const closedText = x => { const t = itT(), p = x.plan; return `${t.closedDue} ${t['why_' + (p && p.deadline_reason)] || ''}`.trim(); };
+setInterval(() => { document.querySelectorAll('.cd[data-dl]').forEach(el => { const dl = +el.dataset.dl; if (dl - cairoNow() <= 0) { render(); return; } el.innerHTML = cdHtml(dl); }); }, 30000);
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
@@ -239,11 +251,12 @@ function itemRow(it) {
     ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
     : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
   const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
-  const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? t.closed : s.k === 'wait' ? t.waiting : '';
+  const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
     + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
     + `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div><div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
-    + (status ? `<div class="its">${esc(status)}</div>` : '') + `</div>`
+    + (status ? `<div class="its">${esc(status)}</div>` : '')
+    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
     + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
 }
 const TKT = {
@@ -254,19 +267,19 @@ const TKT = {
 function tasksCard() {
   const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
   if (!its.length) return '';
-  const today = itToday(), pend = its.filter(x => itState(x).k !== 'done');
+  const today = itToday(), pend = its.filter(itShown);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
   const sec = (cls, title, list) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${list.length || ''}</b></div>${list.length ? group(list) : `<div class="sm">${t.none}</div>`}</div>`;
-  return `<div class="thabit-card dcard" id="taskCard"><div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
+  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
     + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
 }
 function openLog() {
-  const t = TKT[lang] || TKT.en, fin = (D.items || []).filter(x => x.kind === 'task' && itState(x).k === 'done').sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
+  const t = TKT[lang] || TKT.en, t2 = itT(), fin = (D.items || []).filter(x => x.kind === 'task' && ['done', 'closed'].includes(itState(x).k)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
   $('logT').textContent = t.logT;
-  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}</div>`).join('') : `<div class="sm">${t.none}</div>`;
+  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${itState(x).k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${itState(x).k === 'done' ? t2.done : t2.missed}</span>${itState(x).k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`).join('') : `<div class="sm">${t.none}</div>`;
   $('logm').classList.add('open');
 }
 function closeLog() { $('logm').classList.remove('open'); }
@@ -276,7 +289,7 @@ function itemsCard(kind) {
   if (!its.length) return '';
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
-  const fin = its.filter(x => itState(x).k === 'done'), pend = its.filter(x => itState(x).k !== 'done');
+  const pend = its.filter(itShown), fin = its.filter(x => !itShown(x));
   return `<div class="thabit-card dcard" id="${kind}Card"><h4>${kind === 'task' ? t.tasks : t.dnd}</h4><div class="lst">${pend.length ? group(pend) : `<div class="sm">${T[lang].alldone}</div>`}</div>`
     + (fin.length ? `<details class="dtl" ${DTL2[kind] ? 'open' : ''} ontoggle="DTL2['${kind}']=this.open"><summary>${T[lang].donet}</summary><div class="lst">${group(fin)}</div></details>` : '') + '</div>';
 }
