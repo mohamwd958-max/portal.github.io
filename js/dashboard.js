@@ -132,10 +132,11 @@ function renderSessions(rows) {
   $('ssList').innerHTML = rows.length ? rows.slice().reverse().map((r, n) => {      // newest first, always pinned on top
     let day = ''; try { day = new Date(r.supply_date + 'T12:00:00').toLocaleDateString(loc, { weekday: 'long' }); } catch (e) {}
     const ps = parts.filter(p => p.supply_date === r.supply_date).sort((a, b) => a.part_no - b.part_no);
+    const approx = (Number(r.around_h) || 0) + (Number(r.around_m) || 0) > 0 || ps.some(p => (Number(p.around_h) || 0) + (Number(p.around_m) || 0) > 0);
     const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}\u2013${hm5(r.end_time)}` : '';
     return `<details class="ssi"${n === 0 ? ' open' : ''}><summary><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
       + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
-      + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${fmtDur(m)}</span>` : ''}</div></summary>`
+      + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${approx ? '\u2248 ' : ''}${fmtDur(m)}</span>` : ''}</div></summary>`
       + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}</span>`).join('')}</div>` : '')
       + `<div class="ssdet">${LF.map(f => sessLine(f[1], r[f[0]])).join('')}</div></details>`;
   }).join('') : `<div class="sm">${t.none}</div>`;
@@ -178,7 +179,7 @@ function render() {
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + todoCard(all) + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -196,12 +197,13 @@ const cap = (rows, key, title) => {
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
+const escv = s => esc(s).replace(/\s*\|\s*/g, '<i class="vb"></i>');
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
-    if (ls.every(l => NUM.test(l))) return `<ol class="rl" dir="auto"${/^\s*[a-zA-Z][.)]/.test(ls[0]) ? ' type="a"' : ''}>${ls.map(l => `<li>${esc(l.replace(NUM, ''))}</li>`).join('')}</ol>`;
-    if (ls.every(l => BUL.test(l))) return `<ul class="rl" dir="auto">${ls.map(l => `<li>${esc(l.replace(BUL, ''))}</li>`).join('')}</ul>`;
-    return `<p class="rp" dir="auto">${ls.map(esc).join('<br>')}</p>`;
+    if (ls.every(l => NUM.test(l))) return `<ol class="rl" dir="auto"${/^\s*[a-zA-Z][.)]/.test(ls[0]) ? ' type="a"' : ''}>${ls.map(l => `<li>${escv(l.replace(NUM, ''))}</li>`).join('')}</ol>`;
+    if (ls.every(l => BUL.test(l))) return `<ul class="rl" dir="auto">${ls.map(l => `<li>${escv(l.replace(BUL, ''))}</li>`).join('')}</ul>`;
+    return `<p class="rp" dir="auto">${ls.map(escv).join('<br>')}</p>`;
   }).join('');
 }
 
@@ -327,7 +329,7 @@ function raiseHand(i) {
   $('mdl').classList.add('open');
 }
 function watchTodo() {
-  const c = $('todoCard'), tip = $('handTip'); if (!c || !tip) return;
+  const c = $('todoCard') || $('taskCard'), tip = $('handTip'); if (!c || !tip) return;
   const go = () => { tip.classList.add('show'); setTimeout(() => { try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {} }, 10000); };
   if (!window.IntersectionObserver) return go();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { go(); o.disconnect(); } }, { threshold: .6 }).observe(c);
