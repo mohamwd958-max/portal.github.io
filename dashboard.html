@@ -166,6 +166,35 @@ body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f
 .its{margin-top:4px;font-size:.7rem;opacity:.65}
 .ittoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:12000;padding:8px 16px;border-radius:999px;background:#0f172a;color:#fff;font-size:.82rem;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .rich>.rp,.rich>.rl{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}.rich>.rl{padding-inline-start:30px}
+
+/* ===== Batch 1: tasks card, log, folded request, scrollbar, tab X, icon ===== */
+#taskCard{grid-column:1/-1}
+.tkh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.tkh h4{margin:0}
+.logb{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--border-color);background:transparent;color:inherit;font-size:.75rem;font-weight:700;cursor:pointer}
+.logb:hover{border-color:#fbbf24;color:#fbbf24}
+.tk2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.tk2{grid-template-columns:1fr}}
+.tkc{min-width:0;padding:10px 12px;border-radius:16px;border:1px solid var(--border-color);background:rgba(148,163,184,.05)}
+.tkc.urg{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.06)}
+.tkt{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
+.tkc.urg .tkt{color:#fb7185}.tkc.prv .tkt{color:#94a3b8}.tkt b{font-size:.7rem;padding:1px 8px;border-radius:999px;background:rgba(148,163,184,.2)}.tkt b:empty{display:none}
+.hi{font-size:.58rem;font-weight:800;padding:2px 7px;border-radius:999px;background:#e11d48;color:#fff;letter-spacing:.4px}
+details.ssi>summary{list-style:none;cursor:pointer}details.ssi>summary::-webkit-details-marker{display:none}
+.ssdet{margin-top:8px;border-top:1px dashed rgba(148,163,184,.3);padding-top:6px}
+.rqd>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}.rqd>summary::-webkit-details-marker{display:none}
+.rqd>summary h4{margin:0}.rqd>summary::after{content:'';width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;opacity:.7;flex:none}
+.rqd[open]>summary::after{transform:rotate(-135deg)}.rqd[open]>summary{margin-bottom:10px}
+html{scrollbar-width:none}html::-webkit-scrollbar{display:none}
+#sbar{position:fixed;right:3px;top:72px;bottom:72px;width:16px;z-index:55;display:flex;flex-direction:column;align-items:center;gap:6px;color:#94a3b8}
+.sbb{width:16px;height:18px;padding:0;border:0;border-radius:6px;background:transparent;color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.75}.sbb:hover{opacity:1;color:#fbbf24}
+.sbt{position:relative;flex:1;width:6px;border-radius:999px;background:rgba(148,163,184,.2);touch-action:none;cursor:pointer}
+.sbh{position:absolute;left:-2px;right:-2px;top:0;border-radius:999px;background:rgba(251,191,36,.8);cursor:grab;touch-action:none;transition:background .15s}.sbh:hover,.sbh.on{background:#fbbf24}
+body.light-theme #sbar{color:#475569}body.light-theme .sbt{background:rgba(15,23,42,.12)}body.light-theme .sbh{background:rgba(180,83,9,.75)}
+.fl{right:26px}@media(max-width:600px){.fl{right:26px}}
+.aswrap{position:relative}
+.dkx{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#0f172a;color:#fff;border:1px solid rgba(255,255,255,.35);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .15s;z-index:2}
+.aswrap:hover .dkx,.dkx:focus{opacity:1;pointer-events:auto}@media(hover:none){.dkx{opacity:1;pointer-events:auto}}
+body.light-theme .dkx{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.3)}
+.asv{display:block;margin:auto}
 </style>
 </head>
 <body id="bodyRoot">
@@ -174,7 +203,7 @@ body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f
 <div class="mobile-floating-bar" id="mobileFloatingBar">
   <button type="button" onclick="location.reload()" class="circle-badge-btn" title="Restart Page" style="color:#3b82f6"><i class="fa-solid fa-rotate text-sm"></i></button>
   <div class="bar-divider"></div>
-  <a href="assistant.html" onclick="Panels.open('assistant',event)" id="floatBtnAssist" title="Pronunciation Assistant" aria-label="Pronunciation Assistant" class="circle-badge-btn" style="color:#34d399"><i class="fa-solid fa-microphone-lines text-sm"></i></a>
+  <a href="assistant.html" onclick="Panels.open('assistant',event)" id="floatBtnAssist" title="Pronunciation Assistant" aria-label="Pronunciation Assistant" class="circle-badge-btn" style="color:#34d399"><svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg></a>
   <div class="bar-divider"></div>
   <button type="button" onclick="setLanguage('ar')" id="floatBtnAr" class="circle-badge-btn" title="العربية">عربي</button>
   <button type="button" onclick="setLanguage('en')" id="floatBtnEn" class="circle-badge-btn active" title="English"><span class="s">EN</span><span class="l">English</span></button>
@@ -193,13 +222,12 @@ body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f
   <div class="thabit-card dcard" id="overall" style="margin-bottom:14px"></div>
   <div class="grid" id="lists"></div>
   <div class="grid">
-    <div class="thabit-card dcard acc"><h4 id="tLast" class="acch">Last session</h4><div id="last" class="accb"></div></div>
-    <div class="thabit-card dcard"><h4 id="tReq">Send a request</h4>
+    <details class="thabit-card dcard rqd" id="rqCard"><summary><h4 id="tReq">Send a request</h4></summary>
       <select id="rqType" onchange="rqFollowUI(true)"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
       <label class="rql" id="rqLWhat">What is your request?</label><input type="text" id="rqWhat" maxlength="140" autocomplete="off">
       <label class="rql" id="rqLMsg">Details / reason</label><textarea id="rqMsg" rows="3" maxlength="1500"></textarea>
       <div id="rqFollow"></div>
-      <button class="btn2" onclick="sendReq()" id="rqBtn">Send</button><div id="rqList" style="margin-top:12px"></div></div>
+      <button class="btn2" onclick="sendReq()" id="rqBtn">Send</button><div id="rqList" style="margin-top:12px"></div></details>
   </div>
 </div>
 <div class="fl"><button type="button" id="dnBtn" hidden aria-label="Dandana"></button><button type="button" id="nxBtn" class="nx" hidden aria-label="Next session"><i class="fa-solid fa-angles-right"></i></button>
@@ -209,6 +237,9 @@ body.light-theme #rqWhat,body.light-theme #rqFollowVal{background:#fff;color:#0f
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
   <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
+<div class="ssm" id="logm" onclick="if(event.target===this)closeLog()"><div class="ssbox">
+  <div class="ssh"><b id="logT">Done tasks</b><button type="button" onclick="closeLog()" aria-label="Close">&times;</button></div>
+  <div class="sslist" id="logList"></div></div></div>
 <div class="ssm" id="ssm" onclick="if(event.target===this)closeSessions()"><div class="ssbox">
   <div class="ssh"><b id="ssT">Sessions</b><button type="button" onclick="closeSessions()" aria-label="Close">&times;</button></div>
   <div class="sssum" id="ssSum"></div><div class="sslist" id="ssList"></div></div></div>
