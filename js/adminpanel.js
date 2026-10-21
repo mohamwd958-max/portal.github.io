@@ -730,6 +730,7 @@ function dsItemsRender() {
                                  : `<input id="dsi_${f.k}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
                 <div><span class="ds-lbl">${esc(cfg.repLabel)}</span>
                     <select id="dsi_rep" class="ds-in" style="width:auto">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">${r}</option>`).join('')}</select></div>
+                ${c.kind === 'task' ? `<div><span class="ds-lbl">Priority</span><select id="dsi_pri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>` : ''}
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                     <button type="button" class="ds-b green" onclick="dsItemSave(${n})">Save</button>
                     <button type="button" class="ds-b ghost" onclick="dsItemOpen(null)">إلغاء</button>
@@ -738,7 +739,7 @@ function dsItemsRender() {
             slots.push(`<div class="ds-slot saved"><span class="ds-no">${n}</span>
                 <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(it.title || (it.body || '').split('\n')[0] || '—')}</div>
                 ${it.badge ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(String(it.badge).split('\n')[0])}</div>` : ''}</div>
-                <span class="ds-tag">×${it.repeats}</span><span class="ds-tag" style="color:#34d399">Done</span>
+                ${it.priority === 'high' ? '<span class="ds-tag" style="background:#be123c;color:#fff">HIGH</span>' : ''}<span class="ds-tag">×${it.repeats}</span><span class="ds-tag" style="color:#34d399">Done</span>
                 <button type="button" class="ds-b amber" onclick="dsItemOpen(${n})">تعديل</button></div>`);
         } else {
             slots.push(`<button type="button" class="ds-slot" style="color:#64748b;width:100%;text-align:start" onclick="dsItemOpen(${n})"><span class="ds-no" style="color:#64748b">${n}</span> + فاضي</button>`);
@@ -753,6 +754,7 @@ function dsItemsRender() {
         const it = have.find(x => x.item_no === c.open) || {};
         cfg.fields.forEach(f => { document.getElementById('dsi_' + f.k).value = it[f.k] || ''; });
         document.getElementById('dsi_rep').value = it.repeats || 1;
+        const pri = document.getElementById('dsi_pri'); if (pri) pri.value = it.priority || 'normal';
         const first = document.getElementById('dsi_' + cfg.fields[0].k);
         if (first) setTimeout(() => first.focus(), 30);
     }
@@ -765,6 +767,7 @@ window.dsItemSave = async function (n) {
     const body = { trainee_id: st.id, supply_date: c.date, kind: c.kind, item_no: n, updated_at: new Date().toISOString() };
     cfg.fields.forEach(f => { body[f.k] = document.getElementById('dsi_' + f.k).value.trim() || null; });
     body.repeats = Math.min(5, Math.max(1, +document.getElementById('dsi_rep').value || 1));
+    const pri = document.getElementById('dsi_pri'); if (pri) body.priority = pri.value;
     if (!body.title && !body.body) { showToast('اكتب الاسم أو الوصف الأول', true, true); return; }
     try {
         const row = await upsertByKey('supply_items', `${dsKey(st, c.date)}&kind=eq.${c.kind}&item_no=eq.${n}`, body);
