@@ -514,28 +514,38 @@ window.Panels = (function () {
 })();
 window.openAssistant = e => Panels.open('assistant', e);
 
-/* ===== Custom page scrollbar: arrow up / thumb / arrow down ===== */
+/* ===== Mini scrollbar for cards that scroll inside the dashboard (arrow / tiny thumb / arrow) ===== */
+function initMiniBars() {
+  const arrow = d => `<button type="button" class="mbb" data-d="${d}" aria-label="${d < 0 ? 'Up' : 'Down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+  document.querySelectorAll('.lst').forEach(el => {
+    if (el.dataset.mb) return;
+    el.dataset.mb = '1';
+    const w = document.createElement('div'); w.className = 'mbw';
+    el.parentNode.insertBefore(w, el); w.appendChild(el);
+    const bar = document.createElement('div'); bar.className = 'mb';
+    bar.innerHTML = arrow(-1) + '<div class="mbt"><div class="mbh"></div></div>' + arrow(1);
+    w.appendChild(bar);
+    const track = bar.querySelector('.mbt'), thumb = bar.querySelector('.mbh');
+    const upd = () => {
+      const over = el.scrollHeight > el.clientHeight + 4;
+      w.classList.toggle('has', over);
+      if (!over) return;
+      const p = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
+      thumb.style.transform = 'translateY(' + ((track.clientHeight - thumb.offsetHeight) * p) + 'px)';
+    };
+    el.addEventListener('scroll', upd, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(upd).observe(el);
+    let drag = null;
+    thumb.addEventListener('pointerdown', e => { drag = { y: e.clientY, top: el.scrollTop }; thumb.setPointerCapture(e.pointerId); e.preventDefault(); });
+    thumb.addEventListener('pointermove', e => { if (!drag) return; el.scrollTop = drag.top + (e.clientY - drag.y) * ((el.scrollHeight - el.clientHeight) / Math.max(1, track.clientHeight - thumb.offsetHeight)); });
+    ['pointerup', 'pointercancel'].forEach(ev => thumb.addEventListener(ev, () => { drag = null; }));
+    bar.querySelectorAll('.mbb').forEach(b => { let tm; const go = () => el.scrollBy({ top: +b.dataset.d * 70 }); b.addEventListener('pointerdown', () => { go(); tm = setInterval(go, 90); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearInterval(tm))); });
+    upd();
+  });
+}
 (function () {
-  const bar = document.createElement('div'); bar.id = 'sbar';
-  const ar = d => `<button type="button" class="sbb" data-d="${d}" aria-label="${d < 0 ? 'Scroll up' : 'Scroll down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
-  bar.innerHTML = ar(-1) + '<div class="sbt"><div class="sbh"></div></div>' + ar(1);
-  document.body.appendChild(bar);
-  const track = bar.querySelector('.sbt'), thumb = bar.querySelector('.sbh'), root = document.scrollingElement || document.documentElement;
-  function upd() {
-    const sh = root.scrollHeight, ch = root.clientHeight, locked = getComputedStyle(document.documentElement).overflow === 'hidden';
-    if (sh <= ch + 4 || locked) { bar.style.display = 'none'; return; }
-    bar.style.display = 'flex';
-    const th = track.clientHeight, size = Math.max(34, th * ch / sh), max = th - size, p = root.scrollTop / (sh - ch);
-    thumb.style.height = size + 'px'; thumb.style.transform = 'translateY(' + (max * p) + 'px)';
-  }
-  addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd);
-  if (window.ResizeObserver) new ResizeObserver(upd).observe(document.body);
-  setInterval(upd, 600);
-  let drag = null;
-  thumb.addEventListener('pointerdown', e => { drag = { y: e.clientY, top: root.scrollTop }; thumb.setPointerCapture(e.pointerId); thumb.classList.add('on'); e.preventDefault(); });
-  thumb.addEventListener('pointermove', e => { if (!drag) return; const r = (root.scrollHeight - root.clientHeight) / Math.max(1, track.clientHeight - thumb.offsetHeight); root.scrollTop = drag.top + (e.clientY - drag.y) * r; });
-  ['pointerup', 'pointercancel'].forEach(ev => thumb.addEventListener(ev, () => { drag = null; thumb.classList.remove('on'); }));
-  track.addEventListener('pointerdown', e => { if (e.target === thumb) return; const r = track.getBoundingClientRect(); root.scrollTo({ top: (e.clientY - r.top) / r.height * (root.scrollHeight - root.clientHeight), behavior: 'smooth' }); });
-  bar.querySelectorAll('.sbb').forEach(b => { let tm; const go = () => root.scrollBy({ top: +b.dataset.d * 90 }); b.addEventListener('pointerdown', () => { go(); tm = setInterval(go, 80); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearInterval(tm))); });
-  upd();
+  const root = $('lists'); if (!root) return;
+  let q = 0;
+  new MutationObserver(() => { cancelAnimationFrame(q); q = requestAnimationFrame(initMiniBars); }).observe(root, { childList: true, subtree: true });
+  initMiniBars();
 })();
