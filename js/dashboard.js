@@ -475,7 +475,7 @@ function nextCard(s) {
 }
 const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div><div style="margin-top:8px;text-align:end">${cpBtn(d.items.join('\n'))}</div>` });
 function openPop(cards, from) {
-  const o = $('pop'); o.innerHTML = cards.map(c => `<div class="pc ${c.cls || ''}"><button type="button" class="x">×</button>${c.html}</div>`).join(''); o.classList.add('open');
+ const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
 const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
@@ -525,9 +525,11 @@ function notesCard(list, unreadOnly) {
   return { html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
 }
 const unreadCount = () => (D && D.notes || []).filter(n => !n.read_at).length;
+
 function feedCards() {
-  const c = [], s = nxState(), d = dndState(), bs = billState(), notes = (D && D.notes) || [];
+  const c = [], s = nxState(), d = dndState(), bs = billState(), notes = ((D && D.notes) || []).filter(n => n.kind !== 'assistant_words'), as = asCard();
   if (s) c.push(nextCard(s));
+  if (as) c.push(as);
   if (d) c.push(dndCard(d));
   if (notes.length) c.push(notesCard(notes));
   if (bs) c.push(billCard(bs));
@@ -549,8 +551,10 @@ function initFloat() {
   if (!window._popDone) {
     window._popDone = true;
     setTimeout(() => {
-      const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at);
-      if (s2 && s2.st === 'count') c.push(nextCard(s2));
+      const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at && n.kind !== 'assistant_words'), as2 = asCard();
+...
+if (s2 && s2.st === 'count') c.push(nextCard(s2));
+if (as2) c.push(as2);          // دايمًا ظاهر مع Next session لحد ما يقفله
       if (d2) c.push(dndCard(d2));
       if (un.length) c.push(notesCard(un));
       let seen = ''; try { seen = localStorage.getItem('thabit_bill_seen') || ''; } catch (e) {}
