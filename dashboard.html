@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Css/overall.css">
- <link rel="stylesheet" href="Css/neumorphic">
+ <link rel="stylesheet" href="Css/neumorphic.css">
 <style>
 body{font-family:Inter,Cairo,sans-serif}
 .wrap{max-width:1100px;margin:0 auto;padding:90px 16px 40px}
@@ -219,6 +219,10 @@ body.light-theme .pc.bill h3{color:#92400e}
 .nt .dt{display:flex;align-items:center;gap:6px}.nt.un .dt::before{content:"";width:8px;height:8px;border-radius:50%;background:#fbbf24;flex:none}
 .nt .nth{font-weight:700;margin:2px 0}
 .ln.compliance{stroke:#f97316}.dot.compliance{fill:#f97316}
+/* trainer view (inside the admin popup) */
+.viewmode #floatBtnAssist,.viewmode .lo,.viewmode #rqCard,.viewmode .dkx{display:none!important}
+.viewmode .wrap{padding-top:22px}
+.viewmode body::before{content:"";}
 /* copy button: quiet, transparent, like a code-block copy action */
 body .cpb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--th-muted,#94a3b8)!important;font:600 .74rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .15s,color .15s}
 body .cpb i{font-size:.8rem}
