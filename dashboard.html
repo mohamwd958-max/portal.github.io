@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Css/overall.css">
-<link rel="stylesheet" href="Css/neumorphic.css">
- <style>
+ <link rel="stylesheet" href="Css/neumorphic">
+<style>
 body{font-family:Inter,Cairo,sans-serif}
 .wrap{max-width:1100px;margin:0 auto;padding:90px 16px 40px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 18px}
@@ -219,6 +219,29 @@ body.light-theme .pc.bill h3{color:#92400e}
 .nt .dt{display:flex;align-items:center;gap:6px}.nt.un .dt::before{content:"";width:8px;height:8px;border-radius:50%;background:#fbbf24;flex:none}
 .nt .nth{font-weight:700;margin:2px 0}
 .ln.compliance{stroke:#f97316}.dot.compliance{fill:#f97316}
+/* copy button: quiet, transparent, like a code-block copy action */
+body .cpb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--th-muted,#94a3b8)!important;font:600 .74rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+body .cpb i{font-size:.8rem}
+body .cpb:hover{background:rgba(148,163,184,.18)!important;color:var(--text-color,inherit)!important}
+body .cpb.done,body .cpb:disabled{cursor:default;background:transparent!important;color:#10b981!important}
+body .cpb.done:hover{background:transparent!important}
+.nt .cpb{margin-top:2px;margin-inline-start:-10px}
+/* phones: nothing may be wider than its card */
+.pc,.pc *,.mbox,.mbox *,.ssbox,.ssbox *,.pf,.pf *,.rqd,.rqd *,.tkc,.tkc *{box-sizing:border-box}
+.pc,.mbox,.ssbox{max-width:100%}
+.pc *,.mbox *,.ssbox *{max-width:100%;overflow-wrap:anywhere}
+.pc svg,.mbox svg{max-width:none}
+.rqd input,.rqd textarea,.rqd select,.mbox textarea,.mbox input{width:100%;display:block}
+@media(max-width:600px){
+ .pop{padding:12px;gap:10px;justify-content:safe center}
+ .pc{padding:16px 14px;border-radius:18px;max-height:none}
+ .mdl{padding:12px}.mbox{padding:14px;border-radius:16px}
+ .ssm{padding:12px}.ssbox{padding:14px;border-radius:18px}
+ .cdn{font-size:1.7rem}
+ .rqd{padding:14px}
+ .rqd .btn2{width:100%}
+ .rql{margin:8px 2px 4px}
+}
 /* chart crosshair (only for the tapped point) */
 .xh{stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:5 4;opacity:.95;pointer-events:none}
 body.light-theme .xh{stroke:#64748b}
@@ -275,4 +298,5 @@ body.light-theme .xh{stroke:#64748b}
 <div id="barTip" role="tooltip"></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
 <script src="js/dashboard.js"></script>
+<script src="js/neumorphic.js"></script>
 </body></html>
