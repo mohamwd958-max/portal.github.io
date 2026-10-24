@@ -244,7 +244,8 @@ const XT = {
     missingOk: "🚨 Reported! The trainer received your word.", missingFail: "Could not send the report.",
     missingEmpty: "Type a word or sentence first!", nameRequired: "Please enter your name first!",
     brokenOk: "🚨 Reported! Broken word sent successfully.", brokenFail: "Could not send the broken word report.",
-    dlConfirmTitle: "Download Audio", dlConfirmText: "Do you really want to download the audio files?", dlYes: "Yes", dlNo: "No"
+    dlConfirmTitle: "Download Audio", dlConfirmText: "Do you really want to download the audio files?", dlYes: "Yes", dlNo: "No",
+    loginReq: "Please log in from the portal first so we know who you are."
   },
   ar: {
     reportMissing: "بلّغ عن كلمة ناقصة", reportBroken: "صوت تالف", wordSpeed: "سرعة الكلمة", smartMenu: "قائمة ذكية",
@@ -267,7 +268,8 @@ const XT = {
     missingOk: "🚨 تم التبليغ! وصلت الكلمة إلى المدرب.", missingFail: "تعذر إرسال البلاغ.",
     missingEmpty: "اكتب كلمة أو جملة أولاً!", nameRequired: "من فضلك اكتب اسمك في حقل الاسم أولاً!",
     brokenOk: "🚨 تم الإبلاغ! تم إرسال الكلمة التالفة بنجاح.", brokenFail: "تعذر إرسال بلاغ الصوت التالف.",
-    dlConfirmTitle: "تنزيل الملفات الصوتية", dlConfirmText: "هل تريد حقاً تنزيل الملفات الصوتية على جهازك؟", dlYes: "نعم", dlNo: "لا"
+    dlConfirmTitle: "تنزيل الملفات الصوتية", dlConfirmText: "هل تريد حقاً تنزيل الملفات الصوتية على جهازك؟", dlYes: "نعم", dlNo: "لا",
+    loginReq: "من فضلك سجّل دخولك من البورتال أولاً."
   },
   eg: {
     reportMissing: "بلّغ إن الكلمة ناقصة", reportBroken: "صوت بايظ", wordSpeed: "سرعة الكلمة", smartMenu: "قايمة ذكية",
@@ -290,7 +292,8 @@ const XT = {
     missingOk: "🚨 اتبلّغ! وصلت للمدرب.", missingFail: "مقدرتش أبعت.",
     missingEmpty: "اكتب كلمة الأول!", nameRequired: "اكتب اسمك في حقل الاسم الأول!",
     brokenOk: "🚨 اتبلّغ! الصوت البايظ اتعبر عنه بنجاح.", brokenFail: "مقدرتش أبعت البلاغ.",
-    dlConfirmTitle: "تحميل الصوت", dlConfirmText: "عايز بجد تنزل الملفات الصوتية دي عندك؟", dlYes: "آه", dlNo: "لا"
+    dlConfirmTitle: "تحميل الصوت", dlConfirmText: "عايز بجد تنزل الملفات الصوتية دي عندك؟", dlYes: "آه", dlNo: "لا",
+    loginReq: "سجّل دخولك من البورتال الأول."
   }
 };
 let uiLang = 'en';
@@ -339,9 +342,6 @@ function toggleSlidersDrawer(e) {
 
 let lastReportAt = 0;
 function openReportModal() {
-  const nameEl = document.getElementById('rpName');
-  const userEl = document.getElementById('userNameInput');
-  if (nameEl) nameEl.value = (userEl ? userEl.value : '').trim();
   const probEl = document.getElementById('rpProblem');
   if (probEl) probEl.value = '';
   const errEl = document.getElementById('rpErr');
@@ -349,81 +349,11 @@ function openReportModal() {
   document.getElementById('reportOverlay')?.classList.add('open');
 }
 function closeReportModal() { document.getElementById('reportOverlay')?.classList.remove('open'); }
-async function submitReport() {
-  if (typeof ID !== 'undefined' && ID.ok) return idSubmitReport();
-  const nameEl = document.getElementById('rpName'), probEl = document.getElementById('rpProblem'), err = document.getElementById('rpErr'), btn = document.getElementById('rpSendBtn');
-  const name = nameEl ? nameEl.value.trim() : '', problem = probEl ? probEl.value.trim() : '';
-  if (!name) { if (err) err.textContent = T('rpNameReq'); return; }
-  if (problem.length < 10) { if (err) err.textContent = T('rpProblemReq'); return; }
-  if (btn) btn.disabled = true;
-  const hdrs = { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-  const saveP = fetch(SUPABASE_URL + '/rest/v1/reports', { method: 'POST', headers: Object.assign({ Prefer: 'return=minimal' }, hdrs), body: JSON.stringify({ name: name, problem: problem, page: location.pathname }) }).then(r => r.ok).catch(() => false);
-  const tgP = fetch(SUPABASE_URL + '/functions/v1/send-telegram', { method: 'POST', headers: hdrs, body: JSON.stringify({ name: name, problem: problem }) }).then(r => r.ok).catch(() => false);
-  const results = await Promise.all([saveP, tgP]);
-  if (btn) btn.disabled = false;
-  if (results[0] || results[1]) { closeReportModal(); showGeneralToast(T('rpSentOk'), 'success'); } else { if (err) err.textContent = T('rpFail'); }
-}
-
-async function reportMissingWord() {
-  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('missing');
-  const wEl = document.getElementById('wordInput');
-  const uEl = document.getElementById('userNameInput');
-  const wordVal = wEl ? wEl.value.trim() : '';
-  const traineeName = uEl ? uEl.value.trim() : '';
-  if (!traineeName) { showGeneralToast(T('nameRequired'), 'red'); uEl?.focus(); return; }
-  if (!wordVal) { showGeneralToast(T('missingEmpty'), 'red'); return; }
-  showGeneralToast(T('missingSending'), 'orange');
-  try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/due_words_table', {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ word: wordVal, trainee_name: traineeName, created_at: new Date().toISOString(), status: 'pending' })
-    });
-    if (!res.ok) throw new Error();
-    showGeneralToast(T('missingOk'), 'success');
-  } catch (e) { showGeneralToast(T('missingFail'), 'red'); }
-}
-
-async function reportBrokenWord() {
-  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('broken');
-  const wEl = document.getElementById('wordInput');
-  const uEl = document.getElementById('userNameInput');
-  const wordVal = wEl ? wEl.value.trim() : '';
-  const traineeName = uEl ? uEl.value.trim() : '';
-
-  if (!traineeName) {
-    showGeneralToast(T('nameRequired'), 'red');
-    uEl?.focus();
-    return;
-  }
-  if (!wordVal) {
-    showGeneralToast(T('missingEmpty'), 'red');
-    return;
-  }
-
-  showGeneralToast(T('missingSending'), 'orange');
-  try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/broken_words_table', {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
-      },
-      body: JSON.stringify({
-        word: wordVal,
-        trainee_name: traineeName,
-        created_at: new Date().toISOString()
-      })
-    });
-
-    if (!res.ok) throw new Error();
-    showGeneralToast(T('brokenOk'), 'success');
-  } catch (e) {
-    showGeneralToast(T('brokenFail'), 'red');
-  }
-}
+// Everything is tied to the trainee who logged in (token) - there is no typed name anywhere.
+function needLogin() { showGeneralToast(T('loginReq'), 'red'); }
+async function submitReport() { if (!ID.ok) return needLogin(); return idSubmitReport(); }
+async function reportMissingWord() { if (!ID.ok) return needLogin(); return idReportWords('missing'); }
+async function reportBrokenWord() { if (!ID.ok) return needLogin(); return idReportWords('broken'); }
 
 let wordsCache = null, wordsCacheAt = 0, statusTimer = null;
 let currentAudio = null, currentResolve = null, playToken = 0;
@@ -857,13 +787,8 @@ async function initIdentity() {
         const j = r.ok ? await r.json() : null;
         if (!j || !j.name) return;
         Object.assign(ID, { ok: true, token: tok, name: j.name, id: j.id });
-        const u = gid('userNameInput');
-        if (u) { u.value = j.name; u.readOnly = true; }
-        const lab = gid('uiLabelName'); if (lab && lab.parentElement) lab.parentElement.style.display = 'none';
-        const rp = gid('rpName');
-        if (rp) { rp.value = j.name; rp.readOnly = true; rp.style.display = 'none'; if (rp.previousElementSibling) rp.previousElementSibling.style.display = 'none'; }
         loadQol();
-    } catch (e) { /* stay in manual-name mode */ }
+    } catch (e) { /* not logged in: listening still works, reporting asks to log in */ }
 }
 window.addEventListener('DOMContentLoaded', initIdentity);
 
