@@ -442,10 +442,14 @@ function nxState() {
 }
 function dndState() {
   const di = (D.items || []).filter(i => i.kind === 'dandana');
-  if (di.length) { const last = di.reduce((m, i) => i.date > m ? i.date : m, ''); return { r: { supply_date: last }, items: di.filter(i => i.date === last).sort((a, b) => a.no - b.no).map(i => [i.title, i.badge].filter(Boolean).join(' - ')) }; }
+  if (di.length) { const last = di.reduce((m, i) => i.date > m ? i.date : m, '');
+    const sc0 = schedule();   // dandana lives from its session until the NEXT session starts, then it goes away (a newer upload replaces it earlier)
+    if (sc0) { const n0 = nextAfter(sc0, Date.parse(last + 'T00:00:00Z') + 864e5); if (n0 && cairoNow() >= n0) return null; }
+    else if (cairoNow() - Date.parse(last + 'T00:00:00Z') > 7 * 864e5) return null;
+    return { r: { supply_date: last }, items: di.filter(i => i.date === last).sort((a, b) => a.no - b.no).map(i => [i.title, i.badge].filter(Boolean).join(' - ')) }; }
   const rows = D.rows.filter(r => r.dandana && String(r.dandana).trim()); if (!rows.length) return null;
   const r = rows[rows.length - 1], sc = schedule();
-  if (sc) { const n = nextAfter(sc, Date.parse(r.supply_date + 'T00:00:00Z') + 864e5); if (n && cairoNow() >= n - 5 * 36e5) return null; }
+  if (sc) { const n = nextAfter(sc, Date.parse(r.supply_date + 'T00:00:00Z') + 864e5); if (n && cairoNow() >= n) return null; }
   return { r, items: String(r.dandana).split(/[\/\n]+/).map(x => x.trim()).filter(Boolean) };
 }
 const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
@@ -463,17 +467,14 @@ const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML =
 /* ===== Feed: next session + dandana + notifications + payment, all inside ONE button ===== */
 const NTX = {
   en: { feed: 'Feed', notes: 'Notifications', msg: 'Message from your trainer', word: w => `Your word “${w}” is ready. You can listen to it now.`, reply: 'The trainer replied to your request', billT: 'Payment', cur: 'EGP',
-        past: (p, t, s, when) => `You have a past due amount of <b>${p}</b> EGP. Your total is <b>${t}</b> EGP (past due ${p} + this period ${s}).${when}`,
-        tot: (s, when) => `Your total for this period is <b>${s}</b> EGP.${when}`,
-        nextM: ' Please pay before the 7th of next month to avoid any interruption of the service.', thisM: ' Please pay by the 7th of this month to avoid any interruption of the service.', asap: ' Please pay as soon as possible to avoid any interruption of the service.' },
+        past: (p, t, s, due) => `A gentle reminder that there is an amount of <b>${p}</b> EGP from last month, which makes the total due <b>${t}</b> EGP. Please make sure to pay this amount before <b>${due}</b>.`,
+        tot: (s, due) => `A gentle reminder that this month's subscription is <b>${s}</b> EGP. Please make sure to pay it before <b>${due}</b>.` },
   ar: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها الآن.`, reply: 'رد المدرب على طلبك', billT: 'المدفوعات', cur: 'جنيه',
-        past: (p, t, s, when) => `عليك مبلغ متأخر قدره <b>${p}</b> جنيه، والإجمالي المطلوب <b>${t}</b> جنيه (المتأخر ${p} + مبلغ هذه الفترة ${s}).${when}`,
-        tot: (s, when) => `إجمالي المبلغ المطلوب لهذه الفترة <b>${s}</b> جنيه.${when}`,
-        nextM: ' يرجى الدفع قبل يوم 7 من الشهر القادم تجنبًا لانقطاع الخدمة.', thisM: ' يرجى الدفع بحلول يوم 7 من هذا الشهر تجنبًا لانقطاع الخدمة.', asap: ' يرجى السداد في أقرب وقت تجنبًا لانقطاع الخدمة.' },
+        past: (p, t, s, due) => `تذكير لطيف بأن هناك مبلغًا من الشهر السابق بقيمة <b>${p}</b> جنيه، وهذا يجعل الإجمالي المطلوب <b>${t}</b> جنيه. رجاءً تأكد من دفع هذا المبلغ المستحق قبل يوم <b>${due}</b>.`,
+        tot: (s, due) => `تذكير لطيف بأن مبلغ اشتراك هذا الشهر <b>${s}</b> جنيه. رجاءً تأكد من دفعه قبل يوم <b>${due}</b>.` },
   eg: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها دلوقتي.`, reply: 'المدرب رد على طلبك', billT: 'المدفوعات', cur: 'جنيه',
-        past: (p, t, s, when) => `عليك مبلغ متأخر <b>${p}</b> جنيه، والإجمالي المطلوب <b>${t}</b> جنيه (المتأخر ${p} + مبلغ الفترة دي ${s}).${when}`,
-        tot: (s, when) => `إجمالي المطلوب منك للفترة دي <b>${s}</b> جنيه.${when}`,
-        nextM: ' ياريت تدفع قبل يوم 7 من الشهر الجاي عشان الخدمة ما تتوقفش.', thisM: ' ياريت تدفع لحد يوم 7 من الشهر ده عشان الخدمة ما تتوقفش.', asap: ' ياريت تدفع في أقرب وقت عشان الخدمة ما تتوقفش.' }
+        past: (p, t, s, due) => `تذكير لطيف إن فيه مبلغ من الشهر اللي فات بقيمة <b>${p}</b> جنيه، وده بيخلي الإجمالي المطلوب <b>${t}</b> جنيه. ياريت تتأكد إنك تدفع المبلغ المستحق ده قبل يوم <b>${due}</b>.`,
+        tot: (s, due) => `تذكير لطيف إن اشتراك الشهر ده <b>${s}</b> جنيه. ياريت تتأكد إنك تدفعه قبل يوم <b>${due}</b>.` }
 };
 const NT = () => NTX[lang] || NTX.en;
 const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => { if (!Array.isArray(a)) console.warn('[feed] trainee_notifications failed:', a); return Array.isArray(a) ? a : []; }).catch(e => { console.warn('[feed] trainee_notifications error:', e); return []; });
@@ -487,9 +488,14 @@ function billState() {
   if (!win && !past) return null;
   return { sub, past, total: sub + past, win, early: day <= 7 };
 }
+function billDue() {   // the next 7th, as d/m/yyyy (7/11/2026)
+  const n = new Date(cairoNow()); let y = n.getUTCFullYear(), m = n.getUTCMonth() + 1;
+  if (n.getUTCDate() > 7) { m++; if (m > 12) { m = 1; y++; } }
+  return `7/${m}/${y}`;
+}
 function billCard(s) {
-  const t = NT(), when = !s.win ? t.asap : s.early ? t.thisM : t.nextM, fmt = v => v.toLocaleString(lang === 'en' ? 'en-US' : 'ar-EG');
-  return { cls: 'bill', html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), when) : t.tot(fmt(s.sub), when)}</div>` };
+  const t = NT(), fmt = v => String(v), due = billDue();
+  return { cls: 'bill', html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>` };
 }
 function noteText(n) {
   const t = NT(), m = n.meta || {};
