@@ -287,9 +287,8 @@ function itemRow(it) {
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
     + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
-    + `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div><div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
-    + (status ? `<div class="its">${esc(status)}</div>` : '')
-    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
+       + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
+    + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
     + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
 }
 const TKT = {
