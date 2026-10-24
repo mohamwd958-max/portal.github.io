@@ -28,11 +28,11 @@ function setLanguage(l) {
 function toggleTheme() {
   const light = $('bodyRoot').classList.toggle('light-theme');
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
-  try { localStorage.set('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
+  try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
 }
 async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
-  const t = tok(); try { localStorage.remove(TOKEN_KEY); localStorage.remove('currentTrainee'); } catch (e) {}
+  const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
 }
@@ -63,7 +63,7 @@ document.addEventListener('click', e => {
   const old = () => { const t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); done(); };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, old); else old();
 }, true);
-let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.get('thabit_hand_seen'); } catch (e) {}
+let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
   if (k === 'avg') { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
   return r[k] == null ? null : Number(r[k]);
@@ -126,14 +126,14 @@ function overall(rows, S) {
   const vals = rows.map(ra).filter(v => v != null);
   if (!vals.length) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
   const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', compliance: 'الالتزام', attendance: '#06b6d4', avg: 'var(--avg)' };
+  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
     chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 6, hit: 20, lab: 10 });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
-const  = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
+const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
 
 /* ===== Sessions popup (opened from the Sessions card at the top) ===== */
 const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
@@ -196,7 +196,7 @@ function render() {
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
-  $('lists').innerHTML = tasksCard() + sCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -230,6 +230,9 @@ const ITT = {
   ar: { tasks: 'المهام', dnd: 'دندنة', opens: 'تفتح', ready: 'جاهزة، اضغط على الدائرة', closed: 'أُغلقت', waiting: 'تفتح بعد انتهاء جلستك', saved: 'تم الحفظ', not_yet: 'لم يحن موعدها بعد', all_done: 'تم إكمالها', no_plan: 'تفتح بعد انتهاء جلستك', fail: 'تعذر الحفظ، حاول مرة أخرى', est: ' (تقديري)', endsIn: 'ينتهي بعد', closedDue: 'أُغلقت بسبب:', why_hours18: 'مرّ أكثر من 18 ساعة على آخر جلسة', why_next_session: 'اقترب موعد جلستك القادمة', why_holiday: 'بدأت الإجازة الأسبوعية', hol: 'أنت في إجازة نهاية الأسبوع. المهام متوقفة حتى السبت.', missed: 'فائتة', done: 'تمت', u: { d: 'ي', h: 'س', m: 'د' } },
   eg: { tasks: 'التاسكس', dnd: 'دندنة', opens: 'بتفتح', ready: 'جاهزة، دوس على الدايرة', closed: 'اتقفلت', waiting: 'بتفتح بعد ما السيشن تخلص', saved: 'اتسجلت', not_yet: 'لسه معادها ما جاش', all_done: 'خلصتها قبل كده', no_plan: 'بتفتح بعد ما السيشن تخلص', fail: 'معرفناش نسجل، جرب تاني', est: ' (تقريبًا)', endsIn: 'بتنتهي بعد', closedDue: 'اتقفلت بسبب:', why_hours18: 'عدّى أكتر من 18 ساعة على آخر سيشن', why_next_session: 'ميعاد السيشن الجاية قرّب', why_holiday: 'بدأت الإجازة', hol: 'إنت في إجازة نهاية الأسبوع. التاسكس واقفة لحد السبت.', missed: 'فاتت', done: 'خلصت', u: { d: 'ي', h: 'س', m: 'د' } }
 };
+ITT.en.why_range = 'the time range you were given has ended';
+ITT.ar.why_range = 'انتهت المدة المحددة';
+ITT.eg.why_range = 'المدة المحددة خلصت';
 const itT = () => ITT[lang] || ITT.en;
 const DTL2 = {};
 const itToday = () => new Date(cairoNow()).toISOString().slice(0, 10);
@@ -287,8 +290,10 @@ function itemRow(it) {
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
     + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
-       + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
-    + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
+    + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
+    + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
+    + (status ? `<div class="its">${esc(status)}</div>` : '')
+    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
     + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
 }
 const TKT = {
@@ -475,7 +480,7 @@ function nextCard(s) {
 }
 const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div><div style="margin-top:8px;text-align:end">${cpBtn(d.items.join('\n'))}</div>` });
 function openPop(cards, from) {
- const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
+  const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
 const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
@@ -552,9 +557,8 @@ function initFloat() {
     window._popDone = true;
     setTimeout(() => {
       const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at && n.kind !== 'assistant_words'), as2 = asCard();
-...
-if (s2 && s2.st === 'count') c.push(nextCard(s2));
-if (as2) c.push(as2);          // دايمًا ظاهر مع Next session لحد ما يقفله
+      if (s2 && s2.st === 'count') c.push(nextCard(s2));
+      if (as2) c.push(as2);          // always shown with Next session until the trainee closes it
       if (d2) c.push(dndCard(d2));
       if (un.length) c.push(notesCard(un));
       let seen = ''; try { seen = localStorage.getItem('thabit_bill_seen') || ''; } catch (e) {}
@@ -676,6 +680,7 @@ function initMiniBars() {
   initMiniBars();
 })();
 
+/* ===== Assistant notifications: shown with Next session until the trainee closes them ===== */
 const ASX = {
   en: { t: 'Assistant notifications', b: w => `Your words (${w}) have been uploaded. You can listen to them in the Assistant.`, open: 'Open Assistant', sep: ', ' },
   ar: { t: 'إشعارات المساعد', b: w => `كلماتك (${w}) تم رفعها. تقدر تسمعها من المساعد.`, open: 'افتح المساعد', sep: '، ' },
