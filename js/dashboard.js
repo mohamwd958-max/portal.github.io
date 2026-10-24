@@ -509,7 +509,7 @@ function initFloat() {
   const btn = $('feedBtn');
   if (!window._popDone) {
     window._popDone = true;
-    if (!btn.hidden) { btn.classList.add('intro'); setTimeout(() => btn.classList.remove('intro'), 4600); }   // the attention animation plays ONCE
+    if (!btn.hidden) { btn.classList.add('intro'); setTimeout(() => btn.classList.remove('intro'), 2000); }   // the attention animation plays ONCE
     setTimeout(() => {
       const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at);
       if (s2 && s2.st === 'count') c.push(nextCard(s2));
