@@ -1149,7 +1149,8 @@ function mpPaintList() {
             <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
                 <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
                 <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
-                <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button></div></div>`;
+                <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
+                <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
     }).join('') || '<div class="tha-note">مفيش نتائج.</div>';
     mpPaintBar();
 }
@@ -1716,3 +1717,41 @@ async function notifyWordReady(word) {
     await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
     return out.length;
 }
+
+
+/* ==========================================================
+   Dashboard View: the trainee's dashboard exactly as he sees it, in a popup.
+   A short-lived token is created by admin_view_token (admin only); the dashboard
+   opens it read-only, so no login and nothing is written for the trainee.
+   ========================================================== */
+window.dvClose = function () { const o = document.getElementById('dvOv'); if (o) o.remove(); document.removeEventListener('keydown', dvKey); };
+function dvKey(e) { if (e.key === 'Escape') dvClose(); }
+window.addEventListener('message', e => { if (e.data && e.data.thabitView === 'close') dvClose(); });
+window.openStudentDashboard = async function (id) {
+    const s = mpState.list.find(x => String(x.id) === String(id)); if (!s) return;
+    dvClose();
+    const ov = document.createElement('div');
+    ov.id = 'dvOv'; ov.className = 'tha-modal open'; ov.style.cssText = 'z-index:200003;padding:10px;align-items:stretch';
+    ov.addEventListener('mousedown', e => { if (e.target === ov) dvClose(); });
+    ov.innerHTML = `<div style="position:relative;width:min(1180px,100%);margin:auto;height:100%;border-radius:20px;overflow:hidden;background:var(--nm-bg,#0f172a);box-shadow:0 30px 80px rgba(0,0,0,.7);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(148,163,184,.25)">
+            <b style="color:#fbbf24;font-size:13px"><i class="fa-solid fa-eye"></i> ${esc(s.trainee || '')} <span style="opacity:.6;font-weight:600">· view only</span></b>
+            <button type="button" class="ds-b ghost" onclick="dvClose()">إغلاق ✕</button></div>
+        <div id="dvBody" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center"><span class="tha-note">جاري التحميل...</span></div></div>`;
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', dvKey);
+    try {
+        const r = await sbFetch('rpc/admin_view_token', { method: 'POST', body: JSON.stringify({ p_trainee: String(id) }) });
+        const tk = await r.json();
+        if (typeof tk !== 'string' || !/^[A-Za-z0-9]+$/.test(tk)) throw new Error((tk && tk.message) || 'no token');
+        const body = document.getElementById('dvBody'); if (!body) return;
+        body.innerHTML = '';
+        const f = document.createElement('iframe');
+        f.title = 'Trainee dashboard'; f.style.cssText = 'width:100%;height:100%;border:0;background:transparent';
+        f.src = 'dashboard.html#vt=' + tk;
+        body.appendChild(f);
+    } catch (e) {
+        const body = document.getElementById('dvBody');
+        if (body) body.innerHTML = `<div class="tha-note" style="color:#f43f5e;padding:20px;text-align:center">تعذر فتح الداشبورد: ${esc(e.message)}<br>(شغّل 05_view_dashboard.sql لو لسه)</div>`;
+    }
+};
