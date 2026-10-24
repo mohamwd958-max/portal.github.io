@@ -19,7 +19,7 @@ function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
   ['Ar', 'En', 'Eg'].forEach(x => $('floatBtn' + x).classList.toggle('active', x.toLowerCase() === l));
   const r = $('htmlRoot'); r.lang = l; r.dir = l === 'en' ? 'ltr' : 'rtl';
-  if (D) render();
+  if (D) { render(); if (typeof updateFeed === 'function') updateFeed(); }
 }
 function toggleTheme() {
   const light = $('bodyRoot').classList.toggle('light-theme');
@@ -85,24 +85,24 @@ function smooth(p) {
 function chart(S, keys, o) {
   const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab);
   const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / S.max) * (H - Tp - B);
-  let s = `<svg class="c2" viewBox="0 0 ${W} ${H}">`;
-  [0, S.max / 2, S.max].forEach(g => s += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}"/><text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
+  let s = `<svg class="c2" viewBox="0 0 ${W} ${H}" data-l="${L}" data-b="${H - B}">`;
+  [0, S.max / 2, S.max].forEach(g => s += `<text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
   S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
-  const show = range === 'today';
   keys.forEach(k => {
     s += `<path class="ln ${k}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
-    if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.length) s += `<circle class="dot ${k}${show ? '' : ' hit'}" cx="${x(i)}" cy="${y(S.cum[k][i])}" r="${show ? o.r : 10}" data-k="${k}" data-i="${i}"/>`; });
+    if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
+      s += `<circle class="dot ${k}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
-  return s + '</svg>';
+  return s + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
 }
 function kpi(key, rows, all, S) {
   const t = T[lang], vals = rows.map(r => r[key]).filter(v => v != null && v !== '').map(Number).filter(Number.isFinite);
   let h = `<div class="thabit-card dcard"><h4>${t[key]}</h4>`;
-  if (!vals.length) return h + `<div class="sm">${t.none}</div>${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, lab: 5 })}</div>`;
+  if (!vals.length) return h + `<div class="sm">${t.none}</div>${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, hit: 15, lab: 5 })}</div>`;
   const cur = vals[vals.length - 1];
   const before = all.filter(r => r[key] != null && !rows.includes(r)).map(r => Number(r[key]));
   const base = before.length ? before[before.length - 1] : vals[0];
-  return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
+  return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, hit: 15, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
 }
 function overall(rows, S) {
   const t = T[lang], ra = r => { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };
@@ -112,7 +112,7 @@ function overall(rows, S) {
   const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', compliance: 'الالتزام', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
-    chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 7, lab: 10 });
+    chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 6, hit: 20, lab: 10 });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
@@ -354,7 +354,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); render(); initFloat();
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); initFloat();
 }
 async function sendReq() {
   const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
@@ -376,7 +376,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('click', e => {
   const tip = $('barTip'), d = e.target.closest && e.target.closest('.dot');
+  document.querySelectorAll('svg .xh').forEach(l => l.style.display = 'none');
   if (!d) { tip.classList.remove('show'); return; }
+  const sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
+  if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
   const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
   const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
   tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
@@ -439,23 +442,89 @@ function openPop(cards, from) {
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
 const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
+/* ===== Feed: next session + dandana + notifications + payment, all inside ONE button ===== */
+const NTX = {
+  en: { feed: 'Feed', notes: 'Notifications', msg: 'Message from your trainer', word: w => `Your word “${w}” is ready. You can listen to it now.`, reply: 'The trainer replied to your request', billT: 'Payment', cur: 'EGP',
+        past: (p, t, s, when) => `You have a past due amount of <b>${p}</b> EGP. Your total is <b>${t}</b> EGP (past due ${p} + this period ${s}).${when}`,
+        tot: (s, when) => `Your total for this period is <b>${s}</b> EGP.${when}`,
+        nextM: ' Please pay before the 7th of next month to avoid any interruption of the service.', thisM: ' Please pay by the 7th of this month to avoid any interruption of the service.', asap: ' Please pay as soon as possible to avoid any interruption of the service.' },
+  ar: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها الآن.`, reply: 'رد المدرب على طلبك', billT: 'المدفوعات', cur: 'جنيه',
+        past: (p, t, s, when) => `عليك مبلغ متأخر قدره <b>${p}</b> جنيه، والإجمالي المطلوب <b>${t}</b> جنيه (المتأخر ${p} + مبلغ هذه الفترة ${s}).${when}`,
+        tot: (s, when) => `إجمالي المبلغ المطلوب لهذه الفترة <b>${s}</b> جنيه.${when}`,
+        nextM: ' يرجى الدفع قبل يوم 7 من الشهر القادم تجنبًا لانقطاع الخدمة.', thisM: ' يرجى الدفع بحلول يوم 7 من هذا الشهر تجنبًا لانقطاع الخدمة.', asap: ' يرجى السداد في أقرب وقت تجنبًا لانقطاع الخدمة.' },
+  eg: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها دلوقتي.`, reply: 'المدرب رد على طلبك', billT: 'المدفوعات', cur: 'جنيه',
+        past: (p, t, s, when) => `عليك مبلغ متأخر <b>${p}</b> جنيه، والإجمالي المطلوب <b>${t}</b> جنيه (المتأخر ${p} + مبلغ الفترة دي ${s}).${when}`,
+        tot: (s, when) => `إجمالي المطلوب منك للفترة دي <b>${s}</b> جنيه.${when}`,
+        nextM: ' ياريت تدفع قبل يوم 7 من الشهر الجاي عشان الخدمة ما تتوقفش.', thisM: ' ياريت تدفع لحد يوم 7 من الشهر ده عشان الخدمة ما تتوقفش.', asap: ' ياريت تدفع في أقرب وقت عشان الخدمة ما تتوقفش.' }
+};
+const NT = () => NTX[lang] || NTX.en;
+const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
+const fetchBill = () => rpc('trainee_billing', { p_token: tok() }).then(b => b && typeof b === 'object' && !Array.isArray(b) && !b.message && !b.code ? b : null).catch(() => null);
+function billState() {
+  const b = D && D.bill; if (!b) return null;
+  const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) ? n : 0; };
+  const sub = num(b.subscription), past = num(b.past_due); if (!sub && !past) return null;
+  const n = new Date(cairoNow()), day = n.getUTCDate(), last = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate();
+  const win = day > last - 5 || day <= 7;                  // last 5 days of the month, until the 7th
+  if (!win && !past) return null;
+  return { sub, past, total: sub + past, win, early: day <= 7 };
+}
+function billCard(s) {
+  const t = NT(), when = !s.win ? t.asap : s.early ? t.thisM : t.nextM, fmt = v => v.toLocaleString(lang === 'en' ? 'en-US' : 'ar-EG');
+  return { cls: 'bill', html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), when) : t.tot(fmt(s.sub), when)}</div>` };
+}
+function noteText(n) {
+  const t = NT(), m = n.meta || {};
+  if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
+  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
+  return { h: esc(n.title || t.msg), b: rich(n.body || '') };
+}
+function notesCard(list, unreadOnly) {
+  const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
+  const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
+    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
+  return { html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
+}
+const unreadCount = () => (D && D.notes || []).filter(n => !n.read_at).length;
+function feedCards() {
+  const c = [], s = nxState(), d = dndState(), bs = billState(), notes = (D && D.notes) || [];
+  if (s) c.push(nextCard(s));
+  if (d) c.push(dndCard(d));
+  if (notes.length) c.push(notesCard(notes));
+  if (bs) c.push(billCard(bs));
+  return c;
+}
+function updateFeed() {
+  const btn = $('feedBtn'), n = unreadCount(), bd = $('feedBadge');
+  btn.hidden = !feedCards().length; btn.setAttribute('aria-label', NT().feed); btn.querySelector('.fdt').textContent = NT().feed;
+  bd.hidden = !n; bd.textContent = n > 9 ? '9+' : n;
+}
+function openFeed(from) {
+  const c = feedCards(); if (!c.length) return;
+  openPop(c, from);
+  if (unreadCount()) { (D.notes || []).forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); updateFeed(); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); }
+}
 function initFloat() {
-  const s = nxState(), d = dndState();
-  $('nxBtn').hidden = !s; $('dnBtn').hidden = !d;
-  if (window._popDone) return; window._popDone = true;
-  setTimeout(() => {
-    const s2 = nxState(), d2 = dndState(), c = [];
-    if (s2 && s2.st === 'count') c.push(nextCard(s2));
-    if (d2) c.push(dndCard(d2));
-    if (c.length) openPop(c, s2 && s2.st === 'count' ? $('nxBtn') : $('dnBtn'));
-  }, 2200);
+  updateFeed();
+  const btn = $('feedBtn');
+  if (!window._popDone) {
+    window._popDone = true;
+    if (!btn.hidden) { btn.classList.add('intro'); setTimeout(() => btn.classList.remove('intro'), 4600); }   // the attention animation plays ONCE
+    setTimeout(() => {
+      const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at);
+      if (s2 && s2.st === 'count') c.push(nextCard(s2));
+      if (d2) c.push(dndCard(d2));
+      if (un.length) c.push(notesCard(un));
+      let seen = ''; try { seen = localStorage.getItem('thabit_bill_seen') || ''; } catch (e) {}
+      if (bs && seen !== itToday()) { c.push(billCard(bs)); try { localStorage.setItem('thabit_bill_seen', itToday()); } catch (e) {} }   // payment note: once a day
+      if (c.length) { openPop(c, btn); if (un.length) { D.notes.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); updateFeed(); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); } }
+    }, 2200);
+  }
+  if (!window._ntPoll) window._ntPoll = setInterval(async () => { if (!D) return; D.notes = await fetchNotes(); updateFeed(); }, 60000);
 }
 window.addEventListener('DOMContentLoaded', () => {
-  let pts = []; for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12, r = i % 2 ? 20 : 24; pts.push((26 + r * Math.sin(a)).toFixed(1) + ',' + (26 - r * Math.cos(a)).toFixed(1)); }
-  $('dnBtn').innerHTML = `<svg viewBox="0 0 52 52" width="52" height="52"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs><polygon points="${pts.join(' ')}" fill="url(#sg)" stroke="#bfdbfe" stroke-width="1.2" stroke-linejoin="round"/><text x="26" y="34" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Cairo,sans-serif">د</text></svg>`;
-  $('dnBtn').onclick = e => { e.stopPropagation(); const d = dndState(); if (d) openPop([dndCard(d)], $('dnBtn')); };
-  $('nxBtn').onclick = e => { e.stopPropagation(); const s = nxState(); if (s) openPop([nextCard(s)], $('nxBtn')); };
-  setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
+  $('feedBtn').onclick = e => { e.stopPropagation(); openFeed($('feedBtn')); };
+  setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd[data-t]').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
 
 /* ===== Panels: Assistant / Profile open as popups over the dashboard; tapping outside parks them as tabs beside the Next-session button ===== */
