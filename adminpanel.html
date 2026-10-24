@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Montserrat:wght@900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="Css/adminpanel.css">
+<link rel="stylesheet" href="Css/neumorphic.css">
 </head>
 <body class="text-white min-h-full" id="bodyRoot">
 
@@ -33,7 +34,7 @@
 <div id="adminModalOverlay" class="tha-modal">
   <div id="adminPanel" class="tha-box" style="max-width:680px">
     <div class="tha-h">
-      <h3 id="uiAdminPanelTitle"><i class="fa-solid fa-shield-halved"></i> Fedawy Admin Panel</h3>
+      <h3 id="uiAdminPanelTitle"><i class="fa-solid fa-shield-halved"></i> Fedawy Admin Panel</h3><div id="uiAdminPageTitle" aria-live="polite"></div>
       <div style="display:flex;align-items:center;gap:10px">
         <span id="uiAdminTrainerOnly" class="tha-note">Trainer Only</span>
         <button type="button" class="tha-b gray" onclick="toggleAdminPanel()" title="Portal Home" style="padding: 6px 12px; font-size: 0.8rem;"><i class="fa-solid fa-house"></i></button>
@@ -74,6 +75,22 @@
         <span><span>Trainee Master Profile (المرجع الأساسي)</span><small>إدارة بيانات الطالب الشاملة والمالية والمواعيد</small></span>
       </button>
 
+      <button type="button" class="admin-big" onclick="openDashboardSubView('view')">
+        <i class="fa-solid fa-eye"></i>
+        <span><span>View Student Page</span><small>عرض صفحة الطالب كما يراها تماماً (Read Only)</small></span>
+      </button>
+      <button type="button" class="admin-big" onclick="openDashboardSubView('modify')">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span><span>Modify Student Data</span><small>تعديل بيانات وأرقام الطلاب مباشرة وبسهولة</small></span>
+      </button>
+      <button type="button" class="admin-big" onclick="openDashboardSubView('dailySupply')">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span><span>Insert Daily Supply</span><small>إدخال بيانات الأسبوع الحالي (السبت للخميس)</small></span>
+      </button>
+      <button type="button" class="admin-big" onclick="openDashboardSubView('exception')">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span><span>Insert Exception / Request</span><small>إدخال استثناءات المواعيد والماليات شهرياً</small></span>
+      </button>
       <button type="button" class="admin-big" onclick="openDashboardSubView('archive')">
         <i class="fa-solid fa-box-archive"></i>
         <span><span>Archive</span><small>أرشيف Daily Supply: عرض بالفترة (يوم/أسبوع/شهر/سنة) وتصدير CSV</small></span>
@@ -197,6 +214,7 @@
 <!-- حاوية النوافذ العائمة الذكية (Floating Windows Container) -->
 <div id="floatingWindowsRoot" class="fixed bottom-2 left-2 z-[200002] flex flex-row-reverse gap-2 items-end flex-wrap pointer-events-none"></div>
 
-<script src="js/adminpanel.js"></script>
+<script src="adminpanel.js?v=2"></script>
+<script src="js/neumorphic.js"></script>
 </body>
 </html>
