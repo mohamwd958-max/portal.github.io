@@ -244,7 +244,8 @@ const XT = {
     missingOk: "🚨 Reported! The trainer received your word.", missingFail: "Could not send the report.",
     missingEmpty: "Type a word or sentence first!", nameRequired: "Please enter your name first!",
     brokenOk: "🚨 Reported! Broken word sent successfully.", brokenFail: "Could not send the broken word report.",
-    dlConfirmTitle: "Download Audio", dlConfirmText: "Do you really want to download the audio files?", dlYes: "Yes", dlNo: "No"
+    dlConfirmTitle: "Download Audio", dlConfirmText: "Do you really want to download the audio files?", dlYes: "Yes", dlNo: "No",
+    loginReq: "Please log in from the portal first so we know who you are."
   },
   ar: {
     reportMissing: "بلّغ عن كلمة ناقصة", reportBroken: "صوت تالف", wordSpeed: "سرعة الكلمة", smartMenu: "قائمة ذكية",
@@ -267,7 +268,8 @@ const XT = {
     missingOk: "🚨 تم التبليغ! وصلت الكلمة إلى المدرب.", missingFail: "تعذر إرسال البلاغ.",
     missingEmpty: "اكتب كلمة أو جملة أولاً!", nameRequired: "من فضلك اكتب اسمك في حقل الاسم أولاً!",
     brokenOk: "🚨 تم الإبلاغ! تم إرسال الكلمة التالفة بنجاح.", brokenFail: "تعذر إرسال بلاغ الصوت التالف.",
-    dlConfirmTitle: "تنزيل الملفات الصوتية", dlConfirmText: "هل تريد حقاً تنزيل الملفات الصوتية على جهازك؟", dlYes: "نعم", dlNo: "لا"
+    dlConfirmTitle: "تنزيل الملفات الصوتية", dlConfirmText: "هل تريد حقاً تنزيل الملفات الصوتية على جهازك؟", dlYes: "نعم", dlNo: "لا",
+    loginReq: "من فضلك سجّل دخولك من البورتال أولاً."
   },
   eg: {
     reportMissing: "بلّغ إن الكلمة ناقصة", reportBroken: "صوت بايظ", wordSpeed: "سرعة الكلمة", smartMenu: "قايمة ذكية",
@@ -290,7 +292,8 @@ const XT = {
     missingOk: "🚨 اتبلّغ! وصلت للمدرب.", missingFail: "مقدرتش أبعت.",
     missingEmpty: "اكتب كلمة الأول!", nameRequired: "اكتب اسمك في حقل الاسم الأول!",
     brokenOk: "🚨 اتبلّغ! الصوت البايظ اتعبر عنه بنجاح.", brokenFail: "مقدرتش أبعت البلاغ.",
-    dlConfirmTitle: "تحميل الصوت", dlConfirmText: "عايز بجد تنزل الملفات الصوتية دي عندك؟", dlYes: "آه", dlNo: "لا"
+    dlConfirmTitle: "تحميل الصوت", dlConfirmText: "عايز بجد تنزل الملفات الصوتية دي عندك؟", dlYes: "آه", dlNo: "لا",
+    loginReq: "سجّل دخولك من البورتال الأول."
   }
 };
 let uiLang = 'en';
@@ -339,9 +342,6 @@ function toggleSlidersDrawer(e) {
 
 let lastReportAt = 0;
 function openReportModal() {
-  const nameEl = document.getElementById('rpName');
-  const userEl = document.getElementById('userNameInput');
-  if (nameEl) nameEl.value = (userEl ? userEl.value : '').trim();
   const probEl = document.getElementById('rpProblem');
   if (probEl) probEl.value = '';
   const errEl = document.getElementById('rpErr');
@@ -349,81 +349,11 @@ function openReportModal() {
   document.getElementById('reportOverlay')?.classList.add('open');
 }
 function closeReportModal() { document.getElementById('reportOverlay')?.classList.remove('open'); }
-async function submitReport() {
-  if (typeof ID !== 'undefined' && ID.ok) return idSubmitReport();
-  const nameEl = document.getElementById('rpName'), probEl = document.getElementById('rpProblem'), err = document.getElementById('rpErr'), btn = document.getElementById('rpSendBtn');
-  const name = nameEl ? nameEl.value.trim() : '', problem = probEl ? probEl.value.trim() : '';
-  if (!name) { if (err) err.textContent = T('rpNameReq'); return; }
-  if (problem.length < 10) { if (err) err.textContent = T('rpProblemReq'); return; }
-  if (btn) btn.disabled = true;
-  const hdrs = { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-  const saveP = fetch(SUPABASE_URL + '/rest/v1/reports', { method: 'POST', headers: Object.assign({ Prefer: 'return=minimal' }, hdrs), body: JSON.stringify({ name: name, problem: problem, page: location.pathname }) }).then(r => r.ok).catch(() => false);
-  const tgP = fetch(SUPABASE_URL + '/functions/v1/send-telegram', { method: 'POST', headers: hdrs, body: JSON.stringify({ name: name, problem: problem }) }).then(r => r.ok).catch(() => false);
-  const results = await Promise.all([saveP, tgP]);
-  if (btn) btn.disabled = false;
-  if (results[0] || results[1]) { closeReportModal(); showGeneralToast(T('rpSentOk'), 'success'); } else { if (err) err.textContent = T('rpFail'); }
-}
-
-async function reportMissingWord() {
-  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('missing');
-  const wEl = document.getElementById('wordInput');
-  const uEl = document.getElementById('userNameInput');
-  const wordVal = wEl ? wEl.value.trim() : '';
-  const traineeName = uEl ? uEl.value.trim() : '';
-  if (!traineeName) { showGeneralToast(T('nameRequired'), 'red'); uEl?.focus(); return; }
-  if (!wordVal) { showGeneralToast(T('missingEmpty'), 'red'); return; }
-  showGeneralToast(T('missingSending'), 'orange');
-  try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/due_words_table', {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ word: wordVal, trainee_name: traineeName, created_at: new Date().toISOString(), status: 'pending' })
-    });
-    if (!res.ok) throw new Error();
-    showGeneralToast(T('missingOk'), 'success');
-  } catch (e) { showGeneralToast(T('missingFail'), 'red'); }
-}
-
-async function reportBrokenWord() {
-  if (typeof ID !== 'undefined' && ID.ok) return idReportWords('broken');
-  const wEl = document.getElementById('wordInput');
-  const uEl = document.getElementById('userNameInput');
-  const wordVal = wEl ? wEl.value.trim() : '';
-  const traineeName = uEl ? uEl.value.trim() : '';
-
-  if (!traineeName) {
-    showGeneralToast(T('nameRequired'), 'red');
-    uEl?.focus();
-    return;
-  }
-  if (!wordVal) {
-    showGeneralToast(T('missingEmpty'), 'red');
-    return;
-  }
-
-  showGeneralToast(T('missingSending'), 'orange');
-  try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/broken_words_table', {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
-      },
-      body: JSON.stringify({
-        word: wordVal,
-        trainee_name: traineeName,
-        created_at: new Date().toISOString()
-      })
-    });
-
-    if (!res.ok) throw new Error();
-    showGeneralToast(T('brokenOk'), 'success');
-  } catch (e) {
-    showGeneralToast(T('brokenFail'), 'red');
-  }
-}
+// Everything is tied to the trainee who logged in (token) - there is no typed name anywhere.
+function needLogin() { showGeneralToast(T('loginReq'), 'red'); }
+async function submitReport() { if (!ID.ok) return needLogin(); return idSubmitReport(); }
+async function reportMissingWord() { if (!ID.ok) return needLogin(); return idReportWords('missing'); }
+async function reportBrokenWord() { if (!ID.ok) return needLogin(); return idReportWords('broken'); }
 
 let wordsCache = null, wordsCacheAt = 0, statusTimer = null;
 let currentAudio = null, currentResolve = null, playToken = 0;
@@ -824,7 +754,7 @@ async function toggleMainRecording() {
    - No token (page opened on its own) = old behaviour, typed name.
    ========================================================== */
 const ID = { ok: false, token: null, name: '', id: null };
-let QOL_DAYS = [];
+let QOL_DAYS = [], DND_DAYS = [];
 const gid = id => document.getElementById(id);
 const idRpc = (fn, body) => fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
     method: 'POST',
@@ -832,9 +762,9 @@ const idRpc = (fn, body) => fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
     body: JSON.stringify(body)
 });
 const IDT = {
-    en: { sug: 'Suggested words from your QOL', none: 'No QOL words yet', more: 'more', sent: n => n + ' word(s) have no pronunciation yet. Sent to us as high priority.', allMissing: 'None of these have a pronunciation yet. We were notified (high priority).', fail: 'Could not send the missing words' },
-    ar: { sug: 'كلمات مقترحة من QOL الخاص بك', none: 'لا توجد كلمات QOL بعد', more: 'أخرى', sent: n => 'عدد ' + n + ' كلمة ليس لها نطق بعد، وتم إبلاغنا بها بأولوية عالية.', allMissing: 'لا يوجد نطق لأي من هذه الكلمات بعد، وتم إبلاغنا بها بأولوية عالية.', fail: 'تعذر إرسال الكلمات الناقصة' },
-    eg: { sug: 'كلمات مقترحة من الـ QOL بتاعك', none: 'مفيش كلمات QOL لسه', more: 'كمان', sent: n => n + ' كلمة لسه ملهاش نطق، وبلّغنا بيها بأولوية عالية.', allMissing: 'مفيش نطق لأي كلمة منهم لسه، وبلّغنا بيهم بأولوية عالية.', fail: 'معرفناش نبعت الكلمات الناقصة' }
+    en: { sug: 'QOL & notes', dnd: 'Dandana', none: 'Nothing yet', more: 'more', sent: n => n + ' word(s) have no pronunciation yet. Sent to us as high priority.', allMissing: 'None of these have a pronunciation yet. We were notified (high priority).', fail: 'Could not send the missing words' },
+    ar: { sug: 'QOL والملاحظات', dnd: 'دندنة', none: 'لا يوجد شيء بعد', more: 'أخرى', sent: n => 'عدد ' + n + ' كلمة ليس لها نطق بعد، وتم إبلاغنا بها بأولوية عالية.', allMissing: 'لا يوجد نطق لأي من هذه الكلمات بعد، وتم إبلاغنا بها بأولوية عالية.', fail: 'تعذر إرسال الكلمات الناقصة' },
+    eg: { sug: 'QOL والملاحظات', dnd: 'دندنة', none: 'مفيش حاجة لسه', more: 'كمان', sent: n => n + ' كلمة لسه ملهاش نطق، وبلّغنا بيها بأولوية عالية.', allMissing: 'مفيش نطق لأي كلمة منهم لسه، وبلّغنا بيهم بأولوية عالية.', fail: 'معرفناش نبعت الكلمات الناقصة' }
 };
 const idT = k => ((IDT[typeof uiLang !== 'undefined' ? uiLang : 'en'] || IDT.en)[k]);
 
@@ -857,22 +787,17 @@ async function initIdentity() {
         const j = r.ok ? await r.json() : null;
         if (!j || !j.name) return;
         Object.assign(ID, { ok: true, token: tok, name: j.name, id: j.id });
-        const u = gid('userNameInput');
-        if (u) { u.value = j.name; u.readOnly = true; }
-        const lab = gid('uiLabelName'); if (lab && lab.parentElement) lab.parentElement.style.display = 'none';
-        const rp = gid('rpName');
-        if (rp) { rp.value = j.name; rp.readOnly = true; rp.style.display = 'none'; if (rp.previousElementSibling) rp.previousElementSibling.style.display = 'none'; }
         loadQol();
-    } catch (e) { /* stay in manual-name mode */ }
+    } catch (e) { /* not logged in: listening still works, reporting asks to log in */ }
 }
 window.addEventListener('DOMContentLoaded', initIdentity);
 
 async function loadQol() {
-    try {
-        const r = await idRpc('assistant_qol', { p_token: ID.token, p_days: 7 });
-        QOL_DAYS = r.ok ? await r.json() : [];
-    } catch (e) { QOL_DAYS = []; }
-    if (!Array.isArray(QOL_DAYS)) QOL_DAYS = [];
+    let r = null;
+    try { const x = await idRpc('assistant_qol', { p_token: ID.token, p_days: 7 }); r = x.ok ? await x.json() : null; } catch (e) { r = null; }
+    if (Array.isArray(r)) r = { dandana: [], notes: r };            // older function shape
+    QOL_DAYS = r && Array.isArray(r.notes) ? r.notes : [];
+    DND_DAYS = r && Array.isArray(r.dandana) ? r.dandana : [];
     renderQol();
 }
 
@@ -881,26 +806,31 @@ function renderQol() {
     const row = w.closest('.flex.items-center.gap-2.w-full') || w.parentElement;
     let box = gid('qolBox');
     if (!box) { box = document.createElement('div'); box.id = 'qolBox'; row.insertAdjacentElement('afterend', box); }
-    const days = QOL_DAYS.map((d, i) => ({ d, i, items: qolItems(d.qol) })).filter(x => x.items.length);
-    if (!days.length) { box.style.display = 'none'; return; }
+    const clean = s => String(s).replace(/</g, '&lt;');
+    const noteDays = QOL_DAYS.map((d, i) => ({ d, i, items: qolItems([d.qol, d.tefl, d.notes].filter(Boolean).join('\n')) })).filter(x => x.items.length);
+    const dndDays = DND_DAYS.map((d, i) => ({ d, i, items: qolItems((d.items || []).join('\n')) })).filter(x => x.items.length);
+    if (!noteDays.length && !dndDays.length) { box.style.display = 'none'; return; }
     box.style.display = '';
-    box.className = 'flex flex-col gap-2 relative z-10';
+    box.className = 'relative z-10';
     const fmt = s => { try { return new Date(s + 'T12:00:00').toLocaleDateString(uiLang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return s; } };
-    box.innerHTML = `
-      <div class="text-[11px] font-semibold flex items-center gap-2 opacity-90"><i class="fa-solid fa-lightbulb text-amber-400"></i><span>${idT('sug')}</span></div>
-      <div class="flex flex-col gap-2" style="max-height:176px;overflow:auto;padding-inline-end:2px">
-        ${days.map(x => `
-          <button type="button" data-qi="${x.i}" class="th-sub w-full text-start rounded-xl border px-3 py-2 flex flex-col gap-1 hover:border-amber-400 transition" style="cursor:pointer">
-            <span class="flex items-center justify-between gap-2 text-[11px] font-bold text-amber-300"><span>${fmt(x.d.date)}</span><span class="opacity-70 font-medium" dir="auto">${x.d.title ? String(x.d.title).replace(/</g, '&lt;') : ''}</span></span>
-            <span class="text-xs break-words" dir="auto">${x.items.slice(0, 4).map(s => s.replace(/</g, '&lt;')).join(' · ')}${x.items.length > 4 ? ` · +${x.items.length - 4} ${idT('more')}` : ''}</span>
-          </button>`).join('')}
+    const col = (icon, label, days, kind) => `
+      <div class="flex flex-col gap-2 min-w-0">
+        <div class="text-[11px] font-semibold flex items-center gap-2 opacity-90"><i class="fa-solid ${icon} text-amber-400"></i><span>${label}</span></div>
+        <div class="flex flex-col gap-2" style="max-height:176px;overflow:auto;padding-inline-end:2px">
+          ${days.length ? days.map(x => `
+            <button type="button" data-${kind}="${x.i}" class="th-sub w-full text-start rounded-xl border px-3 py-2 flex flex-col gap-1 hover:border-amber-400 transition" style="cursor:pointer">
+              <span class="flex items-center justify-between gap-2 text-[11px] font-bold text-amber-300"><span>${fmt(x.d.date)}</span><span class="opacity-70 font-medium" dir="auto">${x.d.title ? clean(x.d.title) : ''}</span></span>
+              <span class="text-xs break-words" dir="auto">${x.items.slice(0, 4).map(clean).join(' · ')}${x.items.length > 4 ? ` · +${x.items.length - 4} ${idT('more')}` : ''}</span>
+            </button>`).join('') : `<div class="text-[11px] opacity-60 px-1">${idT('none')}</div>`}
+        </div>
       </div>`;
-    box.querySelectorAll('[data-qi]').forEach(b => b.onclick = () => useQolDay(+b.dataset.qi, b));
+    box.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${col('fa-music', idT('dnd'), dndDays, 'di')}${col('fa-lightbulb', idT('sug'), noteDays, 'qi')}</div>`;
+    box.querySelectorAll('[data-qi]').forEach(b => b.onclick = () => useItems(qolItems([QOL_DAYS[+b.dataset.qi].qol, QOL_DAYS[+b.dataset.qi].tefl, QOL_DAYS[+b.dataset.qi].notes].filter(Boolean).join('\n')), b));
+    box.querySelectorAll('[data-di]').forEach(b => b.onclick = () => useItems(qolItems((DND_DAYS[+b.dataset.di].items || []).join('\n')), b));
 }
 
-async function useQolDay(i, btn) {
-    const day = QOL_DAYS[i]; if (!day) return;
-    const items = qolItems(day.qol); if (!items.length) return;
+async function useItems(items, btn) {
+    if (!items || !items.length) return;
     let list;
     try { list = await getWordsList(true); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return; }
     const found = [], missing = [];
@@ -908,7 +838,7 @@ async function useQolDay(i, btn) {
 
     const w = gid('wordInput');
     w.value = found.join(', ');                       // only words that have a pronunciation, comma separated
-    document.querySelectorAll('#qolBox [data-qi]').forEach(b => b.style.borderColor = '');
+    document.querySelectorAll('#qolBox button').forEach(b => b.style.borderColor = '');
     if (btn) btn.style.borderColor = '#fbbf24';
     handleMainWordInput(w.value);
 
