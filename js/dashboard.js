@@ -458,7 +458,7 @@ const NTX = {
         nextM: ' ياريت تدفع قبل يوم 7 من الشهر الجاي عشان الخدمة ما تتوقفش.', thisM: ' ياريت تدفع لحد يوم 7 من الشهر ده عشان الخدمة ما تتوقفش.', asap: ' ياريت تدفع في أقرب وقت عشان الخدمة ما تتوقفش.' }
 };
 const NT = () => NTX[lang] || NTX.en;
-const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
+const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => { if (!Array.isArray(a)) console.warn('[feed] trainee_notifications failed:', a); return Array.isArray(a) ? a : []; }).catch(e => { console.warn('[feed] trainee_notifications error:', e); return []; });
 const fetchBill = () => rpc('trainee_billing', { p_token: tok() }).then(b => b && typeof b === 'object' && !Array.isArray(b) && !b.message && !b.code ? b : null).catch(() => null);
 function billState() {
   const b = D && D.bill; if (!b) return null;
@@ -496,7 +496,7 @@ function feedCards() {
 }
 function updateFeed() {
   const btn = $('feedBtn'), n = unreadCount(), bd = $('feedBadge');
-  btn.hidden = !feedCards().length; btn.setAttribute('aria-label', NT().feed); btn.querySelector('.fdt').textContent = NT().feed;
+  btn.hidden = !feedCards().length; btn.setAttribute('aria-label', NT().feed);
   bd.hidden = !n; bd.textContent = n > 9 ? '9+' : n;
 }
 function openFeed(from) {
@@ -509,7 +509,6 @@ function initFloat() {
   const btn = $('feedBtn');
   if (!window._popDone) {
     window._popDone = true;
-    if (!btn.hidden) { btn.classList.add('intro'); setTimeout(() => btn.classList.remove('intro'), 4600); }   // the attention animation plays ONCE
     setTimeout(() => {
       const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at);
       if (s2 && s2.st === 'count') c.push(nextCard(s2));
