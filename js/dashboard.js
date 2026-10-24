@@ -46,6 +46,18 @@ function spark(vals) {
 }
 const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
 const MD = [], TK = [], mk = (title, text) => MD.push([title, text]) - 1;
+/* ===== Copy button: copies a text, then turns into a disabled "✓ Copied" ===== */
+const CPT = {}; let CPN = 0;
+const cpBtn = txt => { const id = ++CPN; CPT[id] = String(txt == null ? '' : txt); return `<button type="button" class="cpb" data-cp="${id}"><i class="fa-regular fa-copy"></i><span>${lang === 'en' ? 'Copy' : 'نسخ'}</span></button>`; };
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.cpb'); if (!b) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  if (b.disabled) return;
+  const txt = CPT[b.dataset.cp] || '';
+  const done = () => { b.disabled = true; b.classList.add('done'); b.innerHTML = `<i class="fa-solid fa-check"></i><span>${lang === 'en' ? 'Copied' : 'تم النسخ'}</span>`; };
+  const old = () => { const t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); done(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, old); else old();
+}, true);
 let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
   if (k === 'avg') { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
@@ -328,7 +340,7 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${rich(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${rich(MD[i][1])}</div><div style="margin-top:10px;text-align:end">${cpBtn(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -436,7 +448,7 @@ function nextCard(s) {
   if (s.st === 'count') return { html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
   return { cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
 }
-const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
+const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div><div style="margin-top:8px;text-align:end">${cpBtn(d.items.join('\n'))}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = cards.map(c => `<div class="pc ${c.cls || ''}"><button type="button" class="x">×</button>${c.html}</div>`).join(''); o.classList.add('open');
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
@@ -482,7 +494,7 @@ function noteText(n) {
 function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
   const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
+    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div>${cpBtn([n.title, n.body || (n.meta && (n.meta.reply || n.meta.word)) || ''].filter(Boolean).join('\n'))}</div>`; }).join('');
   return { html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
 }
 const unreadCount = () => (D && D.notes || []).filter(n => !n.read_at).length;
