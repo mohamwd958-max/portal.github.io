@@ -28,11 +28,11 @@ function setLanguage(l) {
 function toggleTheme() {
   const light = $('bodyRoot').classList.toggle('light-theme');
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
-  try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
+  try { localStorage.set('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
 }
 async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
-  const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); } catch (e) {}
+  const t = tok(); try { localStorage.remove(TOKEN_KEY); localStorage.remove('currentTrainee'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
 }
@@ -63,7 +63,7 @@ document.addEventListener('click', e => {
   const old = () => { const t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); done(); };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, old); else old();
 }, true);
-let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
+let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.get('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
   if (k === 'avg') { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
   return r[k] == null ? null : Number(r[k]);
@@ -133,7 +133,7 @@ function overall(rows, S) {
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
-const item = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
+const  = (r, body) => `<div class="it"><div class="dt">${r.supply_date}</div>${body}</div>`;
 
 /* ===== Sessions popup (opened from the Sessions card at the top) ===== */
 const LF = [['supply_date','Date'],['session_number','Session #'],['group_name','Group'],['session_title','Title'],['sub_title','Sub title'],['start_time','Start'],['end_time','End'],
@@ -196,7 +196,7 @@ function render() {
   $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  $('lists').innerHTML = tasksCard() + sCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -259,6 +259,22 @@ const isHoliday = () => { const n = new Date(cairoNow()), w = n.getUTCDay(); ret
 const holBanner = () => isHoliday() ? `<div class="hol"><i class="fa-solid fa-umbrella-beach"></i> ${itT().hol}</div>` : '';
 const closedText = x => { const t = itT(), p = x.plan; return `${t.closedDue} ${t['why_' + (p && p.deadline_reason)] || ''}`.trim(); };
 setInterval(() => { document.querySelectorAll('.cd[data-dl]').forEach(el => { const dl = +el.dataset.dl; if (dl - cairoNow() <= 0) { render(); return; } el.innerHTML = cdHtml(dl); }); }, 30000);
+
+(function () { const s = document.createElement('style'); s.textContent = `
+.itt{position:relative;height:50px;margin:10px 30px 0;flex:1}
+.itt::before{content:"";position:absolute;left:0;right:0;top:5px;height:2px;background:rgba(148,163,184,.3)}
+.ittp{position:absolute;top:0;width:0}
+.ittp i{position:absolute;left:-6px;top:0;width:12px;height:12px;border-radius:50%;background:rgba(148,163,184,.45)}
+.ittp i.on{background:#34d399}.ittp i.nx{background:#fbbf24}
+.ittp span{position:absolute;left:0;transform:translateX(-50%);top:16px;font-size:.62rem;white-space:nowrap;opacity:.8}
+.ittp span.lo2{top:30px}
+.itl2{display:flex;align-items:flex-start;gap:8px;margin-top:8px}`; document.head.appendChild(s); })();
+const tlHtml = (p, d, s) => {
+  const o = p && p.opens; if (!o || o.length < 2) return '';
+  const a = o[0], span = o[o.length - 1] - a; if (!(span > 0)) return '';
+  return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpen(t)}</span></div>`).join('')}</div>`;
+};
+
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
