@@ -55,14 +55,6 @@
 
     <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-6 page-content-visible relative z-10">
         <div id="tourCard1" class="thabit-card p-6 flex flex-col gap-5 relative z-10">
-            <div class="flex flex-col gap-2">
-                <label id="uiLabelName" class="text-sm font-semibold flex items-center gap-2 relative z-10">
-                    <i class="fa-solid fa-user text-indigo-400"></i> Your name <span class="text-rose-400">*</span>
-                </label>
-                <input type="text" id="userNameInput" placeholder="Enter trainee name here..."
-                    class="w-full rounded-2xl px-5 py-4 text-base font-medium focus:outline-none relative z-10">
-            </div>
-
             <div class="flex flex-col gap-2 relative z-10">
                 <label id="uiLabelWord" class="text-sm font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-pen-nib text-indigo-400"></i> your word (s) <span class="text-rose-400">*</span>
@@ -195,8 +187,6 @@
     <div id="reportOverlay" class="tha-modal"><div class="tha-box" style="max-width:480px">
       <div class="tha-h"><h3><i class="fa-solid fa-triangle-exclamation"></i> <span data-t="rpTitle">Report a problem</span></h3><button type="button" class="tha-x" onclick="closeReportModal()"><i class="fa-solid fa-xmark"></i></button></div>
       <p class="tha-note" style="margin-bottom:12px" data-t="rpIntro">Tell us exactly what happened so we can fix it.</p>
-      <label class="tha-lab" style="margin-bottom:6px"><span><span data-t="rpName">Your name</span> <span style="color:#f43f5e">*</span></span></label>
-      <input id="rpName" class="tha-in" maxlength="80" data-tp="rpNamePh" placeholder="Enter your name...">
       <label class="tha-lab" style="margin:12px 0 6px"><span><span data-t="rpDetails">What exactly is the problem?</span> <span style="color:#f43f5e">*</span></span></label>
       <textarea id="rpProblem" class="tha-in" maxlength="2000" style="min-height:140px" data-tp="rpDetailsPh" placeholder="Describe what you did, what you expected, and what happened instead..."></textarea>
       <p id="rpErr" class="tha-note" style="color:#f43f5e;min-height:18px;margin-top:8px"></p>
