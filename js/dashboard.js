@@ -458,7 +458,7 @@ const NTX = {
         nextM: ' ياريت تدفع قبل يوم 7 من الشهر الجاي عشان الخدمة ما تتوقفش.', thisM: ' ياريت تدفع لحد يوم 7 من الشهر ده عشان الخدمة ما تتوقفش.', asap: ' ياريت تدفع في أقرب وقت عشان الخدمة ما تتوقفش.' }
 };
 const NT = () => NTX[lang] || NTX.en;
-const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
+const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => { if (!Array.isArray(a)) console.warn('[feed] trainee_notifications failed:', a); return Array.isArray(a) ? a : []; }).catch(e => { console.warn('[feed] trainee_notifications error:', e); return []; });
 const fetchBill = () => rpc('trainee_billing', { p_token: tok() }).then(b => b && typeof b === 'object' && !Array.isArray(b) && !b.message && !b.code ? b : null).catch(() => null);
 function billState() {
   const b = D && D.bill; if (!b) return null;
