@@ -26,55 +26,39 @@ html::before{width:clamp(180px,26vw,320px);height:clamp(180px,26vw,320px);top:6%
 html::after{width:clamp(150px,22vw,280px);height:clamp(150px,22vw,280px);bottom:8%;right:-3%}
 @media(max-width:600px){html::before{top:2%;left:-18%}html::after{bottom:12%;right:-16%}}
 
-/* RULE: only elements that already have rounded corners get the soft effect.
-   Square boxes (e.g. the big numbers) are left alone. */
-/* ---------- cards / panels / popups ---------- */
-body .thabit-card,body .test-card,body .dcard,body .th-panel,body .tkc,body .nt-fc,body .mp-card,
+/* RULE: the soft effect is ONLY for (1) the page background, (2) the cards themselves,
+   (3) buttons that are rounded (js/neumorphic.js tags them with .nm-btn).
+   Anything inside a card (inner boxes, inputs, lists, chips...) keeps its original style. */
+
+/* ---------- cards / popups themselves ---------- */
+body .thabit-card,body .test-card,body .dcard,body .mp-card,
 body .pc,body .mbox,body .ssbox,body .pf,body .ds-box,body .tha-box,body .asbox{
   background:var(--nm-bg)!important;color:var(--nm-tx)!important;border:0!important;
   box-shadow:var(--nm-out)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-body .th-sub,body .ssi,body .cap,body .nt-prev,body .rich>.rp,body .rich>.rl,body .nt,body .itm{
-  background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-out-s)!important;border-radius:14px}
-body .nt,body .itm{box-shadow:none!important;border-radius:0;border-bottom:1px solid rgba(148,163,184,.18)!important}
-body .tkc.urg{box-shadow:var(--nm-out),inset 0 0 0 1px rgba(251,113,133,.45)!important}
-body .pc.bill{box-shadow:var(--nm-out),inset 0 0 0 1px rgba(251,191,36,.55)!important}
-body .pc .x,body .asx{box-shadow:var(--nm-out-s)}
+body .tkc.urg{box-shadow:inset 0 0 0 1px rgba(251,113,133,.45)}
 body .mp-card.mp-sel{box-shadow:var(--nm-in),inset 0 0 0 2px #f59e0b!important}
-.thabit-card h4,.dcard h4,.sm,.dt{color:var(--nm-mut)}
+body .pc.bill{box-shadow:var(--nm-out),inset 0 0 0 1px rgba(251,191,36,.55)!important}
+.thabit-card h4,.dcard h4{color:var(--nm-mut)}
 
-/* ---------- buttons: raised, pressed = inset ---------- */
-body .circle-badge-btn,body .rng button,body .btn2,body .logb,body .tha-b,body .ds-b,body .admin-big,
-body .mean-btn,body .repeat-btn-small,body #mainActions button.big,body .hnd,body .ssh button,body .mh button{
-  background:var(--nm-bg)!important;color:var(--nm-acc)!important;border:0!important;
+/* ---------- rounded buttons: raised, pressed = inset ---------- */
+body .nm-btn,body .circle-badge-btn,body .rng button,body .btn2,body .logb,body .tha-b,body .ds-b,body .admin-big,
+body .mean-btn,body .repeat-btn-small,body #mainActions button.big,body .ssh button,body .mh button,body .pc .x,body .asx{
+  background:var(--nm-bg)!important;border:0!important;
   box-shadow:var(--nm-out-s)!important;transition:box-shadow .18s,transform .18s,color .18s}
-body .circle-badge-btn:hover,body .rng button:hover,body .btn2:hover,body .logb:hover,body .tha-b:hover,body .ds-b:hover,body .admin-big:hover,body #mainActions button.big:hover{
+body .circle-badge-btn,body .rng button,body .logb,body .mean-btn,body .repeat-btn-small,body #mainActions button.big,body .ssh button,body .mh button{color:var(--nm-acc)!important}
+body .nm-btn:hover,body .circle-badge-btn:hover,body .rng button:hover,body .btn2:hover,body .logb:hover,body .tha-b:hover,body .ds-b:hover,body .admin-big:hover,body #mainActions button.big:hover{
   transform:translateY(-1px);box-shadow:7px 7px 15px var(--nm-lo),-7px -7px 15px var(--nm-hi)!important}
-body .circle-badge-btn:active,body .rng button:active,body .btn2:active,body .logb:active,body .tha-b:active,body .ds-b:active,body .admin-big:active,body #mainActions button.big:active,
-body .rng button.on,body .circle-badge-btn.active,body .mean-btn.on,body .ds-b.on{
+body .nm-btn:active,body .circle-badge-btn:active,body .rng button:active,body .btn2:active,body .logb:active,body .tha-b:active,body .ds-b:active,body .admin-big:active,body #mainActions button.big:active,
+body .rng button.on,body .circle-badge-btn.active,body .mean-btn.on,body .ds-b.on,body .nm-btn.on{
   transform:none;box-shadow:var(--nm-in-s)!important}
-body .btn2,body .tha-b:not(.gray),body .ds-b.green,body .telegram-btn-green{color:#10b981!important}
+body .btn2,body .tha-b:not(.gray),body .ds-b.green{color:#10b981!important}
 body .tha-b.gray,body .ds-b.ghost{color:var(--nm-mut)!important}
 body .ds-b.blue,body .tha-b.blue{color:#3b82f6!important}
 body .ds-b.amber{color:#f59e0b!important}
-body .lo,body .telegram-btn-red{color:#f43f5e!important}
-body .telegram-btn-green,body .telegram-btn-red{background:var(--nm-bg)!important}
+body .lo{color:#f43f5e!important}
 body .admin-big small{color:var(--nm-mut)}
-body .ds-b:disabled,body .tha-b:disabled{opacity:.5;box-shadow:var(--nm-out-s)!important;transform:none}
-/* floating side/bottom bar */
+body .ds-b:disabled,body .tha-b:disabled{opacity:.5;transform:none}
+/* floating bar that holds the side buttons */
 body #mobileFloatingBar{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-out)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body #mobileFloatingBar .bar-divider{background:rgba(148,163,184,.3)!important}
-
-/* ---------- inputs: pressed-in ---------- */
-body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),body textarea,body select,
-body .tha-in,body .ds-in,body .th-input{
-  background:var(--nm-bg)!important;color:var(--nm-tx)!important;border:0!important;box-shadow:var(--nm-in)!important;outline:none}
-body input:focus,body textarea:focus,body select:focus{box-shadow:var(--nm-in),0 0 0 2px rgba(251,191,36,.55)!important}
-body ::placeholder{color:var(--nm-mut);opacity:.8}
-body .custom-slider-track{background:var(--nm-bg)!important;box-shadow:var(--nm-in-s)!important}
-body .ds-pf{background:var(--nm-bg)!important;box-shadow:var(--nm-in)!important;border:0!important}
-
-/* ---------- small things ---------- */
-body #barTip,body #generalToast{background:var(--nm-bg)!important;color:var(--nm-tx)!important;border:0!important;box-shadow:var(--nm-out)!important}
-body .chip,body .nt-chip{box-shadow:var(--nm-out-s)}
-body table,body th,body td,body .row{border-color:rgba(148,163,184,.2)!important}
 .tha-modal,.mdl,.pop,.ssm,.asm{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
