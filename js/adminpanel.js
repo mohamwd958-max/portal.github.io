@@ -1106,7 +1106,7 @@ const MP_SECTIONS = [
     ['Status & plan', [['status_as_of_today', 'text', 'Status as of today'], ['current_plan', 'text', 'Current plan'], ['consistency_issues', 'text', 'Consistency issues']]],
     ['Skills', [['personal_skills_strength_points', 'text', 'Personal strengths'], ['personal_skills_weakness_points', 'text', 'Personal weaknesses'], ['linguistic_strengths', 'text', 'Linguistic strengths'], ['linguistic_lacking', 'text', 'Linguistic lacking']]]
 ];
-const mpState = { list: [], q: '' };
+const mpState = { list: [], q: '', selecting: false, sel: new Set() };
 const mpId = k => 'mp_' + k.replace(/\W/g, '_');
 
 async function renderMasterProfiles(backBtnHtml) {
@@ -1126,6 +1126,7 @@ async function renderMasterProfiles(backBtnHtml) {
                 <h4 class="text-amber-400 font-bold text-base"><i class="fa-solid fa-id-card"></i> Trainee Master Profile</h4>
                 <input id="mpSearch" placeholder="ابحث بالاسم..." class="${INPUT_CLS}" style="min-width:200px;font-size:13px;padding:6px 10px" oninput="mpSearch(this.value)">
             </div>
+            <div class="flex items-center gap-2 flex-wrap" id="mpBar"></div>
             <div class="mp-grid" id="mpGrid"></div>
         </div>`;
     mpPaintList();
@@ -1139,15 +1140,18 @@ function mpPaintList() {
     g.innerHTML = rows.map(r => {
         const late = r.due_date && r.due_date < today;
         const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
-        return `<div class="mp-card">
+        const on = mpState.sel.has(String(r.id));
+        return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
             <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
             <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
                 <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
                 <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small></div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
                 <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
-                <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button></div></div>`;
+                <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
+                <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button></div></div>`;
     }).join('') || '<div class="tha-note">مفيش نتائج.</div>';
+    mpPaintBar();
 }
 
 let mpCur = null;
@@ -1363,6 +1367,7 @@ async function purgeFromTrash(_k, i) {
 }
 // after a word is recorded, close any open reports about it
 async function markWordHandled(word) {
+    try { await notifyWordReady(word); } catch (e) { /* the notice is best-effort */ }
     for (const t of ['due_words_table', 'broken_words_table']) {
         try {
             await sbFetch(`${t}?word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
@@ -1537,3 +1542,177 @@ window.addEventListener('DOMContentLoaded', initWordSuggest);
         if (v === 'reports') loadReportsList();
     };
 })();
+
+
+/* ==========================================================
+   Notifications (table: notifications)
+   - "إشعار" button on every trainee card, Select + bulk message on top
+   - a recorded word / done report notifies the trainee automatically
+   ========================================================== */
+(function () {
+    if (document.getElementById('ntCss')) return;
+    const s = document.createElement('style');
+    s.id = 'ntCss';
+    s.textContent = `
+.mp-card.sel-mode{cursor:pointer}.mp-card.mp-sel{border-color:#f59e0b;background:rgba(245,158,11,.09)}
+.mp-ck{width:20px;height:20px;accent-color:#f59e0b;flex:none;pointer-events:none}
+.nt-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}
+.nt-fc{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:12px}
+.nt-fc h6{font-size:11px;font-weight:800;color:#94a3b8;margin-bottom:6px;letter-spacing:.4px}
+.nt-big{font-size:1.25rem;font-weight:800;color:#fbbf24}
+.nt-chip{display:inline-block;margin:3px;padding:4px 10px;border-radius:999px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.55);font-size:12px}
+.nt-prev{margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(148,163,184,.08);border:1px dashed #334155;font-size:13px;white-space:pre-wrap;line-height:1.7}
+.nt-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px}.nt-row:last-child{border:0}
+.nt-names{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}`;
+    document.head.appendChild(s);
+})();
+
+function mpPaintBar() {
+    const b = document.getElementById('mpBar'); if (!b) return;
+    const n = mpState.sel.size, on = mpState.selecting;
+    b.innerHTML = `<button type="button" class="ds-b ${on ? 'on' : ''}" onclick="mpToggleSelect()"><i class="fa-solid fa-square-check"></i> Select</button>`
+        + (on ? `<button type="button" class="ds-b ghost" onclick="mpSelectAll()">الكل</button><span class="text-xs text-slate-400">${n} محدد</span>` : '')
+        + `<button type="button" class="ds-b blue" ${on && n ? '' : 'disabled'} onclick="openNotifyMany()"><i class="fa-solid fa-bell"></i> إشعار / Message${on && n ? ' (' + n + ')' : ''}</button>`;
+}
+window.mpToggleSelect = function () { mpState.selecting = !mpState.selecting; mpState.sel.clear(); mpPaintList(); };
+window.mpToggleSel = function (id, ev) {
+    if (ev && ev.target && ev.target.closest('button')) return;
+    id = String(id); if (mpState.sel.has(id)) mpState.sel.delete(id); else mpState.sel.add(id);
+    mpPaintList();
+};
+window.mpSelectAll = function () {
+    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q)).map(r => String(r.id));
+    const all = rows.length && rows.every(id => mpState.sel.has(id));
+    rows.forEach(id => all ? mpState.sel.delete(id) : mpState.sel.add(id));
+    mpPaintList();
+};
+
+/* ---- feed preview for ONE trainee (next session + dandana, same logic the trainee sees) ---- */
+const NT_DAYRX = [/sun|اح?د|(^|[\s,\/])حد/i, /mon|اتنين|[إا]ثنين/i, /tue|تلات|ثلاث/i, /wed|[اأ]ربع/i, /thu|خميس/i, /fri|جمع/i, /sat|سبت/i];
+function ntCairoNow() {
+    const g = {};
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+    return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
+}
+function ntNextSession(p, rows) {
+    const txt = [p.days_a_week, p.session_time].join(' ');
+    let days = NT_DAYRX.map((r, i) => r.test(txt) ? i : -1).filter(i => i >= 0);
+    if (!days.length) days = [...new Set(rows.map(r => new Date(r.supply_date + 'T00:00:00Z').getUTCDay()))];
+    let h = null, m = 0;
+    const mt = String(p.session_time || '').match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|ص|م)?/i);
+    if (mt) { h = +mt[1]; m = +(mt[2] || 0); const x = (mt[3] || '').toLowerCase(); if ((x === 'pm' || x === 'م') && h < 12) h += 12; else if ((x === 'am' || x === 'ص') && h === 12) h = 0; else if (!x && h >= 1 && h <= 8) h += 12; if (h > 23) h = null; }
+    if (h == null) { const L = rows.find(r => r.start_time); if (L) { h = +L.start_time.slice(0, 2); m = +L.start_time.slice(3, 5); } }
+    if (h == null || !days.length) return null;
+    const now = ntCairoNow(), d0 = new Date(now); d0.setUTCHours(0, 0, 0, 0);
+    for (let i = 0; i < 15; i++) {
+        const d = new Date(d0.getTime() + i * 864e5); if (!days.includes(d.getUTCDay())) continue;
+        const t = d.getTime() + (h * 60 + m) * 6e4; if (t > now) return { t, now, h, m };
+    }
+    return null;
+}
+async function ntFeedHtml(r) {
+    let rows = [], di = [];
+    try { rows = await (await sbFetch(`daily_supply?select=supply_date,start_time&trainee_id=eq.${enc(r.id)}&order=supply_date.desc&limit=8`)).json(); } catch (e) { }
+    try { di = await (await sbFetch(`supply_items?select=supply_date,title,badge,item_no&trainee_id=eq.${enc(r.id)}&kind=eq.dandana&order=supply_date.desc,item_no.asc&limit=40`)).json(); } catch (e) { }
+    rows = Array.isArray(rows) ? rows : []; di = Array.isArray(di) ? di : [];
+    const ns = ntNextSession(r, rows);
+    let nsHtml = '<span class="text-slate-500 text-xs">مفيش معاد محدد (days_a_week / session_time فاضيين)</span>';
+    if (ns) {
+        const d = new Date(ns.t), wd = d.toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'UTC' }), tm = `${(ns.h % 12) || 12}:${String(ns.m).padStart(2, '0')} ${ns.h < 12 ? 'ص' : 'م'}`;
+        const mins = Math.max(0, Math.floor((ns.t - ns.now) / 6e4)), dd = Math.floor(mins / 1440), hh = Math.floor((mins % 1440) / 60);
+        nsHtml = `<div class="nt-big">${esc(wd)} ${esc(tm)}</div><div class="text-xs text-slate-400">بعد ${dd ? dd + ' يوم ' : ''}${hh} ساعة · ${esc(d.toISOString().slice(0, 10))}</div>`;
+    }
+    const last = di.length ? di[0].supply_date : null, dl = last ? di.filter(x => x.supply_date === last) : [];
+    const dHtml = dl.length ? dl.map(x => `<span class="nt-chip" dir="auto">${esc([x.title, x.badge].filter(Boolean).join(' - '))}</span>`).join('') + `<div class="text-[11px] text-slate-500 mt-1">${esc(last)}</div>` : '<span class="text-slate-500 text-xs">مفيش دندنة لسه</span>';
+    return `<div class="nt-fc"><h6>NEXT SESSION · الجلسة الجاية</h6>${nsHtml}</div><div class="nt-fc"><h6>DANDANA · دندنة</h6>${dHtml}</div>`;
+}
+
+/* ---- composer ---- */
+let ntCur = null;
+window.ntClose = function () { if (ntCur) { ntCur.ov.remove(); ntCur = null; } };
+window.openStudentNotify = id => openNotify([String(id)]);
+window.openNotifyMany = () => { const ids = [...mpState.sel]; if (ids.length) openNotify(ids); };
+
+async function openNotify(ids) {
+    ntClose();
+    const st = ids.map(id => mpState.list.find(x => String(x.id) === String(id))).filter(Boolean);
+    if (!st.length) return;
+    const single = st.length === 1;
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.addEventListener('mousedown', e => { if (e.target === ov) ntClose(); });
+    ov.innerHTML = `<div class="ds-box" style="width:min(780px,100%)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b style="color:#fbbf24;font-size:15px"><i class="fa-solid fa-bell"></i> ${single ? esc(st[0].trainee || '') : st.length + ' طلاب'}</b>
+            <button type="button" class="ds-b ghost" onclick="ntClose()">إغلاق</button></div>
+        ${single ? '<div class="nt-feed" id="ntFeed"><div class="tha-note">جاري تحميل الفيد...</div></div>'
+                 : `<div class="nt-names">${st.map(s => `<span class="nt-chip" dir="auto">${esc(s.trainee || '')}</span>`).join('')}</div>`}
+        <div class="mp-sec"><h5>إشعار جديد</h5>
+            <span class="ds-lbl">العنوان (اختياري)</span><input id="ntTitle" class="ds-in" maxlength="80" dir="auto">
+            <span class="ds-lbl" style="margin-top:8px">الرسالة</span>
+            <input type="hidden" id="ntBody">
+            <div id="ntBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('ntBody','الرسالة')">اضغط للكتابة (كبسولات، ترقيم، نقط...)</div>
+            <div class="nt-prev" id="ntPrev" style="display:none" dir="auto"></div>
+            <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="ds-b green" id="ntSend" onclick="ntSend()"><i class="fa-solid fa-paper-plane"></i> إرسال${single ? '' : ' للكل (' + st.length + ')'}</button></div>
+        </div>
+        ${single ? '<div class="mp-sec"><h5>آخر الإشعارات المبعوتة</h5><div id="ntSent" class="text-xs text-slate-500">...</div></div>' : ''}</div>`;
+    document.body.appendChild(ov);
+    ntCur = { ov, ids: st.map(s => String(s.id)), single };
+    if (single) {
+        ntFeedHtml(st[0]).then(h => { const f = document.getElementById('ntFeed'); if (f) f.innerHTML = h; });
+        ntLoadSent();
+    }
+}
+async function ntLoadSent() {
+    const c = ntCur; if (!c || !c.single) return;
+    const box = document.getElementById('ntSent'); if (!box) return;
+    try {
+        const rows = await (await sbFetch(`notifications?select=*&trainee_id=eq.${enc(c.ids[0])}&order=created_at.desc&limit=6`)).json();
+        box.innerHTML = Array.isArray(rows) && rows.length ? rows.map(n => `<div class="nt-row"><span dir="auto">${esc(n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : (n.title || String(n.body || '').split('\n')[0] || ''))}</span><span class="text-slate-500">${n.read_at ? '✓ اتقرى · ' : ''}${esc(fmtDT(n.created_at))}</span></div>`).join('') : 'لسه مفيش إشعارات اتبعتت.';
+    } catch (e) { box.textContent = 'تعذر التحميل: ' + e.message; }
+}
+function ntPreview() {
+    const b = document.getElementById('ntBody'), p = document.getElementById('ntPrev'); if (!b || !p) return;
+    const v = b.value.trim(); p.style.display = v ? '' : 'none'; p.textContent = v.replace(/\s*\|\s*/g, '   |   ');
+}
+{   // refresh the preview whenever the capsule editor closes
+    const _drp = dsRefreshPf;
+    dsRefreshPf = function (id) { _drp(id); if (id === 'ntBody') ntPreview(); };
+}
+window.ntSend = async function () {
+    const c = ntCur; if (!c) return;
+    const body = document.getElementById('ntBody').value.trim(), title = document.getElementById('ntTitle').value.trim();
+    if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
+    const btn = document.getElementById('ntSend'); btn.disabled = true;
+    try {
+        await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body }))) });
+        showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+        document.getElementById('ntBody').value = ''; document.getElementById('ntTitle').value = ''; dsRefreshPf('ntBody');
+        const pf = document.getElementById('ntBody_pf'); if (pf) { pf.textContent = 'اضغط للكتابة (كبسولات، ترقيم، نقط...)'; pf.classList.add('empty'); }
+        ntLoadSent();
+    } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 02_notifications.sql لو لسه)', true); }
+    btn.disabled = false;
+};
+
+/* ---- automatic: a recorded word -> notify every trainee who reported it ---- */
+async function notifyWordReady(word) {
+    const targets = [];
+    for (const t of ['due_words_table', 'broken_words_table']) {
+        let rows = [];
+        try { rows = await (await sbFetch(`${t}?select=*&word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`)).json(); } catch (e) { continue; }
+        if (Array.isArray(rows)) rows.filter(r => !['done', 'trash'].includes(stOf(r))).forEach(r => targets.push(r));
+    }
+    if (!targets.length) return 0;
+    let studs = mpState.list.length ? mpState.list : [];
+    if (!studs.length) { try { studs = await fetchStudentsFromSupabase(); } catch (e) { studs = []; } }
+    const nm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const byName = new Map(studs.map(s => [nm(s.trainee), String(s.id)]));
+    const seen = new Set(), out = [];
+    targets.forEach(r => {
+        const id = r.trainee_id ? String(r.trainee_id) : byName.get(nm(r.trainee_name));
+        if (id && !seen.has(id)) { seen.add(id); out.push({ trainee_id: id, kind: 'word_ready', meta: { word } }); }
+    });
+    if (!out.length) return 0;
+    await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
+    return out.length;
+}
