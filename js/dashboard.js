@@ -671,3 +671,24 @@ function initMiniBars() {
   new MutationObserver(() => { cancelAnimationFrame(q); q = requestAnimationFrame(initMiniBars); }).observe(root, { childList: true, subtree: true });
   initMiniBars();
 })();
+
+const ASX = {
+  en: { t: 'Assistant notifications', b: w => `Your words (${w}) have been uploaded. You can listen to them in the Assistant.`, open: 'Open Assistant', sep: ', ' },
+  ar: { t: 'إشعارات المساعد', b: w => `كلماتك (${w}) تم رفعها. تقدر تسمعها من المساعد.`, open: 'افتح المساعد', sep: '، ' },
+  eg: { t: 'إشعارات المساعد', b: w => `كلماتك (${w}) اترفعت. تقدر تسمعها من المساعد.`, open: 'افتح المساعد', sep: '، ' }
+};
+const asDis = () => { try { return JSON.parse(localStorage.getItem('thabit_as_dis') || '{}'); } catch (e) { return {}; } };
+const asActive = () => { const d = asDis(); return ((D && D.notes) || []).filter(n => n.kind === 'assistant_words' && ((n.meta || {}).words || []).length && d[n.id] !== n.created_at); };
+function asCard() {
+  const l = asActive(); if (!l.length) return null;
+  const t = ASX[lang] || ASX.en, words = [...new Set(l.flatMap(n => n.meta.words))];
+  return { noX: true, cls: 'as', html: `<button type="button" class="x" aria-label="Dismiss" onclick="event.stopPropagation();asDismiss(this)">×</button><h3>${t.t}</h3>`
+    + `<div dir="auto">${t.b(words.map(w => '«' + esc(w) + '»').join(t.sep))}</div>`
+    + `<div style="margin-top:10px"><button type="button" class="btn2" onclick="event.stopPropagation();closePop();Panels.open('assistant',event)">${t.open}</button></div>` };
+}
+function asDismiss(btn) {
+  if (!VIEW) { const d = asDis(); asActive().forEach(n => d[n.id] = n.created_at); try { localStorage.setItem('thabit_as_dis', JSON.stringify(d)); } catch (e) {} }
+  const card = btn.closest('.pc'); if (card) card.remove();
+  if (!document.querySelector('#pop .pc')) closePop();
+  updateFeed();
+}
