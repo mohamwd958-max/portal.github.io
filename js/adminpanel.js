@@ -1669,7 +1669,8 @@ async function ntLoadSent() {
     const box = document.getElementById('ntSent'); if (!box) return;
     try {
         const rows = await (await sbFetch(`notifications?select=*&trainee_id=eq.${enc(c.ids[0])}&order=created_at.desc&limit=6`)).json();
-        box.innerHTML = Array.isArray(rows) && rows.length ? rows.map(n => `<div class="nt-row"><span dir="auto">${esc(n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : (n.title || String(n.body || '').split('\n')[0] || ''))}</span><span class="text-slate-500">${n.read_at ? '✓ اتقرى · ' : ''}${esc(fmtDT(n.created_at))}</span></div>`).join('') : 'لسه مفيش إشعارات اتبعتت.';
+        window.ntRows = {}; (Array.isArray(rows) ? rows : []).forEach(n => window.ntRows[n.id] = n);
+        box.innerHTML = Array.isArray(rows) && rows.length ? rows.map(n => `<div class="nt-row" style="align-items:center"><span dir="auto" style="flex:1;min-width:0">${esc(n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : (n.title || String(n.body || '').split('\n')[0] || ''))}</span><span class="text-slate-500" style="white-space:nowrap">${n.read_at ? '✓ ' : ''}${esc(fmtDT(n.created_at))}</span>${n.kind === 'message' ? `<button type="button" class="ds-b blue" title="تعديل" onclick="ntEdit(${n.id})"><i class="fa-solid fa-pen"></i></button>` : ''}<button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="ntDel(${n.id})"><i class="fa-solid fa-trash"></i></button></div>`).join('') : 'لسه مفيش إشعارات اتبعتت.';
     } catch (e) { box.textContent = 'تعذر التحميل: ' + e.message; }
 }
 function ntPreview() {
@@ -1686,8 +1687,13 @@ window.ntSend = async function () {
     if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
     const btn = document.getElementById('ntSend'); btn.disabled = true;
     try {
-        await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body }))) });
-        showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+        if (c.editId) {
+            await sbFetch(`notifications?id=eq.${enc(c.editId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title: title || null, body }) });
+            showToast('اتعدّل الإشعار ✓'); ntEditDone();
+        } else {
+            await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body }))) });
+            showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+        }
         document.getElementById('ntBody').value = ''; document.getElementById('ntTitle').value = ''; dsRefreshPf('ntBody');
         const pf = document.getElementById('ntBody_pf'); if (pf) { pf.textContent = 'اضغط للكتابة (كبسولات، ترقيم، نقط...)'; pf.classList.add('empty'); }
         ntLoadSent();
@@ -1754,4 +1760,28 @@ window.openStudentDashboard = async function (id) {
         const body = document.getElementById('dvBody');
         if (body) body.innerHTML = `<div class="tha-note" style="color:#f43f5e;padding:20px;text-align:center">تعذر فتح الداشبورد: ${esc(e.message)}<br>(شغّل 05_view_dashboard.sql لو لسه)</div>`;
     }
+};
+
+function ntEditDone() {
+    if (ntCur) ntCur.editId = null;
+    const b = document.getElementById('ntSend');
+    if (b) b.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال' + (ntCur && !ntCur.single ? ' للكل (' + ntCur.ids.length + ')' : '');
+}
+window.ntEdit = function (id) {
+    const n = (window.ntRows || {})[id]; if (!n || !ntCur) return;
+    ntCur.editId = id;
+    document.getElementById('ntTitle').value = n.title || '';
+    document.getElementById('ntBody').value = n.body || '';
+    dsRefreshPf('ntBody');
+    const b = document.getElementById('ntSend'); if (b) b.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ التعديل';
+    document.getElementById('ntTitle').focus();
+};
+window.ntDel = async function (id) {
+    if (!confirm('تمسح الإشعار ده؟ هيختفي من داشبورد الطالب.')) return;
+    try {
+        await sbFetch(`notifications?id=eq.${enc(id)}`, { method: 'DELETE' });
+        showToast('اتمسح الإشعار ✓');
+        if (ntCur && String(ntCur.editId) === String(id)) ntEditDone();
+        ntLoadSent();
+    } catch (e) { showToast('فشل المسح: ' + e.message, true); }
 };
