@@ -12,8 +12,12 @@ T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة 
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const tok = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
-const rpc = (fn, body) => fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
+/* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
+const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
+if (VIEW) document.documentElement.classList.add('viewmode');
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
+const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
 function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
@@ -27,6 +31,7 @@ function toggleTheme() {
   try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
 }
 async function logout() {
+  if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
   const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
@@ -361,7 +366,8 @@ function watchTodo() {
 }
 async function load() {
   const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
-  if (!d || !d.profile) { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
     $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
