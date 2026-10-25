@@ -224,6 +224,15 @@ function rich(txt) {
   }).join('');
 }
 
+/* ===== Per-capsule copy: every block (separated by a blank line) gets its own copy button ===== */
+const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(b.trim())}</div>`).join('');
+(function () { const s = document.createElement('style'); s.textContent = `
+.rcap{margin:0 0 8px}
+.rcap>.rp,.rcap>.rl{margin:0;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}
+.rcap>.rl{padding-inline-start:30px}
+.rcap .cpb{margin-top:2px}
+.dnr{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:3px 0}.dnr .chip{margin:0}`; document.head.appendChild(s); })();
+
 /* ===== Tasks & Dandana from supply_items: always visible; the clock only unlocks the check ===== */
 const ITT = {
   en: { tasks: 'Tasks', dnd: 'Dandana', opens: 'Opens', ready: 'Ready, tap the circle', closed: 'Closed', waiting: 'Opens after your session ends', saved: 'Saved', not_yet: 'Not open yet', all_done: 'Already completed', no_plan: 'Opens after your session ends', fail: 'Could not save, try again', est: ' (estimated)', endsIn: 'Ends in', closedDue: 'Closed due to:', why_hours18: 'more than 18 hours passed since your last session', why_next_session: 'your next session is close', why_holiday: 'the weekend break', hol: 'You are on the weekend break. Tasks are paused until Saturday.', missed: 'Missed', done: 'Done', u: { d: 'd', h: 'h', m: 'm' } },
@@ -287,13 +296,14 @@ function itemRow(it) {
     ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
     : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
   const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
+  const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
     + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
     + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
-    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${p.deadline}">${cdHtml(p.deadline)}</div>` : '') + `</div>`
+    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + `</div>`
     + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
 }
 const TKT = {
@@ -365,7 +375,7 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${rich(MD[i][1])}</div><div style="margin-top:10px;text-align:end">${cpBtn(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -478,7 +488,7 @@ function nextCard(s) {
   if (s.st === 'count') return { html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
   return { cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
 }
-const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div><div style="margin-top:8px;text-align:end">${cpBtn(d.items.join('\n'))}</div>` });
+const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
@@ -520,13 +530,13 @@ function billCard(s) {
 function noteText(n) {
   const t = NT(), m = n.meta || {};
   if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
-  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
-  return { h: esc(n.title || t.msg), b: rich(n.body || '') };
+  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? richC(m.reply) : '' };
+  return { h: esc(n.title || t.msg), b: richC(n.body || '') };
 }
 function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
   const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div>${cpBtn([n.title, n.body || (n.meta && (n.meta.reply || n.meta.word)) || ''].filter(Boolean).join('\n'))}</div>`; }).join('');
+    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
   return { html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
 }
 const unreadCount = () => (D && D.notes || []).filter(n => !n.read_at).length;
