@@ -2056,3 +2056,105 @@ window.dsItemSave = async function (n) {
     showToast(`اتحفظ ${cfg.title} ${n} ✓` + (applied ? ` · واتطبّق على ${applied}` : ''));
   } catch (e) { showToast('فشل الحفظ: ' + e.message, true); }
 };
+
+/* ==========================================================
+   Patch 2 (paste at the END of adminpanel.js, AFTER patch 1)
+   A "Function" button next to Edit on every saved Task / Dandana:
+   shows the function as it was set, and "Apply to" copies it to the
+   other tasks / dandana of the same trainee on the same day.
+   ========================================================== */
+
+/* ---------- Function button next to Edit ---------- */
+const fxPrevRender = dsItemsRender;
+dsItemsRender = function () {
+  fxPrevRender();
+  const c = dsItemCtx; if (!c) return;
+  c.ov.querySelectorAll('.ds-slot.saved').forEach(row => {
+    if (row.querySelector('[data-fx]')) return;
+    const no = +((row.querySelector('.ds-no') || {}).textContent);
+    const edit = row.querySelector('button.amber');
+    if (!no || !edit) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ds-b blue'; b.dataset.fx = '1'; b.textContent = 'Function';
+    b.onclick = () => fxFnView(no);
+    row.insertBefore(b, edit);
+  });
+};
+
+/* ---------- read-only timeline ---------- */
+function fxTlStatic(A, R, fr) {
+  const span = R * 36e5, end = A + span, ops = fxOpens(A, R, fr);
+  return `<div class="ds-t2" dir="ltr"><div class="ds-t2-line"></div><i class="ds-t2-cap" style="left:0"></i><i class="ds-t2-cap" style="left:100%"></i>${ops.map((o, i) =>
+      `<div class="ds-t2-p" style="left:${fr[i] * 100}%"><i class="ds-t2-d" style="cursor:default"></i><div class="ds-t2-l${i % 2 ? ' lo' : ''}">${fxLabel(o, A)}</div></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#94a3b8;margin-top:2px">
+      <span>يبدأ: ${fxClock(A)}${fxNewDay(A, fxNow()) ? ' · ' + fxWd(A) : ''}</span>
+      <span>ينتهي الرينج: ${fxClock(end)}${fxNewDay(end, A) ? ' · يوم جديد (' + fxWd(end) + ')' : ''}</span></div>`;
+}
+
+/* ---------- copy one item's function to others ---------- */
+async function fxApplyFn(st, date, src, keys) {
+  const A = fxFromWall(src.as_of), R = +src.range_hours, fr = fxFracs(src);
+  if (!fr || !(R > 0) || !Number.isFinite(A)) { showToast('الفانكشن دي مش كاملة، افتح تعديل واعمل Save الأول', true, true); return 0; }
+  let ok = 0;
+  for (const key of keys) {
+    const [k, no] = key.split(':');
+    const tgt = dsItemsOf(st, date, k).find(x => x.item_no === +no);
+    const t0 = tgt ? fxFromWall(tgt.as_of) : NaN, tA = Number.isFinite(t0) ? t0 : A;     // each item keeps its own As of
+    const body = { repeats: src.repeats, range_hours: R, as_of: fxWall(tA), opens_at: fxOpens(tA, R, fr).map(fxWall), updated_at: new Date().toISOString() };
+    try {
+      const r = await (await sbFetch(`supply_items?${dsKey(st, date)}&kind=eq.${k}&item_no=eq.${+no}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) })).json();
+      if (Array.isArray(r) && r[0]) {
+        supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === date && i.kind === k && i.item_no === +no));
+        supplyState.items.push(r[0]); ok++;
+      }
+    } catch (e) { showToast('فشل التطبيق على ' + key + ': ' + e.message, true); }
+  }
+  return ok;
+}
+
+/* ---------- the Function popup ---------- */
+window.fxFnClose = function () { if (window.__fxOv) { window.__fxOv.remove(); window.__fxOv = null; } };
+window.fxFnView = function (no) {
+  const c = dsItemCtx; if (!c) return;
+  const st = supplyState.students[c.idx], it = dsItemsOf(st, c.date, c.kind).find(x => x.item_no === no); if (!it) return;
+  fxFnClose();
+  const others = ['task', 'dandana'].flatMap(k => dsItemsOf(st, c.date, k).filter(x => !(k === c.kind && x.item_no === no)));
+  const A = fxFromWall(it.as_of), R = +it.range_hours, fr = it.range_hours != null ? fxFracs(it) : null;
+  const ov = document.createElement('div'); ov.className = 'ds-ov';
+  ov.addEventListener('mousedown', e => { if (e.target === ov) fxFnClose(); });
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+      <b style="color:#fbbf24;font-size:14px" dir="auto">Function · ${esc(it.title || (it.body || '').split('\n')[0] || ('#' + no))}</b>
+      <button type="button" class="ds-b ghost" onclick="fxFnClose()">إغلاق</button></div>`;
+  let body;
+  if (!fr) {
+    body = '<div class="tha-note" style="padding:14px">العنصر ده مالوش فانكشن (اتسجل بالنظام القديم). افتح تعديل، اختار Range، واعمل Save.</div>';
+  } else {
+    body = `<div class="ds-fx">
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="ds-tag">Range ${esc(R)}h</span><span class="ds-tag">×${esc(it.repeats)}</span><span class="ds-tag">As of ${esc(fxClock(A))}</span></div>
+        ${fxTlStatic(A, R, fr)}
+      </div>
+      ${others.length ? `<div class="ds-fx" style="margin-top:10px">
+        <div class="ds-fx-h">Apply to · طبّق الفانكشن دي على</div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" id="fxAll"> الكل</label>
+        ${others.map(o => `<label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" class="fxPick" data-k="${o.kind}:${o.item_no}">
+          <span class="ds-tag">${o.kind === 'task' ? 'Task' : 'دندنة'} ${o.item_no}</span><span dir="auto" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.title || (o.body || '').split('\n')[0] || '—')}</span>
+          ${o.range_hours != null ? `<span class="ds-tag">${esc(o.range_hours)}h ×${esc(o.repeats)}</span>` : ''}</label>`).join('')}
+        <div style="font-size:10px;color:#64748b">بيتنسخ الرينج وعدد التكرار وشكل التوزيع. الـ As of بتاع كل واحدة بيفضل بتاعها، ولو مالهاش بياخد As of العنصر ده.</div>
+        <div><button type="button" class="ds-b green" id="fxApplyBtn">Apply to</button></div></div>`
+      : '<div style="font-size:11px;color:#64748b;margin-top:10px">مفيش تاسكس أو دندنات تانية عند الطالب ده في اليوم ده عشان تطبّق عليها.</div>'}`;
+  }
+  ov.innerHTML = `<div class="ds-box" style="max-width:760px;margin-top:6vh">${head}${body}</div>`;
+  document.body.appendChild(ov); window.__fxOv = ov;
+  const all = ov.querySelector('#fxAll');
+  if (all) all.onchange = () => ov.querySelectorAll('.fxPick').forEach(i => { i.checked = all.checked; });
+  const btn = ov.querySelector('#fxApplyBtn');
+  if (btn) btn.onclick = async () => {
+    const keys = [...ov.querySelectorAll('.fxPick:checked')].map(i => i.dataset.k);
+    if (!keys.length) { showToast('اختار عنصر واحد على الأقل', true, true); return; }
+    btn.disabled = true;
+    const n = await fxApplyFn(st, c.date, it, keys);
+    fxFnClose();
+    if (dsItemCtx) dsItemsRender();
+    if (n) showToast(`اتطبّقت الفانكشن على ${n} ✓`);
+  };
+};
