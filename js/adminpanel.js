@@ -1785,3 +1785,274 @@ window.ntDel = async function (id) {
         ntLoadSent();
     } catch (e) { showToast('فشل المسح: ' + e.message, true); }
 };
+
+/* ==========================================================
+   Tasks / Dandana "Functionality" (paste at the END of adminpanel.js)
+   Top = the task itself. Bottom = Range, repeats, As of (+Now), draggable timeline,
+   and today's saved functions that can be re-used on other items.
+   ========================================================== */
+(function () {
+  if (document.getElementById('fxCss')) return;
+  const s = document.createElement('style'); s.id = 'fxCss';
+  s.textContent = `
+.ds-fx{border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#080e1c}
+.ds-fx-h{color:#fbbf24;font-weight:800;font-size:13px}
+.ds-fns{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.ds-fn{flex:none;width:150px;text-align:start;border:1px solid #334155;border-radius:10px;padding:8px;background:#020617;color:#e2e8f0;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.ds-fn:hover{border-color:#f59e0b}
+.ds-fn b{font-size:12px}
+.ds-fn small{font-size:10px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-fn svg{width:100%;height:12px}
+.ds-t2{position:relative;height:104px;margin:8px 44px 0}
+.ds-t2-line{position:absolute;left:0;right:0;top:51px;height:3px;background:#334155;border-radius:2px}
+.ds-t2-cap{position:absolute;top:44px;width:2px;height:17px;background:#64748b;margin-left:-1px}
+.ds-t2-p{position:absolute;top:0;width:0;height:104px}
+.ds-t2-d{position:absolute;left:-10px;top:43px;width:20px;height:20px;border-radius:50%;background:#f59e0b;border:2px solid #0f172a;cursor:grab;touch-action:none;box-sizing:border-box;z-index:2}
+.ds-t2-d:active{cursor:grabbing;transform:scale(1.2)}
+.ds-t2-l{position:absolute;left:0;transform:translateX(-50%);bottom:62px;white-space:nowrap;text-align:center;font-size:12px;line-height:1.25;background:#0f172a;border:1px solid #475569;border-radius:8px;padding:3px 8px;color:#e2e8f0}
+.ds-t2-l.lo{bottom:auto;top:62px}
+.ds-t2-l small{display:block;font-size:10px;color:#fbbf24}`;
+  document.head.appendChild(s);
+})();
+
+/* ---------- helpers (Cairo wall-clock everywhere) ---------- */
+const fxWall = ms => new Date(ms).toISOString().slice(0, 19);
+const fxFromWall = s => { const m = String(s || '').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/); return m ? Date.parse(m[1] + 'T' + m[2] + ':00Z') : NaN; };
+const fxNow = () => Math.floor(ntCairoNow() / 6e4) * 6e4;
+const fxClock = ms => { const d = new Date(ms), h = d.getUTCHours(); return `${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}`; };
+const fxNewDay = (o, A) => new Date(o).toISOString().slice(0, 10) !== new Date(A).toISOString().slice(0, 10);
+const fxWd = o => { try { return new Date(o).toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'UTC' }); } catch (e) { return ''; } };
+const fxLabel = (o, A) => `<b>${fxClock(o)}</b>${fxNewDay(o, A) ? `<small>يوم جديد · ${fxWd(o)}</small>` : ''}`;
+const fxEven = n => n < 2 ? [0] : Array.from({ length: n }, (_, i) => i / (n - 1));
+const fxOpens = (A, R, fr) => fr.map(x => Math.round((A + x * R * 36e5) / 6e4) * 6e4);
+function fxFracs(it) {
+  const A = fxFromWall(it.as_of), R = +it.range_hours;
+  const ops = (Array.isArray(it.opens_at) ? it.opens_at : []).map(fxFromWall);
+  if (!Number.isFinite(A) || !(R > 0) || !ops.length || ops.some(o => !Number.isFinite(o))) return null;
+  return ops.map(o => Math.min(1, Math.max(0, (o - A) / (R * 36e5))));
+}
+
+/* ---------- today's saved functions ---------- */
+let fxFns = [];
+async function fxFnLoad() {
+  try {
+    const r = await (await sbFetch(`supply_functions?select=*&fn_date=eq.${dsToday()}&order=created_at.asc`)).json();
+    fxFns = Array.isArray(r) ? r : [];
+  } catch (e) {
+    fxFns = [];
+    if (!window.__fxWarn) { window.__fxWarn = 1; showToast('شغّل SQL جدول supply_functions الأول (' + e.message + ')', true, true); }
+  }
+}
+function fxFnStripPaint() {
+  const box = document.getElementById('dsi_fns'); if (!box) return;
+  if (!fxFns.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="ds-lbl">فانكشنات النهارده · دوس على واحدة تطبّقها هنا</div><div class="ds-fns">${fxFns.map((fn, i) =>
+    `<button type="button" class="ds-fn" onclick="fxFnUse(${i})">
+      <svg viewBox="0 0 100 12"><line x1="4" y1="6" x2="96" y2="6" stroke="#475569" stroke-width="1.5"/>${(fn.fractions || []).map(x => `<circle cx="${(4 + x * 92).toFixed(1)}" cy="6" r="3" fill="#f59e0b"/>`).join('')}</svg>
+      <b>${esc(fn.range_hours)}h · ×${esc(fn.repeats)}</b><small dir="auto">${esc(fn.label || '')}</small></button>`).join('')}</div>`;
+}
+window.fxFnUse = function (i) {
+  const c = dsItemCtx, fn = fxFns[i]; if (!c || !c.f || !fn) return;
+  const f = c.f;
+  f.range = +fn.range_hours; f.n = +fn.repeats; f.fr = (fn.fractions || []).map(Number);
+  document.getElementById('dsi_range').value = f.range;
+  document.getElementById('dsi_rep').value = f.n;
+  fxTlPaint();
+};
+async function fxFnSave(f, label) {
+  const fr = f.fr.map(x => Math.round(x * 1000) / 1000), sig = `${f.range}|${f.n}|${fr.join(',')}`;
+  try {
+    const row = await upsertByKey('supply_functions', `fn_date=eq.${dsToday()}&sig=eq.${encodeURIComponent(sig)}`,
+      { fn_date: dsToday(), kind: dsItemCtx ? dsItemCtx.kind : null, range_hours: f.range, repeats: f.n, fractions: fr, sig, label: label || null });
+    fxFns = fxFns.filter(x => x.sig !== sig); fxFns.push(row || { range_hours: f.range, repeats: f.n, fractions: fr, sig, label });
+  } catch (e) { console.warn('function not saved', e); }
+}
+
+/* ---------- timeline ---------- */
+function fxTlPaint() {
+  const c = dsItemCtx, box = document.getElementById('dsi_tl'); if (!c || !c.f || !box) return;
+  const f = c.f, R = f.range, A = f.asOf != null ? f.asOf : fxNow();
+  const note = document.getElementById('dsi_asnote');
+  if (note) note.textContent = f.asOf != null ? `ثابت من: ${fxClock(f.asOf)}${fxNewDay(f.asOf, fxNow()) ? ' · ' + fxWd(f.asOf) : ''}` : 'فاضي: هيتحسب من وقت الـ Save (المعاينة بالوقت الحالي)';
+  if (!(R > 0)) { box.innerHTML = '<div style="font-size:11px;color:#64748b">اكتب الـ Range بالساعات عشان يظهر التايم لاين.</div>'; return; }
+  if (!f.fr || f.fr.length !== f.n) f.fr = fxEven(f.n);
+  const span = R * 36e5, end = A + span, ops = fxOpens(A, R, f.fr);
+  box.innerHTML = `<div class="ds-t2" dir="ltr"><div class="ds-t2-line"></div><i class="ds-t2-cap" style="left:0"></i><i class="ds-t2-cap" style="left:100%"></i>${ops.map((o, i) =>
+      `<div class="ds-t2-p" style="left:${f.fr[i] * 100}%"><i class="ds-t2-d" data-i="${i}"></i><div class="ds-t2-l${i % 2 ? ' lo' : ''}">${fxLabel(o, A)}</div></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#94a3b8;margin-top:2px">
+      <span>يبدأ: ${fxClock(A)}</span>
+      <span>اسحب أي نقطة تحركها</span>
+      <span>ينتهي الرينج: ${fxClock(end)}${fxNewDay(end, A) ? ' · يوم جديد (' + fxWd(end) + ')' : ''}</span></div>
+    ${f.fr.some((x, i) => Math.abs(x - fxEven(f.n)[i]) > 0.0005) ? '<button type="button" class="ds-b ghost" style="margin-top:6px" onclick="fxEvenReset()">توزيع متساوي</button>' : ''}`;
+  box.querySelectorAll('.ds-t2-d').forEach(d => {
+    const i = +d.dataset.i; let drag = false;
+    d.onpointerdown = e => { drag = true; d.setPointerCapture(e.pointerId); e.preventDefault(); };
+    d.onpointermove = e => {
+      if (!drag) return;
+      const r = box.querySelector('.ds-t2').getBoundingClientRect();
+      const fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      let ms = Math.round((A + fx * span) / 3e5) * 3e5;
+      const lo = i ? ops[i - 1] + 3e5 : A, hi = i < ops.length - 1 ? ops[i + 1] - 3e5 : end;
+      if (lo > hi) return;
+      ms = Math.max(lo, Math.min(hi, ms));
+      ops[i] = ms; f.fr[i] = (ms - A) / span;
+      const p = d.parentElement; p.style.left = (f.fr[i] * 100) + '%'; p.querySelector('.ds-t2-l').innerHTML = fxLabel(ms, A);
+    };
+    d.onpointerup = d.onpointercancel = () => { if (drag) { drag = false; fxTlPaint(); } };
+  });
+}
+window.fxEvenReset = () => { const c = dsItemCtx; if (c && c.f) { c.f.fr = null; fxTlPaint(); } };
+
+/* ---------- form events ---------- */
+window.dsFormChange = function () {
+  const c = dsItemCtx; if (!c || !c.f) return; const f = c.f;
+  const R = parseFloat(document.getElementById('dsi_range').value) || 0;
+  const n = +document.getElementById('dsi_rep').value || 1;
+  const a = fxFromWall(document.getElementById('dsi_asof').value);
+  f.asOf = Number.isFinite(a) ? a : null;
+  if (n !== f.n) f.fr = null;          // new count -> even spread again; a new range keeps the dragged shape
+  f.range = R; f.n = n;
+  fxTlPaint();
+};
+window.fxAsNow = function () {
+  const c = dsItemCtx; if (!c || !c.f) return;
+  c.f.asOf = fxNow();
+  document.getElementById('dsi_asof').value = fxWall(c.f.asOf).slice(0, 16);
+  fxTlPaint();
+};
+window.fxAsClear = function () {
+  const c = dsItemCtx; if (!c || !c.f) return;
+  c.f.asOf = null; document.getElementById('dsi_asof').value = '';
+  fxTlPaint();
+};
+window.dsApplyBox = () => { const b = document.getElementById('dsi_apply'); if (b) b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
+window.dsApplyToggle = (key, on) => { const s = dsItemCtx.f.apply; on ? s.add(key) : s.delete(key); };
+window.dsApplyAll = on => document.querySelectorAll('#dsi_apply input[data-k]').forEach(i => { i.checked = on; dsApplyToggle(i.dataset.k, on); });
+
+/* load today's functions whenever the Tasks / Dandana popup opens */
+(function () {
+  const orig = window.dsOpenItems;
+  window.dsOpenItems = function (idx, kind) {
+    orig(idx, kind);
+    fxFnLoad().then(fxFnStripPaint);
+  };
+})();
+
+/* ---------- render (overrides the older versions) ---------- */
+function dsItemsRender() {
+  const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+  const have = dsItemsOf(st, c.date, c.kind);
+  const others = ['task', 'dandana'].flatMap(k => dsItemsOf(st, c.date, k).filter(x => !(k === c.kind && x.item_no === c.open)));
+  const slots = [];
+  for (let n = 1; n <= 10; n++) {
+    const it = have.find(x => x.item_no === n);
+    if (c.open === n) {
+      slots.push(`<div class="ds-form">
+        <div style="display:flex;align-items:center;gap:8px"><span class="ds-no">${n}</span><b style="color:#fbbf24;font-size:13px">${esc(cfg.title)} ${n}</b></div>
+        ${cfg.fields.map(f => `<div><span class="ds-lbl">${esc(f.l)}</span>
+          ${f.rows > 1 ? `<textarea id="dsi_${f.k}" rows="${f.rows}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}"></textarea>`
+                       : `<input id="dsi_${f.k}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
+        ${c.kind === 'task' ? `<div><span class="ds-lbl">Priority · الأهمية</span><select id="dsi_pri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>` : ''}
+
+        <div class="ds-fx">
+          <div class="ds-fx-h"><i class="fa-solid fa-sliders"></i> Functionality · طريقة العمل</div>
+          <div id="dsi_fns"></div>
+          <div><span class="ds-lbl">1) Range · المدى بالساعات</span>
+            <input id="dsi_range" type="number" min="0.5" max="720" step="0.5" inputmode="decimal" class="ds-in" style="max-width:200px" placeholder="مثال: 12" oninput="dsFormChange()"></div>
+          <div><span class="ds-lbl">2) عدد مرات التكرار (1–5)</span>
+            <select id="dsi_rep" class="ds-in" style="width:auto" onchange="dsFormChange()">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">${r}</option>`).join('')}</select></div>
+          <div><span class="ds-lbl">3) As of · منذ</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="dsi_asof" type="datetime-local" class="ds-in" style="width:auto" oninput="dsFormChange()" onchange="dsFormChange()">
+              <button type="button" class="ds-b blue" onclick="fxAsNow()">Now</button>
+              <button type="button" class="ds-b ghost" onclick="fxAsClear()">مسح</button></div>
+            <div id="dsi_asnote" style="font-size:11px;color:#94a3b8;margin-top:4px"></div></div>
+          <div id="dsi_tl"></div>
+          ${others.length ? `<div><button type="button" class="ds-b ghost" onclick="dsApplyBox()">Apply to · طبّق على…</button>
+            <div id="dsi_apply" style="display:none;margin-top:8px">
+              <label style="display:flex;gap:8px;align-items:center;font-size:12px;margin-bottom:6px"><input type="checkbox" onchange="dsApplyAll(this.checked)"> الكل</label>
+              ${others.map(o => `<label style="display:flex;gap:8px;align-items:center;font-size:12px;margin-bottom:4px"><input type="checkbox" data-k="${o.kind}:${o.item_no}" onchange="dsApplyToggle(this.dataset.k,this.checked)">
+                <span class="ds-tag">${o.kind === 'task' ? 'Task' : 'دندنة'} ${o.item_no}</span><span dir="auto" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.title || (o.body || '').split('\n')[0] || '—')}</span></label>`).join('')}
+              <div style="font-size:10px;color:#64748b">بيتنسخ الرينج وعدد التكرار وشكل التوزيع. الـ As of بتاع كل واحدة بيفضل بتاعها، ولو مالهاش بياخد الـ As of بتاعك.</div></div></div>` : ''}
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="ds-b green" onclick="dsItemSave(${n})">Save</button>
+          <button type="button" class="ds-b ghost" onclick="dsItemOpen(null)">إلغاء</button>
+          ${it ? `<button type="button" class="ds-b red" onclick="dsItemDelete(${n})">حذف</button>` : ''}</div></div>`);
+    } else if (it) {
+      slots.push(`<div class="ds-slot saved"><span class="ds-no">${n}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(it.title || (it.body || '').split('\n')[0] || '—')}</div>
+        ${it.badge ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(String(it.badge).split('\n')[0])}</div>` : ''}</div>
+        ${it.priority === 'high' ? '<span class="ds-tag" style="background:#be123c;color:#fff">HIGH</span>' : ''}${it.range_hours != null ? `<span class="ds-tag">${esc(it.range_hours)}h</span>` : ''}<span class="ds-tag">×${it.repeats}</span><span class="ds-tag" style="color:#34d399">Done</span>
+        <button type="button" class="ds-b amber" onclick="dsItemOpen(${n})">تعديل</button></div>`);
+    } else {
+      slots.push(`<button type="button" class="ds-slot" style="color:#64748b;width:100%;text-align:start" onclick="dsItemOpen(${n})"><span class="ds-no" style="color:#64748b">${n}</span> + فاضي</button>`);
+    }
+  }
+  c.ov.innerHTML = `<div class="ds-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="color:#fbbf24;font-size:15px">${esc(cfg.title)} · ${esc(st.trainee || st.name || '')} · ${esc(c.date)}</b>
+      <button type="button" class="ds-b ghost" onclick="dsCloseItems()">إغلاق</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${slots.join('')}</div></div>`;
+  if (c.open) {
+    const it = have.find(x => x.item_no === c.open) || {};
+    cfg.fields.forEach(f => { document.getElementById('dsi_' + f.k).value = it[f.k] || ''; });
+    const pri = document.getElementById('dsi_pri'); if (pri) pri.value = it.priority || 'normal';
+    document.getElementById('dsi_range').value = c.f.range || '';
+    document.getElementById('dsi_rep').value = c.f.n;
+    document.getElementById('dsi_asof').value = c.f.asOf != null ? fxWall(c.f.asOf).slice(0, 16) : '';
+    fxTlPaint(); fxFnStripPaint();
+    const first = document.getElementById('dsi_' + cfg.fields[0].k);
+    if (first) setTimeout(() => first.focus(), 30);
+  }
+}
+
+window.dsItemOpen = function (n) {
+  const c = dsItemCtx; c.open = n;
+  if (n) {
+    const st = supplyState.students[c.idx], it = dsItemsOf(st, c.date, c.kind).find(x => x.item_no === n) || {};
+    const reps = it.repeats || 1, A = fxFromWall(it.as_of), hasRange = it.range_hours != null, fr = hasRange ? fxFracs(it) : null;
+    c.f = { range: hasRange ? +it.range_hours : 0, n: reps, asOf: hasRange && Number.isFinite(A) ? A : null,
+            fr: fr && fr.length === reps ? fr : null, apply: new Set() };
+  }
+  dsItemsRender();
+};
+
+/* ---------- save ---------- */
+window.dsItemSave = async function (n) {
+  const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+  dsFormChange();
+  const f = c.f;
+  const body = { trainee_id: st.id, supply_date: c.date, kind: c.kind, item_no: n, updated_at: new Date().toISOString() };
+  cfg.fields.forEach(x => { body[x.k] = document.getElementById('dsi_' + x.k).value.trim() || null; });
+  const pri = document.getElementById('dsi_pri'); if (pri) body.priority = pri.value;
+  if (!body.title && !body.body) { showToast('اكتب الاسم أو الوصف الأول', true, true); return; }
+  if (!(f.range > 0)) { showToast('اختار الـ Range (عدد الساعات) الأول', true, true); document.getElementById('dsi_range').focus(); return; }
+  if (!f.fr || f.fr.length !== f.n) f.fr = fxEven(f.n);
+  const A = f.asOf != null ? f.asOf : fxNow();           // empty As of = the moment of Save
+  const timing = { repeats: f.n, range_hours: f.range, as_of: fxWall(A), opens_at: fxOpens(A, f.range, f.fr).map(fxWall) };
+  Object.assign(body, timing);
+  try {
+    const row = await upsertByKey('supply_items', `${dsKey(st, c.date)}&kind=eq.${c.kind}&item_no=eq.${n}`, body);
+    supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === c.kind && i.item_no === n));
+    supplyState.items.push(row || body);
+    await fxFnSave(f, body.title);
+    let applied = 0;
+    for (const key of f.apply) {
+      const [k, no] = key.split(':');
+      const tgt = dsItemsOf(st, c.date, k).find(x => x.item_no === +no), tA0 = tgt ? fxFromWall(tgt.as_of) : NaN, tA = Number.isFinite(tA0) ? tA0 : A;
+      const shared = { repeats: f.n, range_hours: f.range, as_of: fxWall(tA), opens_at: fxOpens(tA, f.range, f.fr).map(fxWall), updated_at: body.updated_at };
+      try {
+        const r = await (await sbFetch(`supply_items?${dsKey(st, c.date)}&kind=eq.${k}&item_no=eq.${+no}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(shared) })).json();
+        if (Array.isArray(r) && r[0]) {
+          supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === k && i.item_no === +no));
+          supplyState.items.push(r[0]); applied++;
+        }
+      } catch (e) { showToast('فشل التطبيق على ' + key + ': ' + e.message, true); }
+    }
+    c.open = null;
+    dsItemsRender();
+    showToast(`اتحفظ ${cfg.title} ${n} ✓` + (applied ? ` · واتطبّق على ${applied}` : ''));
+  } catch (e) { showToast('فشل الحفظ: ' + e.message, true); }
+};
