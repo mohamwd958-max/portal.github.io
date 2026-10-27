@@ -874,3 +874,12 @@ async function idSubmitReport() {
     if (btn) btn.disabled = false;
     if (results[0] === true || results[1]) { closeReportModal(); showGeneralToast(T('rpSentOk'), 'success'); } else { if (err) err.textContent = T('rpFail'); }
 }
+
+/* ===== opened from a Hyperlinked word on the dashboard: assistant.html?word=father ===== */
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    const w = new URLSearchParams(location.search).get('word');
+    const inp = document.getElementById('wordInput');
+    if (w && inp) { inp.value = w; setTimeout(() => { try { checkMainWordStatus(); } catch (e) {} }, 500); }
+  } catch (e) {}
+});
