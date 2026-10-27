@@ -15,11 +15,13 @@
     return;
   }
   var R = window.ThabitRich;
-  var RICH_FIELD = /^ds_(qol|tefl|notes)_\d+$/;
+  /* every text field of the Daily Supply (ds_<field>_<row>) + the notification body */
+  var RICH_FIELD = /^(ds_[a-z_]+_\d+|ntBody)$/;
   var NAMES = { qol: 'QOL', tefl: 'TFL', notes: 'Notes' };
   var COLORS = [['gold', 'ذهبي'], ['green', 'أخضر'], ['red', 'أحمر'], ['blue', 'أزرق'], ['purple', 'بنفسجي'], ['orange', 'برتقالي'], ['gray', 'رمادي']];
   var lastPos = null;            // the preview remembers where you left it
   var lastTheme = null;          // and which theme you last checked
+  var lastMode = 'dock';         // 'dock' = under the editor, 'float' = free window
 
   /* ---------- styles ---------- */
   (function () {
@@ -43,7 +45,10 @@
       '.rt-prev-b{padding:12px;overflow:auto;font-size:15px}',
       '.rt-prev-f{padding:6px 12px 10px;font-size:11px;opacity:.75;border-top:1px dashed rgba(148,163,184,.3)}',
       '.rt-empty{opacity:.55;font-size:12px;text-align:center;padding:14px 0}',
-      '.rt-prev.rt-collapsed .rt-prev-b,.rt-prev.rt-collapsed .rt-prev-f{display:none}'
+      '.rt-prev.rt-collapsed .rt-prev-b,.rt-prev.rt-collapsed .rt-prev-f{display:none}',
+      '.rt-prev.rt-docked{position:relative;z-index:auto;width:100%;max-height:none;margin-top:12px;box-shadow:none}',
+      '.rt-prev.rt-docked .rt-prev-h{cursor:default}.rt-prev.rt-docked .rt-prev-b{max-height:34vh}',
+      '.rt-has-prev .ds-ta{min-height:min(28vh,240px)}'
     ].join('');
     document.head.appendChild(s);
   })();
@@ -111,22 +116,40 @@
       '<div class="rt-prev-h" data-h>' +
         '<i class="fa-solid fa-grip-lines" style="opacity:.6"></i>' +
         '<b>معاينة · ' + R.esc(keyName || label) + ' · زي ما الطالب هيشوفها</b>' +
+        '<button type="button" class="rt-ib" data-p="dock" title="تثبيت تحت المحرر"><i class="fa-solid fa-arrow-down-long"></i></button>' +
         '<button type="button" class="rt-ib" data-p="left" title="يسار"><i class="fa-solid fa-arrow-left"></i></button>' +
         '<button type="button" class="rt-ib" data-p="right" title="يمين"><i class="fa-solid fa-arrow-right"></i></button>' +
         '<button type="button" class="rt-ib" data-p="theme" title="جرّب الثيم التاني"><i class="fa-solid fa-circle-half-stroke"></i></button>' +
         '<button type="button" class="rt-ib" data-p="fold" title="طي / فتح"><i class="fa-solid fa-chevron-down"></i></button>' +
       '</div>' +
       '<div class="rt-prev-b" dir="auto"></div><div class="rt-prev-f"></div>';
-    ov.appendChild(el);
+    var docked = lastMode !== 'float', box = ov.querySelector('.ds-box');
+    if (docked && box) { el.classList.add('rt-docked'); box.appendChild(el); } else { docked = false; ov.appendChild(el); }
+    ov.classList.add('rt-has-prev');
     var body = el.querySelector('.rt-prev-b'), foot = el.querySelector('.rt-prev-f'), head = el.querySelector('[data-h]');
 
+    function float() {
+      if (!docked) return;
+      var r = el.getBoundingClientRect(); docked = false; lastMode = 'float';
+      el.classList.remove('rt-docked'); ov.appendChild(el);
+      el.style.left = Math.max(8, r.left) + 'px'; el.style.top = Math.max(8, r.top) + 'px'; el.style.right = el.style.bottom = 'auto';
+      lastPos = { x: Math.max(8, r.left), y: Math.max(8, r.top) };
+    }
+    function dock() {
+      if (!box) return; docked = true; lastMode = 'dock';
+      ['left', 'top', 'right', 'bottom', 'width', 'maxHeight'].forEach(function (k) { el.style[k] = ''; });
+      el.classList.add('rt-docked'); box.appendChild(el);
+      if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
     function place() {
+      if (docked) return;
       var vw = window.innerWidth, vh = window.innerHeight, w = el.offsetWidth || 380;
       if (lastPos) { el.style.left = Math.min(Math.max(8, lastPos.x), Math.max(8, vw - w - 8)) + 'px'; el.style.top = Math.min(Math.max(8, lastPos.y), Math.max(8, vh - 80)) + 'px'; el.style.right = el.style.bottom = 'auto'; return; }
       if (vw >= 900) { el.style.right = '16px'; el.style.top = '84px'; el.style.left = el.style.bottom = 'auto'; }
       else { el.style.left = '8px'; el.style.right = '8px'; el.style.width = 'auto'; el.style.bottom = '8px'; el.style.top = 'auto'; el.style.maxHeight = '38vh'; }
     }
     function snap(side) {
+      float();
       var top = el.getBoundingClientRect().top;
       el.style.width = ''; el.style.maxHeight = ''; el.style.bottom = 'auto'; el.style.top = Math.max(8, top) + 'px';
       if (side === 'left') { el.style.left = '12px'; el.style.right = 'auto'; } else { el.style.right = '12px'; el.style.left = 'auto'; }
@@ -142,14 +165,15 @@
     el.addEventListener('click', function (e) {
       var b = e.target.closest('[data-p]'); if (!b) return;
       var p = b.dataset.p;
-      if (p === 'left' || p === 'right') snap(p);
+      if (p === 'dock') dock();
+      else if (p === 'left' || p === 'right') snap(p);
       else if (p === 'theme') { theme = theme === 'dark' ? 'light' : 'dark'; lastTheme = theme; el.classList.remove('rt-dark', 'rt-light'); el.classList.add('rt-' + theme); }
       else if (p === 'fold') el.classList.toggle('rt-collapsed');
     });
     /* dragging by the header */
     var drag = null;
     head.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('button')) return;
+      if (docked || e.target.closest('button')) return;
       var r = el.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
       head.setPointerCapture(e.pointerId); e.preventDefault();
     });
@@ -161,7 +185,7 @@
     });
     var end = function () { drag = null; };
     head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
-    function onResize() { if (!ov.isConnected) return window.removeEventListener('resize', onResize); if (lastPos) place(); }
+    function onResize() { if (!ov.isConnected) return window.removeEventListener('resize', onResize); if (lastPos && !docked) place(); }
     window.addEventListener('resize', onResize);
 
     place(); update();
@@ -215,6 +239,12 @@
       if (!map[k]) return;
       e.preventDefault(); ops.wrap(map[k][0], map[k][1]);
     });
+  };
+
+  /* the notification preview on the send form shows the formatted result too */
+  window.ntPreview = function () {
+    var b = document.getElementById('ntBody'), p = document.getElementById('ntPrev'); if (!b || !p) return;
+    var v = b.value.trim(); p.style.display = v ? '' : 'none'; p.innerHTML = v ? R.render(v) : '';
   };
 
   /* the small one-line summary on the form shows clean text, without the markers */
