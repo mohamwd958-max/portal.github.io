@@ -2,6 +2,7 @@
    THABIT SYSTEM - ALL-IN-ONE SCRIPT (Melted Version)
    ================================================          */
 
+
 // 2. CORE APP LOGIC, SLIDERS & AUDIO ENGINE
 let isAdminAuthenticated = false;
 const SUPABASE_URL = "https://vkfexceitwjmxncwceqb.supabase.co";
