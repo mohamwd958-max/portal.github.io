@@ -32,3 +32,19 @@ body.light-theme, .rt-light {
 .rt-no { flex: none; font-weight: 800; color: var(--rt-gold); min-width: 1.4em; }
 .rt-sep { align-self: stretch; width: 1px; min-height: 1em; background: currentColor; opacity: .25; margin: 0 4px; }
 .rt-txt { min-width: 0; }
+/* ---------- student side: Hyperlinked words ---------- */
+.rt-link[data-word] { border-radius: 4px; padding: 0 2px; transition: background-color .2s; }
+.rt-link[data-word]:hover, .rt-link[data-word]:focus-visible { background: color-mix(in srgb, var(--rt-link) 18%, transparent); outline: none; }
+.rt-link.rt-pulse { animation: rtPulse 1.5s ease-in-out 3; }
+.rt-link.rt-playing { background: color-mix(in srgb, var(--rt-link) 28%, transparent); }
+@keyframes rtPulse { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--rt-link) 30%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .rt-link.rt-pulse { animation: none; } }
+
+.rt-pop { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 2147483000; width: min(92vw, 380px); padding: 14px 16px; border-radius: 16px; background: #0f172a; color: #f1f5f9; border: 1px solid rgba(251,191,36,.6); box-shadow: 0 20px 60px rgba(0,0,0,.55); font-family: 'Cairo','Inter',sans-serif; animation: rtPopIn .28s ease; }
+body.light-theme .rt-pop { background: #fff; color: #0f172a; border-color: #a16207; }
+@keyframes rtPopIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.rt-pop p { font-weight: 700; font-size: .9rem; line-height: 1.6; margin: 0 0 10px; }
+.rt-pop-b { display: flex; gap: 8px; }
+.rt-pop-b button { flex: 1; padding: 9px 12px; border-radius: 10px; border: 0; cursor: pointer; font: 800 .8rem 'Cairo',sans-serif; color: #fff; background: #475569; }
+.rt-pop-b button.go { background: #2563eb; }
+.rt-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 2147483000; padding: 10px 16px; border-radius: 12px; background: #b45309; color: #fff; font: 700 .85rem 'Cairo',sans-serif; }
