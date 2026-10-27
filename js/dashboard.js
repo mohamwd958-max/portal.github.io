@@ -11,6 +11,7 @@ const T = {
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
+const RT = window.ThabitRich || { inline: s => s, strip: s => s, render: s => s };   // formatted text (richtext.js)
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
@@ -140,7 +141,7 @@ const LF = [['supply_date','Date'],['session_number','Session #'],['group_name',
   ['compliance','Compliance'],['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
   ['soft_skills','Soft skills'],['soft_skills_details','Soft skills details'],['attendance','Attendance'],['attendance_details','Attendance details'],['performance','Performance'],['why','Why'],['performance_details','Performance details'],
   ['weak_points','Weak points'],['tasks','Tasks'],['left_overs','Left overs'],['plans','Plans']];
-const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
+const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(RT.strip(String(b)).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b dir="auto">${RT.inline(esc(b))}</b></div>`;
 function renderSessions(rows) {
   const t = T[lang], loc = lang === 'en' ? 'en-GB' : 'ar-EG', parts = D.parts || [];
   const hm5 = v => v ? String(v).slice(0, 5) : '';
@@ -152,7 +153,7 @@ function renderSessions(rows) {
     const approx = (Number(r.around_h) || 0) + (Number(r.around_m) || 0) > 0 || ps.some(p => (Number(p.around_h) || 0) + (Number(p.around_m) || 0) > 0);
     const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}\u2013${hm5(r.end_time)}` : '';
     return `<details class="ssi"${n === 0 ? ' open' : ''}><summary><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
-      + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
+      + (r.session_title ? `<div class="sst" dir="auto">${RT.inline(esc(r.session_title))}</div>` : '')
       + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${approx ? '\u2248 ' : ''}${fmtDur(m)}</span>` : ''}</div></summary>`
       + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}${p.present === false ? ' \u2717' : ''}</span>`).join('')}</div>` : '')
       + `<div class="ssdet">${LF.map(f => sessLine(f[1], r[f[0]])).join('')}</div></details>`;
@@ -210,11 +211,11 @@ function render() {
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(String(r[key]).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(RT.strip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
-const escv = s => esc(s).replace(/\s*\|\s*/g, '<i class="vb"></i>');
+const escv = s => RT.inline(esc(s)).replace(/\s*\|\s*/g, '<i class="vb"></i>');
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
@@ -225,7 +226,7 @@ function rich(txt) {
 }
 
 /* ===== Per-capsule copy: every block (separated by a blank line) gets its own copy button ===== */
-const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(b.trim())}</div>`).join('');
+const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(RT.strip(b.trim()))}</div>`).join('');
 (function () { const s = document.createElement('style'); s.textContent = `
 .rcap{margin:0 0 8px}
 .rcap>.rp,.rcap>.rl{margin:0;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}
@@ -590,7 +591,7 @@ window.Panels = (function () {
   const TTL = { assistant: { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' }, profile: { en: 'Profile', ar: 'ملفي', eg: 'ملفي' } };
   const ASSIST_SVG = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
   const DEF = { assistant: { icon: 'fa-microphone-lines', svg: ASSIST_SVG, color: '#34d399' }, profile: { icon: 'fa-user', color: '#fbbf24' } };
-  let cur = null, loadedKey = null, nudgeT = null, hideT = null; const mins = [];
+  let cur = null, loadedKey = null, nudgeT = null, hideT = null, pendingWord = null; const mins = [];
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
   const key = () => L() + (document.body.classList.contains('light-theme') ? 'l' : 'd');
   const lock = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; };
@@ -632,7 +633,7 @@ window.Panels = (function () {
     const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
     if (id === 'assistant') {
       const f = $('asFrame');
-      if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
+      if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC + (pendingWord ? '?word=' + encodeURIComponent(pendingWord) : ''); loadedKey = key(); }
       stopNudge();
     }
     if (id === 'profile') { const c = $('info') && $('info').closest('.thabit-card'); if (c && !$('pcard').contains(c)) { c.classList.remove('acc'); c.style.marginBottom = '0'; $('pcard').appendChild(c); } }
@@ -650,7 +651,17 @@ window.Panels = (function () {
     cur = null; $('asm').hidden = true; lock(false); dock();
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') min(); });
-  return { open, min, close, dismiss };
+  /* open the Assistant with a word already typed in (used by Hyperlinked words) */
+  function openWith(word) {
+    const f = $('asFrame'), loaded = f.getAttribute('src') && loadedKey === key();
+    if (!loaded) { pendingWord = word; open('assistant'); pendingWord = null; return; }
+    open('assistant');
+    try {
+      const w = f.contentWindow, inp = w.document.getElementById('wordInput');
+      if (inp) { inp.value = word; if (w.checkMainWordStatus) w.checkMainWordStatus(); }
+    } catch (e) { f.src = SRC + '?word=' + encodeURIComponent(word); }
+  }
+  return { open, min, close, dismiss, openWith };
 })();
 window.openAssistant = e => Panels.open('assistant', e);
 
@@ -711,3 +722,9 @@ function asDismiss(btn) {
   if (!document.querySelector('#pop .pc')) closePop();
   updateFeed();
 }
+
+/* ===== Hyperlinked words: tap = play the recording from Supabase (same lookup as the Assistant); after 3 plays offer practice ===== */
+if (window.ThabitRichStudent) ThabitRichStudent.init({
+  supabaseUrl: SB, anonKey: KEY, getLang: () => lang,
+  onAssistant: w => Panels.openWith(w)
+});
