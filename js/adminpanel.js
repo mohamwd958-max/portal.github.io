@@ -1850,7 +1850,6 @@ window.addEventListener('DOMContentLoaded', initWordSuggest);
     showAdminView = function (v) {
         orig(v);
         if (v === 'voices') refreshWordLists();
-        if (v === 'home' && typeof loadUsage === 'function') loadUsage();
         if (v === 'reports') loadReportsList();
     };
 })();
@@ -2471,99 +2470,331 @@ window.fxFnView = function (no) {
 };
 
 /* ==========================================================
-   Usage boxes on the admin home: 1) Supabase  2) reserved (empty)  3) Cloudflare (to be connected)
-   Counts come from the RPC admin_usage_stats() (see admin_usage_stats.sql); without it only word / sentence counts are shown.
-   Plan limits below are the published numbers - edit them if Supabase changes its plans (supabase.com/pricing).
+   Patch 3: windows workspace (paste at the END of adminpanel.js)
+   - every launcher button opens its own widget, side by side; you close each one yourself
+   - Dashboard window: trainee cards always selectable; bulk Notification / Task / Monthly obligations
+   - Notification, Task, Monthly obligations, Profile and DS open as windows too
    ========================================================== */
-const MB = 1024 * 1024, GB = 1024 * MB;
-const USAGE_LIMITS = {
-    free: { name: 'Free', db: 500 * MB, storage: 1 * GB, egress: 5 * GB },
-    pro:  { name: 'Pro ($25/mo)', db: 8 * GB, storage: 100 * GB, egress: 250 * GB }
-};
-const fmtBytes = n => n == null ? '—' : n >= GB ? (n / GB).toFixed(2) + ' GB' : n >= MB ? (n / MB).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
-const fmtNum = n => n == null ? '—' : Number(n).toLocaleString('en-US');
-let _usage = { at: 0, res: null };
-
 (function () {
-    if (document.getElementById('usCss')) return;
-    const s = document.createElement('style'); s.id = 'usCss';
-    s.textContent = '.us-card{border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px;background:rgba(30,41,59,.45)}'
-        + 'body.light-theme .us-card{background:#f1f5f9}.us-empty{border-style:dashed;min-height:70px;align-items:center;justify-content:center;opacity:.55;font-size:.75rem}'
-        + '.us-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:900;font-size:.85rem}'
-        + '.us-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.us-n{border-radius:12px;padding:8px;text-align:center;background:rgba(2,6,23,.45)}body.light-theme .us-n{background:#e2e8f0}'
-        + '.us-n b{display:block;font-size:1.15rem}.us-n span{font-size:.65rem;opacity:.7}'
-        + '.us-bar{height:8px;border-radius:99px;background:rgba(148,163,184,.3);overflow:hidden}.us-bar i{display:block;height:100%;border-radius:99px}'
-        + '.us-l{display:flex;justify-content:space-between;gap:8px;font-size:.7rem;margin-bottom:3px}'
-        + '.us-adv{font-size:.72rem;line-height:1.7;display:flex;flex-direction:column;gap:4px}.us-adv div{padding:6px 9px;border-radius:10px;background:rgba(148,163,184,.12)}'
-        + '.us-adv .w{background:rgba(245,158,11,.16)}.us-adv .r{background:rgba(225,29,72,.18)}.us-adv .g{background:rgba(16,185,129,.14)}'
-        + '.us-a{font-size:.68rem;text-decoration:underline;color:#38bdf8}';
-    document.head.appendChild(s);
+  if (document.getElementById('wsCss')) return;
+  const s = document.createElement('style'); s.id = 'wsCss';
+  s.textContent = `
+#adminPanel.ws-wide{max-width:98vw!important;width:98vw}
+.ws-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px;border:1px solid #1e293b;border-radius:14px;background:#0b1220}
+.ws-lb{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid #475569;color:#e2e8f0;font-weight:700;font-size:13px;background:transparent}
+.ws-lb:hover{border-color:#fbbf24}.ws-lb.on{background:#f59e0b;border-color:#f59e0b;color:#0f172a}
+.ws-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.ws-w{flex:1 1 380px;min-width:min(340px,100%);max-width:100%;border:1px solid rgba(245,158,11,.4);border-radius:14px;background:#0f172a;overflow:hidden;display:flex;flex-direction:column}
+.ws-w.ws-2{flex:2 1 620px}.ws-w.ws-3{flex:1 1 100%}
+.ws-h{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,.12);border-bottom:1px solid rgba(148,163,184,.25);color:#fbbf24;font-size:13px}
+.ws-x{width:26px;height:26px;border-radius:8px;border:1px solid rgba(148,163,184,.4);color:#e2e8f0;font-size:11px}
+.ws-x:hover{border-color:#f59e0b}
+.ws-bd{padding:10px;overflow:auto;max-height:78vh}
+.ws-w.ws-fold .ws-bd{display:none}
+.ws-sep{width:1px;height:22px;background:#334155;margin:0 4px}
+.ws-nm{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}`;
+  document.head.appendChild(s);
 })();
 
-function ensureUsageBoxes() {
-    const home = $id('adminHome'); if (!home || $id('usageWrap')) return;
-    const w = document.createElement('div'); w.id = 'usageWrap'; w.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-top:6px';
-    w.innerHTML = '<div class="tha-note" style="font-weight:800">قواعد البيانات · Databases</div>'
-        + '<div class="us-card" id="usageSb"><span class="tha-note">...</span></div>'
-        + '<div class="us-card us-empty" id="usageEmpty">مساحة فاضية (محجوزة)</div>'
-        + '<div class="us-card" id="usageCf"><div class="us-h"><span><i class="fa-solid fa-cloud"></i> Cloudflare</span><a class="us-a" href="https://dash.cloudflare.com" target="_blank" rel="noopener">Open dashboard ↗</a></div>'
-        + '<div class="tha-note">لسه مش متوصّل. لما نربطه هتظهر هنا الأرقام (التخزين والطلبات).</div></div>';
-    home.appendChild(w);
-}
-function setUsagePlan(p) { try { localStorage.setItem('thabit_sb_plan', p); } catch (e) {} if (_usage.res) renderUsage(_usage.res); }
+const WSD = {
+  dash: { t: 'Dashboard · الطلاب', i: 'fa-gauge-high', w: 2 },
+  arc: { t: 'Archive · الأرشيف', i: 'fa-box-archive', w: 2 },
+  rep: { t: 'Reports · البلاغات', i: 'fa-flag', w: 1 },
+  voi: { t: 'Upload voices', i: 'fa-cloud-arrow-up', w: 1 },
+  nt: { t: 'إشعار', i: 'fa-bell', w: 1 },
+  tk: { t: 'Task', i: 'fa-list-check', w: 1 },
+  mo: { t: 'Monthly obligations', i: 'fa-calendar-check', w: 1 },
+  prof: { t: 'Profile', i: 'fa-id-card', w: 2 },
+  ds: { t: 'Daily Supply', i: 'fa-pen-to-square', w: 3 }
+};
+const WS_REFRESH = { dash: 1, arc: 1, rep: 1, voi: 1 };
+const WSE = {};
+let tkCur = null, moCur = null;
 
-async function fetchUsage() {
-    try {
-        const r = await sbFetch('rpc/admin_usage_stats', { method: 'POST', body: '{}' });
-        const d = await r.json();
-        if (d && typeof d === 'object' && !Array.isArray(d)) return { ok: true, d };
-    } catch (e) { /* function not created yet -> fall back to plain counts */ }
-    const cnt = async q => { const r = await sbFetch(q, { headers: { Prefer: 'count=exact' } }); const m = /\/(\d+)$/.exec(r.headers.get('Content-Range') || ''); return m ? +m[1] : null; };
-    try {
-        const total = await cnt('words_table?select=word&limit=1'), sent = await cnt('words_table?select=word&word=like.*%20*&limit=1');
-        return { ok: false, d: { words: total == null || sent == null ? null : total - sent, sentences: sent } };
-    } catch (e) { return { ok: false, d: {}, err: e.message }; }
+function wsEnsure(k) {
+  if (WSE[k]) return WSE[k];
+  const d = WSD[k], el = document.createElement('section');
+  el.className = 'ws-w ws-' + d.w; el.id = 'ws_' + k;
+  const rf = WS_REFRESH[k] ? '<button type="button" class="ws-x" data-rf title="تحديث"><i class="fa-solid fa-rotate"></i></button>' : '';
+  el.innerHTML = `<div class="ws-h"><i class="fa-solid ${d.i}"></i><b data-wt>${esc(d.t)}</b><span style="flex:1"></span>${rf}<button type="button" class="ws-x" data-fold title="طي / فتح"><i class="fa-solid fa-chevron-up"></i></button><button type="button" class="ws-x" data-cls title="إغلاق"><i class="fa-solid fa-xmark"></i></button></div><div class="ws-bd"></div>`;
+  el.querySelector('[data-cls]').onclick = () => closeWin(k);
+  el.querySelector('[data-fold]').onclick = () => el.classList.toggle('ws-fold');
+  const r = el.querySelector('[data-rf]'); if (r) r.onclick = () => wsLoad(k);
+  $id('adminWs').appendChild(el);
+  return (WSE[k] = { el, body: el.querySelector('.ws-bd'), loaded: false });
 }
-async function loadUsage(force) {
-    ensureUsageBoxes();
-    if (!force && _usage.res && Date.now() - _usage.at < 60000) { renderUsage(_usage.res); return; }
-    const box = $id('usageSb'); if (box && !_usage.res) box.innerHTML = '<span class="tha-note">...</span>';
-    _usage = { at: Date.now(), res: await fetchUsage() };
-    renderUsage(_usage.res);
+function wsTitle(k, t) { wsEnsure(k).el.querySelector('[data-wt]').textContent = t; }
+function wsLoad(k) {
+  const w = WSE[k]; if (!w) return;
+  if (k === 'dash') return renderMasterProfilesIn(w.body);
+  if (k === 'arc') return renderArchiveIn(w.body);
+  if (k === 'rep') {
+    const v = $id('adminViewReports');
+    if (v) { if (v.parentNode !== w.body) w.body.appendChild(v); v.style.display = 'block'; }
+    return loadReportsList();
+  }
+  if (k === 'voi') {
+    const v = $id('adminViewVoices');
+    if (v) { if (v.parentNode !== w.body) w.body.appendChild(v); v.style.display = 'block'; }
+    return refreshWordLists();
+  }
 }
-function renderUsage(res) {
-    const box = $id('usageSb'); if (!box) return;
-    let plan = 'free'; try { plan = localStorage.getItem('thabit_sb_plan') === 'pro' ? 'pro' : 'free'; } catch (e) {}
-    const L = USAGE_LIMITS[plan], d = res.d || {};
-    const files = d.files == null ? null : +d.files, fb = d.files_bytes == null ? null : +d.files_bytes, dbb = d.db_bytes == null ? null : +d.db_bytes;
-    const avg = files && fb != null ? fb / files : null;
-    const ref = (() => { try { return new URL(SUPABASE_URL).hostname.split('.')[0]; } catch (e) { return ''; } })();
-    const col = p => p >= 85 ? '#e11d48' : p >= 60 ? '#f59e0b' : '#10b981';
-    const bar = (label, used, lim) => {
-        if (used == null) return `<div><div class="us-l"><span>${label}</span><span>—</span></div><div class="us-bar"></div></div>`;
-        const p = Math.min(100, used / lim * 100);
-        return `<div><div class="us-l"><span>${label}</span><span dir="ltr">${fmtBytes(used)} / ${fmtBytes(lim)} · ${p.toFixed(p < 10 ? 1 : 0)}%</span></div><div class="us-bar"><i style="width:${Math.max(p, 1)}%;background:${col(p)}"></i></div></div>`;
-    };
-    const adv = [], add = (c, t) => adv.push(`<div class="${c}">${t}</div>`);
-    if (!res.ok) add('w', 'لسه ما شغّلتش ملف <b>admin_usage_stats.sql</b> في Supabase، فمش قادر أعرض حجم الملفات والداتابيز. الأعداد فوق بس.');
-    if (fb != null) {
-        const p = fb / L.storage * 100, left = avg ? Math.max(0, Math.floor((L.storage - fb) / avg)) : null;
-        if (left != null) add(p >= 85 ? 'r' : p >= 60 ? 'w' : 'g', `مساحة الصوت تكفي تقريباً <b>${fmtNum(left)}</b> تسجيل كمان (متوسط الملف ${fmtBytes(avg)}).`);
-        if (p >= 85) add('r', plan === 'free' ? 'قرّبت من حد الـ Storage. وقت تفكر: ترقية لـ Pro ($25/شهر، 100 GB) أو تنقل الصوت لـ Cloudflare.' : 'قرّبت من حد الـ Storage في Pro: الزيادة بتتحاسب بالـ GB.');
-        else if (p >= 60) add('w', 'عدّيت 60% من الـ Storage. ابدأ فكّر في الخطوة الجاية قبل ما توصل.');
-    }
-    if (dbb != null) {
-        const p = dbb / L.db * 100;
-        if (p >= 85) add('r', 'حجم الداتابيز قرّب يخلص. بعد الحد ده بتبقى بفلوس (أو بتتقفل الكتابة على Free).');
-        else if (p >= 60) add('w', 'حجم الداتابيز عدّى 60%. راقبه.');
-    }
-    if (avg) add('', `الـ Egress الشهري (${fmtBytes(L.egress)}) يكفي تقريباً <b>${fmtNum(Math.floor(L.egress / avg))}</b> تشغيلة صوت في الشهر (لو الملف بمتوسط ${fmtBytes(avg)}). الاستهلاك الفعلي شوفه من صفحة Usage.`);
-    if (plan === 'free') add('', 'على Free: المشروع بيتعمل له Pause لو ما فيش نشاط أسبوع.');
-    box.innerHTML = `<div class="us-h"><span><i class="fa-solid fa-database"></i> Supabase</span><span style="display:flex;gap:6px;align-items:center">`
-        + `<select class="tha-in" style="width:auto;padding:3px 8px;font-size:.7rem" onchange="setUsagePlan(this.value)"><option value="free"${plan === 'free' ? ' selected' : ''}>Free</option><option value="pro"${plan === 'pro' ? ' selected' : ''}>Pro</option></select>`
-        + `<button type="button" class="tha-b gray" style="padding:4px 9px" title="Refresh" onclick="loadUsage(true)"><i class="fa-solid fa-rotate"></i></button></span></div>`
-        + `<div class="us-nums"><div class="us-n"><b>${fmtNum(d.words)}</b><span>كلمات</span></div><div class="us-n"><b>${fmtNum(d.sentences)}</b><span>جمل</span></div><div class="us-n"><b>${fmtNum(files)}</b><span>ملفات صوتية</span></div></div>`
-        + bar('Storage (الصوت)', fb, L.storage) + bar('Database', dbb, L.db)
-        + (adv.length ? `<div class="us-adv">${adv.join('')}</div>` : '')
-        + `<div style="display:flex;gap:12px;flex-wrap:wrap"><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}/settings/billing/usage">Usage & egress ↗</a><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}">Open project ↗</a><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/pricing">Pricing ↗</a></div>`;
+function openWin(k) {
+  const w = wsEnsure(k);
+  w.el.style.display = ''; w.el.classList.remove('ws-fold');
+  document.querySelectorAll('.ws-lb[data-ws="' + k + '"]').forEach(b => b.classList.add('on'));
+  if (!w.loaded && WS_REFRESH[k]) { w.loaded = true; wsLoad(k); }
+  setTimeout(() => { try { w.el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { } }, 60);
+  return w;
 }
+function closeWin(k) {
+  const w = WSE[k]; if (!w) return;
+  w.el.style.display = 'none';
+  document.querySelectorAll('.ws-lb[data-ws="' + k + '"]').forEach(b => b.classList.remove('on'));
+  if (k === 'nt') ntCur = null;
+  if (k === 'prof') mpCur = null;
+  if (k === 'ds') dsStu = null;
+  if (k === 'tk') tkCur = null;
+  if (k === 'mo') moCur = null;
+}
+window.openWin = openWin; window.closeWin = closeWin;
+window.toggleWin = function (k) { const w = WSE[k]; if (w && w.el.style.display !== 'none') closeWin(k); else openWin(k); };
+
+showAdminView = function (v) {
+  if (v === 'home') { if (!Object.keys(WSE).some(k => WSE[k].el.style.display !== 'none')) openWin('dash'); return; }
+  const m = { dashboardMain: 'dash', voices: 'voi', reports: 'rep', archive: 'arc' };
+  if (m[v]) openWin(m[v]);
+};
+openAdminMainPanel = function () {
+  const o = $id('adminModalOverlay'); if (o) o.classList.add('open');
+  const p = $id('adminPanel'); if (p) p.classList.add('ws-wide');
+  showAdminView('home');
+};
+
+/* ---------- Dashboard window: trainee list (always selectable) ---------- */
+async function renderMasterProfilesIn(sub) {
+  sub.innerHTML = '<div class="text-center py-6 text-amber-400">جاري تحميل الطلبة...</div>';
+  try {
+    const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json();
+    mpState.list = Array.isArray(j) ? j : [];
+  } catch (e) {
+    sub.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`;
+    return;
+  }
+  mpState.q = ''; mpState.selecting = true;
+  sub.innerHTML = `<div class="flex flex-col gap-3">
+      <input id="mpSearch" placeholder="ابحث بالاسم..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px" oninput="mpSearch(this.value)">
+      <div class="flex items-center gap-2 flex-wrap" id="mpBar"></div>
+      <div class="mp-grid" id="mpGrid"></div></div>`;
+  mpPaintList();
+}
+window.mpClearSel = function () { mpState.sel.clear(); mpPaintList(); };
+mpPaintBar = function () {
+  const b = $id('mpBar'); if (!b) return;
+  const n = mpState.sel.size, one = n === 1 ? [...mpState.sel][0] : null;
+  const btn = (cls, fn, ic, txt, on) => `<button type="button" class="ds-b ${cls}" ${on ? '' : 'disabled'} onclick="${fn}"><i class="fa-solid ${ic}"></i> ${txt}</button>`;
+  b.innerHTML = btn('ghost', 'mpSelectAll()', 'fa-square-check', 'تحديد الكل', true)
+    + (n ? btn('ghost', 'mpClearSel()', 'fa-xmark', 'إلغاء', true) : '')
+    + `<span class="text-xs text-slate-400">${n} محدد</span><span class="ws-sep"></span>`
+    + btn('blue', 'openNotifyMany()', 'fa-bell', 'إشعار', n)
+    + btn('blue', 'openBulkTask()', 'fa-list-check', 'Task', n)
+    + btn('amber', 'openMonthly()', 'fa-calendar-check', 'Monthly obligations', n)
+    + (one ? '<span class="ws-sep"></span>' + btn('green', `openStudentDashboard('${esc(one)}')`, 'fa-eye', 'Dashboard', 1) + btn('amber', `mpOpen('${esc(one)}')`, 'fa-id-card', 'Profile', 1) + btn('ghost', `openStudentSupply('${esc(one)}')`, 'fa-pen-to-square', 'DS', 1) : '');
+};
+
+/* ---------- Archive window ---------- */
+async function renderArchiveIn(sub) {
+  sub.innerHTML = '<div class="text-center py-6 text-amber-400">جاري تحميل الأرشيف...</div>';
+  let students = [];
+  try { students = await fetchStudentsFromSupabase(); } catch (e) { }
+  const opts = students.map(st => `<option value="${esc(st.id)}">${esc(st.trainee || st.name || '')}</option>`).join('');
+  const lab = 'text-xs flex flex-col gap-1';
+  sub.innerHTML = `<div class="flex flex-col gap-3">
+      <div class="tha-btns">
+        <button type="button" class="tha-b blue" onclick="archiveQuick('today')">اليوم</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('week')">هذا الأسبوع</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('month')">هذا الشهر</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('year')">هذه السنة</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('all')">الكل</button></div>
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="${lab}">من <input type="date" id="arcFrom" class="${INPUT_CLS}"></label>
+        <label class="${lab}">إلى <input type="date" id="arcTo" class="${INPUT_CLS}"></label>
+        <label class="${lab}">شهر معين <input type="month" id="arcMonth" onchange="archiveMonthPicked(this.value)" class="${INPUT_CLS}"></label>
+        <label class="${lab}">الطالب <select id="arcStudent" class="${INPUT_CLS}"><option value="">الكل</option>${opts}</select></label>
+        <button type="button" class="tha-b" onclick="loadArchive()"><i class="fa-solid fa-magnifying-glass"></i> عرض</button>
+        <button type="button" class="tha-b gray" onclick="exportArchiveCsv()"><i class="fa-solid fa-file-csv"></i> تصدير CSV</button></div>
+      <div id="arcInfo" class="tha-note"></div>
+      <div id="arcResult" class="overflow-x-auto border border-slate-700 rounded-xl" style="max-height:60vh"></div></div>`;
+  archiveQuick('week');
+}
+
+/* ---------- shared schedule fields (Range / repeats / As of) ---------- */
+function fxSched(p) {
+  const R = parseFloat($id(p + 'Range').value) || 0, n = +$id(p + 'Rep').value || 1, a = fxFromWall($id(p + 'AsOf').value);
+  const A = Number.isFinite(a) ? a : fxNow(), fr = fxEven(n);
+  return { R, n, A, opens: R > 0 ? fxOpens(A, R, fr) : [] };
+}
+window.schedPreview = function (p) {
+  const el = $id(p + 'Prev'); if (!el) return;
+  const s = fxSched(p);
+  if (!(s.R > 0)) { el.textContent = 'اكتب الـ Range بالساعات عشان يظهر الجدول.'; return; }
+  const end = s.A + s.R * 36e5, tag = o => fxClock(o) + (fxNewDay(o, s.A) ? ' (' + fxWd(o) + ')' : '');
+  el.innerHTML = `يبدأ ${esc(fxClock(s.A))} · ينتهي ${esc(tag(end))}<br>مرات الفتح: ${s.opens.map(o => esc(tag(o))).join(' · ')}`;
+};
+window.schedNow = function (p) { $id(p + 'AsOf').value = fxWall(fxNow()).slice(0, 16); schedPreview(p); };
+window.schedClear = function (p) { $id(p + 'AsOf').value = ''; schedPreview(p); };
+const schedFields = (p, range, rep) => `
+  <div><span class="ds-lbl">Range · المدى بالساعات</span><input id="${p}Range" type="number" min="0.5" max="720" step="0.5" inputmode="decimal" class="ds-in" style="max-width:200px" value="${range}" oninput="schedPreview('${p}')"></div>
+  <div><span class="ds-lbl">عدد مرات التكرار (1–5)</span><select id="${p}Rep" class="ds-in" style="width:auto" onchange="schedPreview('${p}')">${[1, 2, 3, 4, 5].map(r => `<option value="${r}"${r === rep ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
+  <div><span class="ds-lbl">As of · منذ (فاضي = وقت الإرسال)</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="${p}AsOf" type="datetime-local" class="ds-in" style="width:auto" oninput="schedPreview('${p}')" onchange="schedPreview('${p}')"><button type="button" class="ds-b blue" onclick="schedNow('${p}')">Now</button><button type="button" class="ds-b ghost" onclick="schedClear('${p}')">مسح</button></div></div>
+  <div class="nt-prev" id="${p}Prev"></div>`;
+const wsChips = st => `<div class="ws-nm">${st.map(s => `<span class="nt-chip" dir="auto">${esc(s.trainee || '')}</span>`).join('')}</div>`;
+const wsPicked = ids => ids.map(id => mpState.list.find(x => String(x.id) === String(id))).filter(Boolean);
+const PF_EMPTY = 'اضغط للكتابة (كبسولات، ترقيم، نقط...)';
+
+/* ---------- Notification window ---------- */
+ntClose = function () { closeWin('nt'); };
+window.ntClose = ntClose;
+openNotify = async function (ids) {
+  const st = wsPicked(ids); if (!st.length) return;
+  const single = st.length === 1;
+  const w = wsEnsure('nt');
+  wsTitle('nt', single ? 'إشعار · ' + (st[0].trainee || '') : 'إشعار · ' + st.length + ' طلاب');
+  w.body.innerHTML = `${single ? '<div class="nt-feed" id="ntFeed"><div class="tha-note">جاري تحميل الفيد...</div></div>' : wsChips(st)}
+    <div class="mp-sec"><h5>إشعار جديد</h5>
+      <span class="ds-lbl">العنوان (اختياري)</span><input id="ntTitle" class="ds-in" maxlength="80" dir="auto">
+      <span class="ds-lbl" style="margin-top:8px">الرسالة</span>
+      <input type="hidden" id="ntBody">
+      <div id="ntBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('ntBody','الرسالة')">${PF_EMPTY}</div>
+      <div class="nt-prev" id="ntPrev" style="display:none" dir="auto"></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="ds-b green" id="ntSend" onclick="ntSend()"><i class="fa-solid fa-paper-plane"></i> إرسال${single ? '' : ' للكل (' + st.length + ')'}</button></div></div>
+    ${single ? '<div class="mp-sec"><h5>آخر الإشعارات المبعوتة</h5><div id="ntSent" class="text-xs text-slate-500">...</div></div>' : ''}`;
+  ntCur = { ov: w.el, ids: st.map(s => String(s.id)), single };
+  openWin('nt');
+  if (single) { ntFeedHtml(st[0]).then(h => { const f = $id('ntFeed'); if (f) f.innerHTML = h; }); ntLoadSent(); }
+};
+
+/* ---------- bulk Task window ---------- */
+window.openBulkTask = function () {
+  const st = wsPicked([...mpState.sel]); if (!st.length) return;
+  const w = wsEnsure('tk');
+  wsTitle('tk', 'Task · ' + st.length + (st.length === 1 ? ' طالب' : ' طلاب'));
+  w.body.innerHTML = `${wsChips(st)}
+    <div class="ds-form">
+      <div><span class="ds-lbl">اسم التاسك</span><input id="tkTitle" class="ds-in" dir="auto" spellcheck="true" placeholder="مثال: Mix and Match"></div>
+      <div><span class="ds-lbl">معلومة إضافية (بتظهر كوسم صغير)</span><input id="tkBadge" class="ds-in" dir="auto" placeholder="مثال: تمرين / عدد التكرار"></div>
+      <div><span class="ds-lbl">الوصف (Description)</span><input type="hidden" id="tkBody"><div id="tkBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('tkBody','الوصف')">${PF_EMPTY}</div></div>
+      <div><span class="ds-lbl">Priority · الأهمية</span><select id="tkPri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>
+      <div class="ds-fx"><div class="ds-fx-h"><i class="fa-solid fa-sliders"></i> Functionality · طريقة العمل</div>${schedFields('tk', 12, 1)}</div>
+      <div><button type="button" class="ds-b green" id="tkSend" onclick="tkSend()"><i class="fa-solid fa-paper-plane"></i> ابعت التاسك لـ ${st.length}</button></div>
+      <div style="font-size:10px;color:#64748b">بيتحط في أول خانة فاضية (1–10) عند كل طالب النهارده، وبياخد نفس الجدول الزمني.</div>
+    </div>`;
+  tkCur = { ids: st.map(s => String(s.id)), st };
+  openWin('tk'); schedPreview('tk');
+};
+window.tkSend = async function () {
+  const c = tkCur; if (!c) return;
+  const title = $id('tkTitle').value.trim() || null, badge = $id('tkBadge').value.trim() || null, body = $id('tkBody').value.trim() || null;
+  if (!title && !body) { showToast('اكتب اسم التاسك أو الوصف الأول', true, true); return; }
+  const sc = fxSched('tk');
+  if (!(sc.R > 0)) { showToast('اكتب الـ Range بالساعات الأول', true, true); return; }
+  const btn = $id('tkSend'); btn.disabled = true;
+  try {
+    const today = dsToday();
+    const have = await fetchAllRows(`supply_items?select=trainee_id,item_no&kind=eq.task&supply_date=eq.${today}&trainee_id=in.(${c.ids.map(enc).join(',')})`);
+    const used = {}; have.forEach(r => { (used[String(r.trainee_id)] = used[String(r.trainee_id)] || new Set()).add(r.item_no); });
+    const rows = [], skipped = [], now = new Date().toISOString(), pri = $id('tkPri').value;
+    c.st.forEach(s => {
+      const u = used[String(s.id)] || new Set(); let n = 1; while (n <= 10 && u.has(n)) n++;
+      if (n > 10) { skipped.push(s.trainee || ''); return; }
+      rows.push({ trainee_id: s.id, supply_date: today, kind: 'task', item_no: n, title, badge, body, priority: pri, repeats: sc.n, range_hours: sc.R, as_of: fxWall(sc.A), opens_at: sc.opens.map(fxWall), updated_at: now });
+    });
+    if (rows.length) await sbFetch('supply_items', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+    showToast(`اتبعت التاسك لـ ${rows.length} طالب ✓` + (skipped.length ? ` · الخانات ممتلئة عند: ${skipped.join('، ')}` : ''), skipped.length > 0, true);
+  } catch (e) { showToast('فشل إرسال التاسك: ' + e.message, true); }
+  btn.disabled = false;
+};
+
+/* ---------- Monthly obligations window (high-priority timed notification) ---------- */
+const MO_TITLE = 'التكليفات الشهرية · Monthly obligations';
+const MO_BODY = `1. اختبار الإنجليزي EF SET | https://www.efset.org/
+
+2. اختبار الشخصية 16 Personalities بالعربي | https://www.16personalities.com/ar
+
+لازم تخلّص الاتنين في المهلة اللي قدامك، وابعت لي النتيجة أول ما تخلّص.`;
+window.openMonthly = function () {
+  const st = wsPicked([...mpState.sel]); if (!st.length) return;
+  const w = wsEnsure('mo');
+  wsTitle('mo', 'Monthly obligations · ' + st.length + (st.length === 1 ? ' طالب' : ' طلاب'));
+  w.body.innerHTML = `${wsChips(st)}
+    <div class="ds-form">
+      <div class="ds-tag" style="align-self:flex-start;background:#be123c;color:#fff">HIGH PRIORITY · بيوصل في الإشعارات</div>
+      <div><span class="ds-lbl">العنوان</span><input id="moTitle" class="ds-in" maxlength="80" dir="auto"></div>
+      <div><span class="ds-lbl">الرسالة (تقدر تعدّلها)</span><input type="hidden" id="moBody"><div id="moBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('moBody','الرسالة')">${PF_EMPTY}</div></div>
+      <div class="ds-fx"><div class="ds-fx-h"><i class="fa-solid fa-hourglass-half"></i> المهلة · التذكيرات</div>${schedFields('mo', 72, 3)}</div>
+      <div><button type="button" class="ds-b amber" id="moSend" onclick="moSend()"><i class="fa-solid fa-paper-plane"></i> ابعت التكليفات لـ ${st.length}</button></div>
+    </div>`;
+  $id('moTitle').value = MO_TITLE; $id('moBody').value = MO_BODY; dsRefreshPf('moBody');
+  moCur = { ids: st.map(s => String(s.id)), st };
+  openWin('mo'); schedPreview('mo');
+};
+window.moSend = async function () {
+  const c = moCur; if (!c) return;
+  const title = $id('moTitle').value.trim() || MO_TITLE, body = $id('moBody').value.trim();
+  if (!body) { showToast('الرسالة فاضية', true, true); return; }
+  const sc = fxSched('mo');
+  if (!(sc.R > 0)) { showToast('اكتب المهلة بالساعات الأول', true, true); return; }
+  if (!confirm('تبعت التكليفات الشهرية لـ ' + c.st.length + ' طالب؟')) return;
+  const btn = $id('moSend'); btn.disabled = true;
+  const meta = { priority: 'high', obligation: 'monthly', range_hours: sc.R, repeats: sc.n, as_of: fxWall(sc.A), opens_at: sc.opens.map(fxWall), deadline: fxWall(sc.A + sc.R * 36e5) };
+  try {
+    await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.st.map(s => ({ trainee_id: s.id, kind: 'message', title, body, meta }))) });
+    showToast(`اتبعتت التكليفات الشهرية لـ ${c.st.length} طالب ✓`);
+  } catch (e) { showToast('فشل الإرسال: ' + e.message, true); }
+  btn.disabled = false;
+};
+
+/* ---------- Profile window ---------- */
+mpClose = function () { closeWin('prof'); };
+window.mpClose = mpClose;
+mpOpen = function (id) {
+  const r = mpState.list.find(x => String(x.id) === String(id)); if (!r) return;
+  const w = wsEnsure('prof'); wsTitle('prof', 'Profile · ' + (r.trainee || ''));
+  const fieldHtml = ([k, type, label]) => type === 'date'
+    ? `<div><span class="ds-lbl">${esc(label)}</span><input type="date" id="${mpId(k)}"></div>`
+    : `<div><span class="ds-lbl">${esc(label)}</span><input type="hidden" id="${mpId(k)}"><div id="${mpId(k)}_pf" class="ds-pf empty" onclick="dsTextPop('${mpId(k)}','${esc(label)}')">اضغط للكتابة…</div></div>`;
+  w.body.innerHTML = `<div style="display:flex;justify-content:flex-end"><button type="button" class="ds-b green" id="mpSaveBtn" onclick="mpSave()">Save</button></div>
+    ${MP_SECTIONS.map(([t, fs]) => `<div class="mp-sec"><h5>${esc(t)}</h5><div class="mp-fields">${fs.map(fieldHtml).join('')}</div></div>`).join('')}
+    <div class="text-slate-500" style="font-size:11px;margin-top:14px">id: ${esc(r.id)} · created: ${esc(String(r.created_at || '').slice(0, 10))} · updated: ${esc(String(r.updated_at || '').slice(0, 16).replace('T', ' '))}</div>`;
+  mpCur = { ov: w.el, id };
+  openWin('prof');
+  MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k, type]) => {
+    const el = $id(mpId(k)); if (!el) return;
+    el.value = r[k] == null ? '' : String(r[k]);
+    if (type !== 'date') dsRefreshPf(mpId(k));
+  }));
+};
+
+/* ---------- DS window ---------- */
+closeStudentSupply = function () { closeWin('ds'); };
+window.closeStudentSupply = closeStudentSupply;
+openStudentSupply = async function (id) {
+  const st = (mpState.list.find(x => String(x.id) === String(id))) || { id, trainee: '' };
+  const today = dsToday(), dates = [0, 1, 2, 3].map(n => dsAddDays(today, -n));
+  const w = wsEnsure('ds'); wsTitle('ds', 'DS · ' + (st.trainee || ''));
+  w.body.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  openWin('ds');
+  dsStu = { ov: w.el, st, onKey: null, shown: dates.length, more: false };
+  let data;
+  try { data = await dsFetchRange(id, dates[dates.length - 1], today); }
+  catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
+  const range = { min: dsAddDays(today, -31), max: today };
+  supplyState = { students: dates.map(() => st), records: data.records, range, parts: data.parts, items: data.items };
+  dsStu.cols = dsCols(range, true); dsStu.today = today;
+  w.body.innerHTML = `<div class="overflow-x-auto border border-slate-700 rounded-xl" style="max-height:70vh">
+      <table class="w-full text-left text-xs text-slate-300">
+        <thead class="bg-slate-950 text-amber-300 uppercase text-[10px] sticky top-0"><tr><th class="p-2">day</th>${dsStu.cols.map(c => `<th class="p-2">${esc(c.head)}</th>`).join('')}<th class="p-2">إجراء</th></tr></thead>
+        <tbody id="dsStuBody">${dates.map((d, i) => dsRowHtml(i, dsDayLabel(d, i), dsStu.cols)).join('')}</tbody></table></div>
+    <div style="text-align:center;margin-top:10px"><button type="button" id="dsMoreBtn" class="ds-b ghost" onclick="dsMore()">More · باقي الشهر</button></div>`;
+  dates.forEach((d, i) => { dsEl('supply_date', i).value = d; dsLoadRow(i, d); });
+};
