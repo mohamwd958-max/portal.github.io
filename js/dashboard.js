@@ -19,9 +19,10 @@ const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_han
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
+const LANG_LBL = { en: 'English', ar: 'عربي', eg: 'مصري' };
 function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
-  ['Ar', 'En', 'Eg'].forEach(x => $('floatBtn' + x).classList.toggle('active', x.toLowerCase() === l));
+  const lt = $('langTxt'); if (lt) lt.textContent = LANG_LBL[l] || l;
   const r = $('htmlRoot'); r.lang = l; r.dir = l === 'en' ? 'ltr' : 'rtl';
   if (D) { render(); if (typeof updateFeed === 'function') updateFeed(); }
 }
@@ -103,11 +104,12 @@ function chart(S, keys, o) {
   const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab);
   const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / S.max) * (H - Tp - B);
   let s = `<svg class="c2${CINTRO.played ? '' : ' ci'}" viewBox="0 0 ${W} ${H}" data-l="${L}" data-b="${H - B}">`;
+  if (o.grad) s += `<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="${L}" y1="0" x2="${W - R}" y2="0"><stop offset="0" stop-color="#ff5d55"/><stop offset=".34" stop-color="#ffc247"/><stop offset=".67" stop-color="#22d3a6"/><stop offset="1" stop-color="#4c8dff"/></linearGradient></defs>`;
   [0, S.max / 2, S.max].forEach(g => s += `<text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
   S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
   keys.forEach(k => {
     const li = keys.indexOf(k);
-    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
+    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
     if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
       s += `<circle class="dot ${k}" style="--d:${(n < 2 ? 0 : i / (n - 1)).toFixed(3)};--li:${li}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
@@ -129,8 +131,7 @@ function overall(rows, S) {
   const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
   const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
-    `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
-    chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 2.4, r: 3.4, hit: 20, lab: 10 });
+    chart(S, ['avg'], { W: 700, H: 300, L: 40, f: 13, w: 3, r: 3.4, hit: 20, lab: 10, grad: true });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
@@ -208,6 +209,7 @@ function render() {
   $('rqList').innerHTML = (D.requests || []).map(r => `<div class="row"><span>${esc(r.message)}<br><span class="sm">${esc(r.type)} · ${esc(r.status)}</span></span><b>${esc(r.admin_reply || '')}</b></div>`).join('');
   renderSessions(rows);
   watchTodo();
+  renderAvatar();
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
@@ -415,7 +417,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); initFloat();
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); initFloat();
 }
 async function sendReq() {
   const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
@@ -505,7 +507,7 @@ const dndSeenKey = 'thabit_dnd_seen';
 const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
 const dndCard = d => ({ id: 'dnd', isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
-  const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
+  const o = $('pop'); o.innerHTML = '<div class="pcs">' + cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join('') + '</div>'; o.classList.add('open');
   peekWords(o);
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
@@ -600,6 +602,7 @@ const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
 function updateFeed() {
   const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
+  if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
   bd.hidden = !n || INTRO.hold; bd.textContent = n;
   if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);   // first notification arrived while the page was open
 }
@@ -1007,3 +1010,173 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 /* page open: on a refresh the button is already complete (no flash of the empty ring); first time after login -> empty white ring */
 (function(){ const b=document.getElementById('feedBtn'); if(b&&b.classList.contains('empty')){ try{ if(!VIEW&&tok()&&localStorage.getItem('thabit_intro_tok')===tok()){ b.classList.remove('empty'); b.classList.add('done'); } }catch(e){} } })();
+
+
+/* ===== Profile picture: pick -> crop (drag + zoom) -> filter -> saved as a 320x320 square (shown round, like WhatsApp) ===== */
+const AV_DEFAULT = 'assets/default-avatar.jpg';
+const AVK = ['most_recent_picture_url', 'image_url', 'picture_url', 'photo_url', 'avatar_url', 'image', 'picture'];   // first one found in the profile row is used
+const avUrl = () => { const p = (D && D.profile) || {}; for (const k of AVK) if (p[k]) return p[k]; return ''; };
+const AVX = {
+  en: { add: 'Add your picture', change: 'Change picture', save: 'Save', cancel: 'Cancel', zoom: 'Zoom', bright: 'Brightness', saving: 'Saving…', fail: 'Could not save, try again', saved: 'Picture saved ✓', f: { none: 'Original', bw: 'B&W', warm: 'Warm', cool: 'Cool', vivid: 'Vivid', fade: 'Fade' } },
+  ar: { add: 'أضف صورتك', change: 'تغيير الصورة', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'جاري الحفظ…', fail: 'تعذر الحفظ، حاول مرة أخرى', saved: 'تم حفظ الصورة ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافئ', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } },
+  eg: { add: 'ضيف صورتك', change: 'غيّر الصورة', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'بيتحفظ…', fail: 'معرفناش نحفظ، جرب تاني', saved: 'الصورة اتحفظت ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافي', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } }
+};
+const AVT = () => AVX[lang] || AVX.en;
+const AVF = { none: '', bw: 'grayscale(1) contrast(1.05)', warm: 'sepia(.35) saturate(1.2) hue-rotate(-8deg)', cool: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)', vivid: 'saturate(1.6) contrast(1.1)', fade: 'contrast(.85) brightness(1.1) saturate(.8)' };
+const AVS = 320, AV = { img: null, z: 1, ox: 0, oy: 0, f: 'none', b: 1, drag: null };
+function renderAvatar() {
+  const box = $('avBox'); if (!box) return;
+  const u = avUrl(), shown = u || AV_DEFAULT, img = $('avImg'), btn = $('avBtn');
+  if (img.getAttribute('src') !== shown) img.src = shown; box.classList.add('has');   // no picture yet -> the Thabit default picture
+  btn.textContent = u ? AVT().change : AVT().add; btn.hidden = VIEW;
+  try { if (window.Thabit && Thabit.setAvatar) Thabit.setAvatar(u || AV_DEFAULT); } catch (e) {}                 // header profile button (brand.js) can listen to either of these
+  try { document.dispatchEvent(new CustomEvent('thabit:avatar', { detail: { url: u || AV_DEFAULT } })); } catch (e) {}
+}
+function avDraw() {
+  const c = $('avCv'), x = c.getContext('2d'), im = AV.img; if (!im) return;
+  const sc = Math.max(AVS / im.naturalWidth, AVS / im.naturalHeight) * AV.z, w = im.naturalWidth * sc, h = im.naturalHeight * sc;
+  const mx = (w - AVS) / 2, my = (h - AVS) / 2;
+  AV.ox = Math.max(-mx, Math.min(mx, AV.ox)); AV.oy = Math.max(-my, Math.min(my, AV.oy));
+  x.clearRect(0, 0, AVS, AVS); x.fillStyle = '#000'; x.fillRect(0, 0, AVS, AVS);
+  x.filter = ((AVF[AV.f] || '') + ' brightness(' + AV.b + ')').trim();
+  x.drawImage(im, AVS / 2 - w / 2 + AV.ox, AVS / 2 - h / 2 + AV.oy, w, h);
+  x.filter = 'none';
+}
+function avLabels() {
+  const t = AVT();
+  $('avLz').textContent = t.zoom; $('avLb').textContent = t.bright; $('avSave').textContent = t.save; $('avCancel').textContent = t.cancel;
+  $('avF').innerHTML = Object.keys(AVF).map(k => `<button type="button" data-f="${k}" class="${k === AV.f ? 'on' : ''}">${t.f[k]}</button>`).join('');
+}
+function avOpen(file) {
+  const u = URL.createObjectURL(file), im = new Image();
+  im.onload = () => {
+    AV.img = im; AV.z = 1; AV.ox = 0; AV.oy = 0; AV.f = 'none'; AV.b = 1;
+    $('avZ').value = 1; $('avB').value = 1; $('avMsg').textContent = ''; $('avSave').disabled = false;
+    avLabels(); avDraw(); $('avm').classList.add('open'); URL.revokeObjectURL(u);
+  };
+  im.onerror = () => { URL.revokeObjectURL(u); itToast(AVT().fail); };
+  im.src = u;
+}
+function avClose() { $('avm').classList.remove('open'); AV.img = null; }
+async function avSave() {
+  const t = AVT(), b = $('avSave'); b.disabled = true; b.textContent = t.saving; $('avMsg').textContent = '';
+  const url = $('avCv').toDataURL('image/jpeg', 0.85);
+  const ok = await rpc('trainee_set_avatar', { p_token: tok(), p_url: url }).catch(() => null);
+  if (ok === true) {
+    D.profile = D.profile || {}; D.profile[AVK.find(k => k in D.profile) || 'most_recent_picture_url'] = url;
+    renderAvatar(); avClose(); itToast(t.saved);
+  } else { $('avMsg').textContent = t.fail; b.disabled = false; b.textContent = t.save; }
+}
+window.addEventListener('DOMContentLoaded', () => {
+  if (!$('avBtn')) return;
+  $('avBtn').onclick = () => $('avFile').click();
+  $('avFile').onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) avOpen(f); };
+  $('avZ').oninput = e => { AV.z = +e.target.value; avDraw(); };
+  $('avB').oninput = e => { AV.b = +e.target.value; avDraw(); };
+  $('avF').onclick = e => { const b = e.target.closest('button[data-f]'); if (!b) return; AV.f = b.dataset.f; $('avF').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); avDraw(); };
+  $('avCancel').onclick = avClose; $('avSave').onclick = avSave;
+  $('avm').addEventListener('click', e => { if (e.target === $('avm')) avClose(); });
+  const cv = $('avCv');
+  cv.addEventListener('pointerdown', e => { AV.drag = { x: e.clientX, y: e.clientY, ox: AV.ox, oy: AV.oy }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (!AV.drag) return; const k = AVS / cv.getBoundingClientRect().width; AV.ox = AV.drag.ox + (e.clientX - AV.drag.x) * k; AV.oy = AV.drag.oy + (e.clientY - AV.drag.y) * k; avDraw(); });
+  ['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => { AV.drag = null; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('avm').classList.contains('open')) avClose(); });
+});
+
+
+/* ===== Language: taken from basic_info.preferred_language (مصر / عربي / انجلش); one button, pick another from a blurred pop-up ===== */
+function normLang(v) {
+  const x = String(v == null ? '' : v).trim().toLowerCase(); if (!x) return null;
+  if (/مصر|egy|^eg/.test(x)) return 'eg';
+  if (/عرب|^ar/.test(x)) return 'ar';
+  if (/انج|إنج|ingl|engl|^en/.test(x)) return 'en';
+  return null;
+}
+function applyPrefLang(p) {   // applied when the column value is new/changed; after that the trainee's own pick on this device stays
+  const raw = p && p.preferred_language, n = normLang(raw); if (!n) return;
+  let last = null; try { last = localStorage.getItem('thabit_lang_pref'); } catch (e) {}
+  if (last !== String(raw)) { try { localStorage.setItem('thabit_lang_pref', String(raw)); } catch (e) {} setLanguage(n); }
+}
+function openLang(btn) {
+  const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
+  const item = (x, c) => `<button type="button" class="lgi${c ? ' cur' : ''}" data-l="${x}">${LANG_LBL[x]}</button>`;
+  const up = r.top > 130, list = up ? others.map(x => item(x)).join('') + item(lang, 1) : item(lang, 1) + others.map(x => item(x)).join('');
+  pop.innerHTML = `<div class="lgs" style="left:${Math.max(70, Math.min(innerWidth - 70, r.left + r.width / 2))}px;${up ? 'bottom:' + (innerHeight - r.bottom) : 'top:' + r.top}px" dir="ltr">${list}</div>`;
+  pop.classList.add('open');
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeLang(); if (l !== lang) setLanguage(l); });
+}
+function closeLang() { $('langPop').classList.remove('open'); $('langPop').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLang(); closeBarOpts(); } });
+
+/* ===== Customize pop-up (content to be decided) ===== */
+function openBarOpts() {
+  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
+  $('boT').textContent = T2[0]; $('boN').textContent = T2[1]; $('barOpts').classList.add('open');
+}
+function closeBarOpts() { $('barOpts').classList.remove('open'); }
+
+/* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
+const BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
+function barOrder() {
+  let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
+  o = (Array.isArray(o) ? o : []).filter(k => BAR_DEF.includes(k)); BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
+}
+function layoutBar() {
+  const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
+  bar.querySelectorAll(':scope > [data-bk]').forEach(e => els[e.dataset.bk] = e);
+  bar.querySelectorAll(':scope > .bar-divider').forEach(d => d.remove());
+  const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden);
+  list.forEach((e, i) => { bar.appendChild(e); if (i < list.length - 1) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); } });
+  const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit);
+}
+(function () {
+  const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
+  function placeFeed() {
+    const b = $('feedBtn'), fl = document.querySelector('.fl');
+    if (mq.matches) { if (b.parentNode !== bar) { b.dataset.bk = 'feed'; bar.appendChild(b); layoutBar(); } }
+    else if (b.parentNode === bar) { delete b.dataset.bk; fl.insertBefore(b, fl.firstChild); layoutBar(); }
+  }
+  if (mq.addEventListener) mq.addEventListener('change', placeFeed); else if (mq.addListener) mq.addListener(placeFeed);
+  layoutBar(); placeFeed();
+
+  /* long press (0.45s) on an icon -> it lifts, drag it along the bar, release to drop; the order is remembered on this device */
+  let drag = null, timer = null, sx = 0, sy = 0, swallow = false;
+  const items = () => [...bar.querySelectorAll(':scope > [data-bk]')].filter(e => !e.hidden);
+  const ctr = (e, ax) => { const r = e.getBoundingClientRect(); return ax === 'x' ? r.left + r.width / 2 : r.top + r.height / 2; };
+  function begin(it, ev) {
+    const a = items(); let ax = 'x';
+    if (a.length > 1) { const r1 = a[0].getBoundingClientRect(), r2 = a[1].getBoundingClientRect(); ax = Math.abs(r2.left - r1.left) >= Math.abs(r2.top - r1.top) ? 'x' : 'y'; }
+    drag = { it, ax, rev: a.length > 1 && ctr(a[0], ax) > ctr(a[1], ax), id: ev.pointerId };
+    bar.classList.add('dragging'); it.classList.add('lifting');
+    try { it.setPointerCapture(ev.pointerId); } catch (e) {}
+    try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
+    move(ev);
+  }
+  function move(ev) {
+    const it = drag.it, ax = drag.ax, p = ax === 'x' ? ev.clientX : ev.clientY;
+    it.style.transform = '';
+    const sib = items().filter(x => x !== it); let before = 0;
+    sib.forEach(x => { if (ctr(x, ax) < p) before++; });
+    const di = drag.rev ? sib.length - before : before;
+    if (sib.length) { const ref = di < sib.length ? sib[di] : sib[sib.length - 1].nextSibling; if (it.nextSibling !== ref && it !== ref) bar.insertBefore(it, ref); }
+    const d = p - ctr(it, ax);
+    it.style.transform = (ax === 'x' ? 'translateX(' : 'translateY(') + d + 'px) scale(1.15)';
+  }
+  function end() {
+    clearTimeout(timer);
+    if (!drag) return;
+    const it = drag.it; drag = null;
+    it.style.transform = ''; it.classList.remove('lifting'); bar.classList.remove('dragging');
+    try { localStorage.setItem('thabit_bar_order', JSON.stringify(items().map(x => x.dataset.bk))); } catch (e) {}
+    layoutBar(); swallow = true; setTimeout(() => { swallow = false; }, 400);
+  }
+  bar.addEventListener('pointerdown', e => {
+    const it = e.target.closest && e.target.closest('[data-bk]'); if (!it || it.parentNode !== bar) return;
+    sx = e.clientX; sy = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it, e), 450);
+  });
+  bar.addEventListener('pointermove', e => { if (drag) { move(e); return; } if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) clearTimeout(timer); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => bar.addEventListener(ev, end));
+  bar.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+  bar.addEventListener('contextmenu', e => e.preventDefault());
+  bar.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+})();
