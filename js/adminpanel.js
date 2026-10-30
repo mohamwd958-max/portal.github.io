@@ -3308,8 +3308,30 @@ async function genHistPaint() {
     try { genState.list = (await genCall({ action: 'list' })).items || []; }
     catch (e) { host.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">${esc(e.message)}</div>`; return; }
   }
-  host.innerHTML = `<input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
+  host.innerHTML = `<div style="margin-bottom:10px"><button type="button" class="ds-b ghost" id="genExBtn"><i class="fa-solid fa-plus"></i> سجّل باسورد موجود</button>
+      <div id="genEx" class="p5-c" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="${INPUT_CLS}" id="genExPf" style="min-width:170px;padding:6px"><option value="">— البروفايل (اختياري) —</option>${mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('')}</select>
+          <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS}" id="genExUn" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
+          <input class="${INPUT_CLS}" id="genExPw" placeholder="الباسورد الحالي" autocomplete="off" style="width:170px;padding:6px;direction:ltr">
+          <button type="button" class="ds-b green" id="genExGo">حفظ</button></div>
+        <div id="genExMsg" class="text-xs" style="margin-top:6px"></div>
+        <div class="text-[10px] text-slate-500" style="margin-top:4px">الحساب مش بيتغيّر. بنجرّب الدخول بالباسورد ده الأول، ولو صح بيتحفظ هنا.</div></div></div>
+    <input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
     <div id="genHist" class="p5-g"></div>`;
+  $id('genExBtn').onclick = () => { const e = $id('genEx'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
+  $id('genExUn').oninput = () => { const u = $id('genExUn'), v = genUserLive(u.value); if (v !== u.value) u.value = v; };
+  $id('genExGo').onclick = async () => {
+    const msg = $id('genExMsg'), btn = $id('genExGo'), un = genUser($id('genExUn').value), pw = $id('genExPw').value;
+    if (!un || !pw) { msg.style.color = '#fb7185'; msg.textContent = 'اكتب اليوزر والباسورد'; return; }
+    const r = mpState.list.find(x => String(x.id) === $id('genExPf').value);
+    btn.disabled = true; msg.style.color = '#fbbf24'; msg.textContent = 'جاري التأكد من الدخول...';
+    try {
+      await genCall({ action: 'save', username: un, password: pw, trainee_id: r ? String(r.id) : null, trainee_name: r ? (r.trainee || null) : null });
+      genState.list = null; showToast('اتسجّل ✓'); genHistPaint(); return;
+    } catch (e) { msg.style.color = '#fb7185'; msg.textContent = e.message; }
+    btn.disabled = false;
+  };
   const q = $id('genQ'); q.value = genState.q;
   q.oninput = () => { genState.q = q.value.trim().toLowerCase(); genHistList(); };
   genHistList();
@@ -3332,9 +3354,19 @@ function genHistList() {
           <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
       <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.email)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="email">نسخ</button></span></div>
       <div class="p5-r"><span>الباسورد</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="password">نسخ</button></span></div>
-      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div></div>`;
+      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div>
+      <button type="button" class="ds-b amber" style="margin-top:8px" data-n="${i}"><i class="fa-solid fa-rotate"></i> New password</button></div>`;
   }).join('') || '<div class="tha-note">مفيش باسوردات متسجّلة لسه.</div>';
   g.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => genCopy(items[+b.dataset.i][b.dataset.k]); });
+  g.querySelectorAll('[data-n]').forEach(b => {
+    b.onclick = async () => {
+      const c = items[+b.dataset.n];
+      if (!confirm('أغيّر باسورد ' + c.email + ' لباسورد جديد؟ الباسورد القديم هيبطل يشتغل.')) return;
+      b.disabled = true;
+      try { await genCall({ action: 'create', username: c.username, trainee_id: c.trainee_id, trainee_name: c.trainee_name, overwrite: true }); genState.list = null; showToast('اتغيّر الباسورد ✓'); genHistPaint(); }
+      catch (e) { showToast(e.message, true, true); b.disabled = false; }
+    };
+  });
 }
 
 /* Generator button next to Highlights (the toolbar lives in the page HTML, so it is added from here) */
