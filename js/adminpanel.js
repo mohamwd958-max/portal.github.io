@@ -1270,6 +1270,25 @@ function fmtDT(v) {
     return isNaN(d) ? s : d.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+/* word lists: "النهاردة · 2:05 PM" / "امبارح · 9:30 AM" / "الأربعاء · 4:10 PM" (Cairo time, 12-hour clock) */
+function fmtWordDT(v) {
+    if (!v) return '';
+    const s = String(v), d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    if (isNaN(d)) return s;
+    const TZ = 'Africa/Cairo';
+    const day = d.toLocaleDateString('en-CA', { timeZone: TZ }), today = dsToday();
+    const diff = Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(day + 'T00:00:00Z')) / 864e5);
+    let label;
+    if (diff === 0) label = 'النهاردة';
+    else if (diff === 1) label = 'امبارح';
+    else {
+        label = d.toLocaleDateString('ar-EG', { weekday: 'long', timeZone: TZ });
+        if (diff > 6 || diff < 0) label += ' ' + day.slice(8, 10) + '/' + day.slice(5, 7);   // old ones: add dd/mm so the weekday is not ambiguous
+    }
+    const tm = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ });
+    return label + ' · ' + tm;
+}
+
 /* ==========================================================
    Reports (table: reports)
    ========================================================== */
@@ -1332,7 +1351,7 @@ function wordRow(r, kind, i) {
         : btn('useListedWord', 'fa-microphone', 'Record') + btn('trashListedWord', 'fa-trash', 'Trash');
     return `<div class="flex items-center justify-between gap-2 text-xs bg-slate-800/60 rounded-lg p-2">
       <div class="min-w-0"><b dir="auto" class="break-words">${esc(r.word)}</b>${r.priority === 'high' ? ' <span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold">HIGH</span>' : ''}
-      <div class="text-[10px] text-slate-400">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</div></div>
+      <div class="text-[10px] text-slate-400">${esc(r.trainee_name || '')} · ${esc(fmtWordDT(r.created_at))}</div></div>
       <div class="flex gap-1 flex-none">${acts}</div></div>`;
 }
 function renderWordLists() {
@@ -1366,12 +1385,12 @@ async function purgeFromTrash(_k, i) {
     const r = WL.trash[i]; if (!r || !confirm('تمسح الكلمة نهائي؟')) return;
     try { await mutate(`${r._t}?id=eq.${enc(r.id)}`, 'DELETE'); showToast('اتمسحت نهائي ✓'); refreshWordLists(); } catch (e) { showToast('فشل المسح: ' + e.message, true); }
 }
-// after a word is recorded, close any open reports about it
+// after a word is recorded: tell the trainee, then move its requests straight to the Trash Bin
 async function markWordHandled(word) {
     try { await notifyWordReady(word); } catch (e) { /* the notice is best-effort */ }
     for (const t of ['due_words_table', 'broken_words_table']) {
         try {
-            await sbFetch(`${t}?word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
+            await sbFetch(`${t}?word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`, { method: 'PATCH', body: JSON.stringify({ status: 'trash' }) });
         } catch (e) { /* status values may be restricted; ignore */ }
     }
 }
