@@ -1327,7 +1327,7 @@ async function deleteReport(id) {
    ========================================================== */
 const WL = { due: [], broken: [], trash: [], have: new Map() };   // have: cleaned word -> audio url
 const stOf = r => String(r.status || '').toLowerCase();
-const wkey = s => String(s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”]/g, '');   // same cleaning the Assistant uses
+const wkey = s => String(s || '').toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”’‘]/g, '').replace(/\s+/g, ' ').trim();   // same as the Assistant and the SQL column words_table.word_key
 
 /* ---------- mini audio player: play / pause / seek bar; tapping anywhere else stops it and closes it ---------- */
 function closeAdminAudioPop() { if (window._admAP) { window._admAP.close(); window._admAP = null; } }
@@ -1399,14 +1399,34 @@ function splitUnits(text) {
 }
 const pendingUnits = text => splitUnits(text).filter(u => !WL.have.has(wkey(u)));
 
+/* which of these words already have a recording? One small query per 40 words (words_table can hold tens of thousands of rows).
+   Needs the column words_table.word_key; without it, falls back to reading the whole table (slow for big tables). */
+async function fetchHave(keys) {
+    const m = new Map(), list = Array.from(keys).filter(Boolean);
+    if (!list.length) return m;
+    try {
+        for (let i = 0; i < list.length; i += 40) {
+            const inList = list.slice(i, i + 40).map(k => '"' + k.replace(/"/g, '') + '"').join(',');
+            const rows = await (await sbFetch(`words_table?select=word_key,audio_url&word_key=in.(${enc(inList)})`)).json();
+            if (!Array.isArray(rows)) throw new Error('no word_key');
+            rows.forEach(r => m.set(r.word_key, r.audio_url || ''));
+        }
+        return m;
+    } catch (e) {
+        const all = await fetchAllRows('words_table?select=word,audio_url').catch(() => []);
+        all.forEach(r => m.set(wkey(r.word), r.audio_url || ''));
+        return m;
+    }
+}
 async function refreshWordLists() {
     try {
-        const [due, brk, have] = await Promise.all([
+        const [due, brk] = await Promise.all([
             fetchAllRows('due_words_table?select=*&order=created_at.desc'),
-            fetchAllRows('broken_words_table?select=*&order=created_at.desc'),
-            fetchAllRows('words_table?select=word,audio_url').catch(() => [])
+            fetchAllRows('broken_words_table?select=*&order=created_at.desc')
         ]);
-        WL.have = new Map((have || []).map(r => [wkey(r.word), r.audio_url || '']));
+        const keys = new Set();
+        due.concat(brk).forEach(r => { if (stOf(r) === 'trash' || stOf(r) === 'done') return; keys.add(wkey(r.word)); splitUnits(r.word).forEach(u => keys.add(wkey(u))); });
+        WL.have = await fetchHave(keys);
         const active = r => stOf(r) !== 'trash' && stOf(r) !== 'done';
         WL.due = due.filter(active).sort((a, b) => (b.priority === 'high') - (a.priority === 'high'));
         WL.broken = brk.filter(active);
@@ -1441,9 +1461,9 @@ function groupWordRows(list) {
     });
     return groups.sort((a, b) => b.last - a.last);
 }
-const urlLine = w => {
+const urlLine = w => {          // just a small "URL" copy button on the row; the link itself stays hidden
     const u = WL.have.get(wkey(w));
-    return u ? `<div class="wl-url"><span dir="ltr" title="${esc(u)}">${esc(u)}</span><button type="button" class="wl-b" title="Copy URL" data-u="${esc(u)}" onclick="copyWordUrl(this)"><i class="fa-regular fa-copy"></i></button></div>` : '';
+    return u ? `<button type="button" class="wl-b" title="Copy URL" data-u="${esc(u)}" onclick="copyWordUrl(this)" style="font-size:9px;display:inline-flex;align-items:center;gap:3px"><i class="fa-regular fa-copy"></i> URL</button>` : '';
 };
 function copyWordUrl(b) {
     const u = b.dataset.u || '';
