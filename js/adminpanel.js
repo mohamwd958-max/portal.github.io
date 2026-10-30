@@ -1136,7 +1136,7 @@ window.mpSearch = q => { mpState.q = String(q || '').trim().toLowerCase(); mpPai
 function mpPaintList() {
     const g = document.getElementById('mpGrid'); if (!g) return;
     const today = dsToday();
-    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
     g.innerHTML = rows.map(r => {
         const late = r.due_date && r.due_date < today;
         const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
@@ -1144,7 +1144,7 @@ function mpPaintList() {
         return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
             <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
             <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
-                <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+                <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
                 <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small></div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
                 <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
@@ -1176,17 +1176,23 @@ window.mpOpen = function (id) {
     mpCur = { ov, id };
     MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k, type]) => {
         const el = document.getElementById(mpId(k)); if (!el) return;
-        el.value = r[k] == null ? '' : String(r[k]);
+        { const v0 = mpVal(r, k); el.value = v0 == null ? '' : String(v0); }
         if (type !== 'date') dsRefreshPf(mpId(k));
     }));
 };
 
 window.mpSave = async function () {
     if (!mpCur) return;
-    const body = {};
-    MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k]) => { const v = document.getElementById(mpId(k)).value.trim(); body[k] = v === '' ? null : v; }));
-    if (!body.trainee) { showToast('الاسم مطلوب', true, true); return; }
-    body.updated_at = new Date().toISOString();
+    const row = mpState.list.find(x => String(x.id) === String(mpCur.id)) || {};
+    const body = {}, skipped = [];
+    MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k]) => {
+        const v = document.getElementById(mpId(k)).value.trim(), col = mpCol(row, k);
+        if (!col) { if (v !== '') skipped.push(k); return; }   /* column does not exist in the table: skip it instead of failing the whole save */
+        body[col] = v === '' ? null : v;
+    }));
+    if (!body[mpCol(row, 'trainee') || 'trainee']) { showToast('الاسم مطلوب', true, true); return; }
+    if ('updated_at' in row) body.updated_at = new Date().toISOString();
+    mpCur.skipped = skipped;
     const btn = document.getElementById('mpSaveBtn'); if (btn) btn.disabled = true;
     try {
         const res = await sbFetch(`${PROFILES_TABLE}?id=eq.${encodeURIComponent(mpCur.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
@@ -1196,7 +1202,9 @@ window.mpSave = async function () {
         if (i >= 0) mpState.list[i] = rows[0];
         mpPaintList();
         showToast('اتحفظت بيانات ' + (rows[0].trainee || '') + ' ✓');
+        const sk = mpCur.skipped || [];
         mpClose();
+        if (sk.length) showToast('الحقول دي مالهاش عمود في جدول basic_info فمااتحفظتش: ' + sk.join(', '), true, true);
     } catch (e) { showToast('فشل الحفظ: ' + e.message, true); if (btn) btn.disabled = false; }
 };
 
@@ -1892,7 +1900,7 @@ window.mpToggleSel = function (id, ev) {
     mpPaintList();
 };
 window.mpSelectAll = function () {
-    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q)).map(r => String(r.id));
+    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q)).map(r => String(r.id));
     const all = rows.length && rows.every(id => mpState.sel.has(id));
     rows.forEach(id => all ? mpState.sel.delete(id) : mpState.sel.add(id));
     mpPaintList();
@@ -2770,7 +2778,7 @@ mpOpen = function (id) {
   openWin('prof');
   MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k, type]) => {
     const el = $id(mpId(k)); if (!el) return;
-    el.value = r[k] == null ? '' : String(r[k]);
+    { const v0 = mpVal(r, k); el.value = v0 == null ? '' : String(v0); }
     if (type !== 'date') dsRefreshPf(mpId(k));
   }));
 };
@@ -2847,7 +2855,7 @@ window.payMarkSel = function (paid) {
 mpPaintList = function () {
   const g = document.getElementById('mpGrid'); if (!g) return;
   const today = dsToday();
-  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
   g.innerHTML = rows.map(r => {
     const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today;
     const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
@@ -2855,7 +2863,7 @@ mpPaintList = function () {
     return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
       <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
-        <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+        <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
@@ -2924,13 +2932,32 @@ function payBoxPaint() {
 })();
 
 /* ---------- status + open counts ---------- */
-function mpStatus(r) {
-  const s = String(r.status_as_of_today || '').toLowerCase();
-  if (/terminat|منته|ملغ|مفصول/.test(s)) return 'terminated';
-  if (/past|سابق|قديم/.test(s)) return 'past';
-  if (/pend|انتظار|منتظر|معلق/.test(s)) return 'pending';
-  return 'active';
+/* column resolver: finds the real column in a row even if it is written differently
+   (e.g. "preferred name" vs preferred_name, "Status as of today" vs status_as_of_today) */
+const mpNorm = x => String(x).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+function mpCol(r, k) {
+  if (!r) return null;
+  const keys = Object.keys(r), n = mpNorm(k);
+  let c = keys.find(x => x === k) || keys.find(x => mpNorm(x) === n);
+  if (!c && k === 'status_as_of_today') c = keys.find(x => /status/i.test(x));
+  return c || null;
 }
+function mpVal(r, k) { const c = mpCol(r, k); return c ? r[c] : undefined; }
+
+/* status_as_of_today (free text) -> group.
+   Known: active / pending / paused / past / terminated (English or Arabic words).
+   Empty = active. Anything else you type (e.g. "On hold") becomes its own group named exactly as you typed it. */
+function mpStatusInfo(r) {
+  const raw = String(mpVal(r, 'status_as_of_today') || '').trim(), s = raw.toLowerCase();
+  if (!s) return { key: 'active', label: '' };
+  if (/terminat|منته|ملغ|مفصول/.test(s)) return { key: 'terminated', label: raw };
+  if (/paus|موقوف|متوقف|ايقاف|إيقاف|وقف/.test(s)) return { key: 'paused', label: raw };
+  if (/past|سابق|قديم/.test(s)) return { key: 'past', label: raw };
+  if (/pend|انتظار|منتظر|معلق/.test(s)) return { key: 'pending', label: raw };
+  if (/^(active|نشط|شغال|شغّال|فعال|مفعل)/.test(s)) return { key: 'active', label: raw };
+  return { key: 'x:' + s.replace(/\s+/g, ' '), label: raw };
+}
+const mpStatus = r => mpStatusInfo(r).key;
 const OC_KEY = 'thabit_open_counts';
 function ocGet() { try { return JSON.parse(localStorage.getItem(OC_KEY) || '{}') || {}; } catch (e) { return {}; } }
 function ocBump(id) { try { const c = ocGet(); c[String(id)] = (c[String(id)] || 0) + 1; localStorage.setItem(OC_KEY, JSON.stringify(c)); } catch (e) { } }
@@ -2943,10 +2970,10 @@ function mpCardHtml(r, today) {
   const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today, st = mpStatus(r);
   const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
   const on = mpState.sel.has(String(r.id));
-  return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
+  return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' || st === 'paused' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
       <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
-        <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+        <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
@@ -2955,23 +2982,47 @@ function mpCardHtml(r, today) {
         <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
         <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
 }
-const MP_GROUPS = [['active', 'Active · شغّالين'], ['pending', 'Pending · منتظرين'], ['past', 'Past · سابقين'], ['terminated', 'Terminated · منتهي']];
+const MP_GROUPS = [['active', 'Active · شغّالين'], ['pending', 'Pending · منتظرين'], ['paused', 'Paused · موقوفين'], ['past', 'Past · سابقين'], ['terminated', 'Terminated · منتهي']];
 mpPaintList = function () {
   const g = document.getElementById('mpGrid'); if (!g) return;
   const today = dsToday(), cnt = ocGet();
-  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
   const byOpens = (a, b) => (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
+  /* known groups first, then one group per custom status text */
+  const groups = MP_GROUPS.map(([k, label]) => [k, label]);
+  const custom = new Map();
+  rows.forEach(r => { const i = mpStatusInfo(r); if (i.key.startsWith('x:') && !custom.has(i.key)) custom.set(i.key, i.label); });
+  [...custom.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([k, label]) => groups.push([k, label]));
   let html = '', first = true;
-  MP_GROUPS.forEach(([k, label]) => {
+  groups.forEach(([k, label]) => {
     const part = rows.filter(r => mpStatus(r) === k).sort(byOpens);
     if (!part.length) return;
-    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:${first ? '0' : '12px'} 0 2px;color:#94a3b8;font-size:11px;font-weight:800"><span style="flex:1;height:1px;background:#334155"></span><span>${esc(label)} · ${part.length}</span><span style="flex:1;height:1px;background:#334155"></span></div>`;
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:${first ? '0' : '12px'} 0 2px;color:#94a3b8;font-size:11px;font-weight:800"><span style="flex:1;height:1px;background:#334155"></span><span dir="auto">${esc(label)} · ${part.length}</span><span style="flex:1;height:1px;background:#334155"></span></div>`;
     html += part.map(r => mpCardHtml(r, today)).join('');
     first = false;
   });
+  const sample = mpState.list[0];
+  if (sample && !mpCol(sample, 'status_as_of_today')) html = `<div class="tha-note" style="grid-column:1/-1;color:#fb7185">مفيش عمود للستاتس في جدول basic_info، فالكل بيظهر Active. الأعمدة الموجودة: ${esc(Object.keys(sample).join(', '))}</div>` + html;
   g.innerHTML = html || '<div class="tha-note">مفيش نتائج.</div>';
   mpPaintBar();
 };
+
+/* quick status buttons inside the Profile window (you can still type any custom status) */
+{
+  const prevOpen6 = mpOpen;
+  mpOpen = function (id) {
+    prevOpen6(id);
+    if (!mpCur) return;
+    const hid = $id(mpId('status_as_of_today')); if (!hid || hid.parentElement.querySelector('.p6-st')) return;
+    const bar = document.createElement('div'); bar.className = 'p6-st'; bar.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-top:4px';
+    ['Active', 'Pending', 'Paused', 'Past', 'Terminated'].forEach(v => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ds-b ghost'; b.style.cssText = 'padding:2px 8px;font-size:10px'; b.textContent = v;
+      b.onclick = () => { hid.value = v; dsRefreshPf(mpId('status_as_of_today')); };
+      bar.appendChild(b);
+    });
+    hid.parentElement.appendChild(bar);
+  };
+}
 
 /* ---------- new windows ---------- */
 WSD.db = { t: 'Database · الداتابيز', i: 'fa-database', w: 2 };
@@ -3019,15 +3070,28 @@ async function hlRender() {
     catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
   }
   const today = dsToday(), act = mpState.list.filter(r => mpStatus(r) === 'active');
-  const paid = act.filter(isPaid), unpaid = act.filter(r => !isPaid(r)), late = unpaid.filter(r => r.due_date && r.due_date < today);
+  /* paid = anyone who paid this month (any status: the money is already with you); unpaid = Active only */
+  const paid = mpState.list.filter(isPaid), unpaid = act.filter(r => !isPaid(r)), late = unpaid.filter(r => r.due_date && r.due_date < today);
+  /* amount per student = the biggest number found in the "subscription" text (Arabic digits and 1,500 supported) */
+  const amt = r => {
+    const t = String(r.subscription || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,٬]/g, '');
+    const m = t.match(/\d+(?:[.٫]\d+)?/g); if (!m) return null;
+    return Math.max(...m.map(x => parseFloat(x.replace('٫', '.'))));
+  };
+  const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const total = paid.reduce((t, r) => t + (amt(r) || 0), 0), noAmt = paid.filter(r => amt(r) === null);
   const chip = (r, bad) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}</span>`;
+  const paidChip = r => `<span class="nt-chip" dir="auto" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)">${esc(r.trainee || '')}${amt(r) !== null ? ' · ' + esc(fmt(amt(r))) : ''}</span>`;
   w.body.innerHTML = `<div class="p5-g">
     <div class="p5-c"><h6><i class="fa-solid fa-coins"></i> Financial · ${esc(payMonth())}</h6>
       <div class="p5-r"><span>دفعوا</span><b style="color:#34d399">${paid.length}</b></div>
+      <div style="font-size:11px;color:#34d399;margin:4px 0 6px">الإجمالي اللي المفروض يكون معاك دلوقتي: <b style="font-size:14px">${esc(fmt(total))}</b></div>
+      ${paid.length ? `<div style="margin-bottom:6px">${paid.map(paidChip).join('')}</div>` : ''}
+      ${noAmt.length ? `<div class="text-[10px]" style="color:#fbbf24;margin-bottom:6px">مفيش رقم في الـ Subscription عند: ${noAmt.map(r => esc(r.trainee || '')).join('، ')} (مش محسوبين في الإجمالي)</div>` : ''}
       <div class="p5-r"><span>لم يدفعوا</span><b>${unpaid.length}</b></div>
       <div class="p5-r"><span>متأخرين عن الـ Due</span><b style="color:#fb7185">${late.length}</b></div>
       ${unpaid.length ? `<div style="margin-top:8px">${unpaid.map(r => chip(r, late.includes(r))).join('')}</div>` : ''}
-      <div class="text-[10px] text-slate-500" style="margin-top:8px">محسوبة على الطلاب الـ Active بس.</div></div>
+      <div class="text-[10px] text-slate-500" style="margin-top:8px">الإجمالي = مجموع قيمة الـ Subscription للي دفعوا الشهر ده (أي حالة). "لم يدفعوا" محسوبة على الـ Active بس.</div></div>
     <div class="p5-c"><h6><i class="fa-solid fa-calendar-check"></i> Attendance · الحضور</h6>
       <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يظهر هنا بالتفصيل.</div></div>
     <div class="p5-c"><h6><i class="fa-solid fa-flag"></i> Red flags</h6>
