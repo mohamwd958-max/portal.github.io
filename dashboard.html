@@ -224,7 +224,7 @@ body.light-theme .hol{color:#92400e}body.light-theme .cd{color:#be123c}
 @keyframes fdSpin{to{--a:360deg}}
 .feed.glow{animation:fdGlow 1.3s ease-in-out 3}
 @keyframes fdGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 18px 5px rgba(255,255,255,.5)}}
-.feed .fdb{position:absolute;top:-8px;right:-8px;z-index:3;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;color:#111;font:800 .78rem/22px Inter,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.feed .fdb{position:absolute;top:-17px;right:-17px;z-index:3;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;color:#111;font:800 .78rem/22px Inter,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 @media(max-width:600px){.fl{flex-direction:row-reverse}.fl .feed{width:50px;height:50px}.fdp{width:26px;height:26px}}
 @media(prefers-reduced-motion:reduce){.feed.done .fdg{animation:none}.feed.pop .fdp,.feed.glow{animation:none}}
 /* copy button (TEFL / QOL / notes): the word itself, turns into a "Copied" pill */
@@ -234,7 +234,11 @@ body.light-theme .hol{color:#92400e}body.light-theme .cd{color:#be123c}
 .cpb.done,.cpb:disabled{padding:3px 11px;background:rgba(52,211,153,.16);color:#34d399;border:1px solid rgba(52,211,153,.5);cursor:default;opacity:1}
 body.light-theme .cpb{color:#b45309}body.light-theme .cpb.done,body.light-theme .cpb:disabled{color:#047857}
 /* feed popup */
-.pop{overflow:auto;justify-content:safe center}.pc{flex:none}
+.pop{overflow:hidden;justify-content:center;padding:22px 26px}
+.pcs{width:100%;max-width:420px;max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:none;-ms-overflow-style:none;border-radius:20px}
+.pcs::-webkit-scrollbar{display:none;width:0;height:0}
+.pc{flex:none}
+@media(max-width:700px){.pop{padding:18px 20px calc(96px + env(safe-area-inset-bottom,0px))}}
 .pc.bill{border-color:rgba(251,191,36,.6)}.pc.bill h3{color:#fbbf24}
 body.light-theme .pc.bill h3{color:#92400e}
 .billb{font-size:.9rem;line-height:1.7}.billb b{color:#fbbf24}body.light-theme .billb b{color:#b45309}
@@ -246,6 +250,27 @@ body.light-theme .pc.bill h3{color:#92400e}
 /* chart crosshair (only for the tapped point) */
 .xh{stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:5 4;opacity:.95;pointer-events:none}
 body.light-theme .xh{stroke:#64748b}
+
+/* ===== Profile picture ===== */
+.avw{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 0 16px}
+.av{position:relative;width:104px;height:104px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.9);background:radial-gradient(circle at 50% 30%,#2b2b30,#0c0c0f 75%);display:flex;align-items:center;justify-content:center;flex:none}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.av.has img{display:block}
+.av .avth{font:italic 900 2rem Montserrat,Inter,sans-serif;color:#fff;letter-spacing:-1px;padding-right:3px}
+.av.has .avth{display:none}
+.avb{padding:7px 16px;font-size:.78rem}
+.avm{position:fixed;inset:0;z-index:10010;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.8);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}.avm.open{display:flex}
+.avbox{width:100%;max-width:380px;max-height:94vh;overflow:auto;border-radius:20px;padding:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.15);display:flex;flex-direction:column;gap:12px;align-items:center}
+body.light-theme .avbox{background:#fff;color:#0f172a}
+.avcv{width:min(300px,72vw);aspect-ratio:1;height:auto;border-radius:50%;touch-action:none;cursor:grab;background:#000;border:2px solid rgba(255,255,255,.85)}
+.avcv:active{cursor:grabbing}
+.avr{width:100%;display:flex;align-items:center;gap:10px;font-size:.78rem}.avr span{flex:none;min-width:64px}.avr input{flex:1;min-width:0;accent-color:#fbbf24}
+.avf{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.avf button{padding:5px 12px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:transparent;color:inherit;font-size:.74rem;font-weight:600;cursor:pointer}
+.avf button.on{background:#fbbf24;color:#111;border-color:#fbbf24}
+.avact{display:flex;gap:8px;width:100%}.avact button{flex:1}
+.avact .avc{background:rgba(148,163,184,.22);color:inherit}
+.avmsg{font-size:.78rem;min-height:1em;color:#fb7185}
 </style>
 </head>
 <body id="bodyRoot">
@@ -286,7 +311,7 @@ body.light-theme .xh{stroke:#64748b}
 </div>
 <div class="asm" id="asm" hidden onclick="if(event.target===this)Panels.min()"><div class="asbox"><button type="button" class="asx" onclick="Panels.close()" aria-label="Close">&times;</button>
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
-  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
+  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
 <div class="ssm" id="logm" onclick="if(event.target===this)closeLog()"><div class="ssbox">
   <div class="ssh"><b id="logT">Done tasks</b><button type="button" onclick="closeLog()" aria-label="Close">&times;</button></div>
@@ -296,6 +321,7 @@ body.light-theme .xh{stroke:#64748b}
   <div class="sssum" id="ssSum"></div><div class="sslist" id="ssList"></div></div></div>
 <div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
+<div class="avm" id="avm"><div class="avbox"><canvas id="avCv" class="avcv" width="320" height="320"></canvas><div class="avr"><span id="avLz">Zoom</span><input type="range" id="avZ" min="1" max="3" step="0.01" value="1"></div><div class="avr"><span id="avLb">Brightness</span><input type="range" id="avB" min="0.6" max="1.4" step="0.01" value="1"></div><div class="avf" id="avF"></div><div class="avmsg" id="avMsg"></div><div class="avact"><button type="button" class="btn2 avc" id="avCancel">Cancel</button><button type="button" class="btn2" id="avSave">Save</button></div></div></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
 <script src="js/dashboard.js"></script>
 </body></html>
