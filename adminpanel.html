@@ -33,7 +33,7 @@
 </div>
 
 <div id="adminModalOverlay" class="tha-modal">
-  <div id="adminPanel" class="tha-box" style="max-width:680px">
+  <div id="adminPanel" class="tha-box ws-wide" style="max-width:98vw">
     <div class="tha-h">
       <h3 id="uiAdminPanelTitle"><i class="fa-solid fa-shield-halved"></i> Fedawy Admin Panel</h3><div id="uiAdminPageTitle" aria-live="polite"></div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -43,60 +43,17 @@
       </div>
     </div>
 
-    <div id="adminHome" style="display:flex;flex-direction:column;gap:10px">
-      <button type="button" class="admin-big" onclick="showAdminView('dashboardMain')">
-        <i class="fa-solid fa-gauge-high text-amber-400"></i>
-        <span><span>Dashboard</span><small>Master Profiles, View, Modify, Daily Supply & Exceptions</small></span>
-      </button>
-
-      <button type="button" class="admin-big" onclick="showAdminView('reports')">
-        <i class="fa-solid fa-flag"></i>
-        <span><span data-t="admReports">Reports</span><small data-t="admReportsSub">Problems sent by trainees</small></span>
-        <span id="reportsBadge" class="tha-tag" style="display:none;background:#e11d48;color:#fff;min-width:22px;height:22px;padding:0 7px;border-radius:999px;align-items:center;justify-content:center;font-weight:800">0</span>
-      </button>
-      <button type="button" class="admin-big" onclick="showAdminView('mods')">
-        <i class="fa-solid fa-pen-to-square"></i>
-        <span><span data-t="admMods">Modifications</span><small data-t="admModsSub">Edit page texts, policies, plans and settings</small></span>
-      </button>
-      <button type="button" class="admin-big" onclick="showAdminView('voices')">
-        <i class="fa-solid fa-cloud-arrow-up"></i>
-        <span><span data-t="admVoices">Upload voices to the database</span><small data-t="admVoicesSub">Record words, due words and trash</small></span>
-        <span id="voicesBadge" class="tha-tag" style="display:none;background:#e11d48;color:#fff;min-width:22px;height:22px;padding:0 7px;border-radius:999px;align-items:center;justify-content:center;font-weight:800">0</span>
-      </button>
+    <div id="adminLauncher" class="ws-bar">
+      <button type="button" class="ws-lb" data-ws="dash" onclick="toggleWin('dash')"><i class="fa-solid fa-gauge-high"></i> Dashboard</button>
+      <button type="button" class="ws-lb" data-ws="arc" onclick="toggleWin('arc')"><i class="fa-solid fa-box-archive"></i> Archive</button>
+      <button type="button" class="ws-lb" data-ws="rep" onclick="toggleWin('rep')"><i class="fa-solid fa-flag"></i> Reports <span id="reportsBadge" class="tha-tag" style="display:none;background:#e11d48;color:#fff;min-width:22px;height:22px;padding:0 7px;border-radius:999px;align-items:center;justify-content:center;font-weight:800">0</span></button>
+      <button type="button" class="ws-lb" data-ws="voi" onclick="toggleWin('voi')"><i class="fa-solid fa-cloud-arrow-up"></i> Upload voices <span id="voicesBadge" class="tha-tag" style="display:none;background:#e11d48;color:#fff;min-width:22px;height:22px;padding:0 7px;border-radius:999px;align-items:center;justify-content:center;font-weight:800">0</span></button>
     </div>
-
-    <div id="adminViewDashboardMain" style="display:none; flex-direction:column; gap:10px;">
-      <div class="tha-btns" style="margin-bottom:12px">
-        <button type="button" class="tha-b gray" onclick="showAdminView('home')" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
-      </div>
-      <h4 class="text-amber-400 font-bold mb-2">لوحة تحكم الطلاب والعمليات:</h4>
-      
-      <button type="button" class="admin-big border-amber-400 bg-amber-500/10" onclick="openDashboardSubView('masterProfiles')">
-        <i class="fa-solid fa-id-card text-amber-400"></i>
-        <span><span>Trainee Master Profile (المرجع الأساسي)</span><small>إدارة بيانات الطالب الشاملة والمالية والمواعيد</small></span>
-      </button>
-
-      <button type="button" class="admin-big" onclick="openDashboardSubView('archive')">
-        <i class="fa-solid fa-box-archive"></i>
-        <span><span>Archive</span><small>أرشيف Daily Supply: عرض بالفترة (يوم/أسبوع/شهر/سنة) وتصدير CSV</small></span>
-      </button>
-    </div>
-
-    <div id="adminDynamicSubContainer" style="display:none;"></div>
-
-    <div id="adminViewMods" style="display:none">
-      <div class="tha-btns" style="margin-bottom:12px">
-        <button type="button" class="tha-b gray" onclick="showAdminView('home')" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
-      </div>
-      <div class="tha-note text-center py-6">
-        <i class="fa-solid fa-sliders text-2xl text-amber-400 mb-2"></i>
-        <p>Modifications view loaded. You can configure policies and settings here.</p>
-      </div>
-    </div>
-
+    <div id="adminWs" class="ws-row"></div>
+    <div id="adminViewStore" style="display:none">
     <div id="adminViewVoices" style="display:none">
       <div class="tha-btns" style="margin-bottom:12px">
-        <button type="button" class="tha-b gray" onclick="showAdminView('home')" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+        
       </div>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
@@ -188,10 +145,11 @@
 
     <div id="adminViewReports" style="display:none">
       <div class="tha-btns" style="margin-bottom:12px">
-        <button type="button" class="tha-b gray" onclick="showAdminView('home')" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+        
         <button type="button" class="tha-b blue" onclick="loadReportsList()"><i class="fa-solid fa-rotate"></i> <span data-t="admRefresh">Refresh</span></button>
       </div>
       <div id="reportsContainer" class="tha-note">...</div>
+    </div>
     </div>
   </div>
 </div>
@@ -201,7 +159,7 @@
 
 <script src="js/adminpanel.js"></script>
 <script src="js/richtext.js"></script>
-<script src="js/adminpanelrich.js"></script>
+<script src="js/adminpanel-rich.js"></script>
 
 </body>
 </html>
