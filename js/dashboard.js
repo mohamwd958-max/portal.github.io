@@ -1151,7 +1151,6 @@ function layoutBar() {
     if (a.length > 1) { const r1 = a[0].getBoundingClientRect(), r2 = a[1].getBoundingClientRect(); ax = Math.abs(r2.left - r1.left) >= Math.abs(r2.top - r1.top) ? 'x' : 'y'; }
     drag = { it, ax, rev: a.length > 1 && ctr(a[0], ax) > ctr(a[1], ax), id: ev.pointerId };
     bar.classList.add('dragging'); it.classList.add('lifting');
-    try { it.setPointerCapture(ev.pointerId); } catch (e) {}
     try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
     move(ev);
   }
@@ -1177,8 +1176,8 @@ function layoutBar() {
     const it = e.target.closest && e.target.closest('[data-bk]'); if (!it || it.parentNode !== bar) return;
     sx = e.clientX; sy = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it, e), 450);
   });
-  bar.addEventListener('pointermove', e => { if (drag) { move(e); return; } if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) clearTimeout(timer); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => bar.addEventListener(ev, end));
+  document.addEventListener('pointermove', e => { if (drag) { move(e); return; } if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(timer); timer = null; } });   // listeners on the document: moving the icon in the DOM must not end the drag
+  ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, end));
   bar.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
   bar.addEventListener('contextmenu', e => e.preventDefault());
   bar.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
