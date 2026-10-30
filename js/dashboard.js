@@ -505,6 +505,11 @@ const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supp
 const dndCard = d => ({ isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
+  o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
+    const x = e.target.closest && e.target.closest('.x');
+    if (x) { e.preventDefault(); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
+    e.stopPropagation();
+  }));
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
 const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
@@ -609,10 +614,9 @@ function initFloat() {
 }
 window.addEventListener('DOMContentLoaded', () => {
   $('feedBtn').onclick = e => { e.stopPropagation(); openFeed($('feedBtn')); };
-  $('pop').addEventListener('click', e => { if (e.target === $('pop')) closePop(); });   // tap outside closes the pop-up (cards without X stay for the day)
-  const fb = $('feedBtn'), plus = '<svg class="fplus" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
-  const ic = fb.querySelector('i:not(#feedBadge), svg');
-  if (ic) ic.outerHTML = plus; else fb.insertAdjacentHTML('afterbegin', plus);
+  const fb = $('feedBtn'), lbl = '<span class="ftxt">Feed</span>';   // the button shows the word Feed (same circle)
+  const ic = fb.querySelector('i:not(#feedBadge), svg, .fplus');
+  if (ic) ic.outerHTML = lbl; else if (!fb.querySelector('.ftxt')) fb.insertAdjacentHTML('afterbegin', lbl);
   setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd[data-t]').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
 
@@ -735,7 +739,22 @@ const ASX = {
 .aw span{display:flex;align-items:center;gap:7px;font-size:.84rem;line-height:1.25;padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.22);overflow-wrap:anywhere}
 .aw span::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:#34d399}
 .billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
-#feedBtn .fplus{display:block;margin:auto}`; document.head.appendChild(s); })();
+#feedBtn .ftxt{display:block;margin:auto;font-size:.66rem;font-weight:800;letter-spacing:.03em;line-height:1}
+.aww{cursor:pointer}.aww:hover{color:#34d399}
+/* hyperlinked words: no underline, just a slightly different colour */
+.rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;color:#7dd3fc!important}
+body.light-theme .rt-link{color:#0369a1!important}
+/* word player pop-up */
+.wp{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);width:min(92vw,360px);z-index:99999;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.45)}
+body.light-theme .wp{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
+.wpw{font-weight:700;margin-bottom:8px;text-align:center;overflow-wrap:anywhere}
+.wpr{display:flex;align-items:center;gap:8px}
+.wpb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#34d399;color:#06281b;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.wpb.dl{background:transparent;color:inherit;border:1px solid rgba(148,163,184,.45)}
+.wp input[type=range]{flex:1;min-width:0;accent-color:#34d399}
+.wpt{flex:none;font-size:.68rem;opacity:.75;font-variant-numeric:tabular-nums}
+.wpn{flex:none;font-size:.68rem;opacity:.6}
+.wpm{font-size:.82rem;text-align:center;opacity:.85}`; document.head.appendChild(s); })();
 const asNotes = () => ((D && D.notes) || []).filter(n => WORD_KINDS.includes(n.kind) && cairoDay(n.created_at) === itToday());
 function asWords() {
   const seen = new Set(), out = [];
@@ -751,6 +770,76 @@ function asCard() {
   const w = asWords(); if (!w.length) return null;
   const t = ASX[lang] || ASX.en;
   return { noX: true, cls: 'as', isNew: asNotes().some(n => !n.read_at),
-    html: `<h3>${t.t}<span class="awn">${w.length}</span></h3><div class="aw" dir="auto">${w.map(x => `<span dir="auto">${esc(x)}</span>`).join('')}</div>`
+    html: `<h3>${t.t}<span class="awn">${w.length}</span></h3><div class="aw" dir="auto">${w.map(x => `<span class="aww" role="button" tabindex="0" dir="auto" data-w="${esc(x)}" onclick="wpOpen(this.dataset.w)" onkeydown="if(event.key==='Enter')wpOpen(this.dataset.w)">${esc(x)}</span>`).join('')}</div>`
       + `<div style="margin-top:10px"><button type="button" class="btn2" onclick="event.stopPropagation();closePop();Panels.open('assistant',event)">${t.open}</button></div>` };
 }
+
+/* ===== Word player pop-up (tap a word in the Assistant card): play/pause, seek bar, download ===== */
+const WPX = {
+  en: { missing: 'No recording for this word yet', fail: 'Could not load the recording', dl: 'Download' },
+  ar: { missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل', dl: 'تحميل' },
+  eg: { missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت', dl: 'تحميل' }
+};
+const WP = { urls: [], i: 0, a: null, word: '', tk: 0 };
+const fmtS = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function wpClose() { WP.tk++; if (WP.a) { try { WP.a.pause(); } catch (e) {} WP.a = null; } const el = $('wp'); if (el) el.remove(); }
+function wpMsg(t) { const el = $('wp'); if (!el) return; el.querySelector('.wpr').style.display = 'none'; const m = el.querySelector('.wpm'); m.textContent = t; m.hidden = false; }
+function wpLoad(auto) {
+  const el = $('wp'); if (!el) return;
+  if (WP.a) { try { WP.a.pause(); } catch (e) {} }
+  const a = WP.a = new Audio(WP.urls[WP.i]), my = WP.tk;
+  const pb = el.querySelector('.wpp'), sk = el.querySelector('input'), tm = el.querySelector('.wpt'), part = el.querySelector('.wpn');
+  let drag = false;
+  const live = () => my === WP.tk && WP.a === a;
+  const sync = () => { if (!live()) return; const d = a.duration || 0; if (!drag) sk.value = d ? Math.round(a.currentTime / d * 1000) : 0; tm.textContent = fmtS(a.currentTime) + ' / ' + fmtS(d); };
+  const icon = () => { if (live()) pb.innerHTML = `<i class="fa-solid ${a.paused ? 'fa-play' : 'fa-pause'}"></i>`; };
+  part.textContent = WP.urls.length > 1 ? (WP.i + 1) + '/' + WP.urls.length : '';
+  a.ontimeupdate = sync; a.onloadedmetadata = sync; a.onplay = icon; a.onpause = icon;
+  a.onended = () => { if (!live()) return; if (WP.i < WP.urls.length - 1) { WP.i++; setTimeout(() => { if (my === WP.tk) wpLoad(true); }, 350); } else { a.currentTime = 0; sync(); icon(); } };
+  a.onerror = () => { if (live()) wpMsg((WPX[lang] || WPX.en).fail); };
+  pb.onclick = () => { if (a.paused) a.play().catch(() => {}); else a.pause(); };
+  sk.oninput = () => { drag = true; if (a.duration) { a.currentTime = sk.value / 1000 * a.duration; tm.textContent = fmtS(a.currentTime) + ' / ' + fmtS(a.duration); } };
+  sk.onchange = () => { drag = false; };
+  sk.value = 0; sync(); icon();
+  if (auto) a.play().catch(() => {});
+}
+async function wpOpen(word) {
+  word = String(word == null ? '' : word).trim(); if (!word) return;
+  if (window.ThabitRichStudent) { try { ThabitRichStudent.stop(); } catch (e) {} }
+  wpClose();
+  const my = ++WP.tk, x = WPX[lang] || WPX.en;
+  WP.word = word; WP.urls = []; WP.i = 0;
+  const el = document.createElement('div'); el.id = 'wp'; el.className = 'wp';
+  el.innerHTML = `<div class="wpw" dir="auto">${esc(word)}</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause"><i class="fa-solid fa-play"></i></button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span><button type="button" class="wpb dl" aria-label="${x.dl}" title="${x.dl}"><i class="fa-solid fa-download"></i></button></div><div class="wpm" dir="auto" hidden></div>`;
+  document.body.appendChild(el);
+  el.querySelector('.dl').onclick = wpDownload;
+  let urls;
+  try { urls = window.ThabitRichStudent && ThabitRichStudent.resolve ? await ThabitRichStudent.resolve(word) : undefined; } catch (e) { urls = undefined; }
+  if (my !== WP.tk) return;
+  if (!urls) { wpMsg(urls === null ? x.missing : x.fail); return; }
+  WP.urls = urls; wpLoad(true);
+}
+async function wpDownload() {
+  const url = WP.urls[WP.i]; if (!url) return;
+  const ext = ((url.split('?')[0].match(/\.(mp3|wav|m4a|ogg|webm|aac)$/i)) || [0, 'mp3'])[1].toLowerCase();
+  const name = (WP.word.replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 60) || 'word') + (WP.urls.length > 1 ? '-' + (WP.i + 1) : '') + '.' + ext;
+  try {
+    const r = await fetch(url); if (!r.ok) throw new Error('dl');
+    const u = URL.createObjectURL(await r.blob()), a = document.createElement('a');
+    a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+  } catch (e) { window.open(url, '_blank'); }
+}
+/* tap outside the player closes ONLY the player (the feed stays); tapping another word just switches to it */
+document.addEventListener('click', e => {
+  const w = $('wp'); if (!w) return;
+  const t = e.target;
+  if (w.contains(t) || (t.closest && t.closest('.aww'))) return;
+  e.stopPropagation(); e.preventDefault(); wpClose();
+}, true);
+/* tap outside the feed (and outside the player / Feed button) closes the whole feed */
+document.addEventListener('click', e => {
+  const o = $('pop'); if (!o || !o.classList.contains('open')) return;
+  if (e.target.closest && e.target.closest('.pc, #wp, #feedBtn')) return;
+  closePop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('wp')) wpClose(); });
