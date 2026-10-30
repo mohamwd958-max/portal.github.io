@@ -778,9 +778,9 @@ function asCard() {
 
 /* ===== Word player pop-up (tap a word in the Assistant card): play/pause, seek bar, download ===== */
 const WPX = {
-  en: { missing: 'No recording for this word yet', fail: 'Could not load the recording', dl: 'Download' },
-  ar: { missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل', dl: 'تحميل' },
-  eg: { missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت', dl: 'تحميل' }
+  en: { missing: 'No recording for this word yet', fail: 'Could not load the recording', dl: 'Download', dls: 'Downloading…' },
+  ar: { missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل', dl: 'تحميل', dls: 'جاري التحميل…' },
+  eg: { missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت', dl: 'تحميل', dls: 'بيتحمّل…' }
 };
 const WP = { urls: [], i: 0, a: null, word: '', tk: 0 };
 const fmtS = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
@@ -847,13 +847,16 @@ async function wpOpen(word) {
 }
 async function wpDownload() {
   const url = WP.urls[WP.i]; if (!url) return;
+  const x = WPX[lang] || WPX.en;
   const ext = ((url.split('?')[0].match(/\.(mp3|wav|m4a|ogg|webm|aac)$/i)) || [0, 'mp3'])[1].toLowerCase();
   const name = (WP.word.replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 60) || 'word') + (WP.urls.length > 1 ? '-' + (WP.i + 1) : '') + '.' + ext;
+  const go = (href, blank) => { const a = document.createElement('a'); a.href = href; a.download = name; a.rel = 'noopener'; if (blank) a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); };
+  itToast(x.dls);
+  if (/\/storage\/v1\//.test(url)) { go(url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(name)); return; }   // server sends Content-Disposition: attachment
   try {
     const r = await fetch(url); if (!r.ok) throw new Error('dl');
-    const u = URL.createObjectURL(await r.blob()), a = document.createElement('a');
-    a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
-  } catch (e) { window.open(url, '_blank'); }
+    const u = URL.createObjectURL(await r.blob()); go(u); setTimeout(() => URL.revokeObjectURL(u), 8000);
+  } catch (e) { go(url, true); }
 }
 /* tap outside the player closes ONLY the player (the feed stays); tapping another word just switches to it */
 document.addEventListener('click', e => {
@@ -884,3 +887,69 @@ function peekWords(root) {
     aw.addEventListener('scroll', onScroll, { passive: true });
   });
 }
+
+
+/* ===== Background lock: while the feed or the word player is open, the page behind never scrolls ===== */
+(function () { const st = document.createElement('style'); st.textContent = `
+html.bgl,html.bgl body{overflow:hidden!important}
+#pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
+.pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
+const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
+const syncLock = () => document.documentElement.classList.toggle('bgl', bgLocked());
+function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
+  const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
+  for (let e = t; e; e = e.parentElement) {
+    const oy = getComputedStyle(e).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && e.scrollHeight > e.clientHeight + 1 && (dy > 0 ? e.scrollTop + e.clientHeight < e.scrollHeight - 1 : e.scrollTop > 0)) return e;
+    if (e === host) break;
+  }
+  return null;
+}
+document.addEventListener('wheel', e => { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }, { passive: false });
+let pkY = 0;
+document.addEventListener('touchstart', e => { pkY = e.touches[0].clientY; }, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!bgLocked()) return;
+  const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
+  if (e.target.closest && e.target.closest('input[type=range]')) return;
+  if (!pkScroller(e.target, dy)) e.preventDefault();
+}, { passive: false });
+window.addEventListener('DOMContentLoaded', () => {
+  const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
+  syncLock();
+});
+
+/* ===== Peek hint for every long text area: the last line shows half-cut until the first scroll, then it settles to the normal size ===== */
+const PK_BOXES = '.lst, .ntl, #mB, #ssList, #logList';      // scroll boxes that already have a height from the CSS: keep that height, only add the hint
+const PK_TEXT = [['.nt .rich', 5], ['.itd.rich', 5]];      // text blocks: capped at 5 lines (a 6th line starts -> hint + scroll)
+function peekEl(el, lines) {
+  if (el.dataset.pk) return;
+  const cs = getComputedStyle(el), u = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 14) * 1.45;
+  let H;
+  if (lines) {
+    H = lines * u; if (el.scrollHeight <= H + 1) return;     // fits in 5 lines: nothing to hint
+    el.style.overflowY = 'auto'; el.classList.add('pkh');
+  } else {
+    H = el.clientHeight; if (H < 2 * u || el.scrollHeight <= H + 2 || !/auto|scroll/.test(cs.overflowY)) return;
+  }
+  let cand = 0;
+  for (const c of el.children) { if (c.offsetTop < H) cand = c.offsetTop + c.offsetHeight / 2; else break; }
+  let cut = H - u / 2; if (cand >= H * 0.6 && cand < cut) cut = cand;
+  el.dataset.pk = '1';
+  el.style.transition = 'max-height .25s ease'; el.style.maxHeight = cut + 'px';
+  let t = null;
+  const settle = () => {
+    el.removeEventListener('scroll', onScroll);
+    el.style.maxHeight = H + 'px';
+    setTimeout(() => { if (!lines) el.style.maxHeight = ''; el.style.transition = ''; }, 320);
+  };
+  const onScroll = () => { clearTimeout(t); t = setTimeout(settle, 180); };
+  el.addEventListener('scroll', onScroll, { passive: true });
+}
+function peekAll() {
+  PK_TEXT.forEach(([sel, n]) => document.querySelectorAll(sel).forEach(el => peekEl(el, n)));
+  document.querySelectorAll(PK_BOXES).forEach(el => peekEl(el, 0));
+}
+(function () { let q = 0; const run = () => { clearTimeout(q); q = setTimeout(() => requestAnimationFrame(peekAll), 150); };
+  new MutationObserver(run).observe(document.body, { childList: true, subtree: true }); window.addEventListener('DOMContentLoaded', run); })();
