@@ -2,7 +2,6 @@
    THABIT SYSTEM - ALL-IN-ONE SCRIPT (Melted Version)
    ================================================          */
 
-
 // 2. CORE APP LOGIC, SLIDERS & AUDIO ENGINE
 let isAdminAuthenticated = false;
 const SUPABASE_URL = "https://vkfexceitwjmxncwceqb.supabase.co";
@@ -852,12 +851,33 @@ async function useItems(items, btn) {
     }
 }
 
+/* What a trainee sends is cleaned first: Arabic removed, list numbers (1. 2) a.) and punctuation removed,
+   one clean English item per word / sentence, no duplicates (max 50 items, max 40 words each). */
+function cleanSubmission(raw) {
+    let t = String(raw || '').replace(/\r/g, '\n').replace(/[\u2018\u2019`\u00B4]/g, "'");
+    t = t.replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g, '\n');      // Arabic -> separator
+    t = t.replace(/(^|\n)[ \t]*\d{1,3}[ \t]*[.)\]:\-][ \t]*/g, '$1');                                     // "1." "2)" at line start
+    t = t.replace(/(^|\n)[ \t]*[A-Za-z][ \t]*[.)][ \t]+/g, '$1');                                          // "a." "b)" at line start
+    t = t.replace(/[ \t]+\d{1,3}[ \t]*[.)\]][ \t]+(?=\S)/g, '\n');                                        // "... 2. ..." inside a line
+    t = t.replace(/(^|\n)[ \t]*[-\u2022*\u25AA\u25CF]+[ \t]+/g, '$1');                                     // bullets
+    const seen = new Set(), out = [];
+    t.split(/\n+|[.!?;:]+(?=\s|$)|,+/).forEach(seg => {
+        const toks = seg.replace(/[^A-Za-z0-9'\- ]+/g, ' ').split(/\s+/)
+            .map(x => x.replace(/^['-]+|['-]+$/g, '')).filter(x => x && /[A-Za-z]/.test(x));
+        if (!toks.length) return;
+        const item = toks.slice(0, 40).join(' '), k = item.toLowerCase();
+        if (seen.has(k) || out.length >= 50) return;
+        seen.add(k); out.push(item);
+    });
+    return out;
+}
 async function idReportWords(kind) {
     const w = gid('wordInput'), val = w ? w.value.trim() : '';
-    if (!val) { showGeneralToast(T('missingEmpty'), 'red'); return; }
+    const items = cleanSubmission(val);
+    if (!items.length) { showGeneralToast(T('missingEmpty'), 'red'); return; }
     showGeneralToast(T('missingSending'), 'orange');
     try {
-        const r = await idRpc('assistant_word_report', { p_token: ID.token, p_kind: kind, p_words: splitWords(val), p_priority: 'normal' });
+        const r = await idRpc('assistant_word_report', { p_token: ID.token, p_kind: kind, p_words: items, p_priority: 'normal' });
         if (!r.ok) throw new Error();
         showGeneralToast(T(kind === 'missing' ? 'missingOk' : 'brokenOk'), 'success');
     } catch (e) { showGeneralToast(T(kind === 'missing' ? 'missingFail' : 'brokenFail'), 'red'); }
