@@ -224,7 +224,7 @@ body.light-theme .hol{color:#92400e}body.light-theme .cd{color:#be123c}
 @keyframes fdSpin{to{--a:360deg}}
 .feed.glow{animation:fdGlow 1.3s ease-in-out 3}
 @keyframes fdGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 18px 5px rgba(255,255,255,.5)}}
-.feed .fdb{position:absolute;top:-17px;right:-17px;z-index:3;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;color:#111;font:800 .78rem/22px Inter,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.feed .fdb{position:absolute;top:-17px;right:-17px;z-index:3;box-sizing:border-box;width:22px;height:22px;min-width:0;padding:0;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font:800 .78rem/1 Inter,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4)}.feed .fdb.sm2{font-size:.6rem}
 @media(max-width:600px){.fl{flex-direction:row-reverse}.fl .feed{width:50px;height:50px}.fdp{width:26px;height:26px}}
 @media(prefers-reduced-motion:reduce){.feed.done .fdg{animation:none}.feed.pop .fdp,.feed.glow{animation:none}}
 /* copy button (TEFL / QOL / notes): the word itself, turns into a "Copied" pill */
@@ -283,7 +283,7 @@ body.light-theme .avbox{background:#fff;color:#0f172a}
 #mobileFloatingBar>.feed.empty{background:transparent}
 #mobileFloatingBar>.feed.done{border-color:transparent}
 #mobileFloatingBar>.feed .fdp{width:18px;height:18px}
-#mobileFloatingBar>.feed .fdb{top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;font:800 .62rem/17px Inter,sans-serif}
+#mobileFloatingBar>.feed .fdb{top:-7px;right:-7px;width:17px;height:17px;font:800 .62rem/1 Inter,sans-serif}#mobileFloatingBar>.feed .fdb.sm2{font-size:.5rem}
 @media(max-width:600px){
  #mobileFloatingBar{gap:3px!important;padding:6px 8px!important}
  #mobileFloatingBar>[data-bk]:not(#langBtn){width:34px!important;height:34px!important;min-width:34px!important}
@@ -309,6 +309,16 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 .pcs>.pc{width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere}
 .pc .aw,.pc .ntl,.pc .rich{max-width:100%}
 #mobileFloatingBar>[data-bk]{touch-action:none}
+
+/* no blue tap box / focus box on icons and buttons */
+*{-webkit-tap-highlight-color:transparent}
+button:focus,a:focus,summary:focus,[role=button]:focus,[tabindex]:focus{outline:none}
+button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none;box-shadow:none}
+/* fields never wider than the card they sit in */
+.dcard input,.dcard textarea,.dcard select,#rqWhat,#rqMsg,#rqType,#rqFollowVal{box-sizing:border-box;max-width:100%;min-width:0}
+#rqCard input[type=date]{-webkit-appearance:none;appearance:none;display:block}
+.avrow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.avb.avg{background:rgba(148,163,184,.22);color:inherit}
 </style>
 </head>
 <body id="bodyRoot">
@@ -349,7 +359,7 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 </div>
 <div class="asm" id="asm" hidden onclick="if(event.target===this)Panels.min()"><div class="asbox"><button type="button" class="asx" onclick="Panels.close()" aria-label="Close">&times;</button>
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
-  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
+  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><div class="avrow"><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><button type="button" class="btn2 avb avg" id="avDef" hidden>Back to default</button></div><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
 <div class="ssm" id="logm" onclick="if(event.target===this)closeLog()"><div class="ssbox">
   <div class="ssh"><b id="logT">Done tasks</b><button type="button" onclick="closeLog()" aria-label="Close">&times;</button></div>
