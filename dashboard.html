@@ -302,6 +302,13 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 .bopn{font-size:.76rem;opacity:.65;margin-bottom:12px}
 .bopc{padding:12px 14px;margin-bottom:10px;border-radius:16px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
 .bopc i{display:block;height:9px;border-radius:5px;background:rgba(148,163,184,.25);margin-top:8px}.bopc i:first-child{width:42%;margin-top:0;height:11px;background:rgba(148,163,184,.4)}.bopc i:last-child{width:72%}
+
+/* feed pop-up: cards fit inside the pop-up (no side clipping) + icons can be dragged */
+.pop,.pcs,.pc{box-sizing:border-box}
+.pcs{overflow-x:hidden}
+.pcs>.pc{width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere}
+.pc .aw,.pc .ntl,.pc .rich{max-width:100%}
+#mobileFloatingBar>[data-bk]{touch-action:none}
 </style>
 </head>
 <body id="bodyRoot">
