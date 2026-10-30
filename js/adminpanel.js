@@ -3226,7 +3226,9 @@ function genCopy(t) {
 }
 function genCopyOld(t, done) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { } a.remove(); }
 async function genCall(payload) {
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) });
+  let r;
+  try { r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) }); }
+  catch (e) { throw new Error('مش قادر أوصل للفانكشن student-accounts. غالباً: (1) لسه ما اتعملتش Deploy، أو (2) اسمها في Supabase مش student-accounts بالظبط. افتح Supabase ← Edge Functions وتأكد إنها ظاهرة وحالتها Active.'); }
   const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
   if (r.status === 404) throw new Error('الفانكشن student-accounts لسه مش متعملة Deploy (شوف GENERATOR_SETUP.md)');
   if (r.status === 401) { if (window.SB_ACCESS_TOKEN) onSessionExpired(); throw new Error('انتهت الجلسة، سجّل دخول تاني'); }
