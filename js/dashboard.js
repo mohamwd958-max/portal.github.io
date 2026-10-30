@@ -32,7 +32,7 @@ function toggleTheme() {
 }
 async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
-  const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); } catch (e) {}
+  const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
 }
@@ -498,23 +498,23 @@ function dndState() {
 const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
 function nextCard(s) {
   const t = TX(), when = s.n === 1 ? t.tom(fmtT(s.sc)) : t.inD(s.n, fmtT(s.sc));
-  if (s.st === 'count') return { noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
-  return { noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
+  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
+  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
 }
 const dndSeenKey = 'thabit_dnd_seen';
 const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
-const dndCard = d => ({ isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
+const dndCard = d => ({ id: 'dnd', isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
-  const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
+  const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
   peekWords(o);
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
-    if (x) { e.preventDefault(); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
+    if (x) { e.preventDefault(); dismissCard(pc.dataset.cid); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
     e.stopPropagation();
   }));
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
-const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; };
+const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; INTRO.hold = false; if (typeof D !== 'undefined' && D) updateFeed(); };
 /* ===== Feed: next session + dandana + notifications + payment, all inside ONE button ===== */
 const NTX = {
   en: { feed: 'Feed', notes: 'Notifications', msg: 'Message from your trainer', word: w => `Your word “${w}” is ready. You can listen to it now.`, reply: 'The trainer replied to your request', billT: 'Payment', cur: 'EGP',
@@ -554,7 +554,7 @@ function billLeft() {   // days until the next 7th
 const billNew = () => { try { return localStorage.getItem('thabit_bill_read') !== itToday(); } catch (e) { return false; } };
 function billCard(s) {
   const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
-  return { cls: 'bill', isNew: billNew(), html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
+  return { id: 'bill', cls: 'bill', isNew: billNew(), html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
     + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '') };
 }
 function noteText(n) {
@@ -567,7 +567,7 @@ function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
   const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
     return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
-  return { isNew: list.some(n => !n.read_at), html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
+  return { id: 'notes', isNew: list.some(n => !n.read_at), html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
 }
 const cairoDay = iso => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date(iso)); } catch (e) { return ''; } };
 const WORD_KINDS = ['assistant_words', 'word_ready'];
@@ -582,40 +582,60 @@ function feedCards() {
   if (bs) rest.push(billCard(bs));
   return [...(s ? [nextCard(s)] : []), ...rest.filter(c => c.isNew), ...rest.filter(c => !c.isNew)];
 }
-function markFeedRead() {
-  if (VIEW) return;
-  const bs = billState(), d = dndState();
-  try { if (bs) localStorage.setItem('thabit_bill_read', itToday()); if (d) localStorage.setItem(dndSeenKey, d.r.supply_date); } catch (e) {}
-  if (((D && D.notes) || []).some(n => !n.read_at)) { D.notes.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); }
+/* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
+   Next session + Assistant words have no X, so they always count. */
+function dismissCard(id) {
+  if (VIEW || !id) return;
+  try {
+    if (id === 'bill') localStorage.setItem('thabit_bill_read', itToday());
+    if (id === 'dnd') { const d = dndState(); if (d) localStorage.setItem(dndSeenKey, d.r.supply_date); }
+  } catch (e) {}
+  if (id === 'notes' && ((D && D.notes) || []).some(n => !n.read_at)) { D.notes.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); }
   updateFeed();
 }
+const INTRO = { hold: false, run: false };
+const INTRO_KEY = 'thabit_intro_tok';
+const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
+const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.isNew).length, bd = $('feedBadge');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
-  bd.hidden = !n; bd.textContent = n;
+  bd.hidden = !n || INTRO.hold; bd.textContent = n;
+  if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);   // first notification arrived while the page was open
 }
 function openFeed(from) {
   const c = feedCards(); if (!c.length) return;
   openPop(c, from);
-  markFeedRead();
+}
+function glowFeed() { const b = $('feedBtn'); b.classList.remove('glow'); void b.offsetWidth; b.classList.add('glow'); setTimeout(() => b.classList.remove('glow'), 4200); }
+/* Intro: white empty ring -> plus drawn (horizontal, then vertical) in white -> pop + moving colours -> feed pop-up -> badge after it closes */
+function runIntro(btn) {
+  INTRO.run = true; INTRO.hold = true; CINTRO.wait = true; $('feedBadge').hidden = true;
+  btn.classList.remove('empty'); btn.classList.add('draw');
+  setTimeout(() => btn.classList.add('done', 'pop'), 760);
+  setTimeout(() => {
+    try { if (!VIEW && tok()) localStorage.setItem(INTRO_KEY, tok()); } catch (e) {}
+    const c = feedCards(); CINTRO.popShown = true;
+    if (c.length) openPop(c, btn); else { INTRO.hold = false; updateFeed(); chartsGo(); }
+  }, 1150);
+}
+function refreshNotes() {
+  if (!D || INTRO.hold) return Promise.resolve();
+  const before = feedCount();
+  return fetchNotes().then(list => { D.notes = list; updateFeed(); if (feedCount() > before) glowFeed(); });
 }
 function initFloat() {
-  updateFeed();
   const btn = $('feedBtn');
   if (!window._popDone) {
     window._popDone = true;
-    let seen0 = ''; try { seen0 = localStorage.getItem('thabit_pop_day') || ''; } catch (e) {}
-    if ((VIEW || seen0 !== itToday()) && feedCards().length) CINTRO.wait = true; else setTimeout(chartsGo, 300);   // no pop-up today: charts start right away
-    setTimeout(() => {   // the pop-up appears only the first time the page is opened each day; after that the trainee opens the button himself
-      let seen = ''; try { seen = localStorage.getItem('thabit_pop_day') || ''; } catch (e) {}
-      if (!VIEW && seen === itToday()) { chartsGo(); return; }
-      const c = feedCards(); if (!c.length) { chartsGo(); return; }
-      if (!VIEW) { try { localStorage.setItem('thabit_pop_day', itToday()); } catch (e) {} }
-      CINTRO.popShown = true;
-      openPop(c, btn); markFeedRead();
-    }, 2200);
+    if (!feedCards().length) { btn.hidden = true; setTimeout(chartsGo, 300); }
+    else if (introDone()) { btn.classList.remove('empty'); btn.classList.add('done'); updateFeed(); setTimeout(chartsGo, 300); }   // refresh: no animation, no pop-up
+    else runIntro(btn);
+  } else updateFeed();
+  if (!window._ntPoll) {
+    window._ntPoll = setInterval(refreshNotes, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotes(); });
   }
-  if (!window._ntPoll) window._ntPoll = setInterval(async () => { if (!D) return; D.notes = await fetchNotes(); updateFeed(); }, 60000);
 }
 window.addEventListener('DOMContentLoaded', () => {
   $('feedBtn').onclick = e => { e.stopPropagation(); openFeed($('feedBtn')); };
@@ -771,7 +791,7 @@ function asWords() {
 function asCard() {
   const w = asWords(); if (!w.length) return null;
   const t = ASX[lang] || ASX.en;
-  return { noX: true, cls: 'as', isNew: asNotes().some(n => !n.read_at),
+  return { id: 'as', noX: true, cls: 'as', isNew: asNotes().some(n => !n.read_at),
     html: `<h3>${t.t}<span class="awn">${w.length}</span></h3><div class="aw" dir="auto">${w.map(x => `<span class="aww" role="button" tabindex="0" dir="auto" data-w="${esc(x)}" onclick="wpOpen(this.dataset.w)" onkeydown="if(event.key==='Enter')wpOpen(this.dataset.w)">${esc(x)}</span>`).join('')}</div>`
       + `<div style="margin-top:10px"><button type="button" class="btn2" onclick="event.stopPropagation();closePop();Panels.open('assistant',event)">${t.open}</button></div>` };
 }
@@ -985,3 +1005,5 @@ window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (!p) return;
   new MutationObserver(() => { if (CINTRO.wait && CINTRO.popShown && !p.classList.contains('open')) setTimeout(chartsGo, 350); }).observe(p, { attributes: true, attributeFilter: ['class'] });
 });
+/* page open: on a refresh the button is already complete (no flash of the empty ring); first time after login -> empty white ring */
+(function(){ const b=document.getElementById('feedBtn'); if(b&&b.classList.contains('empty')){ try{ if(!VIEW&&tok()&&localStorage.getItem('thabit_intro_tok')===tok()){ b.classList.remove('empty'); b.classList.add('done'); } }catch(e){} } })();
