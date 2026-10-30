@@ -836,9 +836,9 @@ async function wpOpen(word) {
   const my = ++WP.tk, x = WPX[lang] || WPX.en;
   WP.word = word; WP.urls = []; WP.i = 0;
   const el = document.createElement('div'); el.id = 'wp'; el.className = 'wp';
-  el.innerHTML = `<div class="wpw" dir="auto">${esc(word)}</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause"><i class="fa-solid fa-play"></i></button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span><button type="button" class="wpb dl" aria-label="${x.dl}" title="${x.dl}"><i class="fa-solid fa-download"></i></button></div><div class="wpm" dir="auto" hidden></div>`;
+  el.innerHTML = `<div class="wpw" dir="auto">${esc(word)}</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause"><i class="fa-solid fa-play"></i></button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span></div><div class="wpm" dir="auto" hidden></div>`;
   document.body.appendChild(el);
-  el.querySelector('.dl').onclick = wpDownload;
+  // download button removed for now (wpDownload below is kept, unused, to bring it back later)
   let urls, err = '';
   try { urls = await wpResolve(word); } catch (e) { urls = undefined; err = e && e.message || String(e); console.error('[word player] lookup failed for "' + word + '":', e); }
   if (my !== WP.tk) return;
