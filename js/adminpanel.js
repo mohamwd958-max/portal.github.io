@@ -3160,9 +3160,34 @@ async function hlRender() {
   const credit = mpState.list.filter(r => payNum(r.past_due) < 0);
   const chip = (r, bad, extra) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}${extra ? ' · ' + esc(extra) : ''}</span>`;
   const paidChip = r => `<span class="nt-chip" dir="auto" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)">${esc(r.trainee || '')} · ${esc(payFmt(payPaidAmt(r)))}</span>`;
+  /* expected for this month (payment is upfront): Active students only; for those who already paid, use their balance as it was before paying */
+  const exps = act.map(r => {
+    const bill = payBill(r); if (bill === null) return { r, bill: null, pd: 0, exp: 0 };
+    const pd = isPaid(r) ? (r.pre_pay_due != null ? payNum(r.pre_pay_due) : 0) : payNum(r.past_due);
+    return { r, bill, pd, exp: Math.max(payRound(bill + pd), 0) };
+  });
+  const eBase = payRound(exps.reduce((t, x) => t + (x.bill || 0), 0));
+  const eOwe = payRound(exps.reduce((t, x) => t + Math.max(x.pd, 0), 0));
+  const eExp = payRound(exps.reduce((t, x) => t + x.exp, 0));
+  const eCut = payRound(eBase + eOwe - eExp);
+  const eLeft = payRound(unpaid.reduce((t, r) => { const d = payDue(r); return t + (d === null ? 0 : Math.max(d, 0)); }, 0));
+  const eNoBill = exps.filter(x => x.bill === null);
+  const eHtml = `<div style="border:1px solid #334155;border-radius:10px;padding:8px;margin-bottom:10px;background:#0f172a">
+      <div style="font-size:11px;font-weight:800;color:#fbbf24;margin-bottom:4px">المتوقع شهر ${esc(payMonth())} · الدفع مقدّم</div>
+      <div class="p5-r"><span>الأساسي (اشتراكات الـ Active · ${exps.length})</span><b>${esc(payFmt(eBase))}</b></div>
+      ${eOwe ? `<div class="p5-r"><span>+ باس دو</span><b style="color:#fb7185">${esc(payFmt(eOwe))}</b></div>` : ''}
+      ${eCut ? `<div class="p5-r"><span>− رصيد مخصوم</span><b style="color:#34d399">${esc(payFmt(eCut))}</b></div>` : ''}
+      <div class="p5-r"><span>المتوقع الإجمالي</span><b style="color:#fbbf24;font-size:14px">${esc(payFmt(eExp))}</b></div>
+      <div class="p5-r"><span>معاك دلوقتي</span><b style="color:#34d399">${esc(payFmt(total))}</b></div>
+      <div class="p5-r"><span>لسه متوقع</span><b>${esc(payFmt(eLeft))}</b></div>
+      ${eNoBill.length ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">مفيش رقم في الـ Subscription عند: ${eNoBill.map(x => esc(x.r.trainee || '')).join('، ')} (مش محسوبين)</div>` : ''}
+      <button type="button" class="ds-b ghost" style="font-size:10px;padding:2px 8px;margin-top:6px" onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">تفاصيل كل طالب</button>
+      <div style="display:none;margin-top:6px">${exps.filter(x => x.bill !== null).map(x => `<span class="nt-chip" dir="auto" style="${isPaid(x.r) ? 'background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)' : ''}">${isPaid(x.r) ? '✓ ' : ''}${esc(x.r.trainee || '')} · ${esc(payFmt(x.exp))}</span>`).join('')}</div>
+    </div>`;
   const dueTxt = r => { const d = payDue(r); return d === null ? '' : String(d <= 0 ? 'مغطّى' : payFmt(d)); };
   w.body.innerHTML = `<div class="p5-g">
     <div class="p5-c"><h6><i class="fa-solid fa-coins"></i> Financial · ${esc(payMonth())}</h6>
+      ${eHtml}
       <div class="p5-r"><span>دفعوا</span><b style="color:#34d399">${paid.length}</b></div>
       <div style="font-size:11px;color:#34d399;margin:4px 0 6px">الإجمالي اللي المفروض يكون معاك دلوقتي: <b style="font-size:14px">${esc(payFmt(total))}</b></div>
       ${paid.length ? `<div style="margin-bottom:6px">${paid.map(paidChip).join('')}</div>` : ''}
@@ -3177,4 +3202,148 @@ async function hlRender() {
       <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يظهر هنا بالتفصيل.</div></div>
     <div class="p5-c"><h6><i class="fa-solid fa-flag"></i> Red flags</h6>
       <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يعتبر Red flag وأظهره هنا.</div></div></div>`;
+}
+
+
+/* ==========================================================
+   Patch 6: Generator (student login accounts) - needs the "student-accounts" Edge Function
+   (see GENERATOR_SETUP.md). The browser never sees the service key: the function checks you are the admin.
+   ========================================================== */
+const GEN_DOMAIN = '@thabit.com';
+WSD.gen = { t: 'Generator · المولّد', i: 'fa-key', w: 2 };
+WS_REFRESH.gen = 1;
+{
+  const prevLoad6 = wsLoad;
+  wsLoad = function (k) { if (k === 'gen') return genRender(); return prevLoad6(k); };
+}
+const genState = { tab: 'new', list: null, q: '' };
+/* username: always lowercase letters/numbers/. _ - ; the part after @ is dropped (the domain is fixed) */
+const genUserLive = v => String(v || '').split('@')[0].toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '').slice(0, 48);
+const genUser = v => genUserLive(v).replace(/^[._-]+|[._-]+$/g, '');
+function genCopy(t) {
+  const done = () => showToast('اتنسخ ✓');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => genCopyOld(t, done)); else genCopyOld(t, done);
+}
+function genCopyOld(t, done) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { } a.remove(); }
+async function genCall(payload) {
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) });
+  const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
+  if (r.status === 404) throw new Error('الفانكشن student-accounts لسه مش متعملة Deploy (شوف GENERATOR_SETUP.md)');
+  if (r.status === 401) { if (window.SB_ACCESS_TOKEN) onSessionExpired(); throw new Error('انتهت الجلسة، سجّل دخول تاني'); }
+  if (!r.ok) { const e = new Error(j.error || j.message || t); e.code = j.code; throw e; }
+  return j;
+}
+async function genRender() {
+  const w = WSE.gen; if (!w) return;
+  if (!mpState.list.length) { try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; } catch (e) { } }
+  w.body.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button type="button" class="ds-b amber" data-t="new">Passwords · توليد</button>
+      <button type="button" class="ds-b ghost" data-t="hist">Created passwords · المتسجّلة</button></div><div id="genBody"></div>`;
+  w.body.querySelectorAll('[data-t]').forEach(b => { b.onclick = () => genTab(b.dataset.t); });
+  genTab(genState.tab);
+}
+function genTab(t) {
+  genState.tab = t; const w = WSE.gen; if (!w) return;
+  w.body.querySelectorAll('[data-t]').forEach(b => { b.className = 'ds-b ' + (b.dataset.t === t ? 'amber' : 'ghost'); });
+  if (t === 'new') genNewPaint(); else genHistPaint();
+}
+function genNewPaint() {
+  const host = $id('genBody'); if (!host) return;
+  host.innerHTML = `<div id="genRows"></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="ds-b ghost" id="genAdd"><i class="fa-solid fa-plus"></i> شخص تاني</button></div>
+    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الباسورد بيتولّد عشوائي (12 حرف وأرقام من غير حروف متشابهة)، والحساب بيتعمل على Supabase مفعّل، وبنجرّب الدخول بيه قبل ما نظهره. لو اليوزر موجود قبل كده هيسألك قبل ما يغيّر باسورده.</div>`;
+  $id('genAdd').onclick = () => genAddRow($id('genRows'));
+  genAddRow($id('genRows'));
+}
+function genAddRow(host) {
+  const row = document.createElement('div'); row.className = 'p5-c'; row.style.marginBottom = '8px';
+  const opts = mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('');
+  row.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="${INPUT_CLS} g-pf" style="min-width:170px;padding:6px"><option value="">— البروفايل (اختياري) —</option>${opts}</select>
+      <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS} g-un" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
+      <button type="button" class="ds-b green g-go"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button>
+      <button type="button" class="ds-b ghost g-rm" title="شيل">✕</button></div>
+    <div class="g-out" style="margin-top:8px"></div>`;
+  host.appendChild(row);
+  const sel = row.querySelector('.g-pf'), un = row.querySelector('.g-un'), go = row.querySelector('.g-go'), out = row.querySelector('.g-out');
+  const bad = m => `<div class="text-xs" style="color:#fb7185">${esc(m)}</div>`;
+  un.oninput = () => { const v = genUserLive(un.value); if (v !== un.value) un.value = v; };
+  sel.onchange = () => {   /* suggest a username from the English name, if the box is empty */
+    const r = mpState.list.find(x => String(x.id) === sel.value); if (!r || un.value) return;
+    const nm = genUser([mpVal(r, 'preferred name'), r.trainee].filter(Boolean).join(' ').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).join(' '));
+    if (nm) un.value = nm;
+  };
+  row.querySelector('.g-rm').onclick = () => { if (host.children.length > 1) row.remove(); else { un.value = ''; sel.value = ''; out.innerHTML = ''; } };
+  go.onclick = async () => {
+    const username = genUser(un.value);
+    if (!username) { out.innerHTML = bad('اكتب يوزر نيم بالإنجليزي (حروف وأرقام)'); return; }
+    un.value = username;
+    const r = mpState.list.find(x => String(x.id) === sel.value);
+    const base = { action: 'create', username, trainee_id: r ? String(r.id) : null, trainee_name: r ? (r.trainee || null) : null };
+    go.disabled = true; out.innerHTML = '<span class="text-amber-400 text-xs">جاري الإنشاء والتأكد إن الدخول شغّال...</span>';
+    try {
+      let res;
+      try { res = await genCall(base); }
+      catch (e) {
+        if (e.code === 'exists' && confirm('الحساب ' + username + GEN_DOMAIN + ' موجود قبل كده. أغيّر الباسورد بتاعه لباسورد جديد؟ (الباسورد القديم هيبطل يشتغل)')) res = await genCall(Object.assign({ overwrite: true }, base));
+        else throw e;
+      }
+      genState.list = null;
+      out.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr">
+          <code style="font-size:13px;color:#e2e8f0">${esc(res.email)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.email)}">نسخ</button>
+          <code style="font-size:15px;color:#34d399;letter-spacing:.5px">${esc(res.password)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.password)}">نسخ</button></div>
+        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتجرّب الدخول بيه وشغّال${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''}</div>
+        ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الحساب اتعمل بس الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
+      out.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => genCopy(b.dataset.c); });
+    } catch (e) { out.innerHTML = bad(e.message); }
+    go.disabled = false;
+  };
+}
+async function genHistPaint() {
+  const host = $id('genBody'); if (!host) return;
+  host.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  if (!genState.list) {
+    try { genState.list = (await genCall({ action: 'list' })).items || []; }
+    catch (e) { host.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">${esc(e.message)}</div>`; return; }
+  }
+  host.innerHTML = `<input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
+    <div id="genHist" class="p5-g"></div>`;
+  const q = $id('genQ'); q.value = genState.q;
+  q.oninput = () => { genState.q = q.value.trim().toLowerCase(); genHistList(); };
+  genHistList();
+}
+function genHistList() {
+  const g = $id('genHist'); if (!g) return;
+  const byId = new Map(mpState.list.map(r => [String(r.id), r]));
+  const items = (genState.list || []).filter(c => {
+    const pr = byId.get(String(c.trainee_id));
+    return !genState.q || `${c.email} ${c.trainee_name || ''} ${pr ? pr.trainee : ''}`.toLowerCase().includes(genState.q);
+  });
+  g.innerHTML = items.map((c, i) => {
+    const pr = byId.get(String(c.trainee_id)), info = pr ? mpStatusInfo(pr) : null;
+    const st = info ? ((MP_GROUPS.find(x => x[0] === info.key) || [0, info.label])[1]) : '';
+    const phone = pr ? mpVal(pr, 'preferred_phone') : '', pic = pr && pr.most_recent_picture_url;
+    const ini = esc(String((pr && pr.trainee) || c.trainee_name || '?').trim().charAt(0).toUpperCase());
+    return `<div class="p5-c"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <div class="mp-av">${pic ? `<img src="${esc(pic)}" alt="" onerror="this.remove()">` : ini}</div>
+        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc((pr && pr.trainee) || c.trainee_name || '(من غير بروفايل)')}</b>
+          <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
+      <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.email)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="email">نسخ</button></span></div>
+      <div class="p5-r"><span>الباسورد</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="password">نسخ</button></span></div>
+      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div></div>`;
+  }).join('') || '<div class="tha-note">مفيش باسوردات متسجّلة لسه.</div>';
+  g.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => genCopy(items[+b.dataset.i][b.dataset.k]); });
+}
+
+/* Generator button next to Highlights (the toolbar lives in the page HTML, so it is added from here) */
+function genInstallBtn() {
+  if (document.querySelector('.ws-lb[data-ws="gen"]')) return true;
+  const hl = document.querySelector('.ws-lb[data-ws="hl"]'); if (!hl) return false;
+  const b = hl.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick'); b.setAttribute('data-ws', 'gen'); b.classList.remove('on');
+  b.type = 'button'; b.innerHTML = '<i class="fa-solid fa-key"></i> Generator'; b.onclick = () => toggleWin('gen');
+  hl.insertAdjacentElement('afterend', b); return true;
+}
+{
+  let tries = 0; const iv = setInterval(() => { if (genInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpenMain = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain.apply(this, arguments); genInstallBtn(); return r; };
 }
