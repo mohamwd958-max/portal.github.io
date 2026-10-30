@@ -1850,6 +1850,7 @@ window.addEventListener('DOMContentLoaded', initWordSuggest);
     showAdminView = function (v) {
         orig(v);
         if (v === 'voices') refreshWordLists();
+        if (v === 'home' && typeof loadUsage === 'function') loadUsage();
         if (v === 'reports') loadReportsList();
     };
 })();
@@ -2468,3 +2469,101 @@ window.fxFnView = function (no) {
     if (n) showToast(`اتطبّقت الفانكشن على ${n} ✓`);
   };
 };
+
+/* ==========================================================
+   Usage boxes on the admin home: 1) Supabase  2) reserved (empty)  3) Cloudflare (to be connected)
+   Counts come from the RPC admin_usage_stats() (see admin_usage_stats.sql); without it only word / sentence counts are shown.
+   Plan limits below are the published numbers - edit them if Supabase changes its plans (supabase.com/pricing).
+   ========================================================== */
+const MB = 1024 * 1024, GB = 1024 * MB;
+const USAGE_LIMITS = {
+    free: { name: 'Free', db: 500 * MB, storage: 1 * GB, egress: 5 * GB },
+    pro:  { name: 'Pro ($25/mo)', db: 8 * GB, storage: 100 * GB, egress: 250 * GB }
+};
+const fmtBytes = n => n == null ? '—' : n >= GB ? (n / GB).toFixed(2) + ' GB' : n >= MB ? (n / MB).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+const fmtNum = n => n == null ? '—' : Number(n).toLocaleString('en-US');
+let _usage = { at: 0, res: null };
+
+(function () {
+    if (document.getElementById('usCss')) return;
+    const s = document.createElement('style'); s.id = 'usCss';
+    s.textContent = '.us-card{border:1px solid rgba(148,163,184,.35);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px;background:rgba(30,41,59,.45)}'
+        + 'body.light-theme .us-card{background:#f1f5f9}.us-empty{border-style:dashed;min-height:70px;align-items:center;justify-content:center;opacity:.55;font-size:.75rem}'
+        + '.us-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:900;font-size:.85rem}'
+        + '.us-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.us-n{border-radius:12px;padding:8px;text-align:center;background:rgba(2,6,23,.45)}body.light-theme .us-n{background:#e2e8f0}'
+        + '.us-n b{display:block;font-size:1.15rem}.us-n span{font-size:.65rem;opacity:.7}'
+        + '.us-bar{height:8px;border-radius:99px;background:rgba(148,163,184,.3);overflow:hidden}.us-bar i{display:block;height:100%;border-radius:99px}'
+        + '.us-l{display:flex;justify-content:space-between;gap:8px;font-size:.7rem;margin-bottom:3px}'
+        + '.us-adv{font-size:.72rem;line-height:1.7;display:flex;flex-direction:column;gap:4px}.us-adv div{padding:6px 9px;border-radius:10px;background:rgba(148,163,184,.12)}'
+        + '.us-adv .w{background:rgba(245,158,11,.16)}.us-adv .r{background:rgba(225,29,72,.18)}.us-adv .g{background:rgba(16,185,129,.14)}'
+        + '.us-a{font-size:.68rem;text-decoration:underline;color:#38bdf8}';
+    document.head.appendChild(s);
+})();
+
+function ensureUsageBoxes() {
+    const home = $id('adminHome'); if (!home || $id('usageWrap')) return;
+    const w = document.createElement('div'); w.id = 'usageWrap'; w.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-top:6px';
+    w.innerHTML = '<div class="tha-note" style="font-weight:800">قواعد البيانات · Databases</div>'
+        + '<div class="us-card" id="usageSb"><span class="tha-note">...</span></div>'
+        + '<div class="us-card us-empty" id="usageEmpty">مساحة فاضية (محجوزة)</div>'
+        + '<div class="us-card" id="usageCf"><div class="us-h"><span><i class="fa-solid fa-cloud"></i> Cloudflare</span><a class="us-a" href="https://dash.cloudflare.com" target="_blank" rel="noopener">Open dashboard ↗</a></div>'
+        + '<div class="tha-note">لسه مش متوصّل. لما نربطه هتظهر هنا الأرقام (التخزين والطلبات).</div></div>';
+    home.appendChild(w);
+}
+function setUsagePlan(p) { try { localStorage.setItem('thabit_sb_plan', p); } catch (e) {} if (_usage.res) renderUsage(_usage.res); }
+
+async function fetchUsage() {
+    try {
+        const r = await sbFetch('rpc/admin_usage_stats', { method: 'POST', body: '{}' });
+        const d = await r.json();
+        if (d && typeof d === 'object' && !Array.isArray(d)) return { ok: true, d };
+    } catch (e) { /* function not created yet -> fall back to plain counts */ }
+    const cnt = async q => { const r = await sbFetch(q, { headers: { Prefer: 'count=exact' } }); const m = /\/(\d+)$/.exec(r.headers.get('Content-Range') || ''); return m ? +m[1] : null; };
+    try {
+        const total = await cnt('words_table?select=word&limit=1'), sent = await cnt('words_table?select=word&word=like.*%20*&limit=1');
+        return { ok: false, d: { words: total == null || sent == null ? null : total - sent, sentences: sent } };
+    } catch (e) { return { ok: false, d: {}, err: e.message }; }
+}
+async function loadUsage(force) {
+    ensureUsageBoxes();
+    if (!force && _usage.res && Date.now() - _usage.at < 60000) { renderUsage(_usage.res); return; }
+    const box = $id('usageSb'); if (box && !_usage.res) box.innerHTML = '<span class="tha-note">...</span>';
+    _usage = { at: Date.now(), res: await fetchUsage() };
+    renderUsage(_usage.res);
+}
+function renderUsage(res) {
+    const box = $id('usageSb'); if (!box) return;
+    let plan = 'free'; try { plan = localStorage.getItem('thabit_sb_plan') === 'pro' ? 'pro' : 'free'; } catch (e) {}
+    const L = USAGE_LIMITS[plan], d = res.d || {};
+    const files = d.files == null ? null : +d.files, fb = d.files_bytes == null ? null : +d.files_bytes, dbb = d.db_bytes == null ? null : +d.db_bytes;
+    const avg = files && fb != null ? fb / files : null;
+    const ref = (() => { try { return new URL(SUPABASE_URL).hostname.split('.')[0]; } catch (e) { return ''; } })();
+    const col = p => p >= 85 ? '#e11d48' : p >= 60 ? '#f59e0b' : '#10b981';
+    const bar = (label, used, lim) => {
+        if (used == null) return `<div><div class="us-l"><span>${label}</span><span>—</span></div><div class="us-bar"></div></div>`;
+        const p = Math.min(100, used / lim * 100);
+        return `<div><div class="us-l"><span>${label}</span><span dir="ltr">${fmtBytes(used)} / ${fmtBytes(lim)} · ${p.toFixed(p < 10 ? 1 : 0)}%</span></div><div class="us-bar"><i style="width:${Math.max(p, 1)}%;background:${col(p)}"></i></div></div>`;
+    };
+    const adv = [], add = (c, t) => adv.push(`<div class="${c}">${t}</div>`);
+    if (!res.ok) add('w', 'لسه ما شغّلتش ملف <b>admin_usage_stats.sql</b> في Supabase، فمش قادر أعرض حجم الملفات والداتابيز. الأعداد فوق بس.');
+    if (fb != null) {
+        const p = fb / L.storage * 100, left = avg ? Math.max(0, Math.floor((L.storage - fb) / avg)) : null;
+        if (left != null) add(p >= 85 ? 'r' : p >= 60 ? 'w' : 'g', `مساحة الصوت تكفي تقريباً <b>${fmtNum(left)}</b> تسجيل كمان (متوسط الملف ${fmtBytes(avg)}).`);
+        if (p >= 85) add('r', plan === 'free' ? 'قرّبت من حد الـ Storage. وقت تفكر: ترقية لـ Pro ($25/شهر، 100 GB) أو تنقل الصوت لـ Cloudflare.' : 'قرّبت من حد الـ Storage في Pro: الزيادة بتتحاسب بالـ GB.');
+        else if (p >= 60) add('w', 'عدّيت 60% من الـ Storage. ابدأ فكّر في الخطوة الجاية قبل ما توصل.');
+    }
+    if (dbb != null) {
+        const p = dbb / L.db * 100;
+        if (p >= 85) add('r', 'حجم الداتابيز قرّب يخلص. بعد الحد ده بتبقى بفلوس (أو بتتقفل الكتابة على Free).');
+        else if (p >= 60) add('w', 'حجم الداتابيز عدّى 60%. راقبه.');
+    }
+    if (avg) add('', `الـ Egress الشهري (${fmtBytes(L.egress)}) يكفي تقريباً <b>${fmtNum(Math.floor(L.egress / avg))}</b> تشغيلة صوت في الشهر (لو الملف بمتوسط ${fmtBytes(avg)}). الاستهلاك الفعلي شوفه من صفحة Usage.`);
+    if (plan === 'free') add('', 'على Free: المشروع بيتعمل له Pause لو ما فيش نشاط أسبوع.');
+    box.innerHTML = `<div class="us-h"><span><i class="fa-solid fa-database"></i> Supabase</span><span style="display:flex;gap:6px;align-items:center">`
+        + `<select class="tha-in" style="width:auto;padding:3px 8px;font-size:.7rem" onchange="setUsagePlan(this.value)"><option value="free"${plan === 'free' ? ' selected' : ''}>Free</option><option value="pro"${plan === 'pro' ? ' selected' : ''}>Pro</option></select>`
+        + `<button type="button" class="tha-b gray" style="padding:4px 9px" title="Refresh" onclick="loadUsage(true)"><i class="fa-solid fa-rotate"></i></button></span></div>`
+        + `<div class="us-nums"><div class="us-n"><b>${fmtNum(d.words)}</b><span>كلمات</span></div><div class="us-n"><b>${fmtNum(d.sentences)}</b><span>جمل</span></div><div class="us-n"><b>${fmtNum(files)}</b><span>ملفات صوتية</span></div></div>`
+        + bar('Storage (الصوت)', fb, L.storage) + bar('Database', dbb, L.db)
+        + (adv.length ? `<div class="us-adv">${adv.join('')}</div>` : '')
+        + `<div style="display:flex;gap:12px;flex-wrap:wrap"><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}/settings/billing/usage">Usage & egress ↗</a><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}">Open project ↗</a><a class="us-a" target="_blank" rel="noopener" href="https://supabase.com/pricing">Pricing ↗</a></div>`;
+}
