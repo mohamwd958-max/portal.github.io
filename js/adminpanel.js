@@ -2818,38 +2818,107 @@ const PAY_THANKS = 'شكرًا على دفع المستحقات الشهرية.'
 const payMonth = () => dsToday().slice(0, 7);
 const isPaid = r => !!r && r.paid_month === payMonth();
 
-async function paySet(ids, paid, dateStr) {
-  ids = ids.map(String); if (!ids.length) return;
-  const month = payMonth();
-  const body = paid
-    ? { paid_month: month, paid_at: dateStr ? dateStr + 'T12:00:00Z' : new Date().toISOString(), updated_at: new Date().toISOString() }
-    : { paid_month: null, paid_at: null, updated_at: new Date().toISOString() };
+/* ---- money helpers ----
+   monthly bill  = biggest number in the "subscription" text
+   past_due      = running balance saved on the student: positive = he owes it, negative = he has credit
+   due now       = monthly bill + past_due
+   paying X      -> new past_due = due now - X   (paid in full -> 0, paid less -> he owes the rest, paid more -> credit) */
+const payNum = x => { const n = Number(x); return isFinite(n) ? n : 0; };
+const payRound = n => Math.round(n * 100) / 100;
+const payFmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+function payBill(r) {
+  const t = String((r && r.subscription) || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,٬]/g, '');
+  const m = t.match(/\d+(?:[.٫]\d+)?/g); if (!m) return null;
+  return Math.max(...m.map(x => parseFloat(x.replace('٫', '.'))));
+}
+const payDue = r => { const b = payBill(r); return b === null ? null : payRound(b + payNum(r.past_due)); };
+const payPaidAmt = r => r.paid_amount != null && r.paid_amount !== '' ? payNum(r.paid_amount) : (payBill(r) || 0);
+function payBalText(v) { v = payNum(v); return v > 0 ? 'عليه باس دو ' + payFmt(v) : v < 0 ? 'ليه رصيد ' + payFmt(-v) : 'خالص (صفر)'; }
+function payTag(r, paid) {
+  const pd = payNum(r.past_due);
+  return `<small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) + (r.paid_amount != null ? ' · ' + esc(payFmt(r.paid_amount)) : '') : 'لم يدفع ' + esc(payMonth())}</small>`
+    + (pd ? `<small style="color:${pd > 0 ? '#fb7185' : '#34d399'}">${esc(payBalText(pd))}</small>` : '');
+}
+
+/* items: [{id, amount, date}] */
+async function paySet(items, paid) {
+  items = items.filter(it => it && it.id != null); if (!items.length) return;
+  const month = payMonth(), now = new Date().toISOString();
+  const bodyFor = it => {
+    const r = mpState.list.find(x => String(x.id) === String(it.id)) || {};
+    if (!paid) {
+      const b = { paid_month: null, paid_at: null, paid_amount: null, pre_pay_due: null, updated_at: now };
+      if (r.pre_pay_due != null) b.past_due = r.pre_pay_due;     /* undo the balance change of that payment */
+      return b;
+    }
+    const b = { paid_month: month, paid_at: it.date ? it.date + 'T12:00:00Z' : now, paid_amount: it.amount, updated_at: now };
+    const bill = payBill(r);
+    if (bill !== null) { b.pre_pay_due = payNum(r.past_due); b.past_due = payRound(bill + payNum(r.past_due) - it.amount); }
+    return b;
+  };
   let rows;
-  try { rows = await mutate(`${PROFILES_TABLE}?id=in.(${ids.map(enc).join(',')})`, 'PATCH', body); }
-  catch (e) { showToast('فشل تسجيل الدفع: ' + e.message + ' (شغّل 06_paid.sql لو لسه)', true); return; }
+  try { rows = (await Promise.all(items.map(it => mutate(`${PROFILES_TABLE}?id=eq.${enc(it.id)}`, 'PATCH', bodyFor(it))))).flat(); }
+  catch (e) { showToast('فشل تسجيل الدفع: ' + e.message + ' (شغّل 07_payment_amounts.sql لو لسه)', true); return; }
   rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
   mpPaintList();
   if (mpCur) payBoxPaint();
   if (!paid) { showToast('اتسجّل إنهم لم يدفعوا ✓'); return; }
+  const noBill = rows.filter(r => payBill(r) === null).length;
   let sent = 0;
   try {
+    const ids = rows.map(r => String(r.id));
     const have = await fetchAllRows(`notifications?select=trainee_id&kind=eq.message&meta->>thanks_month=eq.${month}&trainee_id=in.(${ids.map(enc).join(',')})`);
     const got = new Set(have.map(r => String(r.trainee_id)));
     const out = rows.filter(r => !got.has(String(r.id))).map(r => ({ trainee_id: r.id, kind: 'message', title: 'شكرًا لك', body: PAY_THANKS, meta: { thanks_month: month } }));
     if (out.length) await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
     sent = out.length;
   } catch (e) { showToast('اتسجّل الدفع، بس رسالة الشكر ما اتبعتتش: ' + e.message, true, true); return; }
-  showToast(`اتسجّل الدفع لـ ${rows.length} ✓` + (sent ? ` · وراح شكر لـ ${sent}` : ' · (الشكر اتبعت قبل كده الشهر ده)'));
+  const first = rows[0];
+  showToast(rows.length === 1 ? `اتسجّل الدفع ✓ · ${payBalText(first.past_due)}` : `اتسجّل الدفع لـ ${rows.length} ✓`
+    + (sent ? ` · وراح شكر لـ ${sent}` : ' · (الشكر اتبعت قبل كده الشهر ده)')
+    + (noBill ? ` · ${noBill} مالهم رقم في الـ Subscription فالباس دو ما اتحسبش` : ''));
 }
 window.payMark = function (id, paid) {
-  const d = document.getElementById('payDate');
-  paySet([id], paid, d && d.value ? d.value : '');
+  if (!paid) return paySet([{ id }], false);
+  const d = document.getElementById('payDate'), a = document.getElementById('payAmt');
+  const amount = a && a.value.trim() !== '' ? Number(a.value) : NaN;
+  if (!isFinite(amount) || amount < 0) { showToast('اكتب المبلغ اللي دفعه', true); return; }
+  paySet([{ id, amount, date: d && d.value ? d.value : '' }], true);
 };
+/* bulk "paid": each one paid exactly what is due now (monthly bill + past due, never less than 0) */
 window.payMarkSel = function (paid) {
   const ids = [...mpState.sel]; if (!ids.length) return;
-  if (!confirm((paid ? 'تسجّل إنهم دفعوا' : 'تسجّل إنهم لم يدفعوا') + ' (' + ids.length + ' طالب) عن شهر ' + payMonth() + '؟')) return;
-  paySet(ids, paid, '');
+  if (!confirm((paid ? 'تسجّل إنهم دفعوا المطلوب كامل' : 'تسجّل إنهم لم يدفعوا') + ' (' + ids.length + ' طالب) عن شهر ' + payMonth() + '؟')) return;
+  if (!paid) return paySet(ids.map(id => ({ id })), false);
+  paySet(ids.map(id => { const r = mpState.list.find(x => String(x.id) === String(id)) || {}; const d = payDue(r); return { id, amount: d === null ? (payBill(r) || 0) : Math.max(d, 0), date: '' }; }), true);
 };
+window.payPastDue = async function (id) {
+  const el = document.getElementById('payPD'); if (!el) return;
+  const v = el.value.trim() === '' ? 0 : Number(el.value);
+  if (!isFinite(v)) { showToast('اكتب رقم صحيح', true); return; }
+  try {
+    const rows = await mutate(`${PROFILES_TABLE}?id=eq.${enc(id)}`, 'PATCH', { past_due: payRound(v), updated_at: new Date().toISOString() });
+    rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
+    mpPaintList(); if (mpCur) payBoxPaint(); showToast('اتحفظ الباس دو ✓');
+  } catch (e) { showToast('فشل: ' + e.message + ' (شغّل 07_payment_amounts.sql لو لسه)', true); }
+};
+/* month calendar for the payment date */
+window.payPick = function (d) {
+  const h = document.getElementById('payDate'); if (h) h.value = d;
+  document.querySelectorAll('.p6-day').forEach(b => { const on = b.dataset.d === d; b.style.background = on ? '#059669' : '#0f172a'; b.style.color = on ? '#fff' : '#cbd5e1'; });
+};
+function payCalHtml(sel) {
+  const [y, m] = payMonth().split('-').map(Number);
+  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 1) % 7, n = new Date(Date.UTC(y, m, 0)).getUTCDate();   /* week starts Saturday */
+  const heads = ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'].map(x => `<span style="text-align:center;font-size:9px;color:#64748b">${x}</span>`).join('');
+  let cells = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= n; d++) {
+    const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, on = ds === sel;
+    cells += `<button type="button" class="p6-day" data-d="${ds}" onclick="payPick('${ds}')" style="border:1px solid #334155;border-radius:6px;padding:4px 0;font-size:11px;background:${on ? '#059669' : '#0f172a'};color:${on ? '#fff' : '#cbd5e1'}">${d}</button>`;
+  }
+  return `<input type="hidden" id="payDate" value="${esc(sel)}"><div style="font-size:10px;color:#94a3b8;margin:8px 0 4px">تاريخ الدفع · ${esc(payMonth())} (اضغط على اليوم)</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:280px">${heads}${cells}</div>`;
+}
 
 /* trainee cards: paid students are never shown as late */
 mpPaintList = function () {
@@ -2865,7 +2934,7 @@ mpPaintList = function () {
       <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
-        <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
+        ${payTag(r, paid)}</div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
         <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
         <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
@@ -2891,14 +2960,28 @@ mpPaintList = function () {
 function payBoxPaint() {
   const box = document.getElementById('payBox'); if (!box || !mpCur) return;
   const r = mpState.list.find(x => String(x.id) === String(mpCur.id)); if (!r) return;
-  const paid = isPaid(r), id = esc(r.id);
+  const paid = isPaid(r), id = esc(r.id), bill = payBill(r), due = payDue(r), pd = payNum(r.past_due);
+  const row = (k, v) => `<div class="p5-r"><span>${k}</span><b dir="auto">${v}</b></div>`;
+  const pdBox = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0"><span style="font-size:10px;color:#94a3b8">تعديل الباس دو (موجب = عليه · سالب = ليه):</span>
+      <input type="number" id="payPD" step="any" value="${pd || ''}" placeholder="0" style="width:110px"><button type="button" class="ds-b ghost" onclick="payPastDue('${id}')">حفظ</button></div>`;
+  let main;
+  if (paid) {
+    main = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <span class="ds-tag" style="background:#059669;color:#fff">دفع${r.paid_at ? ' · ' + esc(String(r.paid_at).slice(0, 10)) : ''}</span>
+      <span class="ds-tag" style="background:#0f172a;color:#34d399;border:1px solid #34d399">المبلغ: ${esc(r.paid_amount != null ? payFmt(r.paid_amount) : '—')}</span>
+      <button type="button" class="ds-b ghost" onclick="payMark('${id}',false)">إلغاء الدفع</button></div>`;
+  } else {
+    main = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span class="ds-tag" style="background:#be123c;color:#fff">لم يدفع</span>
+      <input type="number" id="payAmt" step="any" min="0" value="${due === null ? '' : Math.max(due, 0)}" placeholder="المبلغ اللي دفعه" style="width:150px">
+      <button type="button" class="ds-b green" onclick="payMark('${id}',true)"><i class="fa-solid fa-circle-check"></i> تم الدفع</button></div>
+      ${payCalHtml(dsToday())}`;
+  }
   box.innerHTML = `<h5>Payment · الدفع (${esc(payMonth())})</h5>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span class="ds-tag" style="background:${paid ? '#059669' : '#be123c'};color:#fff">${paid ? 'دفع' + (r.paid_at ? ' · ' + esc(String(r.paid_at).slice(0, 10)) : '') : 'لم يدفع'}</span>
-      ${paid ? `<button type="button" class="ds-b ghost" onclick="payMark('${id}',false)">إلغاء الدفع</button>`
-             : `<input type="date" id="payDate" title="تاريخ الدفع (اختياري)"><button type="button" class="ds-b green" onclick="payMark('${id}',true)"><i class="fa-solid fa-circle-check"></i> تم الدفع</button>`}
-    </div>
-    <div style="font-size:10px;color:#64748b;margin-top:6px">التاريخ اختياري. بعد الدفع بيوصله إشعار شكر مرة واحدة، وبيرجع "لم يدفع" لوحده الشهر الجاي.</div>`;
+    ${row('الاشتراك الشهري', bill === null ? 'مفيش رقم في الـ Subscription' : esc(payFmt(bill)))}
+    ${row('الباس دو / الرصيد', esc(payBalText(pd)))}
+    ${due === null ? '' : row('المطلوب دلوقتي', esc(payFmt(Math.max(due, 0))))}
+    ${pdBox}${main}
+    <div style="font-size:10px;color:#64748b;margin-top:8px">اكتب اللي دفعه فعلاً: لو أقل من المطلوب الباقي بيتحط باس دو لوحده، ولو أكتر بيتحط رصيد ليه بيتخصم الشهر الجاي. بعد الدفع بيوصله إشعار شكر مرة واحدة، وبيرجع "لم يدفع" لوحده الشهر الجاي.</div>`;
 }
 {
   const prevOpen = mpOpen;
@@ -2975,7 +3058,7 @@ function mpCardHtml(r, today) {
       <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
-        <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
+        ${payTag(r, paid)}</div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
         <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
         <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
@@ -3072,26 +3155,24 @@ async function hlRender() {
   const today = dsToday(), act = mpState.list.filter(r => mpStatus(r) === 'active');
   /* paid = anyone who paid this month (any status: the money is already with you); unpaid = Active only */
   const paid = mpState.list.filter(isPaid), unpaid = act.filter(r => !isPaid(r)), late = unpaid.filter(r => r.due_date && r.due_date < today);
-  /* amount per student = the biggest number found in the "subscription" text (Arabic digits and 1,500 supported) */
-  const amt = r => {
-    const t = String(r.subscription || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,٬]/g, '');
-    const m = t.match(/\d+(?:[.٫]\d+)?/g); if (!m) return null;
-    return Math.max(...m.map(x => parseFloat(x.replace('٫', '.'))));
-  };
-  const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
-  const total = paid.reduce((t, r) => t + (amt(r) || 0), 0), noAmt = paid.filter(r => amt(r) === null);
-  const chip = (r, bad) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}</span>`;
-  const paidChip = r => `<span class="nt-chip" dir="auto" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)">${esc(r.trainee || '')}${amt(r) !== null ? ' · ' + esc(fmt(amt(r))) : ''}</span>`;
+  const total = payRound(paid.reduce((t, r) => t + payPaidAmt(r), 0));
+  const owing = mpState.list.filter(r => payNum(r.past_due) > 0), owingTotal = payRound(owing.reduce((t, r) => t + payNum(r.past_due), 0));
+  const credit = mpState.list.filter(r => payNum(r.past_due) < 0);
+  const chip = (r, bad, extra) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}${extra ? ' · ' + esc(extra) : ''}</span>`;
+  const paidChip = r => `<span class="nt-chip" dir="auto" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)">${esc(r.trainee || '')} · ${esc(payFmt(payPaidAmt(r)))}</span>`;
+  const dueTxt = r => { const d = payDue(r); return d === null ? '' : String(d <= 0 ? 'مغطّى' : payFmt(d)); };
   w.body.innerHTML = `<div class="p5-g">
     <div class="p5-c"><h6><i class="fa-solid fa-coins"></i> Financial · ${esc(payMonth())}</h6>
       <div class="p5-r"><span>دفعوا</span><b style="color:#34d399">${paid.length}</b></div>
-      <div style="font-size:11px;color:#34d399;margin:4px 0 6px">الإجمالي اللي المفروض يكون معاك دلوقتي: <b style="font-size:14px">${esc(fmt(total))}</b></div>
+      <div style="font-size:11px;color:#34d399;margin:4px 0 6px">الإجمالي اللي المفروض يكون معاك دلوقتي: <b style="font-size:14px">${esc(payFmt(total))}</b></div>
       ${paid.length ? `<div style="margin-bottom:6px">${paid.map(paidChip).join('')}</div>` : ''}
-      ${noAmt.length ? `<div class="text-[10px]" style="color:#fbbf24;margin-bottom:6px">مفيش رقم في الـ Subscription عند: ${noAmt.map(r => esc(r.trainee || '')).join('، ')} (مش محسوبين في الإجمالي)</div>` : ''}
       <div class="p5-r"><span>لم يدفعوا</span><b>${unpaid.length}</b></div>
+      ${unpaid.length ? `<div style="margin:6px 0">${unpaid.map(r => chip(r, late.includes(r), dueTxt(r))).join('')}</div>` : ''}
       <div class="p5-r"><span>متأخرين عن الـ Due</span><b style="color:#fb7185">${late.length}</b></div>
-      ${unpaid.length ? `<div style="margin-top:8px">${unpaid.map(r => chip(r, late.includes(r))).join('')}</div>` : ''}
-      <div class="text-[10px] text-slate-500" style="margin-top:8px">الإجمالي = مجموع قيمة الـ Subscription للي دفعوا الشهر ده (أي حالة). "لم يدفعوا" محسوبة على الـ Active بس.</div></div>
+      <div class="p5-r"><span>باس دو (عليهم من قبل)</span><b style="color:${owing.length ? '#fb7185' : '#94a3b8'}">${esc(payFmt(owingTotal))}</b></div>
+      ${owing.length ? `<div style="margin:6px 0">${owing.map(r => chip(r, true, payFmt(r.past_due))).join('')}</div>` : ''}
+      ${credit.length ? `<div class="p5-r"><span>ليهم رصيد (دفعوا زيادة)</span><b style="color:#34d399">${credit.length}</b></div><div style="margin:6px 0">${credit.map(r => chip(r, false, payFmt(-payNum(r.past_due)))).join('')}</div>` : ''}
+      <div class="text-[10px] text-slate-500" style="margin-top:8px">الإجمالي = مجموع المبالغ اللي اتسجّلت إنهم دفعوها الشهر ده (أي حالة). الرقم جنب اللي لم يدفعوا = المطلوب منهم (الاشتراك + الباس دو − الرصيد).</div></div>
     <div class="p5-c"><h6><i class="fa-solid fa-calendar-check"></i> Attendance · الحضور</h6>
       <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يظهر هنا بالتفصيل.</div></div>
     <div class="p5-c"><h6><i class="fa-solid fa-flag"></i> Red flags</h6>
