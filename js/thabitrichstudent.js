@@ -136,6 +136,6 @@
 
   g.ThabitRichStudent = {
     init: function (o) { for (var k in o) cfg[k] = o[k]; if (document.body) bind(); else document.addEventListener('DOMContentLoaded', bind); },
-    play: play, stop: stop
+    play: play, stop: stop, resolve: resolveUrls
   };
 })(window);
