@@ -2798,3 +2798,108 @@ openStudentSupply = async function (id) {
     <div style="text-align:center;margin-top:10px"><button type="button" id="dsMoreBtn" class="ds-b ghost" onclick="dsMore()">More · باقي الشهر</button></div>`;
   dates.forEach((d, i) => { dsEl('supply_date', i).value = d; dsLoadRow(i, d); });
 };
+
+
+/* ==========================================================
+   Patch 4: manual "paid" status (paste at the END of adminpanel.js, after patch 3)
+   basic_info.paid_month = 'YYYY-MM' of the month he paid (Cairo time). Paid = paid_month equals the
+   current month, so it resets by itself next month. basic_info.paid_at = optional payment date.
+   Marking paid sends ONE thank-you notification per trainee per month.
+   ========================================================== */
+const PAY_THANKS = 'شكرًا على دفع المستحقات الشهرية.';
+const payMonth = () => dsToday().slice(0, 7);
+const isPaid = r => !!r && r.paid_month === payMonth();
+
+async function paySet(ids, paid, dateStr) {
+  ids = ids.map(String); if (!ids.length) return;
+  const month = payMonth();
+  const body = paid
+    ? { paid_month: month, paid_at: dateStr ? dateStr + 'T12:00:00Z' : new Date().toISOString(), updated_at: new Date().toISOString() }
+    : { paid_month: null, paid_at: null, updated_at: new Date().toISOString() };
+  let rows;
+  try { rows = await mutate(`${PROFILES_TABLE}?id=in.(${ids.map(enc).join(',')})`, 'PATCH', body); }
+  catch (e) { showToast('فشل تسجيل الدفع: ' + e.message + ' (شغّل 06_paid.sql لو لسه)', true); return; }
+  rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
+  mpPaintList();
+  if (mpCur) payBoxPaint();
+  if (!paid) { showToast('اتسجّل إنهم لم يدفعوا ✓'); return; }
+  let sent = 0;
+  try {
+    const have = await fetchAllRows(`notifications?select=trainee_id&kind=eq.message&meta->>thanks_month=eq.${month}&trainee_id=in.(${ids.map(enc).join(',')})`);
+    const got = new Set(have.map(r => String(r.trainee_id)));
+    const out = rows.filter(r => !got.has(String(r.id))).map(r => ({ trainee_id: r.id, kind: 'message', title: 'شكرًا لك', body: PAY_THANKS, meta: { thanks_month: month } }));
+    if (out.length) await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
+    sent = out.length;
+  } catch (e) { showToast('اتسجّل الدفع، بس رسالة الشكر ما اتبعتتش: ' + e.message, true, true); return; }
+  showToast(`اتسجّل الدفع لـ ${rows.length} ✓` + (sent ? ` · وراح شكر لـ ${sent}` : ' · (الشكر اتبعت قبل كده الشهر ده)'));
+}
+window.payMark = function (id, paid) {
+  const d = document.getElementById('payDate');
+  paySet([id], paid, d && d.value ? d.value : '');
+};
+window.payMarkSel = function (paid) {
+  const ids = [...mpState.sel]; if (!ids.length) return;
+  if (!confirm((paid ? 'تسجّل إنهم دفعوا' : 'تسجّل إنهم لم يدفعوا') + ' (' + ids.length + ' طالب) عن شهر ' + payMonth() + '؟')) return;
+  paySet(ids, paid, '');
+};
+
+/* trainee cards: paid students are never shown as late */
+mpPaintList = function () {
+  const g = document.getElementById('mpGrid'); if (!g) return;
+  const today = dsToday();
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+  g.innerHTML = rows.map(r => {
+    const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today;
+    const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+    const on = mpState.sel.has(String(r.id));
+    return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
+      <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+        <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+        <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
+        <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+        <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
+        <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
+        <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
+        <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
+  }).join('') || '<div class="tha-note">مفيش نتائج.</div>';
+  mpPaintBar();
+};
+
+/* bulk bar: paid / not paid for the selected */
+{
+  const prevBar = mpPaintBar;
+  mpPaintBar = function () {
+    prevBar();
+    const b = document.getElementById('mpBar'), n = mpState.sel.size; if (!b) return;
+    b.insertAdjacentHTML('beforeend', '<span class="ws-sep"></span>'
+      + `<button type="button" class="ds-b green" ${n ? '' : 'disabled'} onclick="payMarkSel(true)"><i class="fa-solid fa-circle-check"></i> دفع</button>`
+      + `<button type="button" class="ds-b ghost" ${n ? '' : 'disabled'} onclick="payMarkSel(false)">لم يدفع</button>`);
+  };
+}
+
+/* Profile window: payment section */
+function payBoxPaint() {
+  const box = document.getElementById('payBox'); if (!box || !mpCur) return;
+  const r = mpState.list.find(x => String(x.id) === String(mpCur.id)); if (!r) return;
+  const paid = isPaid(r), id = esc(r.id);
+  box.innerHTML = `<h5>Payment · الدفع (${esc(payMonth())})</h5>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="ds-tag" style="background:${paid ? '#059669' : '#be123c'};color:#fff">${paid ? 'دفع' + (r.paid_at ? ' · ' + esc(String(r.paid_at).slice(0, 10)) : '') : 'لم يدفع'}</span>
+      ${paid ? `<button type="button" class="ds-b ghost" onclick="payMark('${id}',false)">إلغاء الدفع</button>`
+             : `<input type="date" id="payDate" title="تاريخ الدفع (اختياري)"><button type="button" class="ds-b green" onclick="payMark('${id}',true)"><i class="fa-solid fa-circle-check"></i> تم الدفع</button>`}
+    </div>
+    <div style="font-size:10px;color:#64748b;margin-top:6px">التاريخ اختياري. بعد الدفع بيوصله إشعار شكر مرة واحدة، وبيرجع "لم يدفع" لوحده الشهر الجاي.</div>`;
+}
+{
+  const prevOpen = mpOpen;
+  mpOpen = function (id) {
+    prevOpen(id);
+    if (!mpCur) return;
+    const w = WSE.prof; if (!w) return;
+    const d = document.createElement('div'); d.className = 'mp-sec'; d.id = 'payBox';
+    w.body.insertBefore(d, w.body.children[1] || null);
+    payBoxPaint();
+  };
+}
