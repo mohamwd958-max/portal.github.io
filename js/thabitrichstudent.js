@@ -18,33 +18,40 @@
   function M(k) { var l = 'en'; try { l = cfg.getLang(); } catch (e) {} return (MSG[l] || MSG.en)[k]; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  /* identical to the Assistant's cleanWordString */
-  function clean(str) { return !str ? '' : String(str).trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”]/g, ''); }
-  function splitParts(s) { return String(s || '').split(/[,،\n]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  /* identical to the Assistant's cleanWordString and to the SQL column words_table.word_key */
+  function clean(str) { return !str ? '' : String(str).toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"\u201C\u201D\u2018\u2019]/g, '').replace(/\s+/g, ' ').trim(); }
+  function splitParts(s) { return String(s || '').split(/[,\u060C\n]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
 
-  var cache = null, cacheAt = 0, counts = {}, audio = null, token = 0, current = null, io = null, mo = null, bound = false;
+  var counts = {}, audio = null, token = 0, current = null, io = null, mo = null, bound = false;
   try { counts = JSON.parse(sessionStorage.getItem('thabitRichPlays') || '{}') || {}; } catch (e) { counts = {}; }
   function saveCounts() { try { sessionStorage.setItem('thabitRichPlays', JSON.stringify(counts)); } catch (e) {} }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  function getList() {
-    if (cache && Date.now() - cacheAt < 60000) return Promise.resolve(cache);
-    return fetch(cfg.supabaseUrl + '/rest/v1/' + cfg.table + '?select=word,audio_url', { headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + cfg.anonKey } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) { cache = Array.isArray(d) ? d : []; cacheAt = Date.now(); return cache; });
+  /* one small indexed query per word (the table can hold tens of thousands of rows); word_key column, ILIKE fallback */
+  var urlCache = {}, wordKeyOK = true;
+  function lookup(word) {
+    var c = clean(word); if (!c) return Promise.resolve(null);
+    var hit = urlCache[c]; if (hit && Date.now() - hit.t < 60000) return Promise.resolve(hit.u);
+    var H = { apikey: cfg.anonKey, Authorization: 'Bearer ' + cfg.anonKey };
+    var base = cfg.supabaseUrl + '/rest/v1/' + cfg.table + '?select=audio_url&audio_url=not.is.null&limit=1';
+    var first = wordKeyOK
+      ? fetch(base + '&word_key=eq.' + encodeURIComponent(c), { headers: H }).then(function (r) { if (!r.ok) { wordKeyOK = false; return null; } return r.json(); })
+      : Promise.resolve(null);
+    return first.then(function (rows) {
+      if (rows !== null) return rows;
+      return fetch(base + '&word=ilike.' + encodeURIComponent(String(word).trim().replace(/[\\%_]/g, function (m) { return '\\' + m; })), { headers: H })
+        .then(function (r) { if (!r.ok) throw new Error('lookup'); return r.json(); });
+    }).then(function (rows) {
+      var u = Array.isArray(rows) && rows[0] ? rows[0].audio_url : null;
+      urlCache[c] = { u: u, t: Date.now() }; return u;
+    });
   }
-  function findAudio(list, part) {
-    var c = clean(part), url = null;
-    list.forEach(function (r) { if (r.word && r.audio_url && clean(r.word) === c) url = r.audio_url; });
-    return url;
-  }
-  function resolve(list, text) {
-    var whole = findAudio(list, text);
-    if (whole) return [whole];
-    var parts = splitParts(text);
-    if (parts.length < 2) return null;
-    var urls = parts.map(function (p) { return findAudio(list, p); });
-    return urls.every(Boolean) ? urls : null;
+  function resolveUrls(text) {                         // whole text first; "a, b" -> each part, only if every part exists
+    return lookup(text).then(function (u) {
+      if (u) return [u];
+      var parts = splitParts(text); if (parts.length < 2) return null;
+      return Promise.all(parts.map(lookup)).then(function (us) { return us.every(Boolean) ? us : null; });
+    });
   }
 
   function toast(m) {
@@ -82,9 +89,8 @@
     stop();
     var my = token; current = span;
     span.classList.remove('rt-pulse'); span.classList.add('rt-playing');
-    getList().then(function (list) {
+    resolveUrls(word).then(function (urls) {
       if (my !== token) return;
-      var urls = resolve(list, word);
       if (!urls) { stop(); toast(M('missing')); return; }
       var k = clean(word); counts[k] = (counts[k] || 0) + 1; saveCounts();
       var n = counts[k];
