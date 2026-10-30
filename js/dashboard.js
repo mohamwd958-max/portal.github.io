@@ -411,6 +411,7 @@ function watchTodo() {
 }
 async function load() {
   const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
+  if (d && d.blocked && !VIEW) { showBlocked(d.blocked); return; }
   if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
     $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
@@ -638,6 +639,7 @@ function initFloat() {
     else if (introDone()) { btn.classList.remove('empty'); btn.classList.add('done'); updateFeed(); setTimeout(chartsGo, 300); }   // refresh: no animation, no pop-up
     else runIntro(btn);
   } else updateFeed();
+  if (!window._gatePoll && !VIEW) window._gatePoll = setInterval(checkGate, 60000);
   if (!window._ntPoll) {
     window._ntPoll = setInterval(refreshNotes, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotes(); });
@@ -1208,3 +1210,27 @@ function unfloatHeader() {
 }
 [300, 1200, 3000].forEach(t => setTimeout(unfloatHeader, t));
 window.addEventListener('load', unfloatHeader);
+
+
+/* ===== Access gate: only status "active" gets in. Terminated -> one message, everything else (paused / pending / ...) -> another ===== */
+const GATE_MSG = {
+  en: { terminated: 'These credentials are not valid anymore or are not operating anymore. Kindly contact your trainer for more information.', disabled: "We're sorry. We apologize for the inconvenience, but your credentials are currently disabled. Kindly contact your trainer for more information.", back: 'Back to login' },
+  ar: { terminated: 'بيانات الدخول هذه لم تعد صالحة أو لم تعد قيد التشغيل. يرجى التواصل مع مدربك لمزيد من المعلومات.', disabled: 'نعتذر عن الإزعاج، لكن بيانات الدخول الخاصة بك معطّلة حالياً. يرجى التواصل مع مدربك لمزيد من المعلومات.', back: 'العودة لتسجيل الدخول' },
+  eg: { terminated: 'بيانات الدخول دي ما بقتش صالحة أو ما بقتش شغالة. من فضلك كلّم المدرب بتاعك لمزيد من المعلومات.', disabled: 'آسفين على الإزعاج، بس بيانات الدخول بتاعتك متوقفة حالياً. من فضلك كلّم المدرب بتاعك لمزيد من المعلومات.', back: 'رجوع لتسجيل الدخول' }
+};
+function showBlocked(kind) {
+  const m = GATE_MSG[lang] || GATE_MSG.en, txt = kind === 'terminated' ? m.terminated : m.disabled;
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
+  clearInterval(window._ntPoll); clearInterval(window._gatePoll);
+  let o = document.getElementById('gateBox');
+  if (!o) { o = document.createElement('div'); o.id = 'gateBox'; document.body.appendChild(o); }
+  o.setAttribute('dir', lang === 'en' ? 'ltr' : 'rtl');
+  o.style.cssText = 'position:fixed;inset:0;z-index:30000;display:flex;align-items:center;justify-content:center;padding:20px;background:#05070d;color:#f1f5f9;font-family:Inter,Cairo,sans-serif';
+  o.innerHTML = `<div style="max-width:420px;width:100%;text-align:center;padding:26px 22px;border-radius:22px;background:#0f172a;border:1px solid rgba(255,255,255,.15);line-height:1.8;font-size:.95rem"><div style="font-size:2rem;margin-bottom:8px">🔒</div><p style="margin:0 0 18px">${txt}</p><a href="${PORTAL}" style="display:inline-block;padding:10px 20px;border-radius:12px;background:#fbbf24;color:#111;font-weight:700;text-decoration:none">${m.back}</a></div>`;
+  document.querySelectorAll('.fl,#mobileFloatingBar,.pop').forEach(e => e.style.display = 'none');
+}
+async function checkGate() {
+  if (VIEW || !tok()) return;
+  const r = await rpc('trainee_status', { p_token: tok() }).catch(() => null);
+  if (r && r !== 'active') showBlocked(r);
+}
