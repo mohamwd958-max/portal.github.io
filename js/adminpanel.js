@@ -2903,3 +2903,133 @@ function payBoxPaint() {
     payBoxPaint();
   };
 }
+
+
+/* ==========================================================
+   Patch 5 (paste at the END of adminpanel.js, after patches 3 and 4)
+   - trainee list grouped by status: Active on top, then Pending, Past, Terminated, each with a divider;
+     inside each group the profiles you open most come first
+   - new windows: Database (Supabase + Cloudflare) and Highlights (Financial / Attendance / Red flags)
+   ========================================================== */
+(function () {
+  if (document.getElementById('p5Css')) return;
+  const s = document.createElement('style'); s.id = 'p5Css';
+  s.textContent = `.mp-card.mp-dim{opacity:.7}
+.p5-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.p5-c{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:12px}
+.p5-c h6{font-size:12px;font-weight:800;color:#fbbf24;margin-bottom:8px}
+.p5-r{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #1e293b;font-size:12px}.p5-r:last-child{border:0}
+.p5-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-inline-end:6px}`;
+  document.head.appendChild(s);
+})();
+
+/* ---------- status + open counts ---------- */
+function mpStatus(r) {
+  const s = String(r.status_as_of_today || '').toLowerCase();
+  if (/terminat|منته|ملغ|مفصول/.test(s)) return 'terminated';
+  if (/past|سابق|قديم/.test(s)) return 'past';
+  if (/pend|انتظار|منتظر|معلق/.test(s)) return 'pending';
+  return 'active';
+}
+const OC_KEY = 'thabit_open_counts';
+function ocGet() { try { return JSON.parse(localStorage.getItem(OC_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function ocBump(id) { try { const c = ocGet(); c[String(id)] = (c[String(id)] || 0) + 1; localStorage.setItem(OC_KEY, JSON.stringify(c)); } catch (e) { } }
+{
+  const wrap = name => { const f = window[name]; if (typeof f !== 'function') return; window[name] = function (id) { ocBump(id); return f.apply(this, arguments); }; };
+  ['mpOpen', 'openStudentSupply', 'openStudentDashboard', 'openStudentNotify'].forEach(wrap);
+}
+
+function mpCardHtml(r, today) {
+  const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today, st = mpStatus(r);
+  const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+  const on = mpState.sel.has(String(r.id));
+  return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
+      <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+        <small dir="auto">${esc([r['preferred name'], r.subscription].filter(Boolean).join(' · '))}</small>
+        <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
+        <small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) : 'لم يدفع ' + esc(payMonth())}</small></div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+        <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
+        <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
+        <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
+        <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
+}
+const MP_GROUPS = [['active', 'Active · شغّالين'], ['pending', 'Pending · منتظرين'], ['past', 'Past · سابقين'], ['terminated', 'Terminated · منتهي']];
+mpPaintList = function () {
+  const g = document.getElementById('mpGrid'); if (!g) return;
+  const today = dsToday(), cnt = ocGet();
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${r['preferred name'] || ''}`.toLowerCase().includes(mpState.q));
+  const byOpens = (a, b) => (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
+  let html = '', first = true;
+  MP_GROUPS.forEach(([k, label]) => {
+    const part = rows.filter(r => mpStatus(r) === k).sort(byOpens);
+    if (!part.length) return;
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:${first ? '0' : '12px'} 0 2px;color:#94a3b8;font-size:11px;font-weight:800"><span style="flex:1;height:1px;background:#334155"></span><span>${esc(label)} · ${part.length}</span><span style="flex:1;height:1px;background:#334155"></span></div>`;
+    html += part.map(r => mpCardHtml(r, today)).join('');
+    first = false;
+  });
+  g.innerHTML = html || '<div class="tha-note">مفيش نتائج.</div>';
+  mpPaintBar();
+};
+
+/* ---------- new windows ---------- */
+WSD.db = { t: 'Database · الداتابيز', i: 'fa-database', w: 2 };
+WSD.hl = { t: 'Highlights', i: 'fa-star', w: 2 };
+WS_REFRESH.db = 1; WS_REFRESH.hl = 1;
+{
+  const prevLoad = wsLoad;
+  wsLoad = function (k) {
+    if (k === 'db') return dbRender();
+    if (k === 'hl') return hlRender();
+    return prevLoad(k);
+  };
+}
+
+async function dbCount(t) {
+  try {
+    const res = await sbFetch(`${t}?select=*&limit=1`, { headers: { Prefer: 'count=exact' } });
+    const n = (res.headers.get('content-range') || '').split('/')[1];
+    return n && n !== '*' ? n : '?';
+  } catch (e) { return null; }
+}
+async function dbRender() {
+  const w = WSE.db; if (!w) return;
+  const ref = (String(SUPABASE_URL).match(/^https:\/\/([^.]+)\./) || [])[1] || '';
+  const TABLES = [PROFILES_TABLE, DAILY_SUPPLY_TABLE, ARCHIVE_TABLE, 'supply_items', 'notifications', 'reports', 'words_table', 'due_words_table', 'broken_words_table'];
+  w.body.innerHTML = `<div class="p5-g">
+    <div class="p5-c"><h6><span class="p5-dot" id="dbDot"></span>Supabase</h6>
+      <div id="dbRows" class="text-xs text-slate-400">جاري الفحص...</div>
+      <div style="margin-top:10px"><a class="ds-b blue" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح لوحة Supabase</a></div></div>
+    <div class="p5-c"><h6><span class="p5-dot"></span>Cloudflare</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">لسه مش متوصّل بالأدمن. هنا هتظهر الملفات (الصوت والفيديو) اللي بتتخزن على Cloudflare ولينكاتها لما نوصّله.</div>
+      <div style="margin-top:10px"><a class="ds-b ghost" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://dash.cloudflare.com/"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح Cloudflare</a></div></div></div>`;
+  const counts = await Promise.all(TABLES.map(dbCount));
+  const rows = $id('dbRows'), dot = $id('dbDot'); if (!rows) return;
+  const okAny = counts.some(c => c !== null);
+  if (dot) dot.style.background = okAny ? '#10b981' : '#e11d48';
+  rows.innerHTML = TABLES.map((t, i) => `<div class="p5-r"><span dir="ltr">${esc(t)}</span><b style="color:${counts[i] === null ? '#fb7185' : '#e2e8f0'}">${counts[i] === null ? 'تعذر' : esc(counts[i])}</b></div>`).join('');
+}
+
+async function hlRender() {
+  const w = WSE.hl; if (!w) return;
+  w.body.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  if (!mpState.list.length) {
+    try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; }
+    catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
+  }
+  const today = dsToday(), act = mpState.list.filter(r => mpStatus(r) === 'active');
+  const paid = act.filter(isPaid), unpaid = act.filter(r => !isPaid(r)), late = unpaid.filter(r => r.due_date && r.due_date < today);
+  const chip = (r, bad) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}</span>`;
+  w.body.innerHTML = `<div class="p5-g">
+    <div class="p5-c"><h6><i class="fa-solid fa-coins"></i> Financial · ${esc(payMonth())}</h6>
+      <div class="p5-r"><span>دفعوا</span><b style="color:#34d399">${paid.length}</b></div>
+      <div class="p5-r"><span>لم يدفعوا</span><b>${unpaid.length}</b></div>
+      <div class="p5-r"><span>متأخرين عن الـ Due</span><b style="color:#fb7185">${late.length}</b></div>
+      ${unpaid.length ? `<div style="margin-top:8px">${unpaid.map(r => chip(r, late.includes(r))).join('')}</div>` : ''}
+      <div class="text-[10px] text-slate-500" style="margin-top:8px">محسوبة على الطلاب الـ Active بس.</div></div>
+    <div class="p5-c"><h6><i class="fa-solid fa-calendar-check"></i> Attendance · الحضور</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يظهر هنا بالتفصيل.</div></div>
+    <div class="p5-c"><h6><i class="fa-solid fa-flag"></i> Red flags</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يعتبر Red flag وأظهره هنا.</div></div></div>`;
+}
