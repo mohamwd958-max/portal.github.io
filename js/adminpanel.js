@@ -1273,7 +1273,7 @@ function fmtDT(v) {
 /* word lists: "النهاردة · 2:05 PM" / "امبارح · 9:30 AM" / "الأربعاء · 4:10 PM" (Cairo time, 12-hour clock) */
 function fmtWordDT(v) {
     if (!v) return '';
-    const s = String(v), d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    const s = String(v), d = typeof v === 'number' ? new Date(v) : new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
     if (isNaN(d)) return s;
     const TZ = 'Africa/Cairo';
     const day = d.toLocaleDateString('en-CA', { timeZone: TZ }), today = dsToday();
@@ -1325,7 +1325,7 @@ async function deleteReport(id) {
 /* ==========================================================
    Voices: word lists (due_words_table / broken_words_table; trash = status 'trash')
    ========================================================== */
-const WL = { due: [], broken: [], trash: [], have: new Set() };
+const WL = { due: [], broken: [], trash: [], have: new Map() };   // have: cleaned word -> audio url
 const stOf = r => String(r.status || '').toLowerCase();
 const wkey = s => String(s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”]/g, '');   // same cleaning the Assistant uses
 
@@ -1404,9 +1404,9 @@ async function refreshWordLists() {
         const [due, brk, have] = await Promise.all([
             fetchAllRows('due_words_table?select=*&order=created_at.desc'),
             fetchAllRows('broken_words_table?select=*&order=created_at.desc'),
-            fetchAllRows('words_table?select=word').catch(() => [])
+            fetchAllRows('words_table?select=word,audio_url').catch(() => [])
         ]);
-        WL.have = new Set((have || []).map(r => wkey(r.word)));
+        WL.have = new Map((have || []).map(r => [wkey(r.word), r.audio_url || '']));
         const active = r => stOf(r) !== 'trash' && stOf(r) !== 'done';
         WL.due = due.filter(active).sort((a, b) => (b.priority === 'high') - (a.priority === 'high'));
         WL.broken = brk.filter(active);
@@ -1424,6 +1424,8 @@ async function refreshWordLists() {
         + '.wl-ln{flex:1;height:1px;background:rgba(148,163,184,.35)}.wl-nm{font-weight:700;color:#cbd5e1}.wl-ct{opacity:.7}'
         + '.wl-grid{display:grid;grid-template-columns:1fr 1fr;margin-top:6px}.wl-col{display:flex;flex-direction:column;gap:3px;padding:0 8px 0 0;min-width:0}.wl-col.wl-r{padding:0 0 0 8px;border-left:1px solid rgba(148,163,184,.35)}'
         + '.wl-it{display:flex;align-items:center;gap:4px;font-size:11.5px;line-height:1.5}.wl-t{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}.wl-t:hover{color:#fbbf24}.wl-it.wl-done .wl-t{opacity:.5}.wl-it i.fa-check{color:#34d399;font-size:10px}'
+        + '.wl-it{flex-wrap:wrap;user-select:none}.wl-url{flex-basis:100%;display:flex;gap:4px;align-items:center;font-size:9.5px;opacity:.75;user-select:text}.wl-url span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+        + '.wl-tb{display:flex;align-items:center;gap:8px;margin-bottom:6px}.wl-sel{background:rgba(245,158,11,.22)!important;outline:1px solid #f59e0b;border-radius:6px}.wl-row{user-select:none}'
         + '.wl-b{padding:1px 6px;border-radius:6px;background:rgba(71,85,105,.8);font-size:10px;color:#e2e8f0}.wl-em{font-size:10px;opacity:.5}';
     document.head.appendChild(s);
 })();
@@ -1439,22 +1441,33 @@ function groupWordRows(list) {
     });
     return groups.sort((a, b) => b.last - a.last);
 }
+const urlLine = w => {
+    const u = WL.have.get(wkey(w));
+    return u ? `<div class="wl-url"><span dir="ltr" title="${esc(u)}">${esc(u)}</span><button type="button" class="wl-b" title="Copy URL" data-u="${esc(u)}" onclick="copyWordUrl(this)"><i class="fa-regular fa-copy"></i></button></div>` : '';
+};
+function copyWordUrl(b) {
+    const u = b.dataset.u || '';
+    const fb = () => { const t = document.createElement('textarea'); t.value = u; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} t.remove(); showToast(ok ? 'اتنسخ ✓' : 'مقدرتش أنسخ', !ok); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(() => showToast('اتنسخ ✓'), fb); else fb();
+}
+const wlBar = kind => `<div class="wl-tb"><button type="button" class="wl-b" onclick="wlSelectAll('${kind}')"><i class="fa-regular fa-square-check"></i> تحديد الكل</button><span class="wl-em">Ctrl+click · اسحب مربع · كليك يمين</span></div>`;
 function groupedHtml(kind, empty) {
     const list = WL[kind];
     if (!list.length) return `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`;
-    return groupWordRows(list).map((g, gi) => {
+    return wlBar(kind) + groupWordRows(list).map((g, gi) => {
         const sents = [], words = [], seen = new Set();
         g.items.forEach(({ r, i }) => { const w = String(r.word || '').trim(); if (!w) return; seen.add(wkey(w)); (/\s/.test(w) ? sents : words).push({ r, i, w }); });
-        const derived = []; let doneN = 0;
-        sents.forEach(s => splitUnits(s.w).forEach(u => { const k = wkey(u); if (seen.has(k)) return; seen.add(k); if (WL.have.has(k)) doneN++; else derived.push(u); }));
+        const derived = [], doneL = [];
+        sents.forEach(s => splitUnits(s.w).forEach(u => { const k = wkey(u); if (seen.has(k)) return; seen.add(k); (WL.have.has(k) ? doneL : derived).push(u); }));
         const high = g.items.some(x => x.r.priority === 'high');
         const trash = i => `<button type="button" class="wl-b" title="Trash" onclick="trashListedWord('${kind}',${i})"><i class="fa-solid fa-trash"></i></button>`;
         const play = w => kind === 'broken' ? `<button type="button" class="wl-b" title="Play" data-w="${esc(w)}" onclick="playWordPop(this.dataset.w)"><i class="fa-solid fa-volume-high"></i></button>` : '';
-        const item = ({ i, w }) => { const have = WL.have.has(wkey(w)); return `<div class="wl-it${have ? ' wl-done' : ''}"><span class="wl-t" dir="auto" onclick="useListedWord('${kind}',${i})">${esc(w)}</span>${have ? '<i class="fa-solid fa-check"></i>' : ''}${play(w)}${trash(i)}</div>`; };
+        const item = ({ i, w }) => { const have = WL.have.has(wkey(w)); return `<div class="wl-it${have ? ' wl-done' : ''}" data-sel="${kind}:${i}"><span class="wl-t" dir="auto" onclick="useListedWord('${kind}',${i})">${esc(w)}</span>${have ? '<i class="fa-solid fa-check"></i>' : ''}${play(w)}${trash(i)}${urlLine(w)}</div>`; };
         const dItem = u => `<div class="wl-it"><span class="wl-t" dir="auto" data-w="${esc(u)}" onclick="useWordText(this.dataset.w)">${esc(u)}</span></div>`;
+        const doneBox = doneL.length ? `<details class="wl-em"><summary style="cursor:pointer">+${doneL.length} مسجّلة ✓</summary>${doneL.map(u => `<div class="wl-it wl-done"><span class="wl-t" dir="auto">${esc(u)}</span>${urlLine(u)}</div>`).join('')}</details>` : '';
         return `<details class="wl-g"${gi < 2 ? ' open' : ''}><summary class="wl-sum"><span class="wl-ln"></span><span class="wl-nm">${esc(g.name)} · ${esc(fmtWordDT(g.last))}</span>${high ? '<span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold">HIGH</span>' : ''}<span class="wl-ct">${sents.length} جمل · ${words.length + derived.length} كلمات</span><span class="wl-ln"></span></summary>`
             + `<div class="wl-grid" dir="ltr"><div class="wl-col">${sents.map(item).join('') || '<span class="wl-em">—</span>'}</div>`
-            + `<div class="wl-col wl-r">${words.map(item).join('')}${derived.map(dItem).join('')}${doneN ? `<div class="wl-em">+${doneN} مسجّلة ✓</div>` : ''}${words.length + derived.length + doneN ? '' : '<span class="wl-em">—</span>'}</div></div></details>`;
+            + `<div class="wl-col wl-r">${words.map(item).join('')}${derived.map(dItem).join('')}${doneBox}${words.length + derived.length + doneL.length ? '' : '<span class="wl-em">—</span>'}</div></div></details>`;
     }).join('');
 }
 
@@ -1463,15 +1476,19 @@ function wordRow(r, kind, i) {
     const acts = kind === 'trash'
         ? btn('restoreFromTrash', 'fa-rotate-left', 'Restore') + btn('purgeFromTrash', 'fa-xmark', 'Delete forever')
         : btn('useListedWord', 'fa-microphone', 'Record') + btn('trashListedWord', 'fa-trash', 'Trash');
-    return `<div class="flex items-center justify-between gap-2 text-xs bg-slate-800/60 rounded-lg p-2">
+    return `<div class="wl-row flex items-center justify-between gap-2 text-xs bg-slate-800/60 rounded-lg p-2" data-sel="${kind}:${i}">
       <div class="min-w-0"><b dir="auto" class="break-words">${esc(r.word)}</b>${r.priority === 'high' ? ' <span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold">HIGH</span>' : ''}
       <div class="text-[10px] text-slate-400">${esc(r.trainee_name || '')} · ${esc(fmtWordDT(r.created_at))}</div></div>
       <div class="flex gap-1 flex-none">${acts}</div></div>`;
 }
 function renderWordLists() {
+    Object.keys(SEL).forEach(k => SEL[k].clear());
     const put = (id, cnt, list, kind, empty) => {
         const c = $id(id);
-        if (c) { c.innerHTML = kind === 'trash' ? (list.length ? list.map((r, i) => wordRow(r, kind, i)).join('') : `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`) : groupedHtml(kind, empty); if (kind !== 'trash') c.style.maxHeight = '60vh'; }
+        if (c) {
+            c.innerHTML = kind === 'trash' ? (list.length ? wlBar(kind) + list.map((r, i) => wordRow(r, kind, i)).join('') : `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`) : groupedHtml(kind, empty);
+            c.style.maxHeight = '60vh';
+        }
         const n = $id(cnt); if (n) n.textContent = list.length;
     };
     put('dueWordsContainer', 'dueWordsCount', WL.due, 'due', 'No pending words right now.');
@@ -1479,7 +1496,129 @@ function renderWordLists() {
     put('trashWordsContainer', 'trashCount', WL.trash, 'trash', 'Trash is empty.');
     const b = $id('voicesBadge'), pending = WL.due.length + WL.broken.length;
     if (b) { b.textContent = pending; b.style.display = pending ? 'inline-flex' : 'none'; }
+    updateSelBar();
 }
+
+/* ==========================================================
+   Selection (due / broken / trash): Ctrl+click, drag a rectangle, right-click menu, Select all, bulk Trash / Restore / Delete forever
+   ========================================================== */
+const SEL = { due: new Set(), broken: new Set(), trash: new Set() };
+const selCount = () => SEL.due.size + SEL.broken.size + SEL.trash.size;
+const selKind = () => ['due', 'broken', 'trash'].find(k => SEL[k].size) || null;
+function selPaint() {
+    document.querySelectorAll('[data-sel]').forEach(el => { const p = el.dataset.sel.split(':'); el.classList.toggle('wl-sel', !!SEL[p[0]] && SEL[p[0]].has(+p[1])); });
+    updateSelBar();
+}
+function selSet(k, i, on) {
+    Object.keys(SEL).forEach(x => { if (x !== k) SEL[x].clear(); });
+    const s = SEL[k], v = on === undefined ? !s.has(i) : on;
+    v ? s.add(i) : s.delete(i);
+}
+function wlSelectAll(kind) { Object.keys(SEL).forEach(x => SEL[x].clear()); WL[kind].forEach((_, i) => SEL[kind].add(i)); selPaint(); }
+function selClear() { Object.keys(SEL).forEach(k => SEL[k].clear()); selPaint(); }
+function selGroup(det) {
+    const els = Array.prototype.slice.call(det.querySelectorAll('[data-sel]')); if (!els.length) return;
+    const ps = els.map(el => el.dataset.sel.split(':')), all = ps.every(p => SEL[p[0]].has(+p[1]));
+    ps.forEach(p => selSet(p[0], +p[1], !all)); selPaint();
+}
+async function wlBulk(op) {
+    const kind = selKind(); if (!kind) return;
+    const rows = Array.from(SEL[kind]).map(i => WL[kind][i]).filter(Boolean); if (!rows.length) return;
+    if (op === 'purge' && !confirm('تمسح ' + rows.length + ' نهائي؟')) return;
+    if (op === 'trash' && rows.length > 1 && !confirm('تنقل ' + rows.length + ' للسلة؟')) return;
+    const byT = {};
+    rows.forEach(r => { const t = kind === 'trash' ? r._t : tableOf(kind); (byT[t] = byT[t] || []).push(r.id); });
+    try {
+        for (const t in byT) {
+            const q = `${t}?id=in.(${byT[t].map(enc).join(',')})`;
+            if (op === 'purge') await mutate(q, 'DELETE'); else await mutate(q, 'PATCH', { status: op === 'trash' ? 'trash' : 'pending' });
+        }
+        showToast(op === 'trash' ? 'اتنقلت للسلة ✓' : op === 'restore' ? 'اترجعت ✓' : 'اتمسحت نهائي ✓');
+        selClear(); refreshWordLists();
+    } catch (e) { showToast('فشل: ' + e.message, true); }
+}
+function updateSelBar() {
+    let bar = $id('wlSelBar');
+    const n = selCount(), kind = selKind();
+    if (!n) { if (bar) bar.style.display = 'none'; return; }
+    if (!bar) {
+        bar = document.createElement('div'); bar.id = 'wlSelBar';
+        bar.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483100;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 12px;border-radius:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(245,158,11,.6);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .78rem Cairo,sans-serif;max-width:94vw';
+        document.body.appendChild(bar);
+    }
+    const b = (fn, t, c) => `<button type="button" class="wl-b" style="padding:6px 10px;font-size:.75rem;${c || ''}" onclick="${fn}">${t}</button>`;
+    bar.innerHTML = `<span>${n} محدد</span>` + b(`wlSelectAll('${kind}')`, 'تحديد الكل')
+        + (kind === 'trash' ? b("wlBulk('restore')", 'استرجاع', 'background:#059669') + b("wlBulk('purge')", 'مسح نهائي', 'background:#e11d48') : b("wlBulk('trash')", 'نقل للسلة', 'background:#e11d48'))
+        + b('selClear()', 'إلغاء');
+    bar.style.display = 'flex';
+}
+function closeCtx() { const m = $id('wlCtx'); if (m) m.remove(); }
+function showCtx(x, y, kind, det) {
+    closeCtx();
+    const m = document.createElement('div'); m.id = 'wlCtx';
+    m.style.cssText = 'position:fixed;z-index:2147483150;min-width:190px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(148,163,184,.45);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .78rem Cairo,sans-serif;color:#f1f5f9';
+    const n = SEL[kind].size, it = (fn, t, c) => `<div data-f="${fn}" style="padding:7px 10px;border-radius:8px;cursor:pointer;${c || ''}" onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''">${t}</div>`;
+    m.innerHTML = it('all', 'تحديد الكل في القايمة') + (det ? it('grp', 'تحديد المجموعة دي') : '') + (selCount() ? it('clr', 'إلغاء التحديد') : '')
+        + (n ? (kind === 'trash' ? it('restore', `↩ استرجاع المحدد (${n})`) + it('purge', `✖ مسح نهائي (${n})`, 'color:#fb7185') : it('trash', `🗑 نقل المحدد للسلة (${n})`, 'color:#fb7185')) : '');
+    document.body.appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + 'px'; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + 'px';
+    m.addEventListener('click', e => {
+        const f = e.target.closest('[data-f]'); if (!f) return; closeCtx();
+        ({ all: () => wlSelectAll(kind), grp: () => det && selGroup(det), clr: selClear, trash: () => wlBulk('trash'), restore: () => wlBulk('restore'), purge: () => wlBulk('purge') })[f.dataset.f]();
+    });
+    setTimeout(() => { document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { closeCtx(); document.removeEventListener('pointerdown', off, true); } }, true); }, 0);
+}
+function initWordSelect() {
+    [['dueWordsContainer', 'due'], ['brokenWordsContainer', 'broken'], ['trashWordsContainer', 'trash']].forEach(([id, kind]) => {
+        const c = $id(id); if (!c || c._sel) return; c._sel = 1;
+        c.addEventListener('click', e => {
+            if (c._dragged) { c._dragged = false; e.preventDefault(); e.stopPropagation(); return; }
+            const multi = e.ctrlKey || e.metaKey, sm = e.target.closest('summary.wl-sum');
+            if (sm && multi) { e.preventDefault(); e.stopPropagation(); selGroup(sm.parentElement); return; }
+            const it = e.target.closest('[data-sel]'); if (!it) return;
+            if (multi || (selCount() && !e.target.closest('button'))) {
+                e.preventDefault(); e.stopPropagation();
+                const p = it.dataset.sel.split(':'); selSet(p[0], +p[1]); selPaint();
+            }
+        }, true);
+        c.addEventListener('pointerdown', e => {
+            if (e.button !== 0 || e.target.closest('button,input,summary,a')) return;
+            c._m = { x: e.clientX, y: e.clientY, on: false, add: e.ctrlKey || e.metaKey, pid: e.pointerId, base: null };
+        });
+        c.addEventListener('pointermove', e => {
+            const m = c._m; if (!m) return;
+            if (!m.on) {
+                if (Math.hypot(e.clientX - m.x, e.clientY - m.y) < 8) return;
+                m.on = true; m.base = m.add ? new Set(SEL[kind]) : new Set();
+                m.box = document.createElement('div');
+                m.box.style.cssText = 'position:fixed;z-index:2147483100;border:1.5px dashed #f59e0b;background:rgba(245,158,11,.14);border-radius:4px;pointer-events:none';
+                document.body.appendChild(m.box);
+                try { c.setPointerCapture(m.pid); } catch (_) {}
+                document.body.style.userSelect = 'none'; try { getSelection().removeAllRanges(); } catch (_) {}
+            }
+            const l = Math.min(m.x, e.clientX), t = Math.min(m.y, e.clientY), r = Math.max(m.x, e.clientX), b = Math.max(m.y, e.clientY);
+            m.box.style.left = l + 'px'; m.box.style.top = t + 'px'; m.box.style.width = (r - l) + 'px'; m.box.style.height = (b - t) + 'px';
+            Object.keys(SEL).forEach(x => { if (x !== kind) SEL[x].clear(); });
+            SEL[kind] = new Set(m.base);
+            c.querySelectorAll('[data-sel]').forEach(el => {
+                const q = el.getBoundingClientRect();
+                if (q.width && q.height && q.left < r && q.right > l && q.top < b && q.bottom > t) SEL[kind].add(+el.dataset.sel.split(':')[1]);
+            });
+            selPaint();
+        });
+        const end = () => { const m = c._m; c._m = null; if (m && m.on) { m.box.remove(); document.body.style.userSelect = ''; c._dragged = true; setTimeout(() => { c._dragged = false; }, 0); } };
+        c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+        c.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const it = e.target.closest('[data-sel]');
+            if (it) { const p = it.dataset.sel.split(':'); if (!SEL[p[0]].has(+p[1])) { if (!(e.ctrlKey || e.metaKey)) Object.keys(SEL).forEach(x => SEL[x].clear()); selSet(p[0], +p[1], true); selPaint(); } }
+            showCtx(e.clientX, e.clientY, kind, e.target.closest('details.wl-g'));
+        });
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); if (selCount()) selClear(); } });
+}
+window.addEventListener('DOMContentLoaded', initWordSelect);
 const tableOf = kind => kind === 'due' ? 'due_words_table' : 'broken_words_table';
 function useListedWord(kind, i) {
     const r = WL[kind][i]; if (!r) return;
@@ -1509,7 +1648,7 @@ async function purgeFromTrash(_k, i) {
 // A sentence whose individual words are not all recorded yet stays until they are (so its words do not disappear from the list).
 async function markWordHandled(word) {
     try { await notifyWordReady(word); } catch (e) { /* the notice is best-effort */ }
-    WL.have.add(wkey(word));
+    if (!WL.have.has(wkey(word))) WL.have.set(wkey(word), '');
     for (const t of ['due_words_table', 'broken_words_table']) {
         let rows = [];
         try { rows = await (await sbFetch(`${t}?select=*&word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`)).json(); } catch (e) { continue; }
