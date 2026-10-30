@@ -411,7 +411,6 @@ function watchTodo() {
 }
 async function load() {
   const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
-  if (d && d.blocked && !VIEW) { showBlocked(d.blocked); return; }
   if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
     $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
@@ -538,6 +537,7 @@ const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a
 const fetchBill = () => rpc('trainee_billing', { p_token: tok() }).then(b => b && typeof b === 'object' && !Array.isArray(b) && !b.message && !b.code ? b : null).catch(() => null);
 function billState() {
   const b = D && D.bill; if (!b) return null;
+  { const c = new Date(cairoNow()); if (b.paid_month && b.paid_month === `${c.getUTCFullYear()}-${String(c.getUTCMonth() + 1).padStart(2, '0')}`) return null; }   // marked paid this month by the admin: no payment reminder (resets next month)
   const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) ? n : 0; };
   const sub = num(b.subscription), past = num(b.past_due); if (!sub && !past) return null;
   const n = new Date(cairoNow()), day = n.getUTCDate(), last = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate();
@@ -604,7 +604,7 @@ function updateFeed() {
   const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
-  bd.hidden = !n || INTRO.hold; bd.textContent = n > 99 ? '99+' : n; bd.classList.toggle('sm2', n > 9);
+  bd.hidden = !n || INTRO.hold; bd.textContent = n;
   if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);   // first notification arrived while the page was open
 }
 function openFeed(from) {
@@ -639,7 +639,6 @@ function initFloat() {
     else if (introDone()) { btn.classList.remove('empty'); btn.classList.add('done'); updateFeed(); setTimeout(chartsGo, 300); }   // refresh: no animation, no pop-up
     else runIntro(btn);
   } else updateFeed();
-  if (!window._gatePoll && !VIEW) window._gatePoll = setInterval(checkGate, 60000);
   if (!window._ntPoll) {
     window._ntPoll = setInterval(refreshNotes, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotes(); });
@@ -940,11 +939,7 @@ document.addEventListener('touchmove', e => {
   if (!bgLocked()) return;
   const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
   if (e.target.closest && e.target.closest('input[type=range]')) return;
-  const sc = pkScroller(e.target, dy);
-  if (sc && !sc.classList.contains('pcs')) return;                 // a small list inside a card scrolls itself
-  e.preventDefault();
-  const pcs = document.querySelector('#pop .pcs'), pop = $('pop');
-  if (pcs && pop && pop.classList.contains('open') && !(e.target.closest && e.target.closest('#wp'))) pcs.scrollTop += dy;   // any other touch moves the cards
+  if (!pkScroller(e.target, dy)) e.preventDefault();
 }, { passive: false });
 window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
@@ -1026,9 +1021,9 @@ const AV_DEFAULT = 'assets/default-avatar.jpg';
 const AVK = ['most_recent_picture_url', 'image_url', 'picture_url', 'photo_url', 'avatar_url', 'image', 'picture'];   // first one found in the profile row is used
 const avUrl = () => { const p = (D && D.profile) || {}; for (const k of AVK) if (p[k]) return p[k]; return ''; };
 const AVX = {
-  en: { add: 'Add your picture', change: 'Change picture', def: 'Back to default', save: 'Save', cancel: 'Cancel', zoom: 'Zoom', bright: 'Brightness', saving: 'Saving…', fail: 'Could not save, try again', saved: 'Picture saved ✓', f: { none: 'Original', bw: 'B&W', warm: 'Warm', cool: 'Cool', vivid: 'Vivid', fade: 'Fade' } },
-  ar: { add: 'أضف صورتك', change: 'تغيير الصورة', def: 'الصورة الافتراضية', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'جاري الحفظ…', fail: 'تعذر الحفظ، حاول مرة أخرى', saved: 'تم حفظ الصورة ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافئ', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } },
-  eg: { add: 'ضيف صورتك', change: 'غيّر الصورة', def: 'ارجع للافتراضية', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'بيتحفظ…', fail: 'معرفناش نحفظ، جرب تاني', saved: 'الصورة اتحفظت ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافي', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } }
+  en: { add: 'Add your picture', change: 'Change picture', save: 'Save', cancel: 'Cancel', zoom: 'Zoom', bright: 'Brightness', saving: 'Saving…', fail: 'Could not save, try again', saved: 'Picture saved ✓', f: { none: 'Original', bw: 'B&W', warm: 'Warm', cool: 'Cool', vivid: 'Vivid', fade: 'Fade' } },
+  ar: { add: 'أضف صورتك', change: 'تغيير الصورة', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'جاري الحفظ…', fail: 'تعذر الحفظ، حاول مرة أخرى', saved: 'تم حفظ الصورة ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافئ', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } },
+  eg: { add: 'ضيف صورتك', change: 'غيّر الصورة', save: 'حفظ', cancel: 'إلغاء', zoom: 'تكبير', bright: 'السطوع', saving: 'بيتحفظ…', fail: 'معرفناش نحفظ، جرب تاني', saved: 'الصورة اتحفظت ✓', f: { none: 'الأصلية', bw: 'أبيض وأسود', warm: 'دافي', cool: 'بارد', vivid: 'زاهي', fade: 'باهت' } }
 };
 const AVT = () => AVX[lang] || AVX.en;
 const AVF = { none: '', bw: 'grayscale(1) contrast(1.05)', warm: 'sepia(.35) saturate(1.2) hue-rotate(-8deg)', cool: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)', vivid: 'saturate(1.6) contrast(1.1)', fade: 'contrast(.85) brightness(1.1) saturate(.8)' };
@@ -1038,7 +1033,6 @@ function renderAvatar() {
   const u = avUrl(), shown = u || AV_DEFAULT, img = $('avImg'), btn = $('avBtn');
   if (img.getAttribute('src') !== shown) img.src = shown; box.classList.add('has');   // no picture yet -> the Thabit default picture
   btn.textContent = u ? AVT().change : AVT().add; btn.hidden = VIEW;
-  const dv = $('avDef'); if (dv) { dv.textContent = AVT().def; dv.hidden = VIEW || !u; }
   try { if (window.Thabit && Thabit.setAvatar) Thabit.setAvatar(u || AV_DEFAULT); } catch (e) {}                 // header profile button (brand.js) can listen to either of these
   try { document.dispatchEvent(new CustomEvent('thabit:avatar', { detail: { url: u || AV_DEFAULT } })); } catch (e) {}
 }
@@ -1077,14 +1071,9 @@ async function avSave() {
     renderAvatar(); avClose(); itToast(t.saved);
   } else { $('avMsg').textContent = t.fail; b.disabled = false; b.textContent = t.save; }
 }
-async function avReset() {
-  const ok = await rpc('trainee_set_avatar', { p_token: tok(), p_url: '' }).catch(() => null);
-  if (ok === true) { const p = D.profile || {}; AVK.forEach(k => { if (k in p) p[k] = null; }); renderAvatar(); itToast(AVT().saved); } else itToast(AVT().fail);
-}
 window.addEventListener('DOMContentLoaded', () => {
   if (!$('avBtn')) return;
   $('avBtn').onclick = () => $('avFile').click();
-  $('avDef').onclick = avReset;
   $('avFile').onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) avOpen(f); };
   $('avZ').oninput = e => { AV.z = +e.target.value; avDraw(); };
   $('avB').oninput = e => { AV.b = +e.target.value; avDraw(); };
@@ -1194,43 +1183,3 @@ function layoutBar() {
   bar.addEventListener('contextmenu', e => e.preventDefault());
   bar.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 })();
-
-
-/* ===== Header (logo + profile circle from brand.js): stays at the top of the page, scrolls away with it, never floats ===== */
-function unfloatHeader() {
-  const skip = '#mobileFloatingBar,.fl,.pop,.asm,.ssm,.mdl,.pc,#barTip,.lgp,.bop,.avm,#wp,.ittoast,.rt-toast,.rt-pop';
-  document.querySelectorAll('body *').forEach(el => {
-    if (el.closest(skip) || el.dataset.unfl) return;
-    const cs = getComputedStyle(el);
-    if (cs.position !== 'fixed') return;
-    const top = parseFloat(cs.top);
-    if (!(top >= 0 && top < 120)) return;
-    el.dataset.unfl = '1'; el.style.setProperty('position', 'absolute', 'important');
-  });
-}
-[300, 1200, 3000].forEach(t => setTimeout(unfloatHeader, t));
-window.addEventListener('load', unfloatHeader);
-
-
-/* ===== Access gate: only status "active" gets in. Terminated -> one message, everything else (paused / pending / ...) -> another ===== */
-const GATE_MSG = {
-  en: { terminated: 'These credentials are not valid anymore or are not operating anymore. Kindly contact your trainer for more information.', disabled: "We're sorry. We apologize for the inconvenience, but your credentials are currently disabled. Kindly contact your trainer for more information.", back: 'Back to login' },
-  ar: { terminated: 'بيانات الدخول هذه لم تعد صالحة أو لم تعد قيد التشغيل. يرجى التواصل مع مدربك لمزيد من المعلومات.', disabled: 'نعتذر عن الإزعاج، لكن بيانات الدخول الخاصة بك معطّلة حالياً. يرجى التواصل مع مدربك لمزيد من المعلومات.', back: 'العودة لتسجيل الدخول' },
-  eg: { terminated: 'بيانات الدخول دي ما بقتش صالحة أو ما بقتش شغالة. من فضلك كلّم المدرب بتاعك لمزيد من المعلومات.', disabled: 'آسفين على الإزعاج، بس بيانات الدخول بتاعتك متوقفة حالياً. من فضلك كلّم المدرب بتاعك لمزيد من المعلومات.', back: 'رجوع لتسجيل الدخول' }
-};
-function showBlocked(kind) {
-  const m = GATE_MSG[lang] || GATE_MSG.en, txt = kind === 'terminated' ? m.terminated : m.disabled;
-  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
-  clearInterval(window._ntPoll); clearInterval(window._gatePoll);
-  let o = document.getElementById('gateBox');
-  if (!o) { o = document.createElement('div'); o.id = 'gateBox'; document.body.appendChild(o); }
-  o.setAttribute('dir', lang === 'en' ? 'ltr' : 'rtl');
-  o.style.cssText = 'position:fixed;inset:0;z-index:30000;display:flex;align-items:center;justify-content:center;padding:20px;background:#05070d;color:#f1f5f9;font-family:Inter,Cairo,sans-serif';
-  o.innerHTML = `<div style="max-width:420px;width:100%;text-align:center;padding:26px 22px;border-radius:22px;background:#0f172a;border:1px solid rgba(255,255,255,.15);line-height:1.8;font-size:.95rem"><div style="font-size:2rem;margin-bottom:8px">🔒</div><p style="margin:0 0 18px">${txt}</p><a href="${PORTAL}" style="display:inline-block;padding:10px 20px;border-radius:12px;background:#fbbf24;color:#111;font-weight:700;text-decoration:none">${m.back}</a></div>`;
-  document.querySelectorAll('.fl,#mobileFloatingBar,.pop').forEach(e => e.style.display = 'none');
-}
-async function checkGate() {
-  if (VIEW || !tok()) return;
-  const r = await rpc('trainee_status', { p_token: tok() }).catch(() => null);
-  if (r && r !== 'active') showBlocked(r);
-}
