@@ -505,6 +505,7 @@ const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supp
 const dndCard = d => ({ isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
+  peekWords(o);
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
     if (x) { e.preventDefault(); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
@@ -735,7 +736,8 @@ const ASX = {
 };
 (function () { const s = document.createElement('style'); s.textContent = `
 .pc.as .awn{display:inline-block;min-width:20px;padding:0 7px;margin-inline-start:6px;border-radius:999px;background:#34d399;color:#06281b;font-size:.72rem;font-weight:700;text-align:center;vertical-align:middle}
-.aw{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:2px 14px;margin-top:8px;max-height:150px;overflow:auto;padding-inline-end:4px}
+.aw{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:2px 14px;margin-top:8px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;transition:max-height .25s ease}
+.aw::-webkit-scrollbar{display:none;width:0;height:0}
 .aw span{display:flex;align-items:center;gap:7px;font-size:.84rem;line-height:1.25;padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.22);overflow-wrap:anywhere}
 .aw span::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:#34d399}
 .billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
@@ -803,6 +805,30 @@ function wpLoad(auto) {
   sk.value = 0; sync(); icon();
   if (auto) a.play().catch(() => {});
 }
+
+/* ----- word -> audio lookup in Supabase words_table (same matching as the Assistant: cleaned word, exact) ----- */
+const wpClean = v => !v ? '' : String(v).toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"\u201C\u201D\u2018\u2019]/g, '').replace(/\s+/g, ' ').trim();
+const wpParts = v => String(v || '').split(/[,\u060C\n]+/).map(x => x.trim()).filter(Boolean);
+const wpCache = {}; let wpKeyOK = true;
+async function wpQuery(qs) {
+  const r = await fetch(`${SB}/rest/v1/words_table?select=audio_url&audio_url=not.is.null&limit=1&${qs}`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+  if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+  const rows = await r.json(); return Array.isArray(rows) && rows[0] ? rows[0].audio_url : null;
+}
+async function wpLookup(word) {
+  const c = wpClean(word); if (!c) return null;
+  if (wpCache[c]) return wpCache[c];
+  let u = null;
+  if (wpKeyOK) { try { u = await wpQuery('word_key=eq.' + encodeURIComponent(c)); } catch (e) { if (e.status === 400 || e.status === 404) wpKeyOK = false; else throw e; } }
+  if (!u) u = await wpQuery('word=ilike.' + encodeURIComponent(String(word).trim().replace(/[\\%_]/g, m => '\\' + m)));
+  if (u) wpCache[c] = u;
+  return u;
+}
+async function wpResolve(text) {   // whole text first; "a, b" -> every part, only if all parts exist
+  const u = await wpLookup(text); if (u) return [u];
+  const parts = wpParts(text); if (parts.length < 2) return null;
+  const us = await Promise.all(parts.map(wpLookup)); return us.every(Boolean) ? us : null;
+}
 async function wpOpen(word) {
   word = String(word == null ? '' : word).trim(); if (!word) return;
   if (window.ThabitRichStudent) { try { ThabitRichStudent.stop(); } catch (e) {} }
@@ -813,10 +839,10 @@ async function wpOpen(word) {
   el.innerHTML = `<div class="wpw" dir="auto">${esc(word)}</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause"><i class="fa-solid fa-play"></i></button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span><button type="button" class="wpb dl" aria-label="${x.dl}" title="${x.dl}"><i class="fa-solid fa-download"></i></button></div><div class="wpm" dir="auto" hidden></div>`;
   document.body.appendChild(el);
   el.querySelector('.dl').onclick = wpDownload;
-  let urls;
-  try { urls = window.ThabitRichStudent && ThabitRichStudent.resolve ? await ThabitRichStudent.resolve(word) : undefined; } catch (e) { urls = undefined; }
+  let urls, err = '';
+  try { urls = await wpResolve(word); } catch (e) { urls = undefined; err = e && e.message || String(e); console.error('[word player] lookup failed for "' + word + '":', e); }
   if (my !== WP.tk) return;
-  if (!urls) { wpMsg(urls === null ? x.missing : x.fail); return; }
+  if (!urls) { wpMsg(urls === null ? x.missing : x.fail + (err ? ' (' + err + ')' : '')); return; }
   WP.urls = urls; wpLoad(true);
 }
 async function wpDownload() {
@@ -843,3 +869,18 @@ document.addEventListener('click', e => {
   closePop();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('wp')) wpClose(); });
+
+/* ===== Words list: shows 4.5 rows first (last row half cut = "there is more below"); after the first scroll it settles to 5 full rows ===== */
+function peekWords(root) {
+  root.querySelectorAll('.aw').forEach(aw => {
+    const sp = aw.querySelectorAll('.aww'); if (!sp.length) return;
+    const tops = [...new Set([...sp].map(x => x.offsetTop))].sort((a, b) => a - b);
+    if (tops.length <= 5) { aw.style.maxHeight = ''; return; }          // fits: nothing to hint
+    const gap = parseFloat(getComputedStyle(aw).rowGap) || 0, full = tops[5] - tops[0] - gap, half = tops[4] - tops[0] + (tops[5] - tops[4] - gap) / 2;
+    aw.style.maxHeight = half + 'px';
+    let t = null;
+    const settle = () => { aw.removeEventListener('scroll', onScroll); aw.style.maxHeight = full + 'px'; };
+    const onScroll = () => { clearTimeout(t); t = setTimeout(settle, 180); };
+    aw.addEventListener('scroll', onScroll, { passive: true });
+  });
+}
