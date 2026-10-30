@@ -1,5 +1,4 @@
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
-
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
@@ -12,7 +11,6 @@ const T = {
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
-const RT = window.ThabitRich || { inline: s => s, strip: s => s, render: s => s };   // formatted text (richtext.js)
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
@@ -142,7 +140,7 @@ const LF = [['supply_date','Date'],['session_number','Session #'],['group_name',
   ['compliance','Compliance'],['revision','Revision'],['revision_details','Revision details'],['notes','Notes'],['tefl','TEFL'],['qol','QOL'],['attitude','Attitude'],['attitude_details','Attitude details'],
   ['soft_skills','Soft skills'],['soft_skills_details','Soft skills details'],['attendance','Attendance'],['attendance_details','Attendance details'],['performance','Performance'],['why','Why'],['performance_details','Performance details'],
   ['weak_points','Weak points'],['tasks','Tasks'],['left_overs','Left overs'],['plans','Plans']];
-const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(RT.strip(String(b)).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b dir="auto">${RT.inline(esc(b))}</b></div>`;
+const sessLine = (a, b) => !b ? '' : String(b).length > 90 ? `<div class="row"><span class="sm">${a}</span><b class="more" dir="auto" onclick="openModal(${mk(a, b)})">${esc(String(b).slice(0, 90))}…</b></div>` : `<div class="row"><span class="sm">${a}</span><b>${esc(b)}</b></div>`;
 function renderSessions(rows) {
   const t = T[lang], loc = lang === 'en' ? 'en-GB' : 'ar-EG', parts = D.parts || [];
   const hm5 = v => v ? String(v).slice(0, 5) : '';
@@ -154,7 +152,7 @@ function renderSessions(rows) {
     const approx = (Number(r.around_h) || 0) + (Number(r.around_m) || 0) > 0 || ps.some(p => (Number(p.around_h) || 0) + (Number(p.around_m) || 0) > 0);
     const m = mins(r), time = r.start_time || r.end_time ? `${hm5(r.start_time)}\u2013${hm5(r.end_time)}` : '';
     return `<details class="ssi"${n === 0 ? ' open' : ''}><summary><div class="ssd"><b>${esc(day)}</b><span>${esc(r.supply_date)}</span><i>#${esc(r.session_number ?? '')}</i></div>`
-      + (r.session_title ? `<div class="sst" dir="auto">${RT.inline(esc(r.session_title))}</div>` : '')
+      + (r.session_title ? `<div class="sst" dir="auto">${esc(r.session_title)}</div>` : '')
       + `<div class="sss">${time ? `<span>${esc(time)}</span>` : ''}${m ? `<span>${approx ? '\u2248 ' : ''}${fmtDur(m)}</span>` : ''}</div></summary>`
       + (ps.length > 1 ? `<div class="ssp">${ps.map(p => `<span>${p.part_no} \u00b7 ${esc(hm5(p.start_time))}\u2013${esc(hm5(p.end_time))}${p.present === false ? ' \u2717' : ''}</span>`).join('')}</div>` : '')
       + `<div class="ssdet">${LF.map(f => sessLine(f[1], r[f[0]])).join('')}</div></details>`;
@@ -212,11 +210,11 @@ function render() {
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(RT.strip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(String(r[key]).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
-const escv = s => RT.inline(esc(s)).replace(/\s*\|\s*/g, '<i class="vb"></i>');
+const escv = s => esc(s).replace(/\s*\|\s*/g, '<i class="vb"></i>');
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
@@ -227,7 +225,7 @@ function rich(txt) {
 }
 
 /* ===== Per-capsule copy: every block (separated by a blank line) gets its own copy button ===== */
-const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(RT.strip(b.trim()))}</div>`).join('');
+const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(b.trim())}</div>`).join('');
 (function () { const s = document.createElement('style'); s.textContent = `
 .rcap{margin:0 0 8px}
 .rcap>.rp,.rcap>.rl{margin:0;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}
@@ -244,6 +242,9 @@ const ITT = {
 ITT.en.why_range = 'the time range you were given has ended';
 ITT.ar.why_range = 'انتهت المدة المحددة';
 ITT.eg.why_range = 'المدة المحددة خلصت';
+ITT.en.hol_m = 'Monthly break: sessions are paused until the 1st of next month. Enjoy!';
+ITT.ar.hol_m = 'إجازة آخر الشهر: الجلسات متوقفة حتى أول الشهر الجديد. استمتع!';
+ITT.eg.hol_m = 'إجازة آخر الشهر: السيشنز واقفة لحد أول الشهر الجاي. انبسط!';
 const itT = () => ITT[lang] || ITT.en;
 const DTL2 = {};
 const itToday = () => new Date(cairoNow()).toISOString().slice(0, 10);
@@ -269,8 +270,17 @@ function fmtLeft(ms) {
   return out.join(' ');
 }
 const cdHtml = dl => `<i class="fa-regular fa-clock"></i> ${itT().endsIn} ${fmtLeft(dl - cairoNow())} \u00b7 ${fmtOpen(dl)}`;
-const isHoliday = () => { const n = new Date(cairoNow()), w = n.getUTCDay(); return (w === 4 && n.getUTCHours() >= 12) || w === 5; };
-const holBanner = () => isHoliday() ? `<div class="hol"><i class="fa-solid fa-umbrella-beach"></i> ${itT().hol}</div>` : '';
+/* ===== Monthly break (automatic, nothing to enter in Supabase) =====
+   Last MB.week days of every month (any month length): only the first MB.work days are sessions,
+   the rest is a break until the 1st of the next month. Change these two numbers to adjust the rule. */
+const MB = { week: 7, work: 3 };
+function inMonthBreak(ms) {   // ms = Cairo wall-clock timestamp (same format as cairoNow())
+  const d = new Date(ms), last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return d.getUTCDate() > last - MB.week + MB.work;
+}
+const monthBreak = () => inMonthBreak(cairoNow());
+const isHoliday = () => { const n = new Date(cairoNow()), w = n.getUTCDay(); return (w === 4 && n.getUTCHours() >= 12) || w === 5 || monthBreak(); };
+const holBanner = () => isHoliday() ? `<div class="hol"><i class="fa-solid fa-umbrella-beach"></i> ${monthBreak() ? itT().hol_m : itT().hol}</div>` : '';
 const closedText = x => { const t = itT(), p = x.plan; return `${t.closedDue} ${t['why_' + (p && p.deadline_reason)] || ''}`.trim(); };
 setInterval(() => { document.querySelectorAll('.cd[data-dl]').forEach(el => { const dl = +el.dataset.dl; if (dl - cairoNow() <= 0) { render(); return; } el.innerHTML = cdHtml(dl); }); }, 30000);
 
@@ -464,12 +474,12 @@ function schedule() {
 }
 function nextAfter(sc, from) {
   const d0 = new Date(from); d0.setUTCHours(0, 0, 0, 0);
-  for (let i = 0; i < 15; i++) { const d = new Date(d0.getTime() + i * 864e5); if (!sc.days.includes(d.getUTCDay())) continue; const t = d.getTime() + (sc.h * 60 + sc.m) * 6e4; if (t > from) return t; }
+  for (let i = 0; i < 20; i++) { const d = new Date(d0.getTime() + i * 864e5); if (!sc.days.includes(d.getUTCDay()) || inMonthBreak(d.getTime())) continue; const t = d.getTime() + (sc.h * 60 + sc.m) * 6e4; if (t > from) return t; }
   return null;
 }
 function nxState() {
   const sc = schedule(); if (!sc) return null;
-  const now = cairoNow(), t0 = Math.floor(now / 864e5) * 864e5, isDay = sc.days.includes(new Date(now).getUTCDay()), nxt = nextAfter(sc, now);
+  const now = cairoNow(), t0 = Math.floor(now / 864e5) * 864e5, isDay = sc.days.includes(new Date(now).getUTCDay()) && !inMonthBreak(now), nxt = nextAfter(sc, now);
   return { sc, nxt, st: isDay ? (now < t0 + (sc.h * 60 + sc.m) * 6e4 ? 'count' : 'started') : 'off', n: nxt ? Math.round((Math.floor(nxt / 864e5) * 864e5 - t0) / 864e5) : 0 };
 }
 function dndState() {
@@ -487,10 +497,12 @@ function dndState() {
 const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
 function nextCard(s) {
   const t = TX(), when = s.n === 1 ? t.tom(fmtT(s.sc)) : t.inD(s.n, fmtT(s.sc));
-  if (s.st === 'count') return { html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
-  return { cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
+  if (s.st === 'count') return { noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
+  return { noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
 }
-const dndCard = d => ({ html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
+const dndSeenKey = 'thabit_dnd_seen';
+const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
+const dndCard = d => ({ isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join(''); o.classList.add('open');
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
@@ -500,13 +512,16 @@ const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML =
 const NTX = {
   en: { feed: 'Feed', notes: 'Notifications', msg: 'Message from your trainer', word: w => `Your word “${w}” is ready. You can listen to it now.`, reply: 'The trainer replied to your request', billT: 'Payment', cur: 'EGP',
         past: (p, t, s, due) => `A gentle reminder that there is an amount of <b>${p}</b> EGP from last month, which makes the total due <b>${t}</b> EGP. Please make sure to pay this amount before <b>${due}</b>.`,
-        tot: (s, due) => `A gentle reminder that this month's subscription is <b>${s}</b> EGP. Please make sure to pay it before <b>${due}</b>.` },
+        tot: (s, due) => `A gentle reminder that this month's subscription is <b>${s}</b> EGP. Please make sure to pay it before <b>${due}</b>.`,
+        left: n => n <= 0 ? 'Today is the last day' : n === 1 ? 'Only 1 day left' : n + ' days left' },
   ar: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها الآن.`, reply: 'رد المدرب على طلبك', billT: 'المدفوعات', cur: 'جنيه',
         past: (p, t, s, due) => `تذكير لطيف بأن هناك مبلغًا من الشهر السابق بقيمة <b>${p}</b> جنيه، وهذا يجعل الإجمالي المطلوب <b>${t}</b> جنيه. رجاءً تأكد من دفع هذا المبلغ المستحق قبل يوم <b>${due}</b>.`,
-        tot: (s, due) => `تذكير لطيف بأن مبلغ اشتراك هذا الشهر <b>${s}</b> جنيه. رجاءً تأكد من دفعه قبل يوم <b>${due}</b>.` },
+        tot: (s, due) => `تذكير لطيف بأن مبلغ اشتراك هذا الشهر <b>${s}</b> جنيه. رجاءً تأكد من دفعه قبل يوم <b>${due}</b>.`,
+        left: n => n <= 0 ? 'اليوم هو آخر يوم' : n === 1 ? 'باقي يوم واحد' : n === 2 ? 'باقي يومان' : 'باقي ' + n + ' أيام' },
   eg: { feed: 'فيد', notes: 'الإشعارات', msg: 'رسالة من المدرب', word: w => `كلمتك «${w}» جاهزة، تقدر تسمعها دلوقتي.`, reply: 'المدرب رد على طلبك', billT: 'المدفوعات', cur: 'جنيه',
         past: (p, t, s, due) => `تذكير لطيف إن فيه مبلغ من الشهر اللي فات بقيمة <b>${p}</b> جنيه، وده بيخلي الإجمالي المطلوب <b>${t}</b> جنيه. ياريت تتأكد إنك تدفع المبلغ المستحق ده قبل يوم <b>${due}</b>.`,
-        tot: (s, due) => `تذكير لطيف إن اشتراك الشهر ده <b>${s}</b> جنيه. ياريت تتأكد إنك تدفعه قبل يوم <b>${due}</b>.` }
+        tot: (s, due) => `تذكير لطيف إن اشتراك الشهر ده <b>${s}</b> جنيه. ياريت تتأكد إنك تدفعه قبل يوم <b>${due}</b>.`,
+        left: n => n <= 0 ? 'النهاردة آخر يوم' : n === 1 ? 'باقي يوم واحد' : n === 2 ? 'باقي يومين' : 'باقي ' + n + ' أيام' }
 };
 const NT = () => NTX[lang] || NTX.en;
 const fetchNotes = () => rpc('trainee_notifications', { p_token: tok() }).then(a => { if (!Array.isArray(a)) console.warn('[feed] trainee_notifications failed:', a); return Array.isArray(a) ? a : []; }).catch(e => { console.warn('[feed] trainee_notifications error:', e); return []; });
@@ -525,9 +540,15 @@ function billDue() {   // the next 7th, as d/m/yyyy (7/11/2026)
   if (n.getUTCDate() > 7) { m++; if (m > 12) { m = 1; y++; } }
   return `7/${m}/${y}`;
 }
+function billLeft() {   // days until the next 7th
+  const n = new Date(cairoNow()), m = n.getUTCMonth() + (n.getUTCDate() > 7 ? 1 : 0);
+  return Math.round((Date.UTC(n.getUTCFullYear(), m, 7) - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())) / 864e5);
+}
+const billNew = () => { try { return localStorage.getItem('thabit_bill_read') !== itToday(); } catch (e) { return false; } };
 function billCard(s) {
-  const t = NT(), fmt = v => String(v), due = billDue();
-  return { cls: 'bill', html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>` };
+  const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
+  return { cls: 'bill', isNew: billNew(), html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
+    + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '') };
 }
 function noteText(n) {
   const t = NT(), m = n.meta || {};
@@ -539,49 +560,59 @@ function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
   const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
     return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
-  return { html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
+  return { isNew: list.some(n => !n.read_at), html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
 }
-const unreadCount = () => (D && D.notes || []).filter(n => !n.read_at).length;
+const cairoDay = iso => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date(iso)); } catch (e) { return ''; } };
+const WORD_KINDS = ['assistant_words', 'word_ready'];
 
+/* Order: Next session first, then the cards with something new, then the rest. Each card = ONE notification (badge counts cards, not messages). */
 function feedCards() {
-  const c = [], s = nxState(), d = dndState(), bs = billState(), notes = ((D && D.notes) || []).filter(n => n.kind !== 'assistant_words'), as = asCard();
-  if (s) c.push(nextCard(s));
-  if (as) c.push(as);
-  if (d) c.push(dndCard(d));
-  if (notes.length) c.push(notesCard(notes));
-  if (bs) c.push(billCard(bs));
-  return c;
+  const s = nxState(), d = dndState(), bs = billState(), as = asCard(), rest = [];
+  const notes = ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind));
+  if (as) rest.push(as);
+  if (d) rest.push(dndCard(d));
+  if (notes.length) rest.push(notesCard(notes));
+  if (bs) rest.push(billCard(bs));
+  return [...(s ? [nextCard(s)] : []), ...rest.filter(c => c.isNew), ...rest.filter(c => !c.isNew)];
+}
+function markFeedRead() {
+  if (VIEW) return;
+  const bs = billState(), d = dndState();
+  try { if (bs) localStorage.setItem('thabit_bill_read', itToday()); if (d) localStorage.setItem(dndSeenKey, d.r.supply_date); } catch (e) {}
+  if (((D && D.notes) || []).some(n => !n.read_at)) { D.notes.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); }
+  updateFeed();
 }
 function updateFeed() {
-  const btn = $('feedBtn'), n = unreadCount(), bd = $('feedBadge');
-  btn.hidden = !feedCards().length; btn.setAttribute('aria-label', NT().feed);
-  bd.hidden = !n; bd.textContent = n > 9 ? '9+' : n;
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.isNew).length, bd = $('feedBadge');
+  btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
+  bd.hidden = !n; bd.textContent = n;
 }
 function openFeed(from) {
   const c = feedCards(); if (!c.length) return;
   openPop(c, from);
-  if (unreadCount()) { (D.notes || []).forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); updateFeed(); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); }
+  markFeedRead();
 }
 function initFloat() {
   updateFeed();
   const btn = $('feedBtn');
   if (!window._popDone) {
     window._popDone = true;
-    setTimeout(() => {
-      const s2 = nxState(), d2 = dndState(), bs = billState(), c = [], un = (D.notes || []).filter(n => !n.read_at && n.kind !== 'assistant_words'), as2 = asCard();
-      if (s2 && s2.st === 'count') c.push(nextCard(s2));
-      if (as2) c.push(as2);          // always shown with Next session until the trainee closes it
-      if (d2) c.push(dndCard(d2));
-      if (un.length) c.push(notesCard(un));
-      let seen = ''; try { seen = localStorage.getItem('thabit_bill_seen') || ''; } catch (e) {}
-      if (bs && seen !== itToday()) { c.push(billCard(bs)); try { localStorage.setItem('thabit_bill_seen', itToday()); } catch (e) {} }   // payment note: once a day
-      if (c.length) { openPop(c, btn); if (un.length) { D.notes.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); }); updateFeed(); rpc('trainee_notifications_read', { p_token: tok() }).catch(() => {}); } }
+    setTimeout(() => {   // the pop-up appears only the first time the page is opened each day; after that the trainee opens the button himself
+      let seen = ''; try { seen = localStorage.getItem('thabit_pop_day') || ''; } catch (e) {}
+      if (!VIEW && seen === itToday()) return;
+      const c = feedCards(); if (!c.length) return;
+      if (!VIEW) { try { localStorage.setItem('thabit_pop_day', itToday()); } catch (e) {} }
+      openPop(c, btn); markFeedRead();
     }, 2200);
   }
   if (!window._ntPoll) window._ntPoll = setInterval(async () => { if (!D) return; D.notes = await fetchNotes(); updateFeed(); }, 60000);
 }
 window.addEventListener('DOMContentLoaded', () => {
   $('feedBtn').onclick = e => { e.stopPropagation(); openFeed($('feedBtn')); };
+  $('pop').addEventListener('click', e => { if (e.target === $('pop')) closePop(); });   // tap outside closes the pop-up (cards without X stay for the day)
+  const fb = $('feedBtn'), plus = '<svg class="fplus" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const ic = fb.querySelector('i:not(#feedBadge), svg');
+  if (ic) ic.outerHTML = plus; else fb.insertAdjacentHTML('afterbegin', plus);
   setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd[data-t]').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
 
@@ -592,7 +623,7 @@ window.Panels = (function () {
   const TTL = { assistant: { en: 'Assistant', ar: 'المساعد', eg: 'المساعد' }, profile: { en: 'Profile', ar: 'ملفي', eg: 'ملفي' } };
   const ASSIST_SVG = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
   const DEF = { assistant: { icon: 'fa-microphone-lines', svg: ASSIST_SVG, color: '#34d399' }, profile: { icon: 'fa-user', color: '#fbbf24' } };
-  let cur = null, loadedKey = null, nudgeT = null, hideT = null, pendingWord = null; const mins = [];
+  let cur = null, loadedKey = null, nudgeT = null, hideT = null; const mins = [];
   const L = () => (typeof lang !== 'undefined' && MSG[lang]) ? lang : 'en';
   const key = () => L() + (document.body.classList.contains('light-theme') ? 'l' : 'd');
   const lock = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; };
@@ -634,7 +665,7 @@ window.Panels = (function () {
     const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
     if (id === 'assistant') {
       const f = $('asFrame');
-      if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC + (pendingWord ? '?word=' + encodeURIComponent(pendingWord) : ''); loadedKey = key(); }
+      if (!f.getAttribute('src') || loadedKey !== key()) { f.src = SRC; loadedKey = key(); }
       stopNudge();
     }
     if (id === 'profile') { const c = $('info') && $('info').closest('.thabit-card'); if (c && !$('pcard').contains(c)) { c.classList.remove('acc'); c.style.marginBottom = '0'; $('pcard').appendChild(c); } }
@@ -652,17 +683,7 @@ window.Panels = (function () {
     cur = null; $('asm').hidden = true; lock(false); dock();
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') min(); });
-  /* open the Assistant with a word already typed in (used by Hyperlinked words) */
-  function openWith(word) {
-    const f = $('asFrame'), loaded = f.getAttribute('src') && loadedKey === key();
-    if (!loaded) { pendingWord = word; open('assistant'); pendingWord = null; return; }
-    open('assistant');
-    try {
-      const w = f.contentWindow, inp = w.document.getElementById('wordInput');
-      if (inp) { inp.value = word; if (w.checkMainWordStatus) w.checkMainWordStatus(); }
-    } catch (e) { f.src = SRC + '?word=' + encodeURIComponent(word); }
-  }
-  return { open, min, close, dismiss, openWith };
+  return { open, min, close, dismiss };
 })();
 window.openAssistant = e => Panels.open('assistant', e);
 
@@ -702,30 +723,34 @@ function initMiniBars() {
   initMiniBars();
 })();
 
-/* ===== Assistant notifications: shown with Next session until the trainee closes them ===== */
+/* ===== Assistant words: a pinned card that exists ONLY on days when words were uploaded (Cairo day). No X, gone at midnight. ===== */
 const ASX = {
-  en: { t: 'Assistant notifications', b: w => `Your words (${w}) have been uploaded. You can listen to them in the Assistant.`, open: 'Open Assistant', sep: ', ' },
-  ar: { t: 'إشعارات المساعد', b: w => `كلماتك (${w}) تم رفعها. تقدر تسمعها من المساعد.`, open: 'افتح المساعد', sep: '، ' },
-  eg: { t: 'إشعارات المساعد', b: w => `كلماتك (${w}) اترفعت. تقدر تسمعها من المساعد.`, open: 'افتح المساعد', sep: '، ' }
+  en: { t: 'New words', open: 'Open Assistant' },
+  ar: { t: 'كلمات جديدة', open: 'افتح المساعد' },
+  eg: { t: 'كلمات جديدة', open: 'افتح المساعد' }
 };
-const asDis = () => { try { return JSON.parse(localStorage.getItem('thabit_as_dis') || '{}'); } catch (e) { return {}; } };
-const asActive = () => { const d = asDis(); return ((D && D.notes) || []).filter(n => n.kind === 'assistant_words' && ((n.meta || {}).words || []).length && d[n.id] !== n.created_at); };
+(function () { const s = document.createElement('style'); s.textContent = `
+.pc.as .awn{display:inline-block;min-width:20px;padding:0 7px;margin-inline-start:6px;border-radius:999px;background:#34d399;color:#06281b;font-size:.72rem;font-weight:700;text-align:center;vertical-align:middle}
+.aw{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:2px 14px;margin-top:8px;max-height:150px;overflow:auto;padding-inline-end:4px}
+.aw span{display:flex;align-items:center;gap:7px;font-size:.84rem;line-height:1.25;padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.22);overflow-wrap:anywhere}
+.aw span::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:#34d399}
+.billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
+#feedBtn .fplus{display:block;margin:auto}`; document.head.appendChild(s); })();
+const asNotes = () => ((D && D.notes) || []).filter(n => WORD_KINDS.includes(n.kind) && cairoDay(n.created_at) === itToday());
+function asWords() {
+  const seen = new Set(), out = [];
+  asNotes().slice().sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).forEach(n => {
+    const m = n.meta || {}; (n.kind === 'word_ready' ? [m.word] : (m.words || [])).forEach(w => {
+      w = String(w == null ? '' : w).trim(); const k = w.toLowerCase();
+      if (w && !seen.has(k)) { seen.add(k); out.push(w); }
+    });
+  });
+  return out;
+}
 function asCard() {
-  const l = asActive(); if (!l.length) return null;
-  const t = ASX[lang] || ASX.en, words = [...new Set(l.flatMap(n => n.meta.words))];
-  return { noX: true, cls: 'as', html: `<button type="button" class="x" aria-label="Dismiss" onclick="event.stopPropagation();asDismiss(this)">×</button><h3>${t.t}</h3>`
-    + `<div dir="auto">${t.b(words.map(w => '«' + esc(w) + '»').join(t.sep))}</div>`
-    + `<div style="margin-top:10px"><button type="button" class="btn2" onclick="event.stopPropagation();closePop();Panels.open('assistant',event)">${t.open}</button></div>` };
+  const w = asWords(); if (!w.length) return null;
+  const t = ASX[lang] || ASX.en;
+  return { noX: true, cls: 'as', isNew: asNotes().some(n => !n.read_at),
+    html: `<h3>${t.t}<span class="awn">${w.length}</span></h3><div class="aw" dir="auto">${w.map(x => `<span dir="auto">${esc(x)}</span>`).join('')}</div>`
+      + `<div style="margin-top:10px"><button type="button" class="btn2" onclick="event.stopPropagation();closePop();Panels.open('assistant',event)">${t.open}</button></div>` };
 }
-function asDismiss(btn) {
-  if (!VIEW) { const d = asDis(); asActive().forEach(n => d[n.id] = n.created_at); try { localStorage.setItem('thabit_as_dis', JSON.stringify(d)); } catch (e) {} }
-  const card = btn.closest('.pc'); if (card) card.remove();
-  if (!document.querySelector('#pop .pc')) closePop();
-  updateFeed();
-}
-
-/* ===== Hyperlinked words: tap = play the recording from Supabase (same lookup as the Assistant); after 3 plays offer practice ===== */
-if (window.ThabitRichStudent) ThabitRichStudent.init({
-  supabaseUrl: SB, anonKey: KEY, getLang: () => lang,
-  onAssistant: w => Panels.openWith(w)
-});
