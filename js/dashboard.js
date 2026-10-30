@@ -102,24 +102,25 @@ function smooth(p) {
 function chart(S, keys, o) {
   const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab);
   const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / S.max) * (H - Tp - B);
-  let s = `<svg class="c2" viewBox="0 0 ${W} ${H}" data-l="${L}" data-b="${H - B}">`;
+  let s = `<svg class="c2${CINTRO.played ? '' : ' ci'}" viewBox="0 0 ${W} ${H}" data-l="${L}" data-b="${H - B}">`;
   [0, S.max / 2, S.max].forEach(g => s += `<text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
   S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
   keys.forEach(k => {
-    s += `<path class="ln ${k}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
+    const li = keys.indexOf(k);
+    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
     if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
-      s += `<circle class="dot ${k}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
+      s += `<circle class="dot ${k}" style="--d:${(n < 2 ? 0 : i / (n - 1)).toFixed(3)};--li:${li}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
   return s + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
 }
 function kpi(key, rows, all, S) {
   const t = T[lang], vals = rows.map(r => r[key]).filter(v => v != null && v !== '').map(Number).filter(Number.isFinite);
   let h = `<div class="thabit-card dcard"><h4>${t[key]}</h4>`;
-  if (!vals.length) return h + `<div class="sm">${t.none}</div>${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, hit: 15, lab: 5 })}</div>`;
+  if (!vals.length) return h + `<div class="sm">${t.none}</div>${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 1.6, r: 2.6, hit: 15, lab: 5 })}</div>`;
   const cur = vals[vals.length - 1];
   const before = all.filter(r => r[key] != null && !rows.includes(r)).map(r => Number(r[key]));
   const base = before.length ? before[before.length - 1] : vals[0];
-  return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 2, r: 4, hit: 15, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
+  return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 1.6, r: 2.6, hit: 15, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
 }
 function overall(rows, S) {
   const t = T[lang], ra = r => { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };
@@ -129,7 +130,7 @@ function overall(rows, S) {
   const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
   return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     `<div class="lg">${[...MET, 'avg'].map(k => `<span><i style="background:${col[k]}"></i>${k === 'avg' ? t.avg : t[k]}</span>`).join('')}</div>` +
-    chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 4, r: 6, hit: 20, lab: 10 });
+    chart(S, [...MET, 'avg'], { W: 700, H: 300, L: 40, f: 13, w: 2.4, r: 3.4, hit: 20, lab: 10 });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst caps">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`; };
@@ -603,11 +604,14 @@ function initFloat() {
   const btn = $('feedBtn');
   if (!window._popDone) {
     window._popDone = true;
+    let seen0 = ''; try { seen0 = localStorage.getItem('thabit_pop_day') || ''; } catch (e) {}
+    if ((VIEW || seen0 !== itToday()) && feedCards().length) CINTRO.wait = true; else setTimeout(chartsGo, 300);   // no pop-up today: charts start right away
     setTimeout(() => {   // the pop-up appears only the first time the page is opened each day; after that the trainee opens the button himself
       let seen = ''; try { seen = localStorage.getItem('thabit_pop_day') || ''; } catch (e) {}
-      if (!VIEW && seen === itToday()) return;
-      const c = feedCards(); if (!c.length) return;
+      if (!VIEW && seen === itToday()) { chartsGo(); return; }
+      const c = feedCards(); if (!c.length) { chartsGo(); return; }
       if (!VIEW) { try { localStorage.setItem('thabit_pop_day', itToday()); } catch (e) {} }
+      CINTRO.popShown = true;
       openPop(c, btn); markFeedRead();
     }, 2200);
   }
@@ -615,9 +619,6 @@ function initFloat() {
 }
 window.addEventListener('DOMContentLoaded', () => {
   $('feedBtn').onclick = e => { e.stopPropagation(); openFeed($('feedBtn')); };
-  const fb = $('feedBtn'), lbl = '<span class="ftxt">Feed</span>';   // the button shows the word Feed (same circle)
-  const ic = fb.querySelector('i:not(#feedBadge), svg, .fplus');
-  if (ic) ic.outerHTML = lbl; else if (!fb.querySelector('.ftxt')) fb.insertAdjacentHTML('afterbegin', lbl);
   setInterval(() => { const n = cairoNow(); document.querySelectorAll('.cd[data-t]').forEach(e => { const x = Math.max(0, Math.floor((+e.dataset.t - n) / 1000)); e.textContent = [Math.floor(x / 3600), Math.floor(x % 3600 / 60), x % 60].map(v => String(v).padStart(2, '0')).join(':'); }); }, 1000);
 });
 
@@ -741,7 +742,6 @@ const ASX = {
 .aw span{display:flex;align-items:center;gap:7px;font-size:.84rem;line-height:1.25;padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.22);overflow-wrap:anywhere}
 .aw span::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:#34d399}
 .billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
-#feedBtn .ftxt{display:block;margin:auto;font-size:.66rem;font-weight:800;letter-spacing:.03em;line-height:1}
 .aww{cursor:pointer}.aww:hover{color:#34d399}
 /* hyperlinked words: no underline, just a slightly different colour */
 .rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;color:#7dd3fc!important}
@@ -953,3 +953,35 @@ function peekAll() {
 }
 (function () { let q = 0; const run = () => { clearTimeout(q); q = setTimeout(() => requestAnimationFrame(peekAll), 150); };
   new MutationObserver(run).observe(document.body, { childList: true, subtree: true }); window.addEventListener('DOMContentLoaded', run); })();
+
+
+/* ===== Chart intro: once per page load, AFTER the feed pop-up is closed (or at once if there is no pop-up).
+   Lines start invisible and are drawn from zero, slowly and smoothly; the dots appear as the line reaches them. ===== */
+const CINTRO = { played: false, wait: false, popShown: false };
+(function () { const st = document.createElement('style'); st.textContent = `
+svg.c2 .ln{stroke-linecap:round;stroke-linejoin:round}
+svg.c2 .dot{stroke:none;stroke-width:0}
+svg.c2 .dot.performance{filter:drop-shadow(0 0 2.5px #ef4444)}
+svg.c2 .dot.attitude{filter:drop-shadow(0 0 2.5px #3b82f6)}
+svg.c2 .dot.soft_skills{filter:drop-shadow(0 0 2.5px #10b981)}
+svg.c2 .dot.compliance{filter:drop-shadow(0 0 2.5px #f97316)}
+svg.c2 .dot.attendance{filter:drop-shadow(0 0 2.5px #06b6d4)}
+svg.c2.ci .ln{stroke-dasharray:1;stroke-dashoffset:1}
+svg.c2.ci .dot:not(.hit){opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.2)}
+svg.c2.ci.go .ln{animation:thLn 2.6s cubic-bezier(.45,.05,.2,1) forwards;animation-delay:calc(var(--li,0) * .12s)}
+svg.c2.ci.go .dot:not(.hit){animation:thDot .55s cubic-bezier(.2,.8,.3,1.15) forwards;animation-delay:calc(var(--d,0) * 2.3s + var(--li,0) * .12s + .2s)}
+@keyframes thLn{to{stroke-dashoffset:0}}
+@keyframes thDot{to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){svg.c2.ci .ln{stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}svg.c2.ci .dot:not(.hit){opacity:1;transform:none;animation:none!important}}`; document.head.appendChild(st); })();
+function chartsGo() {
+  if (CINTRO.played) return; CINTRO.played = true; CINTRO.wait = false;
+  const fb = $('feedBtn'); if (fb) fb.classList.add('live');            // the heartbeat line of the Feed button starts drawing too
+  const els = document.querySelectorAll('svg.c2.ci:not(.go)');
+  if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('go')); return; }
+  const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('go'); io.unobserve(en.target); } }), { threshold: 0.2 });
+  els.forEach(e => io.observe(e));       // a chart inside a closed accordion draws when it is opened
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const p = $('pop'); if (!p) return;
+  new MutationObserver(() => { if (CINTRO.wait && CINTRO.popShown && !p.classList.contains('open')) setTimeout(chartsGo, 350); }).observe(p, { attributes: true, attributeFilter: ['class'] });
+});
