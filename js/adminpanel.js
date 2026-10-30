@@ -1325,15 +1325,88 @@ async function deleteReport(id) {
 /* ==========================================================
    Voices: word lists (due_words_table / broken_words_table; trash = status 'trash')
    ========================================================== */
-const WL = { due: [], broken: [], trash: [] };
+const WL = { due: [], broken: [], trash: [], have: new Set() };
 const stOf = r => String(r.status || '').toLowerCase();
+const wkey = s => String(s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”]/g, '');   // same cleaning the Assistant uses
+
+/* ---------- mini audio player: play / pause / seek bar; tapping anywhere else stops it and closes it ---------- */
+function closeAdminAudioPop() { if (window._admAP) { window._admAP.close(); window._admAP = null; } }
+function adminAudioPop(url, label) {
+    closeAdminAudioPop();
+    const a = new Audio(url), el = document.createElement('div');
+    const tf = n => { n = Math.max(0, Math.floor(n || 0)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); };
+    el.id = 'admAudioPop';
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483200;width:min(92vw,360px);padding:12px 14px;border-radius:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(245,158,11,.55);box-shadow:0 20px 60px rgba(0,0,0,.6);font-family:Cairo,Inter,sans-serif';
+    el.innerHTML = '<div dir="auto" style="font-weight:800;font-size:.8rem;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(label || '') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:10px"><button type="button" data-pp style="width:36px;height:36px;flex:none;border-radius:50%;border:0;background:#f59e0b;color:#0f172a;cursor:pointer"><i class="fa-solid fa-play"></i></button>'
+        + '<input type="range" min="0" max="1000" value="0" step="1" data-seek style="flex:1;min-width:0;accent-color:#f59e0b">'
+        + '<span data-tm style="font:600 .7rem monospace;min-width:70px;text-align:end">0:00 / 0:00</span></div>';
+    document.body.appendChild(el);
+    const pp = el.querySelector('[data-pp]'), sk = el.querySelector('[data-seek]'), tm = el.querySelector('[data-tm]');
+    let drag = false;
+    const icon = () => { pp.innerHTML = '<i class="fa-solid ' + (a.paused ? 'fa-play' : 'fa-pause') + '"></i>'; };
+    const tick = () => {
+        const d = isFinite(a.duration) ? a.duration : 0;
+        if (!drag) sk.value = d ? Math.round(a.currentTime / d * 1000) : 0;
+        tm.textContent = tf(a.currentTime) + ' / ' + tf(d);
+    };
+    a.addEventListener('timeupdate', tick); a.addEventListener('loadedmetadata', tick);
+    a.addEventListener('play', icon); a.addEventListener('pause', icon); a.addEventListener('ended', () => { icon(); tick(); });
+    pp.onclick = () => {
+        if (a.ended || (isFinite(a.duration) && a.currentTime >= a.duration - 0.05)) a.currentTime = 0;
+        a.paused ? a.play().catch(() => showToast('مش قادر أشغّل الصوت', true)) : a.pause();
+    };
+    sk.addEventListener('pointerdown', () => { drag = true; });
+    sk.addEventListener('pointerup', () => { drag = false; });
+    sk.addEventListener('input', () => { if (isFinite(a.duration)) { a.currentTime = sk.value / 1000 * a.duration; tick(); } });
+    const off = e => { if (!el.contains(e.target)) close(); };
+    const esc2 = e => { if (e.key === 'Escape') close(); };
+    function close() { try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {} el.remove(); document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', esc2); if (window._admAP && window._admAP.el === el) window._admAP = null; }
+    setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
+    document.addEventListener('keydown', esc2);
+    window._admAP = { close, el };
+    icon(); a.play().catch(() => showToast('مش قادر أشغّل الصوت', true));
+}
+async function playWordPop(word) {
+    try {
+        const r = await (await sbFetch(`words_table?select=word,audio_url&word=ilike.${enc(likeEsc(String(word).trim()))}&limit=1`)).json();
+        if (Array.isArray(r) && r[0] && r[0].audio_url) adminAudioPop(r[0].audio_url, r[0].word);
+        else showToast('الكلمة دي مالهاش صوت في الداتابيز', true);
+    } catch (e) { showToast('فشل: ' + e.message, true); }
+}
+
+/* ---------- split a sentence into the pieces worth recording (word groups that belong together stay together) ----------
+   Add your own fixed expressions to COLLOC (lower case, one per entry) and they will always stay as one piece. */
+const COLLOC = ["i'm done with", 'set a plan', 'the best of', 'best for', 'look forward to', 'in order to', 'a lot of', 'lots of', 'be able to', 'going to', 'used to', 'have to', 'want to', 'need to', 'kind of', 'sort of', 'as soon as', 'according to', 'because of', 'instead of', 'such as', 'a bit of', 'a couple of', 'out of', 'one of the', 'how about', 'what about', 'thank you', 'good morning', 'good night', 'good evening', 'as well as', 'on time', 'in time', 'at least', 'at last', 'of course', 'right now', 'for example', 'by the way', 'take care', 'take part in', 'get up', 'wake up', 'pick up', 'turn on', 'turn off', 'give up', 'find out', 'look at', 'look for', 'look after', 'come back', 'go on', 'carry on', 'make sure', 'make a decision', 'take a break', 'do your best', 'keep in touch', 'get along with', 'deal with', 'work on', 'think about', 'talk about', 'depend on', 'agree with', 'be about to', 'would like to', 'is going to', 'are going to'].map(c => c.split(' ')).sort((a, b) => b.length - a.length);
+const STOPW = new Set("all a an the and or but so if as is am are was were be been being do does did has have had will would can could should may might shall must i me my mine you your yours he him his she her hers it its we us our ours they them their theirs this that these those there here some any very too just also then than what who whom which when where why how not no yes i'm i'll i've i'd you're you've you'll you'd he's she's it's we're we've we'll they're they've they'll that's there's what's let's".split(' '));
+const PREPW = new Set('with for of in on at by from about into over under up down out off to through after before around between against'.split(' '));
+function splitUnits(text) {
+    const toks = String(text || '').replace(/[’‘]/g, "'").split(/\s+/).map(t => t.replace(/^['"-]+|['"-]+$/g, '')).filter(Boolean);
+    if (toks.length < 2) return [];
+    const low = toks.map(t => t.toLowerCase()), units = [];
+    let i = 0, adj = false;
+    while (i < toks.length) {
+        let hit = 0;
+        for (const c of COLLOC) { if (i + c.length <= toks.length && c.every((w, k) => low[i + k] === w)) { hit = c.length; break; } }
+        if (hit) { units.push(toks.slice(i, i + hit).join(' ')); adj = false; i += hit; continue; }
+        const t = low[i];
+        if (STOPW.has(t) || t.length < 2) { adj = false; i++; continue; }
+        if (PREPW.has(t)) { if (adj && units.length) units[units.length - 1] += ' ' + toks[i]; adj = false; i++; continue; }
+        units.push(toks[i]); adj = true; i++;
+    }
+    const whole = wkey(text), seen = new Set();
+    return units.filter(u => { const k = wkey(u); if (!k || k === whole || seen.has(k)) return false; seen.add(k); return true; });
+}
+const pendingUnits = text => splitUnits(text).filter(u => !WL.have.has(wkey(u)));
 
 async function refreshWordLists() {
     try {
-        const [due, brk] = await Promise.all([
+        const [due, brk, have] = await Promise.all([
             fetchAllRows('due_words_table?select=*&order=created_at.desc'),
-            fetchAllRows('broken_words_table?select=*&order=created_at.desc')
+            fetchAllRows('broken_words_table?select=*&order=created_at.desc'),
+            fetchAllRows('words_table?select=word').catch(() => [])
         ]);
+        WL.have = new Set((have || []).map(r => wkey(r.word)));
         const active = r => stOf(r) !== 'trash' && stOf(r) !== 'done';
         WL.due = due.filter(active).sort((a, b) => (b.priority === 'high') - (a.priority === 'high'));
         WL.broken = brk.filter(active);
@@ -1342,6 +1415,47 @@ async function refreshWordLists() {
             brk.filter(r => stOf(r) === 'trash').map(r => Object.assign({ _t: 'broken_words_table' }, r)));
         renderWordLists();
     } catch (e) { showToast('تعذّر تحميل قوايم الكلمات: ' + e.message, true); }
+}
+
+(function () {
+    if (document.getElementById('wlCss')) return;
+    const s = document.createElement('style'); s.id = 'wlCss';
+    s.textContent = '.wl-g{border-radius:12px;background:rgba(30,41,59,.55);padding:6px 8px}.wl-sum{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-size:10px;color:#94a3b8}.wl-sum::-webkit-details-marker{display:none}'
+        + '.wl-ln{flex:1;height:1px;background:rgba(148,163,184,.35)}.wl-nm{font-weight:700;color:#cbd5e1}.wl-ct{opacity:.7}'
+        + '.wl-grid{display:grid;grid-template-columns:1fr 1fr;margin-top:6px}.wl-col{display:flex;flex-direction:column;gap:3px;padding:0 8px 0 0;min-width:0}.wl-col.wl-r{padding:0 0 0 8px;border-left:1px solid rgba(148,163,184,.35)}'
+        + '.wl-it{display:flex;align-items:center;gap:4px;font-size:11.5px;line-height:1.5}.wl-t{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}.wl-t:hover{color:#fbbf24}.wl-it.wl-done .wl-t{opacity:.5}.wl-it i.fa-check{color:#34d399;font-size:10px}'
+        + '.wl-b{padding:1px 6px;border-radius:6px;background:rgba(71,85,105,.8);font-size:10px;color:#e2e8f0}.wl-em{font-size:10px;opacity:.5}';
+    document.head.appendChild(s);
+})();
+
+const tmsOf = v => { const s = String(v || ''); const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z'); return d.getTime() || 0; };
+function groupWordRows(list) {
+    const key = r => String(r.trainee_id || r.trainee_name || '');
+    const arr = list.map((r, i) => ({ r, i })).sort((a, b) => key(a.r).localeCompare(key(b.r)) || tmsOf(a.r.created_at) - tmsOf(b.r.created_at));
+    const groups = [];
+    arr.forEach(x => {
+        const g = groups[groups.length - 1], t = tmsOf(x.r.created_at);
+        if (g && g.key === key(x.r) && t - g.last <= 8000) { g.items.push(x); g.last = t; } else groups.push({ key: key(x.r), name: x.r.trainee_name || '', first: t, last: t, items: [x] });
+    });
+    return groups.sort((a, b) => b.last - a.last);
+}
+function groupedHtml(kind, empty) {
+    const list = WL[kind];
+    if (!list.length) return `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`;
+    return groupWordRows(list).map((g, gi) => {
+        const sents = [], words = [], seen = new Set();
+        g.items.forEach(({ r, i }) => { const w = String(r.word || '').trim(); if (!w) return; seen.add(wkey(w)); (/\s/.test(w) ? sents : words).push({ r, i, w }); });
+        const derived = []; let doneN = 0;
+        sents.forEach(s => splitUnits(s.w).forEach(u => { const k = wkey(u); if (seen.has(k)) return; seen.add(k); if (WL.have.has(k)) doneN++; else derived.push(u); }));
+        const high = g.items.some(x => x.r.priority === 'high');
+        const trash = i => `<button type="button" class="wl-b" title="Trash" onclick="trashListedWord('${kind}',${i})"><i class="fa-solid fa-trash"></i></button>`;
+        const play = w => kind === 'broken' ? `<button type="button" class="wl-b" title="Play" data-w="${esc(w)}" onclick="playWordPop(this.dataset.w)"><i class="fa-solid fa-volume-high"></i></button>` : '';
+        const item = ({ i, w }) => { const have = WL.have.has(wkey(w)); return `<div class="wl-it${have ? ' wl-done' : ''}"><span class="wl-t" dir="auto" onclick="useListedWord('${kind}',${i})">${esc(w)}</span>${have ? '<i class="fa-solid fa-check"></i>' : ''}${play(w)}${trash(i)}</div>`; };
+        const dItem = u => `<div class="wl-it"><span class="wl-t" dir="auto" data-w="${esc(u)}" onclick="useWordText(this.dataset.w)">${esc(u)}</span></div>`;
+        return `<details class="wl-g"${gi < 2 ? ' open' : ''}><summary class="wl-sum"><span class="wl-ln"></span><span class="wl-nm">${esc(g.name)} · ${esc(fmtWordDT(g.last))}</span>${high ? '<span class="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold">HIGH</span>' : ''}<span class="wl-ct">${sents.length} جمل · ${words.length + derived.length} كلمات</span><span class="wl-ln"></span></summary>`
+            + `<div class="wl-grid" dir="ltr"><div class="wl-col">${sents.map(item).join('') || '<span class="wl-em">—</span>'}</div>`
+            + `<div class="wl-col wl-r">${words.map(item).join('')}${derived.map(dItem).join('')}${doneN ? `<div class="wl-em">+${doneN} مسجّلة ✓</div>` : ''}${words.length + derived.length + doneN ? '' : '<span class="wl-em">—</span>'}</div></div></details>`;
+    }).join('');
 }
 
 function wordRow(r, kind, i) {
@@ -1356,7 +1470,8 @@ function wordRow(r, kind, i) {
 }
 function renderWordLists() {
     const put = (id, cnt, list, kind, empty) => {
-        const c = $id(id); if (c) c.innerHTML = list.length ? list.map((r, i) => wordRow(r, kind, i)).join('') : `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`;
+        const c = $id(id);
+        if (c) { c.innerHTML = kind === 'trash' ? (list.length ? list.map((r, i) => wordRow(r, kind, i)).join('') : `<span class="text-xs text-slate-500 text-center py-2">${empty}</span>`) : groupedHtml(kind, empty); if (kind !== 'trash') c.style.maxHeight = '60vh'; }
         const n = $id(cnt); if (n) n.textContent = list.length;
     };
     put('dueWordsContainer', 'dueWordsCount', WL.due, 'due', 'No pending words right now.');
@@ -1369,6 +1484,11 @@ const tableOf = kind => kind === 'due' ? 'due_words_table' : 'broken_words_table
 function useListedWord(kind, i) {
     const r = WL[kind][i]; if (!r) return;
     const inp = $id('newWordInput'); inp.value = r.word; checkIfWordExistsInDb(r.word); inp.focus();
+}
+function useWordText(text) {
+    const inp = $id('newWordInput'); if (!inp) return;
+    inp.value = text; checkIfWordExistsInDb(text); inp.focus();
+    try { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
 }
 async function setRowStatus(table, id, status) {
     await mutate(`${table}?id=eq.${enc(id)}`, 'PATCH', { status });
@@ -1385,13 +1505,25 @@ async function purgeFromTrash(_k, i) {
     const r = WL.trash[i]; if (!r || !confirm('تمسح الكلمة نهائي؟')) return;
     try { await mutate(`${r._t}?id=eq.${enc(r.id)}`, 'DELETE'); showToast('اتمسحت نهائي ✓'); refreshWordLists(); } catch (e) { showToast('فشل المسح: ' + e.message, true); }
 }
-// after a word is recorded: tell the trainee, then move its requests straight to the Trash Bin
+// after a word / sentence is recorded: tell the trainee, then move its requests straight to the Trash Bin.
+// A sentence whose individual words are not all recorded yet stays until they are (so its words do not disappear from the list).
 async function markWordHandled(word) {
     try { await notifyWordReady(word); } catch (e) { /* the notice is best-effort */ }
+    WL.have.add(wkey(word));
     for (const t of ['due_words_table', 'broken_words_table']) {
-        try {
-            await sbFetch(`${t}?word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`, { method: 'PATCH', body: JSON.stringify({ status: 'trash' }) });
-        } catch (e) { /* status values may be restricted; ignore */ }
+        let rows = [];
+        try { rows = await (await sbFetch(`${t}?select=*&word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`)).json(); } catch (e) { continue; }
+        for (const r of (Array.isArray(rows) ? rows : [])) {
+            if (stOf(r) === 'trash' || pendingUnits(r.word).length) continue;
+            try { await setRowStatus(t, r.id, 'trash'); } catch (e) { /* status values may be restricted; ignore */ }
+        }
+    }
+    for (const [t, list] of [['due_words_table', WL.due], ['broken_words_table', WL.broken]]) {      // a sentence is finished once it and all its words are recorded
+        for (const r of list) {
+            const w = String(r.word || '').trim();
+            if (!/\s/.test(w) || !WL.have.has(wkey(w)) || pendingUnits(w).length) continue;
+            try { await setRowStatus(t, r.id, 'trash'); } catch (e) { /* ignore */ }
+        }
     }
 }
 function toggleAdminSection(secId, iconId) {
@@ -1423,7 +1555,7 @@ function ensureConflictUI() {
     const play = document.createElement('button');
     play.type = 'button'; play.id = 'playCurrentBtn'; play.textContent = '▶ الصوت الحالي';
     play.className = 'self-start py-1 px-3 rounded-lg bg-slate-800 text-xs font-semibold';
-    play.onclick = () => { if (ADM.existing && ADM.existing.audio_url) new Audio(ADM.existing.audio_url).play().catch(() => showToast('مش قادر أشغّل الصوت', true)); };
+    play.onclick = () => { if (ADM.existing && ADM.existing.audio_url) adminAudioPop(ADM.existing.audio_url, ADM.existing.word); };
     const rn = document.createElement('input');
     rn.id = 'renameWordInput'; rn.placeholder = 'الكلمة الجديدة (الصوت يفضل زي ما هو)';
     rn.className = 'w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm hidden';
