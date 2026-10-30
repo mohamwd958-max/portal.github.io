@@ -11,10 +11,12 @@ const BUCKET_NAME = "audio-files";
 // دالة تنظيف الكلمات لمنع خطأ ReferenceError
 function cleanWordString(str) {
     if (!str) return '';
+    // keep identical to the SQL column words_table.word_key
     return String(str)
-        .trim()
         .toLowerCase()
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”]/g, "");
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()?'"\u201C\u201D\u2018\u2019]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -355,26 +357,43 @@ async function submitReport() { if (!ID.ok) return needLogin(); return idSubmitR
 async function reportMissingWord() { if (!ID.ok) return needLogin(); return idReportWords('missing'); }
 async function reportBrokenWord() { if (!ID.ok) return needLogin(); return idReportWords('broken'); }
 
-let wordsCache = null, wordsCacheAt = 0, statusTimer = null;
+let statusTimer = null;
 let currentAudio = null, currentResolve = null, playToken = 0;
 let userRecBlob = null, userRecUrl = null;
 let mainRecorder = null, mainChunks = [], mainRecording = false, mainTimerId = null, mainSeconds = 0;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function splitWords(str) { return String(str || '').split(/[,،\n]+/).map(x => x.trim()).filter(Boolean); }
-async function getWordsList(force) {
-  if (!force && wordsCache && Date.now() - wordsCacheAt < 15000) return wordsCache;
-  const res = await fetch(SUPABASE_URL + '/rest/v1/words_table?select=word,audio_url', { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } });
-  const d = await res.json();
-  wordsCache = Array.isArray(d) ? d : [];
-  wordsCacheAt = Date.now();
-  return wordsCache;
+/* One small indexed query per word (words_table has tens of thousands of rows, so the whole table is never downloaded).
+   Uses the column words_table.word_key (see the SQL); until that column exists it falls back to an exact ILIKE match. */
+const audioCache = new Map(); let wordKeyOK = true;
+async function lookupAudio(part) {
+  const c = cleanWordString(part); if (!c) return null;
+  const hit = audioCache.get(c); if (hit && Date.now() - hit.t < 60000) return hit.u;
+  const H = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+  const base = SUPABASE_URL + '/rest/v1/words_table?select=audio_url&audio_url=not.is.null&limit=1';
+  let rows = null;
+  if (wordKeyOK) {
+    const r = await fetch(base + '&word_key=eq.' + encodeURIComponent(c), { headers: H });
+    if (r.ok) rows = await r.json(); else wordKeyOK = false;
+  }
+  if (rows === null) {
+    const r = await fetch(base + '&word=ilike.' + encodeURIComponent(String(part).trim().replace(/[\\%_]/g, m => '\\' + m)), { headers: H });
+    if (!r.ok) throw new Error('lookup failed');
+    rows = await r.json();
+  }
+  const u = Array.isArray(rows) && rows[0] ? rows[0].audio_url : null;
+  audioCache.set(c, { u, t: Date.now() });
+  return u;
 }
-function findAudio(list, part) {
-  const c = cleanWordString(part);
-  let url = null;
-  list.forEach(r => { if (r.word && r.audio_url && cleanWordString(r.word) === c) url = r.audio_url; });
-  return url;
+async function lookupMany(parts) {                       // a few at a time, in order
+  const out = new Array(parts.length);
+  for (let i = 0; i < parts.length; i += 8) {
+    const chunk = parts.slice(i, i + 8);
+    const res = await Promise.all(chunk.map(lookupAudio));
+    res.forEach((u, k) => { out[i + k] = u; });
+  }
+  return out;
 }
 function checkMainWordStatus() { clearTimeout(statusTimer); statusTimer = setTimeout(runWordStatusCheck, 300); }
 async function runWordStatusCheck() {
@@ -504,10 +523,10 @@ async function resolveWordUrls() {
   const wEl = document.getElementById('wordInput');
   const parts = splitWords(wEl ? wEl.value : '');
   if (!parts.length) { showGeneralToast(T('typeWord'), 'red'); return null; }
-  let list;
-  try { list = await getWordsList(); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return null; }
+  let found;
+  try { found = await lookupMany(parts); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return null; }
   const urls = [], missing = [];
-  parts.forEach(p => { const u = findAudio(list, p); if (u) urls.push(u); else missing.push(p); });
+  parts.forEach((p, i) => { if (found[i]) urls.push(found[i]); else missing.push(p); });
   if (!urls.length) { showGeneralToast(T('notInDb'), 'orange'); return null; }
   return urls;
 }
@@ -831,10 +850,11 @@ function renderQol() {
 
 async function useItems(items, btn) {
     if (!items || !items.length) return;
-    let list;
-    try { list = await getWordsList(true); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return; }
+    let urls;
+    audioCache.clear();
+    try { urls = await lookupMany(items); } catch (e) { showGeneralToast(T('dbFail'), 'red'); return; }
     const found = [], missing = [];
-    items.forEach(p => (findAudio(list, p) ? found : missing).push(p));
+    items.forEach((p, i) => (urls[i] ? found : missing).push(p));
 
     const w = gid('wordInput');
     w.value = found.join(', ');                       // only words that have a pronunciation, comma separated
