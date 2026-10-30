@@ -1143,7 +1143,7 @@ function mpPaintList() {
         const on = mpState.sel.has(String(r.id));
         return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
             <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-            <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+            <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
                 <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
                 <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small></div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
@@ -1192,6 +1192,7 @@ window.mpSave = async function () {
     }));
     if (!body[mpCol(row, 'trainee') || 'trainee']) { showToast('الاسم مطلوب', true, true); return; }
     if ('updated_at' in row) body.updated_at = new Date().toISOString();
+    if (row.needs_setup === true) body.needs_setup = false;   /* once you save the profile it is no longer "new" */
     mpCur.skipped = skipped;
     const btn = document.getElementById('mpSaveBtn'); if (btn) btn.disabled = true;
     try {
@@ -2931,7 +2932,7 @@ mpPaintList = function () {
     const on = mpState.sel.has(String(r.id));
     return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         ${payTag(r, paid)}</div>
@@ -3055,7 +3056,7 @@ function mpCardHtml(r, today) {
   const on = mpState.sel.has(String(r.id));
   return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' || st === 'paused' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         ${payTag(r, paid)}</div>
@@ -3070,7 +3071,7 @@ mpPaintList = function () {
   const g = document.getElementById('mpGrid'); if (!g) return;
   const today = dsToday(), cnt = ocGet();
   const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
-  const byOpens = (a, b) => (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
+  const byOpens = (a, b) => ((b.needs_setup === true) - (a.needs_setup === true)) || (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
   /* known groups first, then one group per custom status text */
   const groups = MP_GROUPS.map(([k, label]) => [k, label]);
   const custom = new Map();
@@ -3261,45 +3262,97 @@ function genAddRow(host) {
   const row = document.createElement('div'); row.className = 'p5-c'; row.style.marginBottom = '8px';
   const opts = mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('');
   row.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select class="${INPUT_CLS} g-pf" style="min-width:170px;padding:6px"><option value="">— البروفايل (اختياري) —</option>${opts}</select>
+      <input class="${INPUT_CLS} g-nm" placeholder="اسم الشخص" dir="auto" autocomplete="off" style="width:180px;padding:6px">
+      <select class="${INPUT_CLS} g-pf" style="min-width:150px;padding:6px"><option value="">— أو بروفايل موجود —</option>${opts}</select>
       <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS} g-un" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
       <button type="button" class="ds-b green g-go"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button>
       <button type="button" class="ds-b ghost g-rm" title="شيل">✕</button></div>
     <div class="g-out" style="margin-top:8px"></div>`;
   host.appendChild(row);
-  const sel = row.querySelector('.g-pf'), un = row.querySelector('.g-un'), go = row.querySelector('.g-go'), out = row.querySelector('.g-out');
+  const sel = row.querySelector('.g-pf'), nm = row.querySelector('.g-nm'), un = row.querySelector('.g-un'), go = row.querySelector('.g-go'), out = row.querySelector('.g-out');
   const bad = m => `<div class="text-xs" style="color:#fb7185">${esc(m)}</div>`;
-  un.oninput = () => { const v = genUserLive(un.value); if (v !== un.value) un.value = v; };
-  sel.onchange = () => {   /* suggest a username from the English name, if the box is empty */
-    const r = mpState.list.find(x => String(x.id) === sel.value); if (!r || un.value) return;
-    const nm = genUser([mpVal(r, 'preferred name'), r.trainee].filter(Boolean).join(' ').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).join(' '));
-    if (nm) un.value = nm;
+  const suggest = name => {   /* username suggestion from an English name, only while the box is empty or still auto-filled */
+    if (un.value && !un.dataset.auto) return;
+    const v = genUser(String(name || '').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).join(' '));
+    un.value = v; un.dataset.auto = v ? '1' : '';
   };
-  row.querySelector('.g-rm').onclick = () => { if (host.children.length > 1) row.remove(); else { un.value = ''; sel.value = ''; out.innerHTML = ''; } };
+  un.oninput = () => { un.dataset.auto = ''; const v = genUserLive(un.value); if (v !== un.value) un.value = v; };
+  nm.oninput = () => { sel.value = ''; suggest(nm.value); };
+  sel.onchange = () => { const r = mpState.list.find(x => String(x.id) === sel.value); if (!r) return; nm.value = r.trainee || ''; suggest([mpVal(r, 'preferred name'), r.trainee].filter(Boolean).join(' ')); };
+  row.querySelector('.g-rm').onclick = () => { if (host.children.length > 1) row.remove(); else { un.value = ''; nm.value = ''; sel.value = ''; out.innerHTML = ''; } };
   go.onclick = async () => {
     const username = genUser(un.value);
     if (!username) { out.innerHTML = bad('اكتب يوزر نيم بالإنجليزي (حروف وأرقام)'); return; }
     un.value = username;
-    const r = mpState.list.find(x => String(x.id) === sel.value);
-    const base = { action: 'create', username, trainee_id: r ? String(r.id) : null, trainee_name: r ? (r.trainee || null) : null };
-    go.disabled = true; out.innerHTML = '<span class="text-amber-400 text-xs">جاري الإنشاء والتأكد إن الدخول شغّال...</span>';
+    let r = mpState.list.find(x => String(x.id) === sel.value), made = null;
+    const name = r ? (r.trainee || '') : nm.value.trim();
+    if (!name) { out.innerHTML = bad('اكتب اسم الشخص الأول'); nm.focus(); return; }
+    const email = username + GEN_DOMAIN;
+    go.disabled = true;
     try {
+      if (!r) { out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل البروفايل...</span>'; made = r = await genMakeProfile(name, email); }
+      out.innerHTML = '<span class="text-amber-400 text-xs">جاري إنشاء الحساب والتأكد إن الدخول شغّال...</span>';
+      const base = { action: 'create', username, trainee_id: String(r.id), trainee_name: name };
       let res;
       try { res = await genCall(base); }
       catch (e) {
-        if (e.code === 'exists' && confirm('الحساب ' + username + GEN_DOMAIN + ' موجود قبل كده. أغيّر الباسورد بتاعه لباسورد جديد؟ (الباسورد القديم هيبطل يشتغل)')) res = await genCall(Object.assign({ overwrite: true }, base));
+        if (e.code === 'exists' && confirm('الحساب ' + email + ' موجود قبل كده. أغيّر الباسورد بتاعه لباسورد جديد؟ (الباسورد القديم هيبطل يشتغل)')) res = await genCall(Object.assign({ overwrite: true }, base));
         else throw e;
       }
+      const warn = await genLink(r, email, res.user_id);
+      const wasNew = !!made; made = null;   /* success: keep the profile */
       genState.list = null;
       out.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr">
           <code style="font-size:13px;color:#e2e8f0">${esc(res.email)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.email)}">نسخ</button>
           <code style="font-size:15px;color:#34d399;letter-spacing:.5px">${esc(res.password)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.password)}">نسخ</button></div>
         <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتجرّب الدخول بيه وشغّال${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''}</div>
-        ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الحساب اتعمل بس الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
+        ${wasNew ? `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتعمل بروفايل جديد "${esc(name)}" وعليه علامة «جديد» في الداشبورد. افتحه وكمّل الصورة والأرقام.</div>` : `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتربط الحساب بالبروفايل "${esc(name)}".</div>`}
+        ${warn ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">${esc(warn)}</div>` : ''}
+        ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
       out.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => genCopy(b.dataset.c); });
-    } catch (e) { out.innerHTML = bad(e.message); }
+    } catch (e) {
+      let extra = '';
+      if (made) {   /* account failed: remove the profile we just made so nothing half-done is left */
+        try { await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(made.id)}`, { method: 'DELETE' }); mpState.list = mpState.list.filter(x => String(x.id) !== String(made.id)); mpPaintList(); extra = ' (البروفايل اللي اتعمل اتمسح)'; }
+        catch (e2) { extra = ' (تنبيه: البروفايل ' + name + ' اتعمل ومااتمسحش، امسحه يدوي)'; }
+      }
+      out.innerHTML = bad(e.message + extra);
+    }
     go.disabled = false;
   };
+}
+
+/* new profile for the person being given an account */
+async function genMakeProfile(name, email) {
+  const sample = mpState.list[0], has = sample && Object.keys(sample).length;
+  const col = k => has ? mpCol(sample, k) : k;
+  const body = {};
+  body[col('trainee') || 'trainee'] = name;
+  if (col('preferred_email')) body[col('preferred_email')] = email;
+  if (col('status_as_of_today')) body[col('status_as_of_today')] = 'Active';
+  body.needs_setup = true;
+  const post = b => sbFetch(PROFILES_TABLE, { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(b) });
+  let res;
+  try { res = await post(body); }
+  catch (e) { if (/needs_setup/.test(e.message)) { delete body.needs_setup; res = await post(body); } else throw e; }
+  const rows = await res.json(), row = Array.isArray(rows) ? rows[0] : rows;
+  if (!row || row.id == null) throw new Error('البروفايل ما اتعملش (تأكد من صلاحيات الجدول)');
+  mpState.list.push(row); mpPaintList();
+  return row;
+}
+/* link the profile to the login (login email + auth user id, whichever of those columns exist) */
+async function genLink(r, email, uid) {
+  const body = {}, keys = Object.keys(r);
+  const authCol = keys.find(k => /^(authuserid|userid|authid|uid|authuid)$/.test(mpNorm(k)));
+  if (authCol && uid && !r[authCol]) body[authCol] = uid;
+  const emailCol = mpCol(r, 'preferred_email');
+  if (emailCol && !r[emailCol]) body[emailCol] = email;
+  if (!Object.keys(body).length) return '';
+  try {
+    const rows = await (await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(r.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) })).json();
+    if (Array.isArray(rows) && rows[0]) { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = rows[0]; mpPaintList(); }
+    return '';
+  } catch (e) { return 'الحساب اتعمل بس ربطه بالبروفايل فشل: ' + e.message; }
 }
 async function genHistPaint() {
   const host = $id('genBody'); if (!host) return;
