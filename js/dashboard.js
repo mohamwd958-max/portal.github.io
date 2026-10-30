@@ -19,10 +19,10 @@ const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_han
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
-const LANG_LBL = { en: 'English', ar: 'عربي', eg: 'مصري' };
+const THB_LANG_LBL = { en: 'English', ar: 'عربي', eg: 'مصري' };
 function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
-  const lt = $('langTxt'); if (lt) lt.textContent = LANG_LBL[l] || l;
+  const lt = $('langTxt'); if (lt) lt.textContent = THB_LANG_LBL[l] || l;
   const r = $('htmlRoot'); r.lang = l; r.dir = l === 'en' ? 'ltr' : 'rtl';
   if (D) { render(); if (typeof updateFeed === 'function') updateFeed(); }
 }
@@ -417,7 +417,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); initFloat();
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 async function sendReq() {
   const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
@@ -613,6 +613,9 @@ function openFeed(from) {
 function glowFeed() { const b = $('feedBtn'); b.classList.remove('glow'); void b.offsetWidth; b.classList.add('glow'); setTimeout(() => b.classList.remove('glow'), 4200); }
 /* Intro: white empty ring -> plus drawn (horizontal, then vertical) in white -> pop + moving colours -> feed pop-up -> badge after it closes */
 function runIntro(btn) {
+  try { runIntro2(btn); } catch (e) { console.error('[feed intro]', e); INTRO.hold = false; try { btn.classList.remove('empty'); btn.classList.add('done'); updateFeed(); } catch (x) {} chartsGo(); }
+}
+function runIntro2(btn) {
   INTRO.run = true; INTRO.hold = true; CINTRO.wait = true; $('feedBadge').hidden = true;
   btn.classList.remove('empty'); btn.classList.add('draw');
   setTimeout(() => btn.classList.add('done', 'pop'), 760);
@@ -1099,7 +1102,7 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
 }
 function openLang(btn) {
   const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
-  const item = (x, c) => `<button type="button" class="lgi${c ? ' cur' : ''}" data-l="${x}">${LANG_LBL[x]}</button>`;
+  const item = (x, c) => `<button type="button" class="lgi${c ? ' cur' : ''}" data-l="${x}">${THB_LANG_LBL[x]}</button>`;
   const up = r.top > 130, list = up ? others.map(x => item(x)).join('') + item(lang, 1) : item(lang, 1) + others.map(x => item(x)).join('');
   pop.innerHTML = `<div class="lgs" style="left:${Math.max(70, Math.min(innerWidth - 70, r.left + r.width / 2))}px;${up ? 'bottom:' + (innerHeight - r.bottom) : 'top:' + r.top}px" dir="ltr">${list}</div>`;
   pop.classList.add('open');
@@ -1116,10 +1119,10 @@ function openBarOpts() {
 function closeBarOpts() { $('barOpts').classList.remove('open'); }
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
+const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
-  o = (Array.isArray(o) ? o : []).filter(k => BAR_DEF.includes(k)); BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
+  o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
 }
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
