@@ -1262,30 +1262,39 @@ function moveEnd(pinned) {
 })();
 
 /* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
-let pickT = null;
+let pickT = null, pickBtn = null;
 function pickOpen(btn, list) {
   const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
   const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
-  clearTimeout(pickT); pop.classList.remove('closing');
+  clearTimeout(pickT); pop.classList.remove('closing'); pop.dataset.side = side;
+  if (pickBtn && pickBtn !== btn) pickBtn.classList.remove('pk-on'); pickBtn = btn; btn.classList.add('pk-on');
   pop.innerHTML = list.map((o, i) => {
     const d = GAP + S / 2 + i * (S + G); let x, y;
     if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
     else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
     else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
     else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
-    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}</button>`;
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}${o.label ? `<span class="lgl">${esc(o.label)}</span>` : ''}</button>`;
   }).join('');
   pop.classList.add('open');
   pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
 }
 function pickClose(now) {
   const pop = $('langPop'); if (!pop.classList.contains('open')) return;
-  clearTimeout(pickT);
+  clearTimeout(pickT); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; }
   if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
   pop.classList.add('closing');
   pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
 }
 function closeLang() { pickClose(); }
+const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
+function openPlus(btn) {
+  const ar = lang !== 'en';
+  pickOpen(btn || $('plusBtn'), [
+    { html: ASSIST_SVG_SM, title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
+    { html: '<i class="fa-solid fa-paper-plane"></i>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
+  ]);
+}
 function openLang(btn) {
   const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
   pickOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(l => ({ html: lbl[l], title: lbl[l], on: () => { if (l !== lang) setLanguage(l); } })));
@@ -1307,7 +1316,7 @@ function openBarOpts(btn) {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
@@ -1620,4 +1629,18 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   const scan = () => document.querySelectorAll('.thabit-card,.test-card').forEach(c => { if (!seen.has(c)) { seen.add(c); io.observe(c); } });
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('DOMContentLoaded', scan);
+})();
+
+/* ===== Send-request popup (opened from the + button) ===== */
+function openRq() { const m = $('rqm'); if (!m) return; const t = $('tReq'); if (t) $('rqmT').textContent = t.textContent; m.classList.add('open'); }
+function closeRq() { const m = $('rqm'); if (m) m.classList.remove('open'); }
+window.openRq = openRq; window.closeRq = closeRq;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); });
+
+/* ===== Touch = scroll. A finger that moves is a scroll, never a click: only a real tap or a long press (finger stays still) can act ===== */
+(function () {
+  let sx = 0, sy = 0, moved = false;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = false; }, { passive: true, capture: true });
+  document.addEventListener('touchmove', e => { if (moved) return; const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true; }, { passive: true, capture: true });
+  document.addEventListener('click', e => { if (moved && e.isTrusted) { e.stopImmediatePropagation(); e.preventDefault(); } moved = false; }, true);
 })();
