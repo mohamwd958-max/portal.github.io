@@ -417,16 +417,18 @@ body.light-theme .lgi:hover{border-color:#b45309;color:#b45309}
 @media(prefers-reduced-motion:reduce){.lgi{animation:none!important;opacity:1}.lgp.open::before{animation:none!important}}
 
 /* ===== Ear toggle on the Notes / TEFL / QOL containers ===== */
-.earc{position:relative}.earc>h4{padding-inline-end:40px}
-.ear{position:absolute;top:10px;inset-inline-end:10px;z-index:3;width:30px;height:30px;padding:0;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:.8rem;cursor:pointer;opacity:.75;transition:background .25s,color .25s,border-color .25s,opacity .25s}
+.earc{position:relative;cursor:pointer}.earc .lst{overflow:hidden!important}
+.earh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.earh h4{margin:0}
+.earbar{display:flex;align-items:center;gap:8px;flex:none}
+.ear{flex:none;width:30px;height:30px;padding:0;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:.8rem;cursor:pointer;opacity:.6;transition:background .25s,color .25s,border-color .25s,opacity .25s}
 .ear.on{background:rgba(52,211,153,.18);color:#34d399;border-color:rgba(52,211,153,.55);opacity:1}
-.ear:not(.on)::after{content:"";position:absolute;width:18px;height:2px;border-radius:2px;background:currentColor;transform:rotate(-45deg)}
 body.light-theme .ear.on{color:#047857;border-color:rgba(4,120,87,.55);background:rgba(4,120,87,.12)}
 .ear.shk i{animation:earShk 1s ease-in-out}
 .ear.cls i{animation:earCls .45s ease-in-out}
 @keyframes earShk{0%,100%{transform:rotate(0) scale(1)}12%{transform:rotate(-22deg) scale(1.2)}28%{transform:rotate(20deg) scale(1.2)}44%{transform:rotate(-16deg) scale(1.1)}60%{transform:rotate(14deg) scale(1.1)}78%{transform:rotate(-6deg)}}
 @keyframes earCls{0%{transform:scale(1)}45%{transform:scale(.5) rotate(-12deg)}100%{transform:scale(1) rotate(0)}}
 @media(prefers-reduced-motion:reduce){.ear.shk i,.ear.cls i{animation:none}}
+.cti{margin-bottom:14px}.cti:last-child{margin-bottom:0}.ctd{margin-bottom:4px}
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 </head>
