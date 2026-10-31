@@ -1535,4 +1535,1902 @@ const SEL = { due: new Set(), broken: new Set(), trash: new Set() };
 const selCount = () => SEL.due.size + SEL.broken.size + SEL.trash.size;
 const selKind = () => ['due', 'broken', 'trash'].find(k => SEL[k].size) || null;
 function selPaint() {
-    document.querySelectorAll('[data-sel]').forEach(el => { const p = el.datas
+    document.querySelectorAll('[data-sel]').forEach(el => { const p = el.dataset.sel.split(':'); el.classList.toggle('wl-sel', !!SEL[p[0]] && SEL[p[0]].has(+p[1])); });
+    updateSelBar();
+}
+function selSet(k, i, on) {
+    Object.keys(SEL).forEach(x => { if (x !== k) SEL[x].clear(); });
+    const s = SEL[k], v = on === undefined ? !s.has(i) : on;
+    v ? s.add(i) : s.delete(i);
+}
+function wlSelectAll(kind) { Object.keys(SEL).forEach(x => SEL[x].clear()); WL[kind].forEach((_, i) => SEL[kind].add(i)); selPaint(); }
+function selClear() { Object.keys(SEL).forEach(k => SEL[k].clear()); selPaint(); }
+function selGroup(det) {
+    const els = Array.prototype.slice.call(det.querySelectorAll('[data-sel]')); if (!els.length) return;
+    const ps = els.map(el => el.dataset.sel.split(':')), all = ps.every(p => SEL[p[0]].has(+p[1]));
+    ps.forEach(p => selSet(p[0], +p[1], !all)); selPaint();
+}
+async function wlBulk(op) {
+    const kind = selKind(); if (!kind) return;
+    const rows = Array.from(SEL[kind]).map(i => WL[kind][i]).filter(Boolean); if (!rows.length) return;
+    if (op === 'purge' && !confirm('تمسح ' + rows.length + ' نهائي؟')) return;
+    if (op === 'trash' && rows.length > 1 && !confirm('تنقل ' + rows.length + ' للسلة؟')) return;
+    const byT = {};
+    rows.forEach(r => { const t = kind === 'trash' ? r._t : tableOf(kind); (byT[t] = byT[t] || []).push(r.id); });
+    try {
+        for (const t in byT) {
+            const q = `${t}?id=in.(${byT[t].map(enc).join(',')})`;
+            if (op === 'purge') await mutate(q, 'DELETE'); else await mutate(q, 'PATCH', { status: op === 'trash' ? 'trash' : 'pending' });
+        }
+        showToast(op === 'trash' ? 'اتنقلت للسلة ✓' : op === 'restore' ? 'اترجعت ✓' : 'اتمسحت نهائي ✓');
+        selClear(); refreshWordLists();
+    } catch (e) { showToast('فشل: ' + e.message, true); }
+}
+function updateSelBar() {
+    let bar = $id('wlSelBar');
+    const n = selCount(), kind = selKind();
+    if (!n) { if (bar) bar.style.display = 'none'; return; }
+    if (!bar) {
+        bar = document.createElement('div'); bar.id = 'wlSelBar';
+        bar.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483100;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 12px;border-radius:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(245,158,11,.6);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .78rem Cairo,sans-serif;max-width:94vw';
+        document.body.appendChild(bar);
+    }
+    const b = (fn, t, c) => `<button type="button" class="wl-b" style="padding:6px 10px;font-size:.75rem;${c || ''}" onclick="${fn}">${t}</button>`;
+    bar.innerHTML = `<span>${n} محدد</span>` + b(`wlSelectAll('${kind}')`, 'تحديد الكل')
+        + (kind === 'trash' ? b("wlBulk('restore')", 'استرجاع', 'background:#059669') + b("wlBulk('purge')", 'مسح نهائي', 'background:#e11d48') : b("wlBulk('trash')", 'نقل للسلة', 'background:#e11d48'))
+        + b('selClear()', 'إلغاء');
+    bar.style.display = 'flex';
+}
+function closeCtx() { const m = $id('wlCtx'); if (m) m.remove(); }
+function showCtx(x, y, kind, det) {
+    closeCtx();
+    const m = document.createElement('div'); m.id = 'wlCtx';
+    m.style.cssText = 'position:fixed;z-index:2147483150;min-width:190px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(148,163,184,.45);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .78rem Cairo,sans-serif;color:#f1f5f9';
+    const n = SEL[kind].size, it = (fn, t, c) => `<div data-f="${fn}" style="padding:7px 10px;border-radius:8px;cursor:pointer;${c || ''}" onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''">${t}</div>`;
+    m.innerHTML = it('all', 'تحديد الكل في القايمة') + (det ? it('grp', 'تحديد المجموعة دي') : '') + (selCount() ? it('clr', 'إلغاء التحديد') : '')
+        + (n ? (kind === 'trash' ? it('restore', `↩ استرجاع المحدد (${n})`) + it('purge', `✖ مسح نهائي (${n})`, 'color:#fb7185') : it('trash', `🗑 نقل المحدد للسلة (${n})`, 'color:#fb7185')) : '');
+    document.body.appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + 'px'; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + 'px';
+    m.addEventListener('click', e => {
+        const f = e.target.closest('[data-f]'); if (!f) return; closeCtx();
+        ({ all: () => wlSelectAll(kind), grp: () => det && selGroup(det), clr: selClear, trash: () => wlBulk('trash'), restore: () => wlBulk('restore'), purge: () => wlBulk('purge') })[f.dataset.f]();
+    });
+    setTimeout(() => { document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { closeCtx(); document.removeEventListener('pointerdown', off, true); } }, true); }, 0);
+}
+function initWordSelect() {
+    [['dueWordsContainer', 'due'], ['brokenWordsContainer', 'broken'], ['trashWordsContainer', 'trash']].forEach(([id, kind]) => {
+        const c = $id(id); if (!c || c._sel) return; c._sel = 1;
+        c.addEventListener('click', e => {
+            if (c._dragged) { c._dragged = false; e.preventDefault(); e.stopPropagation(); return; }
+            const multi = e.ctrlKey || e.metaKey, sm = e.target.closest('summary.wl-sum');
+            if (sm && multi) { e.preventDefault(); e.stopPropagation(); selGroup(sm.parentElement); return; }
+            const it = e.target.closest('[data-sel]'); if (!it) return;
+            if (multi || (selCount() && !e.target.closest('button'))) {
+                e.preventDefault(); e.stopPropagation();
+                const p = it.dataset.sel.split(':'); selSet(p[0], +p[1]); selPaint();
+            }
+        }, true);
+        c.addEventListener('pointerdown', e => {
+            if (e.button !== 0 || e.target.closest('button,input,summary,a')) return;
+            c._m = { x: e.clientX, y: e.clientY, on: false, add: e.ctrlKey || e.metaKey, pid: e.pointerId, base: null };
+        });
+        c.addEventListener('pointermove', e => {
+            const m = c._m; if (!m) return;
+            if (!m.on) {
+                if (Math.hypot(e.clientX - m.x, e.clientY - m.y) < 8) return;
+                m.on = true; m.base = m.add ? new Set(SEL[kind]) : new Set();
+                m.box = document.createElement('div');
+                m.box.style.cssText = 'position:fixed;z-index:2147483100;border:1.5px dashed #f59e0b;background:rgba(245,158,11,.14);border-radius:4px;pointer-events:none';
+                document.body.appendChild(m.box);
+                try { c.setPointerCapture(m.pid); } catch (_) {}
+                document.body.style.userSelect = 'none'; try { getSelection().removeAllRanges(); } catch (_) {}
+            }
+            const l = Math.min(m.x, e.clientX), t = Math.min(m.y, e.clientY), r = Math.max(m.x, e.clientX), b = Math.max(m.y, e.clientY);
+            m.box.style.left = l + 'px'; m.box.style.top = t + 'px'; m.box.style.width = (r - l) + 'px'; m.box.style.height = (b - t) + 'px';
+            Object.keys(SEL).forEach(x => { if (x !== kind) SEL[x].clear(); });
+            SEL[kind] = new Set(m.base);
+            c.querySelectorAll('[data-sel]').forEach(el => {
+                const q = el.getBoundingClientRect();
+                if (q.width && q.height && q.left < r && q.right > l && q.top < b && q.bottom > t) SEL[kind].add(+el.dataset.sel.split(':')[1]);
+            });
+            selPaint();
+        });
+        const end = () => { const m = c._m; c._m = null; if (m && m.on) { m.box.remove(); document.body.style.userSelect = ''; c._dragged = true; setTimeout(() => { c._dragged = false; }, 0); } };
+        c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+        c.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const it = e.target.closest('[data-sel]');
+            if (it) { const p = it.dataset.sel.split(':'); if (!SEL[p[0]].has(+p[1])) { if (!(e.ctrlKey || e.metaKey)) Object.keys(SEL).forEach(x => SEL[x].clear()); selSet(p[0], +p[1], true); selPaint(); } }
+            showCtx(e.clientX, e.clientY, kind, e.target.closest('details.wl-g'));
+        });
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); if (selCount()) selClear(); } });
+}
+window.addEventListener('DOMContentLoaded', initWordSelect);
+const tableOf = kind => kind === 'due' ? 'due_words_table' : 'broken_words_table';
+function useListedWord(kind, i) {
+    const r = WL[kind][i]; if (!r) return;
+    const inp = $id('newWordInput'); inp.value = r.word; checkIfWordExistsInDb(r.word); inp.focus();
+}
+function useWordText(text) {
+    const inp = $id('newWordInput'); if (!inp) return;
+    inp.value = text; checkIfWordExistsInDb(text); inp.focus();
+    try { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+}
+async function setRowStatus(table, id, status) {
+    await mutate(`${table}?id=eq.${enc(id)}`, 'PATCH', { status });
+}
+async function trashListedWord(kind, i) {
+    const r = WL[kind][i]; if (!r) return;
+    try { await setRowStatus(tableOf(kind), r.id, 'trash'); showToast('اتنقلت للسلة ✓'); refreshWordLists(); } catch (e) { showToast('فشل: ' + e.message, true); }
+}
+async function restoreFromTrash(_k, i) {
+    const r = WL.trash[i]; if (!r) return;
+    try { await setRowStatus(r._t, r.id, 'pending'); refreshWordLists(); } catch (e) { showToast(e.message, true); }
+}
+async function purgeFromTrash(_k, i) {
+    const r = WL.trash[i]; if (!r || !confirm('تمسح الكلمة نهائي؟')) return;
+    try { await mutate(`${r._t}?id=eq.${enc(r.id)}`, 'DELETE'); showToast('اتمسحت نهائي ✓'); refreshWordLists(); } catch (e) { showToast('فشل المسح: ' + e.message, true); }
+}
+// after a word / sentence is recorded: tell the trainee, then move its requests straight to the Trash Bin.
+// A sentence whose individual words are not all recorded yet stays until they are (so its words do not disappear from the list).
+async function markWordHandled(word) {
+    try { await notifyWordReady(word); } catch (e) { /* the notice is best-effort */ }
+    if (!WL.have.has(wkey(word))) WL.have.set(wkey(word), '');
+    for (const t of ['due_words_table', 'broken_words_table']) {
+        let rows = [];
+        try { rows = await (await sbFetch(`${t}?select=*&word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`)).json(); } catch (e) { continue; }
+        for (const r of (Array.isArray(rows) ? rows : [])) {
+            if (stOf(r) === 'trash' || pendingUnits(r.word).length) continue;
+            try { await setRowStatus(t, r.id, 'trash'); } catch (e) { /* status values may be restricted; ignore */ }
+        }
+    }
+    for (const [t, list] of [['due_words_table', WL.due], ['broken_words_table', WL.broken]]) {      // a sentence is finished once it and all its words are recorded
+        for (const r of list) {
+            const w = String(r.word || '').trim();
+            if (!/\s/.test(w) || !WL.have.has(wkey(w)) || pendingUnits(w).length) continue;
+            try { await setRowStatus(t, r.id, 'trash'); } catch (e) { /* ignore */ }
+        }
+    }
+}
+function toggleAdminSection(secId, iconId) {
+    const s = $id(secId), ic = $id(iconId); if (!s) return;
+    s.classList.toggle('collapsed');
+    const closed = s.classList.contains('collapsed');
+    s.style.display = closed ? 'none' : 'flex';
+    if (ic) ic.style.transform = closed ? '' : 'rotate(180deg)';
+}
+
+/* ==========================================================
+   Voices: one word = one URL (table: words_table, bucket: audio-files)
+   - new word  -> record + add
+   - existing  -> "update" (new recording replaces the old URL) or "rename" (new text, same URL)
+   ========================================================== */
+const ADM = { existing: null, action: 'update', blob: null, rec: null, timer: null };
+const urlToPath = u => { const m = String(u || '').match(/\/storage\/v1\/object\/public\/audio-files\/(.+)$/); return m ? decodeURIComponent(m[1]) : null; };
+
+function updateSaveState() {
+    const btn = $id('saveToSupabaseBtn'); if (!btn) return;
+    const rn = $id('renameWordInput');
+    const ok = ADM.existing && ADM.action === 'rename' ? !!(rn && rn.value.trim()) : !!ADM.blob;
+    btn.disabled = !ok;
+    const lbl = $id('uiUploadSaveBtn');
+    if (lbl) lbl.textContent = ADM.existing ? (ADM.action === 'rename' ? 'Rename word' : 'Update voice') : 'Upload & Save to Database';
+}
+function ensureConflictUI() {
+    const box = $id('dbWordConflictBox'); if (!box || $id('renameWordInput')) return;
+    const play = document.createElement('button');
+    play.type = 'button'; play.id = 'playCurrentBtn'; play.textContent = '▶ الصوت الحالي';
+    play.className = 'self-start py-1 px-3 rounded-lg bg-slate-800 text-xs font-semibold';
+    play.onclick = () => { if (ADM.existing && ADM.existing.audio_url) adminAudioPop(ADM.existing.audio_url, ADM.existing.word); };
+    const rn = document.createElement('input');
+    rn.id = 'renameWordInput'; rn.placeholder = 'الكلمة الجديدة (الصوت يفضل زي ما هو)';
+    rn.className = 'w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm hidden';
+    rn.addEventListener('input', updateSaveState);
+    box.appendChild(play); box.appendChild(rn);
+}
+let _chkT;
+function checkIfWordExistsInDb(v) {
+    clearTimeout(_chkT);
+    _chkT = setTimeout(async () => {
+        const w = String(v || '').trim(), box = $id('dbWordConflictBox');
+        ADM.existing = null;
+        if (!w) { if (box) box.classList.add('hidden'); updateSaveState(); return; }
+        try {
+            const r = await (await sbFetch(`words_table?select=word,audio_url&word=ilike.${enc(likeEsc(w))}&limit=1`)).json();
+            if (Array.isArray(r) && r.length) { ADM.existing = r[0]; if (box) box.classList.remove('hidden'); setConflictAction(ADM.action || 'update'); }
+            else { if (box) box.classList.add('hidden'); updateSaveState(); }
+        } catch (e) { /* ignore */ }
+    }, 300);
+}
+function setConflictAction(a) {
+    ensureConflictUI();
+    ADM.action = a === 'rename' ? 'rename' : 'update';
+    const on = 'flex-1 py-1.5 px-3 rounded-lg bg-amber-600 text-white text-xs font-semibold transition';
+    const off = 'flex-1 py-1.5 px-3 rounded-lg bg-slate-800 text-xs font-semibold transition';
+    const u = $id('btnActionReplace'), r = $id('btnActionExplain');
+    if (u) { u.className = ADM.action === 'update' ? on : off; u.textContent = 'Update voice'; }
+    if (r) { r.className = ADM.action === 'rename' ? on : off; r.textContent = 'Rename word'; }
+    const rn = $id('renameWordInput'); if (rn) rn.classList.toggle('hidden', ADM.action !== 'rename');
+    const t = $id('conflictWarningText'); if (t) t.textContent = 'الكلمة موجودة. تحدّث الصوت (الـ URL القديم يتشال)، ولا تغيّر الكلمة وتسيب الصوت؟';
+    updateSaveState();
+}
+function handleAdminInputEnter(e) { if (e && e.key === 'Enter') pronounceAdminGoogleTranslation(); }
+function pronounceAdminGoogleTranslation() {
+    const w = ($id('newWordInput').value || '').trim(); if (!w) return;
+    const lang = /[\u0600-\u06FF]/.test(w) ? 'ar' : 'en';
+    new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${enc(w)}`).play().catch(() => showToast('مش قادر أشغّل النطق', true));
+}
+async function toggleAdminRecording() {
+    if (ADM.rec && ADM.rec.state === 'recording') { ADM.rec.stop(); return; }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const rec = new MediaRecorder(stream), chunks = [];
+        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = () => {
+            stream.getTracks().forEach(t => t.stop()); clearInterval(ADM.timer);
+            ADM.blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+            const a = $id('adminAudioPlayback'); a.src = URL.createObjectURL(ADM.blob); a.classList.remove('hidden');
+            $id('adminRecordIcon').className = 'fa-solid fa-microphone';
+            updateSaveState();
+        };
+        ADM.rec = rec; rec.start();
+        $id('adminRecordIcon').className = 'fa-solid fa-stop';
+        let s = 0; $id('adminTimer').textContent = '00:00';
+        ADM.timer = setInterval(() => { s++; $id('adminTimer').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }, 1000);
+    } catch (e) { showToast('مفيش صلاحية للميكروفون', true); }
+}
+async function uploadBlobToBucket(blob, word) {
+    const type = (blob.type || 'audio/webm').split(';')[0];
+    const ext = /mp4|aac/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg' : 'webm';
+    const slug = word.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'word';
+    const fname = `${Date.now()}_${slug}.${ext}`;
+    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/audio-files/${fname}`, {
+        method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + window.SB_ACCESS_TOKEN, 'Content-Type': type, 'x-upsert': 'true' }, body: blob
+    });
+    if (!up.ok) throw new Error(friendlyError(await up.text()));
+    return `${SUPABASE_URL}/storage/v1/object/public/audio-files/${fname}`;
+}
+async function uploadAndSaveToSupabase() {
+    const word = ($id('newWordInput').value || '').trim();
+    if (!word) { showToast('اكتب الكلمة الأول', true); return; }
+    if (!window.SB_ACCESS_TOKEN) { onSessionExpired(); return; }
+    const btn = $id('saveToSupabaseBtn'); btn.disabled = true;
+    const ex = ADM.existing;
+    try {
+        if (ex && ADM.action === 'rename') {
+            const nw = ($id('renameWordInput').value || '').trim();
+            if (!nw) throw new Error('اكتب الكلمة الجديدة');
+            if (nw === ex.word) throw new Error('الكلمة الجديدة نفس القديمة');
+            await mutate(`words_table?word=eq.${enc(ex.word)}`, 'PATCH', { word: nw });
+            await markWordHandled(nw);
+            showToast('اتغيّرت الكلمة، والصوت زي ما هو ✓');
+        } else {
+            if (!ADM.blob) throw new Error('سجّل الصوت الأول');
+            const url = await uploadBlobToBucket(ADM.blob, word);
+            if (ex) {
+                await mutate(`words_table?word=eq.${enc(ex.word)}`, 'PATCH', { audio_url: url });
+                const old = urlToPath(ex.audio_url);   // the old URL is replaced; remove its file too (best effort)
+                if (old) fetch(`${SUPABASE_URL}/storage/v1/object/audio-files/${old.split('/').map(enc).join('/')}`, { method: 'DELETE', headers: sbHeaders() }).catch(() => {});
+                showToast('اتحدّث الصوت ✓');
+            } else {
+                await sbFetch('words_table', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ word, audio_url: url }) });
+                showToast('اتضافت الكلمة ✓');
+            }
+            await markWordHandled(word);
+        }
+        ADM.blob = null; ADM.existing = null;
+        $id('adminAudioPlayback').classList.add('hidden'); $id('adminTimer').textContent = '00:00';
+        $id('newWordInput').value = ''; const rn = $id('renameWordInput'); if (rn) rn.value = '';
+        $id('dbWordConflictBox').classList.add('hidden');
+        updateSaveState(); refreshWordLists();
+    } catch (e) { showToast('فشل الحفظ: ' + e.message, true); updateSaveState(); }
+}
+
+/* ===== suggestions: empty field -> oldest pending due words first ===== */
+function initWordSuggest() {
+    const inp = $id('newWordInput'); if (!inp || inp._sg) return; inp._sg = 1;
+    const dd = document.createElement('div');
+    dd.id = 'wordSuggest';
+    dd.style.cssText = 'display:none;max-height:180px;overflow:auto;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#0f172a';
+    inp.parentElement.parentElement.appendChild(dd);
+    const hide = () => { dd.style.display = 'none'; };
+    const show = () => {
+        if (inp.value.trim()) return hide();
+        const list = WL.due.slice().sort((x, y) => ((y.priority === 'high') - (x.priority === 'high')) || String(x.created_at).localeCompare(String(y.created_at))).slice(0, 30);
+        if (!list.length) return hide();
+        dd.innerHTML = list.map((r, i) => `<div data-i="${i}" style="padding:8px 12px;cursor:pointer;font-size:.8rem;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(148,163,184,.15)"><b dir="auto">${esc(r.word)}</b><span style="opacity:.6;font-size:.7rem">${esc(r.trainee_name || '')} · ${esc(fmtDT(r.created_at))}</span></div>`).join('');
+        dd._list = list; dd.style.display = 'block';
+    };
+    dd.addEventListener('mousedown', e => {
+        const row = e.target.closest('[data-i]'); if (!row) return;
+        e.preventDefault(); inp.value = dd._list[+row.dataset.i].word; hide(); checkIfWordExistsInDb(inp.value);
+    });
+    inp.addEventListener('focus', show);
+    inp.addEventListener('input', show);
+    inp.addEventListener('blur', () => setTimeout(hide, 150));
+}
+window.addEventListener('DOMContentLoaded', initWordSuggest);
+
+// load data when a view opens
+(function () {
+    const orig = showAdminView;
+    showAdminView = function (v) {
+        orig(v);
+        if (v === 'voices') refreshWordLists();
+        if (v === 'reports') loadReportsList();
+    };
+})();
+
+
+/* ==========================================================
+   Notifications (table: notifications)
+   - "إشعار" button on every trainee card, Select + bulk message on top
+   - a recorded word / done report notifies the trainee automatically
+   ========================================================== */
+(function () {
+    if (document.getElementById('ntCss')) return;
+    const s = document.createElement('style');
+    s.id = 'ntCss';
+    s.textContent = `
+.mp-card.sel-mode{cursor:pointer}.mp-card.mp-sel{border-color:#f59e0b;background:rgba(245,158,11,.09)}
+.mp-ck{width:20px;height:20px;accent-color:#f59e0b;flex:none;pointer-events:none}
+.nt-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}
+.nt-fc{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:12px}
+.nt-fc h6{font-size:11px;font-weight:800;color:#94a3b8;margin-bottom:6px;letter-spacing:.4px}
+.nt-big{font-size:1.25rem;font-weight:800;color:#fbbf24}
+.nt-chip{display:inline-block;margin:3px;padding:4px 10px;border-radius:999px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.55);font-size:12px}
+.nt-prev{margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(148,163,184,.08);border:1px dashed #334155;font-size:13px;white-space:pre-wrap;line-height:1.7}
+.nt-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px}.nt-row:last-child{border:0}
+.nt-names{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}`;
+    document.head.appendChild(s);
+})();
+
+function mpPaintBar() {
+    const b = document.getElementById('mpBar'); if (!b) return;
+    const n = mpState.sel.size, on = mpState.selecting;
+    b.innerHTML = `<button type="button" class="ds-b ${on ? 'on' : ''}" onclick="mpToggleSelect()"><i class="fa-solid fa-square-check"></i> Select</button>`
+        + (on ? `<button type="button" class="ds-b ghost" onclick="mpSelectAll()">الكل</button><span class="text-xs text-slate-400">${n} محدد</span>` : '')
+        + `<button type="button" class="ds-b blue" ${on && n ? '' : 'disabled'} onclick="openNotifyMany()"><i class="fa-solid fa-bell"></i> إشعار / Message${on && n ? ' (' + n + ')' : ''}</button>`;
+}
+window.mpToggleSelect = function () { mpState.selecting = !mpState.selecting; mpState.sel.clear(); mpPaintList(); };
+window.mpToggleSel = function (id, ev) {
+    if (ev && ev.target && ev.target.closest('button')) return;
+    id = String(id); if (mpState.sel.has(id)) mpState.sel.delete(id); else mpState.sel.add(id);
+    mpPaintList();
+};
+window.mpSelectAll = function () {
+    const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q)).map(r => String(r.id));
+    const all = rows.length && rows.every(id => mpState.sel.has(id));
+    rows.forEach(id => all ? mpState.sel.delete(id) : mpState.sel.add(id));
+    mpPaintList();
+};
+
+/* ---- feed preview for ONE trainee (next session + dandana, same logic the trainee sees) ---- */
+const NT_DAYRX = [/sun|اح?د|(^|[\s,\/])حد/i, /mon|اتنين|[إا]ثنين/i, /tue|تلات|ثلاث/i, /wed|[اأ]ربع/i, /thu|خميس/i, /fri|جمع/i, /sat|سبت/i];
+function ntCairoNow() {
+    const g = {};
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+    return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
+}
+function ntNextSession(p, rows) {
+    const txt = [p.days_a_week, p.session_time].join(' ');
+    let days = NT_DAYRX.map((r, i) => r.test(txt) ? i : -1).filter(i => i >= 0);
+    if (!days.length) days = [...new Set(rows.map(r => new Date(r.supply_date + 'T00:00:00Z').getUTCDay()))];
+    let h = null, m = 0;
+    const mt = String(p.session_time || '').match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|ص|م)?/i);
+    if (mt) { h = +mt[1]; m = +(mt[2] || 0); const x = (mt[3] || '').toLowerCase(); if ((x === 'pm' || x === 'م') && h < 12) h += 12; else if ((x === 'am' || x === 'ص') && h === 12) h = 0; else if (!x && h >= 1 && h <= 8) h += 12; if (h > 23) h = null; }
+    if (h == null) { const L = rows.find(r => r.start_time); if (L) { h = +L.start_time.slice(0, 2); m = +L.start_time.slice(3, 5); } }
+    if (h == null || !days.length) return null;
+    const now = ntCairoNow(), d0 = new Date(now); d0.setUTCHours(0, 0, 0, 0);
+    for (let i = 0; i < 15; i++) {
+        const d = new Date(d0.getTime() + i * 864e5); if (!days.includes(d.getUTCDay())) continue;
+        const t = d.getTime() + (h * 60 + m) * 6e4; if (t > now) return { t, now, h, m };
+    }
+    return null;
+}
+async function ntFeedHtml(r) {
+    let rows = [], di = [];
+    try { rows = await (await sbFetch(`daily_supply?select=supply_date,start_time&trainee_id=eq.${enc(r.id)}&order=supply_date.desc&limit=8`)).json(); } catch (e) { }
+    try { di = await (await sbFetch(`supply_items?select=supply_date,title,badge,item_no&trainee_id=eq.${enc(r.id)}&kind=eq.dandana&order=supply_date.desc,item_no.asc&limit=40`)).json(); } catch (e) { }
+    rows = Array.isArray(rows) ? rows : []; di = Array.isArray(di) ? di : [];
+    const ns = ntNextSession(r, rows);
+    let nsHtml = '<span class="text-slate-500 text-xs">مفيش معاد محدد (days_a_week / session_time فاضيين)</span>';
+    if (ns) {
+        const d = new Date(ns.t), wd = d.toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'UTC' }), tm = `${(ns.h % 12) || 12}:${String(ns.m).padStart(2, '0')} ${ns.h < 12 ? 'ص' : 'م'}`;
+        const mins = Math.max(0, Math.floor((ns.t - ns.now) / 6e4)), dd = Math.floor(mins / 1440), hh = Math.floor((mins % 1440) / 60);
+        nsHtml = `<div class="nt-big">${esc(wd)} ${esc(tm)}</div><div class="text-xs text-slate-400">بعد ${dd ? dd + ' يوم ' : ''}${hh} ساعة · ${esc(d.toISOString().slice(0, 10))}</div>`;
+    }
+    const last = di.length ? di[0].supply_date : null, dl = last ? di.filter(x => x.supply_date === last) : [];
+    const dHtml = dl.length ? dl.map(x => `<span class="nt-chip" dir="auto">${esc([x.title, x.badge].filter(Boolean).join(' - '))}</span>`).join('') + `<div class="text-[11px] text-slate-500 mt-1">${esc(last)}</div>` : '<span class="text-slate-500 text-xs">مفيش دندنة لسه</span>';
+    return `<div class="nt-fc"><h6>NEXT SESSION · الجلسة الجاية</h6>${nsHtml}</div><div class="nt-fc"><h6>DANDANA · دندنة</h6>${dHtml}</div>`;
+}
+
+/* ---- composer ---- */
+let ntCur = null;
+window.ntClose = function () { if (ntCur) { ntCur.ov.remove(); ntCur = null; } };
+window.openStudentNotify = id => openNotify([String(id)]);
+window.openNotifyMany = () => { const ids = [...mpState.sel]; if (ids.length) openNotify(ids); };
+
+async function openNotify(ids) {
+    ntClose();
+    const st = ids.map(id => mpState.list.find(x => String(x.id) === String(id))).filter(Boolean);
+    if (!st.length) return;
+    const single = st.length === 1;
+    const ov = document.createElement('div');
+    ov.className = 'ds-ov';
+    ov.addEventListener('mousedown', e => { if (e.target === ov) ntClose(); });
+    ov.innerHTML = `<div class="ds-box" style="width:min(780px,100%)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <b style="color:#fbbf24;font-size:15px"><i class="fa-solid fa-bell"></i> ${single ? esc(st[0].trainee || '') : st.length + ' طلاب'}</b>
+            <button type="button" class="ds-b ghost" onclick="ntClose()">إغلاق</button></div>
+        ${single ? '<div class="nt-feed" id="ntFeed"><div class="tha-note">جاري تحميل الفيد...</div></div>'
+                 : `<div class="nt-names">${st.map(s => `<span class="nt-chip" dir="auto">${esc(s.trainee || '')}</span>`).join('')}</div>`}
+        <div class="mp-sec"><h5>إشعار جديد</h5>
+            <span class="ds-lbl">العنوان (اختياري)</span><input id="ntTitle" class="ds-in" maxlength="80" dir="auto">
+            <span class="ds-lbl" style="margin-top:8px">الرسالة</span>
+            <input type="hidden" id="ntBody">
+            <div id="ntBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('ntBody','الرسالة')">اضغط للكتابة (كبسولات، ترقيم، نقط...)</div>
+            <div class="nt-prev" id="ntPrev" style="display:none" dir="auto"></div>
+            <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="ds-b green" id="ntSend" onclick="ntSend()"><i class="fa-solid fa-paper-plane"></i> إرسال${single ? '' : ' للكل (' + st.length + ')'}</button></div>
+        </div>
+        ${single ? '<div class="mp-sec"><h5>آخر الإشعارات المبعوتة</h5><div id="ntSent" class="text-xs text-slate-500">...</div></div>' : ''}</div>`;
+    document.body.appendChild(ov);
+    ntCur = { ov, ids: st.map(s => String(s.id)), single };
+    if (single) {
+        ntFeedHtml(st[0]).then(h => { const f = document.getElementById('ntFeed'); if (f) f.innerHTML = h; });
+        ntLoadSent();
+    }
+}
+async function ntLoadSent() {
+    const c = ntCur; if (!c || !c.single) return;
+    const box = document.getElementById('ntSent'); if (!box) return;
+    try {
+        const rows = await (await sbFetch(`notifications?select=*&trainee_id=eq.${enc(c.ids[0])}&order=created_at.desc&limit=6`)).json();
+        window.ntRows = {}; (Array.isArray(rows) ? rows : []).forEach(n => window.ntRows[n.id] = n);
+        box.innerHTML = Array.isArray(rows) && rows.length ? rows.map(n => `<div class="nt-row" style="align-items:center"><span dir="auto" style="flex:1;min-width:0">${esc(n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : (n.title || String(n.body || '').split('\n')[0] || ''))}</span><span class="text-slate-500" style="white-space:nowrap">${n.read_at ? '✓ ' : ''}${esc(fmtDT(n.created_at))}</span>${n.kind === 'message' ? `<button type="button" class="ds-b blue" title="تعديل" onclick="ntEdit(${n.id})"><i class="fa-solid fa-pen"></i></button>` : ''}<button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="ntDel(${n.id})"><i class="fa-solid fa-trash"></i></button></div>`).join('') : 'لسه مفيش إشعارات اتبعتت.';
+    } catch (e) { box.textContent = 'تعذر التحميل: ' + e.message; }
+}
+function ntPreview() {
+    const b = document.getElementById('ntBody'), p = document.getElementById('ntPrev'); if (!b || !p) return;
+    const v = b.value.trim(); p.style.display = v ? '' : 'none'; p.textContent = v.replace(/\s*\|\s*/g, '   |   ');
+}
+{   // refresh the preview whenever the capsule editor closes
+    const _drp = dsRefreshPf;
+    dsRefreshPf = function (id) { _drp(id); if (id === 'ntBody') ntPreview(); };
+}
+window.ntSend = async function () {
+    const c = ntCur; if (!c) return;
+    const body = document.getElementById('ntBody').value.trim(), title = document.getElementById('ntTitle').value.trim();
+    if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
+    const btn = document.getElementById('ntSend'); btn.disabled = true;
+    try {
+        if (c.editId) {
+            await sbFetch(`notifications?id=eq.${enc(c.editId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title: title || null, body }) });
+            showToast('اتعدّل الإشعار ✓'); ntEditDone();
+        } else {
+            await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body }))) });
+            showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+        }
+        document.getElementById('ntBody').value = ''; document.getElementById('ntTitle').value = ''; dsRefreshPf('ntBody');
+        const pf = document.getElementById('ntBody_pf'); if (pf) { pf.textContent = 'اضغط للكتابة (كبسولات، ترقيم، نقط...)'; pf.classList.add('empty'); }
+        ntLoadSent();
+    } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 02_notifications.sql لو لسه)', true); }
+    btn.disabled = false;
+};
+
+/* ---- automatic: a recorded word -> notify every trainee who reported it ---- */
+async function notifyWordReady(word) {
+    const targets = [];
+    for (const t of ['due_words_table', 'broken_words_table']) {
+        let rows = [];
+        try { rows = await (await sbFetch(`${t}?select=*&word=ilike.${enc(likeEsc(word))}&or=(status.is.null,status.neq.trash)`)).json(); } catch (e) { continue; }
+        if (Array.isArray(rows)) rows.filter(r => !['done', 'trash'].includes(stOf(r))).forEach(r => targets.push(r));
+    }
+    if (!targets.length) return 0;
+    let studs = mpState.list.length ? mpState.list : [];
+    if (!studs.length) { try { studs = await fetchStudentsFromSupabase(); } catch (e) { studs = []; } }
+    const nm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const byName = new Map(studs.map(s => [nm(s.trainee), String(s.id)]));
+    const seen = new Set(), out = [];
+    targets.forEach(r => {
+        const id = r.trainee_id ? String(r.trainee_id) : byName.get(nm(r.trainee_name));
+        if (id && !seen.has(id)) { seen.add(id); out.push({ trainee_id: id, kind: 'word_ready', meta: { word } }); }
+    });
+    if (!out.length) return 0;
+    await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
+    return out.length;
+}
+
+
+/* ==========================================================
+   Dashboard View: the trainee's dashboard exactly as he sees it, in a popup.
+   A short-lived token is created by admin_view_token (admin only); the dashboard
+   opens it read-only, so no login and nothing is written for the trainee.
+   ========================================================== */
+window.dvClose = function () { const o = document.getElementById('dvOv'); if (o) o.remove(); document.removeEventListener('keydown', dvKey); };
+function dvKey(e) { if (e.key === 'Escape') dvClose(); }
+window.addEventListener('message', e => { if (e.data && e.data.thabitView === 'close') dvClose(); });
+window.openStudentDashboard = async function (id) {
+    const s = mpState.list.find(x => String(x.id) === String(id)); if (!s) return;
+    dvClose();
+    const ov = document.createElement('div');
+    ov.id = 'dvOv'; ov.className = 'tha-modal open'; ov.style.cssText = 'z-index:200003;padding:10px;align-items:stretch';
+    ov.addEventListener('mousedown', e => { if (e.target === ov) dvClose(); });
+    ov.innerHTML = `<div style="position:relative;width:min(1180px,100%);margin:auto;height:100%;border-radius:20px;overflow:hidden;background:var(--nm-bg,#0f172a);box-shadow:0 30px 80px rgba(0,0,0,.7);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(148,163,184,.25)">
+            <b style="color:#fbbf24;font-size:13px"><i class="fa-solid fa-eye"></i> ${esc(s.trainee || '')} <span style="opacity:.6;font-weight:600">· view only</span></b>
+            <button type="button" class="ds-b ghost" onclick="dvClose()">إغلاق ✕</button></div>
+        <div id="dvBody" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center"><span class="tha-note">جاري التحميل...</span></div></div>`;
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', dvKey);
+    try {
+        const r = await sbFetch('rpc/admin_view_token', { method: 'POST', body: JSON.stringify({ p_trainee: String(id) }) });
+        const tk = await r.json();
+        if (typeof tk !== 'string' || !/^[A-Za-z0-9]+$/.test(tk)) throw new Error((tk && tk.message) || 'no token');
+        const body = document.getElementById('dvBody'); if (!body) return;
+        body.innerHTML = '';
+        const f = document.createElement('iframe');
+        f.title = 'Trainee dashboard'; f.style.cssText = 'width:100%;height:100%;border:0;background:transparent';
+        f.src = 'dashboard.html#vt=' + tk;
+        body.appendChild(f);
+    } catch (e) {
+        const body = document.getElementById('dvBody');
+        if (body) body.innerHTML = `<div class="tha-note" style="color:#f43f5e;padding:20px;text-align:center">تعذر فتح الداشبورد: ${esc(e.message)}<br>(شغّل 05_view_dashboard.sql لو لسه)</div>`;
+    }
+};
+
+function ntEditDone() {
+    if (ntCur) ntCur.editId = null;
+    const b = document.getElementById('ntSend');
+    if (b) b.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال' + (ntCur && !ntCur.single ? ' للكل (' + ntCur.ids.length + ')' : '');
+}
+window.ntEdit = function (id) {
+    const n = (window.ntRows || {})[id]; if (!n || !ntCur) return;
+    ntCur.editId = id;
+    document.getElementById('ntTitle').value = n.title || '';
+    document.getElementById('ntBody').value = n.body || '';
+    dsRefreshPf('ntBody');
+    const b = document.getElementById('ntSend'); if (b) b.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ التعديل';
+    document.getElementById('ntTitle').focus();
+};
+window.ntDel = async function (id) {
+    if (!confirm('تمسح الإشعار ده؟ هيختفي من داشبورد الطالب.')) return;
+    try {
+        await sbFetch(`notifications?id=eq.${enc(id)}`, { method: 'DELETE' });
+        showToast('اتمسح الإشعار ✓');
+        if (ntCur && String(ntCur.editId) === String(id)) ntEditDone();
+        ntLoadSent();
+    } catch (e) { showToast('فشل المسح: ' + e.message, true); }
+};
+
+/* ==========================================================
+   Tasks / Dandana "Functionality" (paste at the END of adminpanel.js)
+   Top = the task itself. Bottom = Range, repeats, As of (+Now), draggable timeline,
+   and today's saved functions that can be re-used on other items.
+   ========================================================== */
+(function () {
+  if (document.getElementById('fxCss')) return;
+  const s = document.createElement('style'); s.id = 'fxCss';
+  s.textContent = `
+.ds-fx{border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#080e1c}
+.ds-fx-h{color:#fbbf24;font-weight:800;font-size:13px}
+.ds-fns{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.ds-fn{flex:none;width:150px;text-align:start;border:1px solid #334155;border-radius:10px;padding:8px;background:#020617;color:#e2e8f0;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.ds-fn:hover{border-color:#f59e0b}
+.ds-fn b{font-size:12px}
+.ds-fn small{font-size:10px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-fn svg{width:100%;height:12px}
+.ds-t2{position:relative;height:104px;margin:8px 44px 0}
+.ds-t2-line{position:absolute;left:0;right:0;top:51px;height:3px;background:#334155;border-radius:2px}
+.ds-t2-cap{position:absolute;top:44px;width:2px;height:17px;background:#64748b;margin-left:-1px}
+.ds-t2-p{position:absolute;top:0;width:0;height:104px}
+.ds-t2-d{position:absolute;left:-10px;top:43px;width:20px;height:20px;border-radius:50%;background:#f59e0b;border:2px solid #0f172a;cursor:grab;touch-action:none;box-sizing:border-box;z-index:2}
+.ds-t2-d:active{cursor:grabbing;transform:scale(1.2)}
+.ds-t2-l{position:absolute;left:0;transform:translateX(-50%);bottom:62px;white-space:nowrap;text-align:center;font-size:12px;line-height:1.25;background:#0f172a;border:1px solid #475569;border-radius:8px;padding:3px 8px;color:#e2e8f0}
+.ds-t2-l.lo{bottom:auto;top:62px}
+.ds-t2-l small{display:block;font-size:10px;color:#fbbf24}`;
+  document.head.appendChild(s);
+})();
+
+/* ---------- helpers (Cairo wall-clock everywhere) ---------- */
+const fxWall = ms => new Date(ms).toISOString().slice(0, 19);
+const fxFromWall = s => { const m = String(s || '').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/); return m ? Date.parse(m[1] + 'T' + m[2] + ':00Z') : NaN; };
+const fxNow = () => Math.floor(ntCairoNow() / 6e4) * 6e4;
+const fxClock = ms => { const d = new Date(ms), h = d.getUTCHours(); return `${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}`; };
+const fxNewDay = (o, A) => new Date(o).toISOString().slice(0, 10) !== new Date(A).toISOString().slice(0, 10);
+const fxWd = o => { try { return new Date(o).toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'UTC' }); } catch (e) { return ''; } };
+const fxLabel = (o, A) => `<b>${fxClock(o)}</b>${fxNewDay(o, A) ? `<small>يوم جديد · ${fxWd(o)}</small>` : ''}`;
+const fxEven = n => n < 2 ? [0] : Array.from({ length: n }, (_, i) => i / (n - 1));
+const fxOpens = (A, R, fr) => fr.map(x => Math.round((A + x * R * 36e5) / 6e4) * 6e4);
+function fxFracs(it) {
+  const A = fxFromWall(it.as_of), R = +it.range_hours;
+  const ops = (Array.isArray(it.opens_at) ? it.opens_at : []).map(fxFromWall);
+  if (!Number.isFinite(A) || !(R > 0) || !ops.length || ops.some(o => !Number.isFinite(o))) return null;
+  return ops.map(o => Math.min(1, Math.max(0, (o - A) / (R * 36e5))));
+}
+
+/* ---------- today's saved functions ---------- */
+let fxFns = [];
+async function fxFnLoad() {
+  try {
+    const r = await (await sbFetch(`supply_functions?select=*&fn_date=eq.${dsToday()}&order=created_at.asc`)).json();
+    fxFns = Array.isArray(r) ? r : [];
+  } catch (e) {
+    fxFns = [];
+    if (!window.__fxWarn) { window.__fxWarn = 1; showToast('شغّل SQL جدول supply_functions الأول (' + e.message + ')', true, true); }
+  }
+}
+function fxFnStripPaint() {
+  const box = document.getElementById('dsi_fns'); if (!box) return;
+  if (!fxFns.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="ds-lbl">فانكشنات النهارده · دوس على واحدة تطبّقها هنا</div><div class="ds-fns">${fxFns.map((fn, i) =>
+    `<button type="button" class="ds-fn" onclick="fxFnUse(${i})">
+      <svg viewBox="0 0 100 12"><line x1="4" y1="6" x2="96" y2="6" stroke="#475569" stroke-width="1.5"/>${(fn.fractions || []).map(x => `<circle cx="${(4 + x * 92).toFixed(1)}" cy="6" r="3" fill="#f59e0b"/>`).join('')}</svg>
+      <b>${esc(fn.range_hours)}h · ×${esc(fn.repeats)}</b><small dir="auto">${esc(fn.label || '')}</small></button>`).join('')}</div>`;
+}
+window.fxFnUse = function (i) {
+  const c = dsItemCtx, fn = fxFns[i]; if (!c || !c.f || !fn) return;
+  const f = c.f;
+  f.range = +fn.range_hours; f.n = +fn.repeats; f.fr = (fn.fractions || []).map(Number);
+  document.getElementById('dsi_range').value = f.range;
+  document.getElementById('dsi_rep').value = f.n;
+  fxTlPaint();
+};
+async function fxFnSave(f, label) {
+  const fr = f.fr.map(x => Math.round(x * 1000) / 1000), sig = `${f.range}|${f.n}|${fr.join(',')}`;
+  try {
+    const row = await upsertByKey('supply_functions', `fn_date=eq.${dsToday()}&sig=eq.${encodeURIComponent(sig)}`,
+      { fn_date: dsToday(), kind: dsItemCtx ? dsItemCtx.kind : null, range_hours: f.range, repeats: f.n, fractions: fr, sig, label: label || null });
+    fxFns = fxFns.filter(x => x.sig !== sig); fxFns.push(row || { range_hours: f.range, repeats: f.n, fractions: fr, sig, label });
+  } catch (e) { console.warn('function not saved', e); }
+}
+
+/* ---------- timeline ---------- */
+function fxTlPaint() {
+  const c = dsItemCtx, box = document.getElementById('dsi_tl'); if (!c || !c.f || !box) return;
+  const f = c.f, R = f.range, A = f.asOf != null ? f.asOf : fxNow();
+  const note = document.getElementById('dsi_asnote');
+  if (note) note.textContent = f.asOf != null ? `ثابت من: ${fxClock(f.asOf)}${fxNewDay(f.asOf, fxNow()) ? ' · ' + fxWd(f.asOf) : ''}` : 'فاضي: هيتحسب من وقت الـ Save (المعاينة بالوقت الحالي)';
+  if (!(R > 0)) { box.innerHTML = '<div style="font-size:11px;color:#64748b">اكتب الـ Range بالساعات عشان يظهر التايم لاين.</div>'; return; }
+  if (!f.fr || f.fr.length !== f.n) f.fr = fxEven(f.n);
+  const span = R * 36e5, end = A + span, ops = fxOpens(A, R, f.fr);
+  box.innerHTML = `<div class="ds-t2" dir="ltr"><div class="ds-t2-line"></div><i class="ds-t2-cap" style="left:0"></i><i class="ds-t2-cap" style="left:100%"></i>${ops.map((o, i) =>
+      `<div class="ds-t2-p" style="left:${f.fr[i] * 100}%"><i class="ds-t2-d" data-i="${i}"></i><div class="ds-t2-l${i % 2 ? ' lo' : ''}">${fxLabel(o, A)}</div></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#94a3b8;margin-top:2px">
+      <span>يبدأ: ${fxClock(A)}</span>
+      <span>اسحب أي نقطة تحركها</span>
+      <span>ينتهي الرينج: ${fxClock(end)}${fxNewDay(end, A) ? ' · يوم جديد (' + fxWd(end) + ')' : ''}</span></div>
+    ${f.fr.some((x, i) => Math.abs(x - fxEven(f.n)[i]) > 0.0005) ? '<button type="button" class="ds-b ghost" style="margin-top:6px" onclick="fxEvenReset()">توزيع متساوي</button>' : ''}`;
+  box.querySelectorAll('.ds-t2-d').forEach(d => {
+    const i = +d.dataset.i; let drag = false;
+    d.onpointerdown = e => { drag = true; d.setPointerCapture(e.pointerId); e.preventDefault(); };
+    d.onpointermove = e => {
+      if (!drag) return;
+      const r = box.querySelector('.ds-t2').getBoundingClientRect();
+      const fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      let ms = Math.round((A + fx * span) / 3e5) * 3e5;
+      const lo = i ? ops[i - 1] + 3e5 : A, hi = i < ops.length - 1 ? ops[i + 1] - 3e5 : end;
+      if (lo > hi) return;
+      ms = Math.max(lo, Math.min(hi, ms));
+      ops[i] = ms; f.fr[i] = (ms - A) / span;
+      const p = d.parentElement; p.style.left = (f.fr[i] * 100) + '%'; p.querySelector('.ds-t2-l').innerHTML = fxLabel(ms, A);
+    };
+    d.onpointerup = d.onpointercancel = () => { if (drag) { drag = false; fxTlPaint(); } };
+  });
+}
+window.fxEvenReset = () => { const c = dsItemCtx; if (c && c.f) { c.f.fr = null; fxTlPaint(); } };
+
+/* ---------- form events ---------- */
+window.dsFormChange = function () {
+  const c = dsItemCtx; if (!c || !c.f) return; const f = c.f;
+  const R = parseFloat(document.getElementById('dsi_range').value) || 0;
+  const n = +document.getElementById('dsi_rep').value || 1;
+  const a = fxFromWall(document.getElementById('dsi_asof').value);
+  f.asOf = Number.isFinite(a) ? a : null;
+  if (n !== f.n) f.fr = null;          // new count -> even spread again; a new range keeps the dragged shape
+  f.range = R; f.n = n;
+  fxTlPaint();
+};
+window.fxAsNow = function () {
+  const c = dsItemCtx; if (!c || !c.f) return;
+  c.f.asOf = fxNow();
+  document.getElementById('dsi_asof').value = fxWall(c.f.asOf).slice(0, 16);
+  fxTlPaint();
+};
+window.fxAsClear = function () {
+  const c = dsItemCtx; if (!c || !c.f) return;
+  c.f.asOf = null; document.getElementById('dsi_asof').value = '';
+  fxTlPaint();
+};
+window.dsApplyBox = () => { const b = document.getElementById('dsi_apply'); if (b) b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
+window.dsApplyToggle = (key, on) => { const s = dsItemCtx.f.apply; on ? s.add(key) : s.delete(key); };
+window.dsApplyAll = on => document.querySelectorAll('#dsi_apply input[data-k]').forEach(i => { i.checked = on; dsApplyToggle(i.dataset.k, on); });
+
+/* load today's functions whenever the Tasks / Dandana popup opens */
+(function () {
+  const orig = window.dsOpenItems;
+  window.dsOpenItems = function (idx, kind) {
+    orig(idx, kind);
+    fxFnLoad().then(fxFnStripPaint);
+  };
+})();
+
+/* ---------- render (overrides the older versions) ---------- */
+function dsItemsRender() {
+  const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+  const have = dsItemsOf(st, c.date, c.kind);
+  const others = ['task', 'dandana'].flatMap(k => dsItemsOf(st, c.date, k).filter(x => !(k === c.kind && x.item_no === c.open)));
+  const slots = [];
+  for (let n = 1; n <= 10; n++) {
+    const it = have.find(x => x.item_no === n);
+    if (c.open === n) {
+      slots.push(`<div class="ds-form">
+        <div style="display:flex;align-items:center;gap:8px"><span class="ds-no">${n}</span><b style="color:#fbbf24;font-size:13px">${esc(cfg.title)} ${n}</b></div>
+        ${cfg.fields.map(f => `<div><span class="ds-lbl">${esc(f.l)}</span>
+          ${f.rows > 1 ? `<textarea id="dsi_${f.k}" rows="${f.rows}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}"></textarea>`
+                       : `<input id="dsi_${f.k}" dir="${f.dir}" spellcheck="true" class="ds-in" placeholder="${esc(f.ph)}">`}</div>`).join('')}
+        ${c.kind === 'task' ? `<div><span class="ds-lbl">Priority · الأهمية</span><select id="dsi_pri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>` : ''}
+
+        <div class="ds-fx">
+          <div class="ds-fx-h"><i class="fa-solid fa-sliders"></i> Functionality · طريقة العمل</div>
+          <div id="dsi_fns"></div>
+          <div><span class="ds-lbl">1) Range · المدى بالساعات</span>
+            <input id="dsi_range" type="number" min="0.5" max="720" step="0.5" inputmode="decimal" class="ds-in" style="max-width:200px" placeholder="مثال: 12" oninput="dsFormChange()"></div>
+          <div><span class="ds-lbl">2) عدد مرات التكرار (1–5)</span>
+            <select id="dsi_rep" class="ds-in" style="width:auto" onchange="dsFormChange()">${[1, 2, 3, 4, 5].map(r => `<option value="${r}">${r}</option>`).join('')}</select></div>
+          <div><span class="ds-lbl">3) As of · منذ</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="dsi_asof" type="datetime-local" class="ds-in" style="width:auto" oninput="dsFormChange()" onchange="dsFormChange()">
+              <button type="button" class="ds-b blue" onclick="fxAsNow()">Now</button>
+              <button type="button" class="ds-b ghost" onclick="fxAsClear()">مسح</button></div>
+            <div id="dsi_asnote" style="font-size:11px;color:#94a3b8;margin-top:4px"></div></div>
+          <div id="dsi_tl"></div>
+          ${others.length ? `<div><button type="button" class="ds-b ghost" onclick="dsApplyBox()">Apply to · طبّق على…</button>
+            <div id="dsi_apply" style="display:none;margin-top:8px">
+              <label style="display:flex;gap:8px;align-items:center;font-size:12px;margin-bottom:6px"><input type="checkbox" onchange="dsApplyAll(this.checked)"> الكل</label>
+              ${others.map(o => `<label style="display:flex;gap:8px;align-items:center;font-size:12px;margin-bottom:4px"><input type="checkbox" data-k="${o.kind}:${o.item_no}" onchange="dsApplyToggle(this.dataset.k,this.checked)">
+                <span class="ds-tag">${o.kind === 'task' ? 'Task' : 'دندنة'} ${o.item_no}</span><span dir="auto" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.title || (o.body || '').split('\n')[0] || '—')}</span></label>`).join('')}
+              <div style="font-size:10px;color:#64748b">بيتنسخ الرينج وعدد التكرار وشكل التوزيع. الـ As of بتاع كل واحدة بيفضل بتاعها، ولو مالهاش بياخد الـ As of بتاعك.</div></div></div>` : ''}
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="ds-b green" onclick="dsItemSave(${n})">Save</button>
+          <button type="button" class="ds-b ghost" onclick="dsItemOpen(null)">إلغاء</button>
+          ${it ? `<button type="button" class="ds-b red" onclick="dsItemDelete(${n})">حذف</button>` : ''}</div></div>`);
+    } else if (it) {
+      slots.push(`<div class="ds-slot saved"><span class="ds-no">${n}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(it.title || (it.body || '').split('\n')[0] || '—')}</div>
+        ${it.badge ? `<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(String(it.badge).split('\n')[0])}</div>` : ''}</div>
+        ${it.priority === 'high' ? '<span class="ds-tag" style="background:#be123c;color:#fff">HIGH</span>' : ''}${it.range_hours != null ? `<span class="ds-tag">${esc(it.range_hours)}h</span>` : ''}<span class="ds-tag">×${it.repeats}</span><span class="ds-tag" style="color:#34d399">Done</span>
+        <button type="button" class="ds-b amber" onclick="dsItemOpen(${n})">تعديل</button></div>`);
+    } else {
+      slots.push(`<button type="button" class="ds-slot" style="color:#64748b;width:100%;text-align:start" onclick="dsItemOpen(${n})"><span class="ds-no" style="color:#64748b">${n}</span> + فاضي</button>`);
+    }
+  }
+  c.ov.innerHTML = `<div class="ds-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="color:#fbbf24;font-size:15px">${esc(cfg.title)} · ${esc(st.trainee || st.name || '')} · ${esc(c.date)}</b>
+      <button type="button" class="ds-b ghost" onclick="dsCloseItems()">إغلاق</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${slots.join('')}</div></div>`;
+  if (c.open) {
+    const it = have.find(x => x.item_no === c.open) || {};
+    cfg.fields.forEach(f => { document.getElementById('dsi_' + f.k).value = it[f.k] || ''; });
+    const pri = document.getElementById('dsi_pri'); if (pri) pri.value = it.priority || 'normal';
+    document.getElementById('dsi_range').value = c.f.range || '';
+    document.getElementById('dsi_rep').value = c.f.n;
+    document.getElementById('dsi_asof').value = c.f.asOf != null ? fxWall(c.f.asOf).slice(0, 16) : '';
+    fxTlPaint(); fxFnStripPaint();
+    const first = document.getElementById('dsi_' + cfg.fields[0].k);
+    if (first) setTimeout(() => first.focus(), 30);
+  }
+}
+
+window.dsItemOpen = function (n) {
+  const c = dsItemCtx; c.open = n;
+  if (n) {
+    const st = supplyState.students[c.idx], it = dsItemsOf(st, c.date, c.kind).find(x => x.item_no === n) || {};
+    const reps = it.repeats || 1, A = fxFromWall(it.as_of), hasRange = it.range_hours != null, fr = hasRange ? fxFracs(it) : null;
+    c.f = { range: hasRange ? +it.range_hours : 0, n: reps, asOf: hasRange && Number.isFinite(A) ? A : null,
+            fr: fr && fr.length === reps ? fr : null, apply: new Set() };
+  }
+  dsItemsRender();
+};
+
+/* ---------- save ---------- */
+window.dsItemSave = async function (n) {
+  const c = dsItemCtx, cfg = DS_ITEM_CFG[c.kind], st = supplyState.students[c.idx];
+  dsFormChange();
+  const f = c.f;
+  const body = { trainee_id: st.id, supply_date: c.date, kind: c.kind, item_no: n, updated_at: new Date().toISOString() };
+  cfg.fields.forEach(x => { body[x.k] = document.getElementById('dsi_' + x.k).value.trim() || null; });
+  const pri = document.getElementById('dsi_pri'); if (pri) body.priority = pri.value;
+  if (!body.title && !body.body) { showToast('اكتب الاسم أو الوصف الأول', true, true); return; }
+  if (!(f.range > 0)) { showToast('اختار الـ Range (عدد الساعات) الأول', true, true); document.getElementById('dsi_range').focus(); return; }
+  if (!f.fr || f.fr.length !== f.n) f.fr = fxEven(f.n);
+  const A = f.asOf != null ? f.asOf : fxNow();           // empty As of = the moment of Save
+  const timing = { repeats: f.n, range_hours: f.range, as_of: fxWall(A), opens_at: fxOpens(A, f.range, f.fr).map(fxWall) };
+  Object.assign(body, timing);
+  try {
+    const row = await upsertByKey('supply_items', `${dsKey(st, c.date)}&kind=eq.${c.kind}&item_no=eq.${n}`, body);
+    supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === c.kind && i.item_no === n));
+    supplyState.items.push(row || body);
+    await fxFnSave(f, body.title);
+    let applied = 0;
+    for (const key of f.apply) {
+      const [k, no] = key.split(':');
+      const tgt = dsItemsOf(st, c.date, k).find(x => x.item_no === +no), tA0 = tgt ? fxFromWall(tgt.as_of) : NaN, tA = Number.isFinite(tA0) ? tA0 : A;
+      const shared = { repeats: f.n, range_hours: f.range, as_of: fxWall(tA), opens_at: fxOpens(tA, f.range, f.fr).map(fxWall), updated_at: body.updated_at };
+      try {
+        const r = await (await sbFetch(`supply_items?${dsKey(st, c.date)}&kind=eq.${k}&item_no=eq.${+no}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(shared) })).json();
+        if (Array.isArray(r) && r[0]) {
+          supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === c.date && i.kind === k && i.item_no === +no));
+          supplyState.items.push(r[0]); applied++;
+        }
+      } catch (e) { showToast('فشل التطبيق على ' + key + ': ' + e.message, true); }
+    }
+    c.open = null;
+    dsItemsRender();
+    showToast(`اتحفظ ${cfg.title} ${n} ✓` + (applied ? ` · واتطبّق على ${applied}` : ''));
+  } catch (e) { showToast('فشل الحفظ: ' + e.message, true); }
+};
+
+/* ==========================================================
+   Patch 2 (paste at the END of adminpanel.js, AFTER patch 1)
+   A "Function" button next to Edit on every saved Task / Dandana:
+   shows the function as it was set, and "Apply to" copies it to the
+   other tasks / dandana of the same trainee on the same day.
+   ========================================================== */
+
+/* ---------- Function button next to Edit ---------- */
+const fxPrevRender = dsItemsRender;
+dsItemsRender = function () {
+  fxPrevRender();
+  const c = dsItemCtx; if (!c) return;
+  c.ov.querySelectorAll('.ds-slot.saved').forEach(row => {
+    if (row.querySelector('[data-fx]')) return;
+    const no = +((row.querySelector('.ds-no') || {}).textContent);
+    const edit = row.querySelector('button.amber');
+    if (!no || !edit) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ds-b blue'; b.dataset.fx = '1'; b.textContent = 'Function';
+    b.onclick = () => fxFnView(no);
+    row.insertBefore(b, edit);
+  });
+};
+
+/* ---------- read-only timeline ---------- */
+function fxTlStatic(A, R, fr) {
+  const span = R * 36e5, end = A + span, ops = fxOpens(A, R, fr);
+  return `<div class="ds-t2" dir="ltr"><div class="ds-t2-line"></div><i class="ds-t2-cap" style="left:0"></i><i class="ds-t2-cap" style="left:100%"></i>${ops.map((o, i) =>
+      `<div class="ds-t2-p" style="left:${fr[i] * 100}%"><i class="ds-t2-d" style="cursor:default"></i><div class="ds-t2-l${i % 2 ? ' lo' : ''}">${fxLabel(o, A)}</div></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#94a3b8;margin-top:2px">
+      <span>يبدأ: ${fxClock(A)}${fxNewDay(A, fxNow()) ? ' · ' + fxWd(A) : ''}</span>
+      <span>ينتهي الرينج: ${fxClock(end)}${fxNewDay(end, A) ? ' · يوم جديد (' + fxWd(end) + ')' : ''}</span></div>`;
+}
+
+/* ---------- copy one item's function to others ---------- */
+async function fxApplyFn(st, date, src, keys) {
+  const A = fxFromWall(src.as_of), R = +src.range_hours, fr = fxFracs(src);
+  if (!fr || !(R > 0) || !Number.isFinite(A)) { showToast('الفانكشن دي مش كاملة، افتح تعديل واعمل Save الأول', true, true); return 0; }
+  let ok = 0;
+  for (const key of keys) {
+    const [k, no] = key.split(':');
+    const tgt = dsItemsOf(st, date, k).find(x => x.item_no === +no);
+    const t0 = tgt ? fxFromWall(tgt.as_of) : NaN, tA = Number.isFinite(t0) ? t0 : A;     // each item keeps its own As of
+    const body = { repeats: src.repeats, range_hours: R, as_of: fxWall(tA), opens_at: fxOpens(tA, R, fr).map(fxWall), updated_at: new Date().toISOString() };
+    try {
+      const r = await (await sbFetch(`supply_items?${dsKey(st, date)}&kind=eq.${k}&item_no=eq.${+no}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) })).json();
+      if (Array.isArray(r) && r[0]) {
+        supplyState.items = supplyState.items.filter(i => !(String(i.trainee_id) === String(st.id) && i.supply_date === date && i.kind === k && i.item_no === +no));
+        supplyState.items.push(r[0]); ok++;
+      }
+    } catch (e) { showToast('فشل التطبيق على ' + key + ': ' + e.message, true); }
+  }
+  return ok;
+}
+
+/* ---------- the Function popup ---------- */
+window.fxFnClose = function () { if (window.__fxOv) { window.__fxOv.remove(); window.__fxOv = null; } };
+window.fxFnView = function (no) {
+  const c = dsItemCtx; if (!c) return;
+  const st = supplyState.students[c.idx], it = dsItemsOf(st, c.date, c.kind).find(x => x.item_no === no); if (!it) return;
+  fxFnClose();
+  const others = ['task', 'dandana'].flatMap(k => dsItemsOf(st, c.date, k).filter(x => !(k === c.kind && x.item_no === no)));
+  const A = fxFromWall(it.as_of), R = +it.range_hours, fr = it.range_hours != null ? fxFracs(it) : null;
+  const ov = document.createElement('div'); ov.className = 'ds-ov';
+  ov.addEventListener('mousedown', e => { if (e.target === ov) fxFnClose(); });
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+      <b style="color:#fbbf24;font-size:14px" dir="auto">Function · ${esc(it.title || (it.body || '').split('\n')[0] || ('#' + no))}</b>
+      <button type="button" class="ds-b ghost" onclick="fxFnClose()">إغلاق</button></div>`;
+  let body;
+  if (!fr) {
+    body = '<div class="tha-note" style="padding:14px">العنصر ده مالوش فانكشن (اتسجل بالنظام القديم). افتح تعديل، اختار Range، واعمل Save.</div>';
+  } else {
+    body = `<div class="ds-fx">
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="ds-tag">Range ${esc(R)}h</span><span class="ds-tag">×${esc(it.repeats)}</span><span class="ds-tag">As of ${esc(fxClock(A))}</span></div>
+        ${fxTlStatic(A, R, fr)}
+      </div>
+      ${others.length ? `<div class="ds-fx" style="margin-top:10px">
+        <div class="ds-fx-h">Apply to · طبّق الفانكشن دي على</div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" id="fxAll"> الكل</label>
+        ${others.map(o => `<label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" class="fxPick" data-k="${o.kind}:${o.item_no}">
+          <span class="ds-tag">${o.kind === 'task' ? 'Task' : 'دندنة'} ${o.item_no}</span><span dir="auto" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.title || (o.body || '').split('\n')[0] || '—')}</span>
+          ${o.range_hours != null ? `<span class="ds-tag">${esc(o.range_hours)}h ×${esc(o.repeats)}</span>` : ''}</label>`).join('')}
+        <div style="font-size:10px;color:#64748b">بيتنسخ الرينج وعدد التكرار وشكل التوزيع. الـ As of بتاع كل واحدة بيفضل بتاعها، ولو مالهاش بياخد As of العنصر ده.</div>
+        <div><button type="button" class="ds-b green" id="fxApplyBtn">Apply to</button></div></div>`
+      : '<div style="font-size:11px;color:#64748b;margin-top:10px">مفيش تاسكس أو دندنات تانية عند الطالب ده في اليوم ده عشان تطبّق عليها.</div>'}`;
+  }
+  ov.innerHTML = `<div class="ds-box" style="max-width:760px;margin-top:6vh">${head}${body}</div>`;
+  document.body.appendChild(ov); window.__fxOv = ov;
+  const all = ov.querySelector('#fxAll');
+  if (all) all.onchange = () => ov.querySelectorAll('.fxPick').forEach(i => { i.checked = all.checked; });
+  const btn = ov.querySelector('#fxApplyBtn');
+  if (btn) btn.onclick = async () => {
+    const keys = [...ov.querySelectorAll('.fxPick:checked')].map(i => i.dataset.k);
+    if (!keys.length) { showToast('اختار عنصر واحد على الأقل', true, true); return; }
+    btn.disabled = true;
+    const n = await fxApplyFn(st, c.date, it, keys);
+    fxFnClose();
+    if (dsItemCtx) dsItemsRender();
+    if (n) showToast(`اتطبّقت الفانكشن على ${n} ✓`);
+  };
+};
+
+/* ==========================================================
+   Patch 3: windows workspace (paste at the END of adminpanel.js)
+   - every launcher button opens its own widget, side by side; you close each one yourself
+   - Dashboard window: trainee cards always selectable; bulk Notification / Task / Monthly obligations
+   - Notification, Task, Monthly obligations, Profile and DS open as windows too
+   ========================================================== */
+(function () {
+  if (document.getElementById('wsCss')) return;
+  const s = document.createElement('style'); s.id = 'wsCss';
+  s.textContent = `
+#adminPanel.ws-wide{max-width:98vw!important;width:98vw}
+.ws-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px;border:1px solid #1e293b;border-radius:14px;background:#0b1220}
+.ws-lb{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid #475569;color:#e2e8f0;font-weight:700;font-size:13px;background:transparent}
+.ws-lb:hover{border-color:#fbbf24}.ws-lb.on{background:#f59e0b;border-color:#f59e0b;color:#0f172a}
+.ws-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.ws-w{flex:1 1 380px;min-width:min(340px,100%);max-width:100%;border:1px solid rgba(245,158,11,.4);border-radius:14px;background:#0f172a;overflow:hidden;display:flex;flex-direction:column}
+.ws-w.ws-2{flex:2 1 620px}.ws-w.ws-3{flex:1 1 100%}
+.ws-h{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,.12);border-bottom:1px solid rgba(148,163,184,.25);color:#fbbf24;font-size:13px}
+.ws-x{width:26px;height:26px;border-radius:8px;border:1px solid rgba(148,163,184,.4);color:#e2e8f0;font-size:11px}
+.ws-x:hover{border-color:#f59e0b}
+.ws-bd{padding:10px;overflow:auto;max-height:78vh}
+.ws-w.ws-fold .ws-bd{display:none}
+.ws-sep{width:1px;height:22px;background:#334155;margin:0 4px}
+.ws-nm{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}`;
+  document.head.appendChild(s);
+})();
+
+const WSD = {
+  dash: { t: 'Dashboard · الطلاب', i: 'fa-gauge-high', w: 2 },
+  arc: { t: 'Archive · الأرشيف', i: 'fa-box-archive', w: 2 },
+  rep: { t: 'Reports · البلاغات', i: 'fa-flag', w: 1 },
+  voi: { t: 'Upload voices', i: 'fa-cloud-arrow-up', w: 1 },
+  nt: { t: 'إشعار', i: 'fa-bell', w: 1 },
+  tk: { t: 'Task', i: 'fa-list-check', w: 1 },
+  mo: { t: 'Monthly obligations', i: 'fa-calendar-check', w: 1 },
+  prof: { t: 'Profile', i: 'fa-id-card', w: 2 },
+  ds: { t: 'Daily Supply', i: 'fa-pen-to-square', w: 3 }
+};
+const WS_REFRESH = { dash: 1, arc: 1, rep: 1, voi: 1 };
+const WSE = {};
+let tkCur = null, moCur = null;
+
+function wsEnsure(k) {
+  if (WSE[k]) return WSE[k];
+  const d = WSD[k], el = document.createElement('section');
+  el.className = 'ws-w ws-' + d.w; el.id = 'ws_' + k;
+  const rf = WS_REFRESH[k] ? '<button type="button" class="ws-x" data-rf title="تحديث"><i class="fa-solid fa-rotate"></i></button>' : '';
+  el.innerHTML = `<div class="ws-h"><i class="fa-solid ${d.i}"></i><b data-wt>${esc(d.t)}</b><span style="flex:1"></span>${rf}<button type="button" class="ws-x" data-fold title="طي / فتح"><i class="fa-solid fa-chevron-up"></i></button><button type="button" class="ws-x" data-cls title="إغلاق"><i class="fa-solid fa-xmark"></i></button></div><div class="ws-bd"></div>`;
+  el.querySelector('[data-cls]').onclick = () => closeWin(k);
+  el.querySelector('[data-fold]').onclick = () => el.classList.toggle('ws-fold');
+  const r = el.querySelector('[data-rf]'); if (r) r.onclick = () => wsLoad(k);
+  $id('adminWs').appendChild(el);
+  return (WSE[k] = { el, body: el.querySelector('.ws-bd'), loaded: false });
+}
+function wsTitle(k, t) { wsEnsure(k).el.querySelector('[data-wt]').textContent = t; }
+function wsLoad(k) {
+  const w = WSE[k]; if (!w) return;
+  if (k === 'dash') return renderMasterProfilesIn(w.body);
+  if (k === 'arc') return renderArchiveIn(w.body);
+  if (k === 'rep') {
+    const v = $id('adminViewReports');
+    if (v) { if (v.parentNode !== w.body) w.body.appendChild(v); v.style.display = 'block'; }
+    return loadReportsList();
+  }
+  if (k === 'voi') {
+    const v = $id('adminViewVoices');
+    if (v) { if (v.parentNode !== w.body) w.body.appendChild(v); v.style.display = 'block'; }
+    return refreshWordLists();
+  }
+}
+function openWin(k) {
+  const w = wsEnsure(k);
+  w.el.style.display = ''; w.el.classList.remove('ws-fold');
+  document.querySelectorAll('.ws-lb[data-ws="' + k + '"]').forEach(b => b.classList.add('on'));
+  if (!w.loaded && WS_REFRESH[k]) { w.loaded = true; wsLoad(k); }
+  setTimeout(() => { try { w.el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { } }, 60);
+  return w;
+}
+function closeWin(k) {
+  const w = WSE[k]; if (!w) return;
+  w.el.style.display = 'none';
+  document.querySelectorAll('.ws-lb[data-ws="' + k + '"]').forEach(b => b.classList.remove('on'));
+  if (k === 'nt') ntCur = null;
+  if (k === 'prof') mpCur = null;
+  if (k === 'ds') dsStu = null;
+  if (k === 'tk') tkCur = null;
+  if (k === 'mo') moCur = null;
+}
+window.openWin = openWin; window.closeWin = closeWin;
+window.toggleWin = function (k) { const w = WSE[k]; if (w && w.el.style.display !== 'none') closeWin(k); else openWin(k); };
+
+showAdminView = function (v) {
+  if (v === 'home') { if (!Object.keys(WSE).some(k => WSE[k].el.style.display !== 'none')) openWin('dash'); return; }
+  const m = { dashboardMain: 'dash', voices: 'voi', reports: 'rep', archive: 'arc' };
+  if (m[v]) openWin(m[v]);
+};
+openAdminMainPanel = function () {
+  const o = $id('adminModalOverlay'); if (o) o.classList.add('open');
+  const p = $id('adminPanel'); if (p) p.classList.add('ws-wide');
+  showAdminView('home');
+};
+
+/* ---------- Dashboard window: trainee list (always selectable) ---------- */
+async function renderMasterProfilesIn(sub) {
+  sub.innerHTML = '<div class="text-center py-6 text-amber-400">جاري تحميل الطلبة...</div>';
+  try {
+    const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json();
+    mpState.list = Array.isArray(j) ? j : [];
+  } catch (e) {
+    sub.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`;
+    return;
+  }
+  mpState.q = ''; mpState.selecting = true;
+  sub.innerHTML = `<div class="flex flex-col gap-3">
+      <input id="mpSearch" placeholder="ابحث بالاسم..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px" oninput="mpSearch(this.value)">
+      <div class="flex items-center gap-2 flex-wrap" id="mpBar"></div>
+      <div class="mp-grid" id="mpGrid"></div></div>`;
+  mpPaintList();
+}
+window.mpClearSel = function () { mpState.sel.clear(); mpPaintList(); };
+mpPaintBar = function () {
+  const b = $id('mpBar'); if (!b) return;
+  const n = mpState.sel.size, one = n === 1 ? [...mpState.sel][0] : null;
+  const btn = (cls, fn, ic, txt, on) => `<button type="button" class="ds-b ${cls}" ${on ? '' : 'disabled'} onclick="${fn}"><i class="fa-solid ${ic}"></i> ${txt}</button>`;
+  b.innerHTML = btn('ghost', 'mpSelectAll()', 'fa-square-check', 'تحديد الكل', true)
+    + (n ? btn('ghost', 'mpClearSel()', 'fa-xmark', 'إلغاء', true) : '')
+    + `<span class="text-xs text-slate-400">${n} محدد</span><span class="ws-sep"></span>`
+    + btn('blue', 'openNotifyMany()', 'fa-bell', 'إشعار', n)
+    + btn('blue', 'openBulkTask()', 'fa-list-check', 'Task', n)
+    + btn('amber', 'openMonthly()', 'fa-calendar-check', 'Monthly obligations', n)
+    + (one ? '<span class="ws-sep"></span>' + btn('green', `openStudentDashboard('${esc(one)}')`, 'fa-eye', 'Dashboard', 1) + btn('amber', `mpOpen('${esc(one)}')`, 'fa-id-card', 'Profile', 1) + btn('ghost', `openStudentSupply('${esc(one)}')`, 'fa-pen-to-square', 'DS', 1) : '');
+};
+
+/* ---------- Archive window ---------- */
+async function renderArchiveIn(sub) {
+  sub.innerHTML = '<div class="text-center py-6 text-amber-400">جاري تحميل الأرشيف...</div>';
+  let students = [];
+  try { students = await fetchStudentsFromSupabase(); } catch (e) { }
+  const opts = students.map(st => `<option value="${esc(st.id)}">${esc(st.trainee || st.name || '')}</option>`).join('');
+  const lab = 'text-xs flex flex-col gap-1';
+  sub.innerHTML = `<div class="flex flex-col gap-3">
+      <div class="tha-btns">
+        <button type="button" class="tha-b blue" onclick="archiveQuick('today')">اليوم</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('week')">هذا الأسبوع</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('month')">هذا الشهر</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('year')">هذه السنة</button>
+        <button type="button" class="tha-b blue" onclick="archiveQuick('all')">الكل</button></div>
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="${lab}">من <input type="date" id="arcFrom" class="${INPUT_CLS}"></label>
+        <label class="${lab}">إلى <input type="date" id="arcTo" class="${INPUT_CLS}"></label>
+        <label class="${lab}">شهر معين <input type="month" id="arcMonth" onchange="archiveMonthPicked(this.value)" class="${INPUT_CLS}"></label>
+        <label class="${lab}">الطالب <select id="arcStudent" class="${INPUT_CLS}"><option value="">الكل</option>${opts}</select></label>
+        <button type="button" class="tha-b" onclick="loadArchive()"><i class="fa-solid fa-magnifying-glass"></i> عرض</button>
+        <button type="button" class="tha-b gray" onclick="exportArchiveCsv()"><i class="fa-solid fa-file-csv"></i> تصدير CSV</button></div>
+      <div id="arcInfo" class="tha-note"></div>
+      <div id="arcResult" class="overflow-x-auto border border-slate-700 rounded-xl" style="max-height:60vh"></div></div>`;
+  archiveQuick('week');
+}
+
+/* ---------- shared schedule fields (Range / repeats / As of) ---------- */
+function fxSched(p) {
+  const R = parseFloat($id(p + 'Range').value) || 0, n = +$id(p + 'Rep').value || 1, a = fxFromWall($id(p + 'AsOf').value);
+  const A = Number.isFinite(a) ? a : fxNow(), fr = fxEven(n);
+  return { R, n, A, opens: R > 0 ? fxOpens(A, R, fr) : [] };
+}
+window.schedPreview = function (p) {
+  const el = $id(p + 'Prev'); if (!el) return;
+  const s = fxSched(p);
+  if (!(s.R > 0)) { el.textContent = 'اكتب الـ Range بالساعات عشان يظهر الجدول.'; return; }
+  const end = s.A + s.R * 36e5, tag = o => fxClock(o) + (fxNewDay(o, s.A) ? ' (' + fxWd(o) + ')' : '');
+  el.innerHTML = `يبدأ ${esc(fxClock(s.A))} · ينتهي ${esc(tag(end))}<br>مرات الفتح: ${s.opens.map(o => esc(tag(o))).join(' · ')}`;
+};
+window.schedNow = function (p) { $id(p + 'AsOf').value = fxWall(fxNow()).slice(0, 16); schedPreview(p); };
+window.schedClear = function (p) { $id(p + 'AsOf').value = ''; schedPreview(p); };
+const schedFields = (p, range, rep) => `
+  <div><span class="ds-lbl">Range · المدى بالساعات</span><input id="${p}Range" type="number" min="0.5" max="720" step="0.5" inputmode="decimal" class="ds-in" style="max-width:200px" value="${range}" oninput="schedPreview('${p}')"></div>
+  <div><span class="ds-lbl">عدد مرات التكرار (1–5)</span><select id="${p}Rep" class="ds-in" style="width:auto" onchange="schedPreview('${p}')">${[1, 2, 3, 4, 5].map(r => `<option value="${r}"${r === rep ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
+  <div><span class="ds-lbl">As of · منذ (فاضي = وقت الإرسال)</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="${p}AsOf" type="datetime-local" class="ds-in" style="width:auto" oninput="schedPreview('${p}')" onchange="schedPreview('${p}')"><button type="button" class="ds-b blue" onclick="schedNow('${p}')">Now</button><button type="button" class="ds-b ghost" onclick="schedClear('${p}')">مسح</button></div></div>
+  <div class="nt-prev" id="${p}Prev"></div>`;
+const wsChips = st => `<div class="ws-nm">${st.map(s => `<span class="nt-chip" dir="auto">${esc(s.trainee || '')}</span>`).join('')}</div>`;
+const wsPicked = ids => ids.map(id => mpState.list.find(x => String(x.id) === String(id))).filter(Boolean);
+const PF_EMPTY = 'اضغط للكتابة (كبسولات، ترقيم، نقط...)';
+
+/* ---------- Notification window ---------- */
+ntClose = function () { closeWin('nt'); };
+window.ntClose = ntClose;
+openNotify = async function (ids) {
+  const st = wsPicked(ids); if (!st.length) return;
+  const single = st.length === 1;
+  const w = wsEnsure('nt');
+  wsTitle('nt', single ? 'إشعار · ' + (st[0].trainee || '') : 'إشعار · ' + st.length + ' طلاب');
+  w.body.innerHTML = `${single ? '<div class="nt-feed" id="ntFeed"><div class="tha-note">جاري تحميل الفيد...</div></div>' : wsChips(st)}
+    <div class="mp-sec"><h5>إشعار جديد</h5>
+      <span class="ds-lbl">العنوان (اختياري)</span><input id="ntTitle" class="ds-in" maxlength="80" dir="auto">
+      <span class="ds-lbl" style="margin-top:8px">الرسالة</span>
+      <input type="hidden" id="ntBody">
+      <div id="ntBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('ntBody','الرسالة')">${PF_EMPTY}</div>
+      <div class="nt-prev" id="ntPrev" style="display:none" dir="auto"></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="ds-b green" id="ntSend" onclick="ntSend()"><i class="fa-solid fa-paper-plane"></i> إرسال${single ? '' : ' للكل (' + st.length + ')'}</button></div></div>
+    ${single ? '<div class="mp-sec"><h5>آخر الإشعارات المبعوتة</h5><div id="ntSent" class="text-xs text-slate-500">...</div></div>' : ''}`;
+  ntCur = { ov: w.el, ids: st.map(s => String(s.id)), single };
+  openWin('nt');
+  if (single) { ntFeedHtml(st[0]).then(h => { const f = $id('ntFeed'); if (f) f.innerHTML = h; }); ntLoadSent(); }
+};
+
+/* ---------- bulk Task window ---------- */
+window.openBulkTask = function () {
+  const st = wsPicked([...mpState.sel]); if (!st.length) return;
+  const w = wsEnsure('tk');
+  wsTitle('tk', 'Task · ' + st.length + (st.length === 1 ? ' طالب' : ' طلاب'));
+  w.body.innerHTML = `${wsChips(st)}
+    <div class="ds-form">
+      <div><span class="ds-lbl">اسم التاسك</span><input id="tkTitle" class="ds-in" dir="auto" spellcheck="true" placeholder="مثال: Mix and Match"></div>
+      <div><span class="ds-lbl">معلومة إضافية (بتظهر كوسم صغير)</span><input id="tkBadge" class="ds-in" dir="auto" placeholder="مثال: تمرين / عدد التكرار"></div>
+      <div><span class="ds-lbl">الوصف (Description)</span><input type="hidden" id="tkBody"><div id="tkBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('tkBody','الوصف')">${PF_EMPTY}</div></div>
+      <div><span class="ds-lbl">Priority · الأهمية</span><select id="tkPri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>
+      <div class="ds-fx"><div class="ds-fx-h"><i class="fa-solid fa-sliders"></i> Functionality · طريقة العمل</div>${schedFields('tk', 12, 1)}</div>
+      <div><button type="button" class="ds-b green" id="tkSend" onclick="tkSend()"><i class="fa-solid fa-paper-plane"></i> ابعت التاسك لـ ${st.length}</button></div>
+      <div style="font-size:10px;color:#64748b">بيتحط في أول خانة فاضية (1–10) عند كل طالب النهارده، وبياخد نفس الجدول الزمني.</div>
+    </div>`;
+  tkCur = { ids: st.map(s => String(s.id)), st };
+  openWin('tk'); schedPreview('tk');
+};
+window.tkSend = async function () {
+  const c = tkCur; if (!c) return;
+  const title = $id('tkTitle').value.trim() || null, badge = $id('tkBadge').value.trim() || null, body = $id('tkBody').value.trim() || null;
+  if (!title && !body) { showToast('اكتب اسم التاسك أو الوصف الأول', true, true); return; }
+  const sc = fxSched('tk');
+  if (!(sc.R > 0)) { showToast('اكتب الـ Range بالساعات الأول', true, true); return; }
+  const btn = $id('tkSend'); btn.disabled = true;
+  try {
+    const today = dsToday();
+    const have = await fetchAllRows(`supply_items?select=trainee_id,item_no&kind=eq.task&supply_date=eq.${today}&trainee_id=in.(${c.ids.map(enc).join(',')})`);
+    const used = {}; have.forEach(r => { (used[String(r.trainee_id)] = used[String(r.trainee_id)] || new Set()).add(r.item_no); });
+    const rows = [], skipped = [], now = new Date().toISOString(), pri = $id('tkPri').value;
+    c.st.forEach(s => {
+      const u = used[String(s.id)] || new Set(); let n = 1; while (n <= 10 && u.has(n)) n++;
+      if (n > 10) { skipped.push(s.trainee || ''); return; }
+      rows.push({ trainee_id: s.id, supply_date: today, kind: 'task', item_no: n, title, badge, body, priority: pri, repeats: sc.n, range_hours: sc.R, as_of: fxWall(sc.A), opens_at: sc.opens.map(fxWall), updated_at: now });
+    });
+    if (rows.length) await sbFetch('supply_items', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+    showToast(`اتبعت التاسك لـ ${rows.length} طالب ✓` + (skipped.length ? ` · الخانات ممتلئة عند: ${skipped.join('، ')}` : ''), skipped.length > 0, true);
+  } catch (e) { showToast('فشل إرسال التاسك: ' + e.message, true); }
+  btn.disabled = false;
+};
+
+/* ---------- Monthly obligations window (high-priority timed notification) ---------- */
+const MO_TITLE = 'التكليفات الشهرية · Monthly obligations';
+const MO_BODY = `1. اختبار الإنجليزي EF SET | https://www.efset.org/
+
+2. اختبار الشخصية 16 Personalities بالعربي | https://www.16personalities.com/ar
+
+لازم تخلّص الاتنين في المهلة اللي قدامك، وابعت لي النتيجة أول ما تخلّص.`;
+window.openMonthly = function () {
+  const st = wsPicked([...mpState.sel]); if (!st.length) return;
+  const w = wsEnsure('mo');
+  wsTitle('mo', 'Monthly obligations · ' + st.length + (st.length === 1 ? ' طالب' : ' طلاب'));
+  w.body.innerHTML = `${wsChips(st)}
+    <div class="ds-form">
+      <div class="ds-tag" style="align-self:flex-start;background:#be123c;color:#fff">HIGH PRIORITY · بيوصل في الإشعارات</div>
+      <div><span class="ds-lbl">العنوان</span><input id="moTitle" class="ds-in" maxlength="80" dir="auto"></div>
+      <div><span class="ds-lbl">الرسالة (تقدر تعدّلها)</span><input type="hidden" id="moBody"><div id="moBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('moBody','الرسالة')">${PF_EMPTY}</div></div>
+      <div class="ds-fx"><div class="ds-fx-h"><i class="fa-solid fa-hourglass-half"></i> المهلة · التذكيرات</div>${schedFields('mo', 72, 3)}</div>
+      <div><button type="button" class="ds-b amber" id="moSend" onclick="moSend()"><i class="fa-solid fa-paper-plane"></i> ابعت التكليفات لـ ${st.length}</button></div>
+    </div>`;
+  $id('moTitle').value = MO_TITLE; $id('moBody').value = MO_BODY; dsRefreshPf('moBody');
+  moCur = { ids: st.map(s => String(s.id)), st };
+  openWin('mo'); schedPreview('mo');
+};
+window.moSend = async function () {
+  const c = moCur; if (!c) return;
+  const title = $id('moTitle').value.trim() || MO_TITLE, body = $id('moBody').value.trim();
+  if (!body) { showToast('الرسالة فاضية', true, true); return; }
+  const sc = fxSched('mo');
+  if (!(sc.R > 0)) { showToast('اكتب المهلة بالساعات الأول', true, true); return; }
+  if (!confirm('تبعت التكليفات الشهرية لـ ' + c.st.length + ' طالب؟')) return;
+  const btn = $id('moSend'); btn.disabled = true;
+  const meta = { priority: 'high', obligation: 'monthly', range_hours: sc.R, repeats: sc.n, as_of: fxWall(sc.A), opens_at: sc.opens.map(fxWall), deadline: fxWall(sc.A + sc.R * 36e5) };
+  try {
+    await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.st.map(s => ({ trainee_id: s.id, kind: 'message', title, body, meta }))) });
+    showToast(`اتبعتت التكليفات الشهرية لـ ${c.st.length} طالب ✓`);
+  } catch (e) { showToast('فشل الإرسال: ' + e.message, true); }
+  btn.disabled = false;
+};
+
+/* ---------- Profile window ---------- */
+mpClose = function () { closeWin('prof'); };
+window.mpClose = mpClose;
+mpOpen = function (id) {
+  const r = mpState.list.find(x => String(x.id) === String(id)); if (!r) return;
+  const w = wsEnsure('prof'); wsTitle('prof', 'Profile · ' + (r.trainee || ''));
+  const fieldHtml = ([k, type, label]) => type === 'date'
+    ? `<div><span class="ds-lbl">${esc(label)}</span><input type="date" id="${mpId(k)}"></div>`
+    : `<div><span class="ds-lbl">${esc(label)}</span><input type="hidden" id="${mpId(k)}"><div id="${mpId(k)}_pf" class="ds-pf empty" onclick="dsTextPop('${mpId(k)}','${esc(label)}')">اضغط للكتابة…</div></div>`;
+  w.body.innerHTML = `<div style="display:flex;justify-content:flex-end"><button type="button" class="ds-b green" id="mpSaveBtn" onclick="mpSave()">Save</button></div>
+    ${MP_SECTIONS.map(([t, fs]) => `<div class="mp-sec"><h5>${esc(t)}</h5><div class="mp-fields">${fs.map(fieldHtml).join('')}</div></div>`).join('')}
+    <div class="text-slate-500" style="font-size:11px;margin-top:14px">id: ${esc(r.id)} · created: ${esc(String(r.created_at || '').slice(0, 10))} · updated: ${esc(String(r.updated_at || '').slice(0, 16).replace('T', ' '))}</div>`;
+  mpCur = { ov: w.el, id };
+  openWin('prof');
+  MP_SECTIONS.forEach(([, fs]) => fs.forEach(([k, type]) => {
+    const el = $id(mpId(k)); if (!el) return;
+    { const v0 = mpVal(r, k); el.value = v0 == null ? '' : String(v0); }
+    if (type !== 'date') dsRefreshPf(mpId(k));
+  }));
+};
+
+/* ---------- DS window ---------- */
+closeStudentSupply = function () { closeWin('ds'); };
+window.closeStudentSupply = closeStudentSupply;
+openStudentSupply = async function (id) {
+  const st = (mpState.list.find(x => String(x.id) === String(id))) || { id, trainee: '' };
+  const today = dsToday(), dates = [0, 1, 2, 3].map(n => dsAddDays(today, -n));
+  const w = wsEnsure('ds'); wsTitle('ds', 'DS · ' + (st.trainee || ''));
+  w.body.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  openWin('ds');
+  dsStu = { ov: w.el, st, onKey: null, shown: dates.length, more: false };
+  let data;
+  try { data = await dsFetchRange(id, dates[dates.length - 1], today); }
+  catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
+  const range = { min: dsAddDays(today, -31), max: today };
+  supplyState = { students: dates.map(() => st), records: data.records, range, parts: data.parts, items: data.items };
+  dsStu.cols = dsCols(range, true); dsStu.today = today;
+  w.body.innerHTML = `<div class="overflow-x-auto border border-slate-700 rounded-xl" style="max-height:70vh">
+      <table class="w-full text-left text-xs text-slate-300">
+        <thead class="bg-slate-950 text-amber-300 uppercase text-[10px] sticky top-0"><tr><th class="p-2">day</th>${dsStu.cols.map(c => `<th class="p-2">${esc(c.head)}</th>`).join('')}<th class="p-2">إجراء</th></tr></thead>
+        <tbody id="dsStuBody">${dates.map((d, i) => dsRowHtml(i, dsDayLabel(d, i), dsStu.cols)).join('')}</tbody></table></div>
+    <div style="text-align:center;margin-top:10px"><button type="button" id="dsMoreBtn" class="ds-b ghost" onclick="dsMore()">More · باقي الشهر</button></div>`;
+  dates.forEach((d, i) => { dsEl('supply_date', i).value = d; dsLoadRow(i, d); });
+};
+
+
+/* ==========================================================
+   Patch 4: manual "paid" status (paste at the END of adminpanel.js, after patch 3)
+   basic_info.paid_month = 'YYYY-MM' of the month he paid (Cairo time). Paid = paid_month equals the
+   current month, so it resets by itself next month. basic_info.paid_at = optional payment date.
+   Marking paid sends ONE thank-you notification per trainee per month.
+   ========================================================== */
+const PAY_THANKS = 'شكرًا على دفع المستحقات الشهرية.';
+const payMonth = () => dsToday().slice(0, 7);
+const isPaid = r => !!r && r.paid_month === payMonth();
+
+/* ---- money helpers ----
+   monthly bill  = biggest number in the "subscription" text
+   past_due      = running balance saved on the student: positive = he owes it, negative = he has credit
+   due now       = monthly bill + past_due
+   paying X      -> new past_due = due now - X   (paid in full -> 0, paid less -> he owes the rest, paid more -> credit) */
+const payNum = x => { const n = Number(x); return isFinite(n) ? n : 0; };
+const payRound = n => Math.round(n * 100) / 100;
+const payFmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+function payBill(r) {
+  const t = String((r && r.subscription) || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,٬]/g, '');
+  const m = t.match(/\d+(?:[.٫]\d+)?/g); if (!m) return null;
+  return Math.max(...m.map(x => parseFloat(x.replace('٫', '.'))));
+}
+const payDue = r => { const b = payBill(r); return b === null ? null : payRound(b + payNum(r.past_due)); };
+const payPaidAmt = r => r.paid_amount != null && r.paid_amount !== '' ? payNum(r.paid_amount) : (payBill(r) || 0);
+function payBalText(v) { v = payNum(v); return v > 0 ? 'عليه باس دو ' + payFmt(v) : v < 0 ? 'ليه رصيد ' + payFmt(-v) : 'خالص (صفر)'; }
+function payTag(r, paid) {
+  const pd = payNum(r.past_due);
+  return `<small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) + (r.paid_amount != null ? ' · ' + esc(payFmt(r.paid_amount)) : '') : 'لم يدفع ' + esc(payMonth())}</small>`
+    + (pd ? `<small style="color:${pd > 0 ? '#fb7185' : '#34d399'}">${esc(payBalText(pd))}</small>` : '');
+}
+
+/* items: [{id, amount, date}] */
+async function paySet(items, paid) {
+  items = items.filter(it => it && it.id != null); if (!items.length) return;
+  const month = payMonth(), now = new Date().toISOString();
+  const bodyFor = it => {
+    const r = mpState.list.find(x => String(x.id) === String(it.id)) || {};
+    if (!paid) {
+      const b = { paid_month: null, paid_at: null, paid_amount: null, pre_pay_due: null, updated_at: now };
+      if (r.pre_pay_due != null) b.past_due = r.pre_pay_due;     /* undo the balance change of that payment */
+      return b;
+    }
+    const b = { paid_month: month, paid_at: it.date ? it.date + 'T12:00:00Z' : now, paid_amount: it.amount, updated_at: now };
+    const bill = payBill(r);
+    if (bill !== null) { b.pre_pay_due = payNum(r.past_due); b.past_due = payRound(bill + payNum(r.past_due) - it.amount); }
+    return b;
+  };
+  let rows;
+  try { rows = (await Promise.all(items.map(it => mutate(`${PROFILES_TABLE}?id=eq.${enc(it.id)}`, 'PATCH', bodyFor(it))))).flat(); }
+  catch (e) { showToast('فشل تسجيل الدفع: ' + e.message + ' (شغّل 07_payment_amounts.sql لو لسه)', true); return; }
+  rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
+  mpPaintList();
+  if (mpCur) payBoxPaint();
+  if (!paid) { showToast('اتسجّل إنهم لم يدفعوا ✓'); return; }
+  const noBill = rows.filter(r => payBill(r) === null).length;
+  let sent = 0;
+  try {
+    const ids = rows.map(r => String(r.id));
+    const have = await fetchAllRows(`notifications?select=trainee_id&kind=eq.message&meta->>thanks_month=eq.${month}&trainee_id=in.(${ids.map(enc).join(',')})`);
+    const got = new Set(have.map(r => String(r.trainee_id)));
+    const out = rows.filter(r => !got.has(String(r.id))).map(r => ({ trainee_id: r.id, kind: 'message', title: 'شكرًا لك', body: PAY_THANKS, meta: { thanks_month: month } }));
+    if (out.length) await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
+    sent = out.length;
+  } catch (e) { showToast('اتسجّل الدفع، بس رسالة الشكر ما اتبعتتش: ' + e.message, true, true); return; }
+  const first = rows[0];
+  showToast(rows.length === 1 ? `اتسجّل الدفع ✓ · ${payBalText(first.past_due)}` : `اتسجّل الدفع لـ ${rows.length} ✓`
+    + (sent ? ` · وراح شكر لـ ${sent}` : ' · (الشكر اتبعت قبل كده الشهر ده)')
+    + (noBill ? ` · ${noBill} مالهم رقم في الـ Subscription فالباس دو ما اتحسبش` : ''));
+}
+window.payMark = function (id, paid) {
+  if (!paid) return paySet([{ id }], false);
+  const d = document.getElementById('payDate'), a = document.getElementById('payAmt');
+  const amount = a && a.value.trim() !== '' ? Number(a.value) : NaN;
+  if (!isFinite(amount) || amount < 0) { showToast('اكتب المبلغ اللي دفعه', true); return; }
+  paySet([{ id, amount, date: d && d.value ? d.value : '' }], true);
+};
+/* bulk "paid": each one paid exactly what is due now (monthly bill + past due, never less than 0) */
+window.payMarkSel = function (paid) {
+  const ids = [...mpState.sel]; if (!ids.length) return;
+  if (!confirm((paid ? 'تسجّل إنهم دفعوا المطلوب كامل' : 'تسجّل إنهم لم يدفعوا') + ' (' + ids.length + ' طالب) عن شهر ' + payMonth() + '؟')) return;
+  if (!paid) return paySet(ids.map(id => ({ id })), false);
+  paySet(ids.map(id => { const r = mpState.list.find(x => String(x.id) === String(id)) || {}; const d = payDue(r); return { id, amount: d === null ? (payBill(r) || 0) : Math.max(d, 0), date: '' }; }), true);
+};
+window.payPastDue = async function (id) {
+  const el = document.getElementById('payPD'); if (!el) return;
+  const v = el.value.trim() === '' ? 0 : Number(el.value);
+  if (!isFinite(v)) { showToast('اكتب رقم صحيح', true); return; }
+  try {
+    const rows = await mutate(`${PROFILES_TABLE}?id=eq.${enc(id)}`, 'PATCH', { past_due: payRound(v), updated_at: new Date().toISOString() });
+    rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
+    mpPaintList(); if (mpCur) payBoxPaint(); showToast('اتحفظ الباس دو ✓');
+  } catch (e) { showToast('فشل: ' + e.message + ' (شغّل 07_payment_amounts.sql لو لسه)', true); }
+};
+/* month calendar for the payment date */
+window.payPick = function (d) {
+  const h = document.getElementById('payDate'); if (h) h.value = d;
+  document.querySelectorAll('.p6-day').forEach(b => { const on = b.dataset.d === d; b.style.background = on ? '#059669' : '#0f172a'; b.style.color = on ? '#fff' : '#cbd5e1'; });
+};
+function payCalHtml(sel) {
+  const [y, m] = payMonth().split('-').map(Number);
+  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 1) % 7, n = new Date(Date.UTC(y, m, 0)).getUTCDate();   /* week starts Saturday */
+  const heads = ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'].map(x => `<span style="text-align:center;font-size:9px;color:#64748b">${x}</span>`).join('');
+  let cells = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= n; d++) {
+    const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, on = ds === sel;
+    cells += `<button type="button" class="p6-day" data-d="${ds}" onclick="payPick('${ds}')" style="border:1px solid #334155;border-radius:6px;padding:4px 0;font-size:11px;background:${on ? '#059669' : '#0f172a'};color:${on ? '#fff' : '#cbd5e1'}">${d}</button>`;
+  }
+  return `<input type="hidden" id="payDate" value="${esc(sel)}"><div style="font-size:10px;color:#94a3b8;margin:8px 0 4px">تاريخ الدفع · ${esc(payMonth())} (اضغط على اليوم)</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:280px">${heads}${cells}</div>`;
+}
+
+/* trainee cards: paid students are never shown as late */
+mpPaintList = function () {
+  const g = document.getElementById('mpGrid'); if (!g) return;
+  const today = dsToday();
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
+  g.innerHTML = rows.map(r => {
+    const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today;
+    const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+    const on = mpState.sel.has(String(r.id));
+    return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
+      <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+        <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
+        <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
+        ${payTag(r, paid)}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+        <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
+        <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
+        <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
+        <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
+  }).join('') || '<div class="tha-note">مفيش نتائج.</div>';
+  mpPaintBar();
+};
+
+/* bulk bar: paid / not paid for the selected */
+{
+  const prevBar = mpPaintBar;
+  mpPaintBar = function () {
+    prevBar();
+    const b = document.getElementById('mpBar'), n = mpState.sel.size; if (!b) return;
+    b.insertAdjacentHTML('beforeend', '<span class="ws-sep"></span>'
+      + `<button type="button" class="ds-b green" ${n ? '' : 'disabled'} onclick="payMarkSel(true)"><i class="fa-solid fa-circle-check"></i> دفع</button>`
+      + `<button type="button" class="ds-b ghost" ${n ? '' : 'disabled'} onclick="payMarkSel(false)">لم يدفع</button>`);
+  };
+}
+
+/* Profile window: payment section */
+function payBoxPaint() {
+  const box = document.getElementById('payBox'); if (!box || !mpCur) return;
+  const r = mpState.list.find(x => String(x.id) === String(mpCur.id)); if (!r) return;
+  const paid = isPaid(r), id = esc(r.id), bill = payBill(r), due = payDue(r), pd = payNum(r.past_due);
+  const row = (k, v) => `<div class="p5-r"><span>${k}</span><b dir="auto">${v}</b></div>`;
+  const pdBox = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0"><span style="font-size:10px;color:#94a3b8">تعديل الباس دو (موجب = عليه · سالب = ليه):</span>
+      <input type="number" id="payPD" step="any" value="${pd || ''}" placeholder="0" style="width:110px"><button type="button" class="ds-b ghost" onclick="payPastDue('${id}')">حفظ</button></div>`;
+  let main;
+  if (paid) {
+    main = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <span class="ds-tag" style="background:#059669;color:#fff">دفع${r.paid_at ? ' · ' + esc(String(r.paid_at).slice(0, 10)) : ''}</span>
+      <span class="ds-tag" style="background:#0f172a;color:#34d399;border:1px solid #34d399">المبلغ: ${esc(r.paid_amount != null ? payFmt(r.paid_amount) : '—')}</span>
+      <button type="button" class="ds-b ghost" onclick="payMark('${id}',false)">إلغاء الدفع</button></div>`;
+  } else {
+    main = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span class="ds-tag" style="background:#be123c;color:#fff">لم يدفع</span>
+      <input type="number" id="payAmt" step="any" min="0" value="${due === null ? '' : Math.max(due, 0)}" placeholder="المبلغ اللي دفعه" style="width:150px">
+      <button type="button" class="ds-b green" onclick="payMark('${id}',true)"><i class="fa-solid fa-circle-check"></i> تم الدفع</button></div>
+      ${payCalHtml(dsToday())}`;
+  }
+  box.innerHTML = `<h5>Payment · الدفع (${esc(payMonth())})</h5>
+    ${row('الاشتراك الشهري', bill === null ? 'مفيش رقم في الـ Subscription' : esc(payFmt(bill)))}
+    ${row('الباس دو / الرصيد', esc(payBalText(pd)))}
+    ${due === null ? '' : row('المطلوب دلوقتي', esc(payFmt(Math.max(due, 0))))}
+    ${pdBox}${main}
+    <div style="font-size:10px;color:#64748b;margin-top:8px">اكتب اللي دفعه فعلاً: لو أقل من المطلوب الباقي بيتحط باس دو لوحده، ولو أكتر بيتحط رصيد ليه بيتخصم الشهر الجاي. بعد الدفع بيوصله إشعار شكر مرة واحدة، وبيرجع "لم يدفع" لوحده الشهر الجاي.</div>`;
+}
+{
+  const prevOpen = mpOpen;
+  mpOpen = function (id) {
+    prevOpen(id);
+    if (!mpCur) return;
+    const w = WSE.prof; if (!w) return;
+    const d = document.createElement('div'); d.className = 'mp-sec'; d.id = 'payBox';
+    w.body.insertBefore(d, w.body.children[1] || null);
+    payBoxPaint();
+  };
+}
+
+
+/* ==========================================================
+   Patch 5 (paste at the END of adminpanel.js, after patches 3 and 4)
+   - trainee list grouped by status: Active on top, then Pending, Past, Terminated, each with a divider;
+     inside each group the profiles you open most come first
+   - new windows: Database (Supabase + Cloudflare) and Highlights (Financial / Attendance / Red flags)
+   ========================================================== */
+(function () {
+  if (document.getElementById('p5Css')) return;
+  const s = document.createElement('style'); s.id = 'p5Css';
+  s.textContent = `.mp-card.mp-dim{opacity:.7}
+.p5-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.p5-c{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:12px}
+.p5-c h6{font-size:12px;font-weight:800;color:#fbbf24;margin-bottom:8px}
+.p5-r{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #1e293b;font-size:12px}.p5-r:last-child{border:0}
+.p5-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-inline-end:6px}`;
+  document.head.appendChild(s);
+})();
+
+/* ---------- status + open counts ---------- */
+/* column resolver: finds the real column in a row even if it is written differently
+   (e.g. "preferred name" vs preferred_name, "Status as of today" vs status_as_of_today) */
+const mpNorm = x => String(x).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+function mpCol(r, k) {
+  if (!r) return null;
+  const keys = Object.keys(r), n = mpNorm(k);
+  let c = keys.find(x => x === k) || keys.find(x => mpNorm(x) === n);
+  if (!c && k === 'status_as_of_today') c = keys.find(x => /status/i.test(x));
+  return c || null;
+}
+function mpVal(r, k) { const c = mpCol(r, k); return c ? r[c] : undefined; }
+
+/* status_as_of_today (free text) -> group.
+   Known: active / pending / paused / past / terminated (English or Arabic words).
+   Empty = active. Anything else you type (e.g. "On hold") becomes its own group named exactly as you typed it. */
+function mpStatusInfo(r) {
+  const raw = String(mpVal(r, 'status_as_of_today') || '').trim(), s = raw.toLowerCase();
+  if (!s) return { key: 'active', label: '' };
+  if (/terminat|منته|ملغ|مفصول/.test(s)) return { key: 'terminated', label: raw };
+  if (/paus|موقوف|متوقف|ايقاف|إيقاف|وقف/.test(s)) return { key: 'paused', label: raw };
+  if (/past|سابق|قديم/.test(s)) return { key: 'past', label: raw };
+  if (/pend|انتظار|منتظر|معلق/.test(s)) return { key: 'pending', label: raw };
+  if (/^(active|نشط|شغال|شغّال|فعال|مفعل)/.test(s)) return { key: 'active', label: raw };
+  return { key: 'x:' + s.replace(/\s+/g, ' '), label: raw };
+}
+const mpStatus = r => mpStatusInfo(r).key;
+const OC_KEY = 'thabit_open_counts';
+function ocGet() { try { return JSON.parse(localStorage.getItem(OC_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function ocBump(id) { try { const c = ocGet(); c[String(id)] = (c[String(id)] || 0) + 1; localStorage.setItem(OC_KEY, JSON.stringify(c)); } catch (e) { } }
+{
+  const wrap = name => { const f = window[name]; if (typeof f !== 'function') return; window[name] = function (id) { ocBump(id); return f.apply(this, arguments); }; };
+  ['mpOpen', 'openStudentSupply', 'openStudentDashboard', 'openStudentNotify'].forEach(wrap);
+}
+
+function mpCardHtml(r, today) {
+  const paid = isPaid(r), late = !paid && r.due_date && r.due_date < today, st = mpStatus(r);
+  const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+  const on = mpState.sel.has(String(r.id));
+  return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' || st === 'paused' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
+      <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+        <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
+        <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
+        ${payTag(r, paid)}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+        <button type="button" class="ds-cur" title="Insert Daily Supply" onclick="openStudentSupply('${esc(r.id)}')"><i class="ds-caret"></i>DS</button>
+        <button type="button" class="ds-b amber" onclick="mpOpen('${esc(r.id)}')">Profile</button>
+        <button type="button" class="ds-b blue" title="إشعار" onclick="openStudentNotify('${esc(r.id)}')"><i class="fa-solid fa-bell"></i> إشعار</button>
+        <button type="button" class="ds-b green" title="Dashboard View" onclick="openStudentDashboard('${esc(r.id)}')"><i class="fa-solid fa-eye"></i> Dashboard</button></div></div>`;
+}
+const MP_GROUPS = [['active', 'Active · شغّالين'], ['pending', 'Pending · منتظرين'], ['paused', 'Paused · موقوفين'], ['past', 'Past · سابقين'], ['terminated', 'Terminated · منتهي']];
+mpPaintList = function () {
+  const g = document.getElementById('mpGrid'); if (!g) return;
+  const today = dsToday(), cnt = ocGet();
+  const rows = mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
+  const byOpens = (a, b) => ((b.needs_setup === true) - (a.needs_setup === true)) || (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
+  /* known groups first, then one group per custom status text */
+  const groups = MP_GROUPS.map(([k, label]) => [k, label]);
+  const custom = new Map();
+  rows.forEach(r => { const i = mpStatusInfo(r); if (i.key.startsWith('x:') && !custom.has(i.key)) custom.set(i.key, i.label); });
+  [...custom.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([k, label]) => groups.push([k, label]));
+  let html = '', first = true;
+  groups.forEach(([k, label]) => {
+    const part = rows.filter(r => mpStatus(r) === k).sort(byOpens);
+    if (!part.length) return;
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:${first ? '0' : '12px'} 0 2px;color:#94a3b8;font-size:11px;font-weight:800"><span style="flex:1;height:1px;background:#334155"></span><span dir="auto">${esc(label)} · ${part.length}</span><span style="flex:1;height:1px;background:#334155"></span></div>`;
+    html += part.map(r => mpCardHtml(r, today)).join('');
+    first = false;
+  });
+  const sample = mpState.list[0];
+  if (sample && !mpCol(sample, 'status_as_of_today')) html = `<div class="tha-note" style="grid-column:1/-1;color:#fb7185">مفيش عمود للستاتس في جدول basic_info، فالكل بيظهر Active. الأعمدة الموجودة: ${esc(Object.keys(sample).join(', '))}</div>` + html;
+  g.innerHTML = html || '<div class="tha-note">مفيش نتائج.</div>';
+  mpPaintBar();
+};
+
+/* quick status buttons inside the Profile window (you can still type any custom status) */
+{
+  const prevOpen6 = mpOpen;
+  mpOpen = function (id) {
+    prevOpen6(id);
+    if (!mpCur) return;
+    const hid = $id(mpId('status_as_of_today')); if (!hid || hid.parentElement.querySelector('.p6-st')) return;
+    const bar = document.createElement('div'); bar.className = 'p6-st'; bar.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-top:4px';
+    ['Active', 'Pending', 'Paused', 'Past', 'Terminated'].forEach(v => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ds-b ghost'; b.style.cssText = 'padding:2px 8px;font-size:10px'; b.textContent = v;
+      b.onclick = () => { hid.value = v; dsRefreshPf(mpId('status_as_of_today')); };
+      bar.appendChild(b);
+    });
+    hid.parentElement.appendChild(bar);
+  };
+}
+
+/* ---------- new windows ---------- */
+WSD.db = { t: 'Database · الداتابيز', i: 'fa-database', w: 2 };
+WSD.hl = { t: 'Highlights', i: 'fa-star', w: 2 };
+WS_REFRESH.db = 1; WS_REFRESH.hl = 1;
+{
+  const prevLoad = wsLoad;
+  wsLoad = function (k) {
+    if (k === 'db') return dbRender();
+    if (k === 'hl') return hlRender();
+    return prevLoad(k);
+  };
+}
+
+async function dbCount(t) {
+  try {
+    const res = await sbFetch(`${t}?select=*&limit=1`, { headers: { Prefer: 'count=exact' } });
+    const n = (res.headers.get('content-range') || '').split('/')[1];
+    return n && n !== '*' ? n : '?';
+  } catch (e) { return null; }
+}
+async function dbRender() {
+  const w = WSE.db; if (!w) return;
+  const ref = (String(SUPABASE_URL).match(/^https:\/\/([^.]+)\./) || [])[1] || '';
+  const TABLES = [PROFILES_TABLE, DAILY_SUPPLY_TABLE, ARCHIVE_TABLE, 'supply_items', 'notifications', 'reports', 'words_table', 'due_words_table', 'broken_words_table'];
+  w.body.innerHTML = `<div class="p5-g">
+    <div class="p5-c"><h6><span class="p5-dot" id="dbDot"></span>Supabase</h6>
+      <div id="dbRows" class="text-xs text-slate-400">جاري الفحص...</div>
+      <div style="margin-top:10px"><a class="ds-b blue" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/${esc(ref)}"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح لوحة Supabase</a></div></div>
+    <div class="p5-c"><h6><span class="p5-dot"></span>Cloudflare</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">لسه مش متوصّل بالأدمن. هنا هتظهر الملفات (الصوت والفيديو) اللي بتتخزن على Cloudflare ولينكاتها لما نوصّله.</div>
+      <div style="margin-top:10px"><a class="ds-b ghost" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://dash.cloudflare.com/"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح Cloudflare</a></div></div></div>`;
+  const counts = await Promise.all(TABLES.map(dbCount));
+  const rows = $id('dbRows'), dot = $id('dbDot'); if (!rows) return;
+  const okAny = counts.some(c => c !== null);
+  if (dot) dot.style.background = okAny ? '#10b981' : '#e11d48';
+  rows.innerHTML = TABLES.map((t, i) => `<div class="p5-r"><span dir="ltr">${esc(t)}</span><b style="color:${counts[i] === null ? '#fb7185' : '#e2e8f0'}">${counts[i] === null ? 'تعذر' : esc(counts[i])}</b></div>`).join('');
+}
+
+async function hlRender() {
+  const w = WSE.hl; if (!w) return;
+  w.body.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  if (!mpState.list.length) {
+    try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; }
+    catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)}</div>`; return; }
+  }
+  const today = dsToday(), act = mpState.list.filter(r => mpStatus(r) === 'active');
+  /* paid = anyone who paid this month (any status: the money is already with you); unpaid = Active only */
+  const paid = mpState.list.filter(isPaid), unpaid = act.filter(r => !isPaid(r)), late = unpaid.filter(r => r.due_date && r.due_date < today);
+  const total = payRound(paid.reduce((t, r) => t + payPaidAmt(r), 0));
+  const owing = mpState.list.filter(r => payNum(r.past_due) > 0), owingTotal = payRound(owing.reduce((t, r) => t + payNum(r.past_due), 0));
+  const credit = mpState.list.filter(r => payNum(r.past_due) < 0);
+  const chip = (r, bad, extra) => `<span class="nt-chip" dir="auto" style="${bad ? 'background:rgba(244,63,94,.15);border-color:rgba(244,63,94,.5)' : ''}">${esc(r.trainee || '')}${extra ? ' · ' + esc(extra) : ''}</span>`;
+  const paidChip = r => `<span class="nt-chip" dir="auto" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)">${esc(r.trainee || '')} · ${esc(payFmt(payPaidAmt(r)))}</span>`;
+  /* expected for this month (payment is upfront): Active students only; for those who already paid, use their balance as it was before paying */
+  const exps = act.map(r => {
+    const bill = payBill(r); if (bill === null) return { r, bill: null, pd: 0, exp: 0 };
+    const pd = isPaid(r) ? (r.pre_pay_due != null ? payNum(r.pre_pay_due) : 0) : payNum(r.past_due);
+    return { r, bill, pd, exp: Math.max(payRound(bill + pd), 0) };
+  });
+  const eBase = payRound(exps.reduce((t, x) => t + (x.bill || 0), 0));
+  const eOwe = payRound(exps.reduce((t, x) => t + Math.max(x.pd, 0), 0));
+  const eExp = payRound(exps.reduce((t, x) => t + x.exp, 0));
+  const eCut = payRound(eBase + eOwe - eExp);
+  const eLeft = payRound(unpaid.reduce((t, r) => { const d = payDue(r); return t + (d === null ? 0 : Math.max(d, 0)); }, 0));
+  const eNoBill = exps.filter(x => x.bill === null);
+  const eHtml = `<div style="border:1px solid #334155;border-radius:10px;padding:8px;margin-bottom:10px;background:#0f172a">
+      <div style="font-size:11px;font-weight:800;color:#fbbf24;margin-bottom:4px">المتوقع شهر ${esc(payMonth())} · الدفع مقدّم</div>
+      <div class="p5-r"><span>الأساسي (اشتراكات الـ Active · ${exps.length})</span><b>${esc(payFmt(eBase))}</b></div>
+      ${eOwe ? `<div class="p5-r"><span>+ باس دو</span><b style="color:#fb7185">${esc(payFmt(eOwe))}</b></div>` : ''}
+      ${eCut ? `<div class="p5-r"><span>− رصيد مخصوم</span><b style="color:#34d399">${esc(payFmt(eCut))}</b></div>` : ''}
+      <div class="p5-r"><span>المتوقع الإجمالي</span><b style="color:#fbbf24;font-size:14px">${esc(payFmt(eExp))}</b></div>
+      <div class="p5-r"><span>معاك دلوقتي</span><b style="color:#34d399">${esc(payFmt(total))}</b></div>
+      <div class="p5-r"><span>لسه متوقع</span><b>${esc(payFmt(eLeft))}</b></div>
+      ${eNoBill.length ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">مفيش رقم في الـ Subscription عند: ${eNoBill.map(x => esc(x.r.trainee || '')).join('، ')} (مش محسوبين)</div>` : ''}
+      <button type="button" class="ds-b ghost" style="font-size:10px;padding:2px 8px;margin-top:6px" onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'">تفاصيل كل طالب</button>
+      <div style="display:none;margin-top:6px">${exps.filter(x => x.bill !== null).map(x => `<span class="nt-chip" dir="auto" style="${isPaid(x.r) ? 'background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.45)' : ''}">${isPaid(x.r) ? '✓ ' : ''}${esc(x.r.trainee || '')} · ${esc(payFmt(x.exp))}</span>`).join('')}</div>
+    </div>`;
+  const dueTxt = r => { const d = payDue(r); return d === null ? '' : String(d <= 0 ? 'مغطّى' : payFmt(d)); };
+  w.body.innerHTML = `<div class="p5-g">
+    <div class="p5-c"><h6><i class="fa-solid fa-coins"></i> Financial · ${esc(payMonth())}</h6>
+      ${eHtml}
+      <div class="p5-r"><span>دفعوا</span><b style="color:#34d399">${paid.length}</b></div>
+      <div style="font-size:11px;color:#34d399;margin:4px 0 6px">الإجمالي اللي المفروض يكون معاك دلوقتي: <b style="font-size:14px">${esc(payFmt(total))}</b></div>
+      ${paid.length ? `<div style="margin-bottom:6px">${paid.map(paidChip).join('')}</div>` : ''}
+      <div class="p5-r"><span>لم يدفعوا</span><b>${unpaid.length}</b></div>
+      ${unpaid.length ? `<div style="margin:6px 0">${unpaid.map(r => chip(r, late.includes(r), dueTxt(r))).join('')}</div>` : ''}
+      <div class="p5-r"><span>متأخرين عن الـ Due</span><b style="color:#fb7185">${late.length}</b></div>
+      <div class="p5-r"><span>باس دو (عليهم من قبل)</span><b style="color:${owing.length ? '#fb7185' : '#94a3b8'}">${esc(payFmt(owingTotal))}</b></div>
+      ${owing.length ? `<div style="margin:6px 0">${owing.map(r => chip(r, true, payFmt(r.past_due))).join('')}</div>` : ''}
+      ${credit.length ? `<div class="p5-r"><span>ليهم رصيد (دفعوا زيادة)</span><b style="color:#34d399">${credit.length}</b></div><div style="margin:6px 0">${credit.map(r => chip(r, false, payFmt(-payNum(r.past_due)))).join('')}</div>` : ''}
+      <div class="text-[10px] text-slate-500" style="margin-top:8px">الإجمالي = مجموع المبالغ اللي اتسجّلت إنهم دفعوها الشهر ده (أي حالة). الرقم جنب اللي لم يدفعوا = المطلوب منهم (الاشتراك + الباس دو − الرصيد).</div></div>
+    <div class="p5-c"><h6><i class="fa-solid fa-calendar-check"></i> Attendance · الحضور</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يظهر هنا بالتفصيل.</div></div>
+    <div class="p5-c"><h6><i class="fa-solid fa-flag"></i> Red flags</h6>
+      <div class="text-xs text-slate-400" style="line-height:1.8">مكانه جاهز. قولي إيه اللي يعتبر Red flag وأظهره هنا.</div></div></div>`;
+}
+
+
+/* ==========================================================
+   Patch 6: Generator (student login accounts) - needs the "student-accounts" Edge Function
+   (see GENERATOR_SETUP.md). The browser never sees the service key: the function checks you are the admin.
+   ========================================================== */
+const GEN_DOMAIN = '@thabit.com';
+WSD.gen = { t: 'Generator · المولّد', i: 'fa-key', w: 2 };
+WS_REFRESH.gen = 1;
+{
+  const prevLoad6 = wsLoad;
+  wsLoad = function (k) { if (k === 'gen') return genRender(); return prevLoad6(k); };
+}
+const genState = { tab: 'new', list: null, q: '' };
+/* username: always lowercase letters/numbers/. _ - ; the part after @ is dropped (the domain is fixed) */
+const genUserLive = v => String(v || '').split('@')[0].toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9._-]/g, '').slice(0, 48);
+const genUser = v => genUserLive(v).replace(/^[._-]+|[._-]+$/g, '');
+function genCopy(t) {
+  const done = () => showToast('اتنسخ ✓');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => genCopyOld(t, done)); else genCopyOld(t, done);
+}
+function genCopyOld(t, done) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { } a.remove(); }
+async function genCall(payload) {
+  let r;
+  try { r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) }); }
+  catch (e) { throw new Error('مش قادر أوصل للفانكشن student-accounts. غالباً: (1) لسه ما اتعملتش Deploy، أو (2) اسمها في Supabase مش student-accounts بالظبط. افتح Supabase ← Edge Functions وتأكد إنها ظاهرة وحالتها Active.'); }
+  const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
+  if (r.status === 404) throw new Error('الفانكشن student-accounts لسه مش متعملة Deploy (شوف GENERATOR_SETUP.md)');
+  if (r.status === 401) { if (window.SB_ACCESS_TOKEN) onSessionExpired(); throw new Error('انتهت الجلسة، سجّل دخول تاني'); }
+  if (!r.ok) { const e = new Error(j.error || j.message || t); e.code = j.code; throw e; }
+  return j;
+}
+async function genRender() {
+  const w = WSE.gen; if (!w) return;
+  if (!mpState.list.length) { try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; } catch (e) { } }
+  w.body.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button type="button" class="ds-b amber" data-t="new">Passwords · توليد</button>
+      <button type="button" class="ds-b ghost" data-t="hist">Created passwords · المتسجّلة</button></div><div id="genBody"></div>`;
+  w.body.querySelectorAll('[data-t]').forEach(b => { b.onclick = () => genTab(b.dataset.t); });
+  genTab(genState.tab);
+}
+function genTab(t) {
+  genState.tab = t; const w = WSE.gen; if (!w) return;
+  w.body.querySelectorAll('[data-t]').forEach(b => { b.className = 'ds-b ' + (b.dataset.t === t ? 'amber' : 'ghost'); });
+  if (t === 'new') genNewPaint(); else genHistPaint();
+}
+function genNewPaint() {
+  const host = $id('genBody'); if (!host) return;
+  host.innerHTML = `<div id="genRows"></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="ds-b ghost" id="genAdd"><i class="fa-solid fa-plus"></i> شخص تاني</button></div>
+    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الباسورد بيتولّد عشوائي (12 حرف وأرقام من غير حروف متشابهة)، والحساب بيتعمل على Supabase مفعّل، وبنجرّب الدخول بيه قبل ما نظهره. لو اليوزر موجود قبل كده هيسألك قبل ما يغيّر باسورده.</div>`;
+  $id('genAdd').onclick = () => genAddRow($id('genRows'));
+  genAddRow($id('genRows'));
+}
+function genAddRow(host) {
+  const row = document.createElement('div'); row.className = 'p5-c'; row.style.marginBottom = '8px';
+  const opts = mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('');
+  row.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input class="${INPUT_CLS} g-nm" placeholder="اسم الشخص" dir="auto" autocomplete="off" style="width:180px;padding:6px">
+      <select class="${INPUT_CLS} g-pf" style="min-width:150px;padding:6px"><option value="">— أو بروفايل موجود —</option>${opts}</select>
+      <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS} g-un" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
+      <button type="button" class="ds-b green g-go"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button>
+      <button type="button" class="ds-b ghost g-rm" title="شيل">✕</button></div>
+    <div class="g-out" style="margin-top:8px"></div>`;
+  host.appendChild(row);
+  const sel = row.querySelector('.g-pf'), nm = row.querySelector('.g-nm'), un = row.querySelector('.g-un'), go = row.querySelector('.g-go'), out = row.querySelector('.g-out');
+  const bad = m => `<div class="text-xs" style="color:#fb7185">${esc(m)}</div>`;
+  const suggest = name => {   /* username suggestion from an English name, only while the box is empty or still auto-filled */
+    if (un.value && !un.dataset.auto) return;
+    const v = genUser(String(name || '').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).join(' '));
+    un.value = v; un.dataset.auto = v ? '1' : '';
+  };
+  un.oninput = () => { un.dataset.auto = ''; const v = genUserLive(un.value); if (v !== un.value) un.value = v; };
+  nm.oninput = () => { sel.value = ''; suggest(nm.value); };
+  sel.onchange = () => { const r = mpState.list.find(x => String(x.id) === sel.value); if (!r) return; nm.value = r.trainee || ''; suggest([mpVal(r, 'preferred name'), r.trainee].filter(Boolean).join(' ')); };
+  row.querySelector('.g-rm').onclick = () => { if (host.children.length > 1) row.remove(); else { un.value = ''; nm.value = ''; sel.value = ''; out.innerHTML = ''; } };
+  go.onclick = async () => {
+    const username = genUser(un.value);
+    if (!username) { out.innerHTML = bad('اكتب يوزر نيم بالإنجليزي (حروف وأرقام)'); return; }
+    un.value = username;
+    let r = mpState.list.find(x => String(x.id) === sel.value), made = null;
+    const name = r ? (r.trainee || '') : nm.value.trim();
+    if (!name) { out.innerHTML = bad('اكتب اسم الشخص الأول'); nm.focus(); return; }
+    const email = username + GEN_DOMAIN;
+    go.disabled = true;
+    try {
+      if (!r) { out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل البروفايل...</span>'; made = r = await genMakeProfile(name, email); }
+      out.innerHTML = '<span class="text-amber-400 text-xs">جاري إنشاء الحساب والتأكد إن الدخول شغّال...</span>';
+      const base = { action: 'create', username, trainee_id: String(r.id), trainee_name: name };
+      let res;
+      try { res = await genCall(base); }
+      catch (e) {
+        if (e.code === 'exists' && confirm('الحساب ' + email + ' موجود قبل كده. أغيّر الباسورد بتاعه لباسورد جديد؟ (الباسورد القديم هيبطل يشتغل)')) res = await genCall(Object.assign({ overwrite: true }, base));
+        else throw e;
+      }
+      const warn = await genLink(r, email, res.user_id);
+      const wasNew = !!made; made = null;   /* success: keep the profile */
+      genState.list = null;
+      out.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr">
+          <code style="font-size:13px;color:#e2e8f0">${esc(res.email)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.email)}">نسخ</button>
+          <code style="font-size:15px;color:#34d399;letter-spacing:.5px">${esc(res.password)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.password)}">نسخ</button></div>
+        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتجرّب الدخول بيه وشغّال${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''}</div>
+        ${wasNew ? `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتعمل بروفايل جديد "${esc(name)}" وعليه علامة «جديد» في الداشبورد. افتحه وكمّل الصورة والأرقام.</div>` : `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتربط الحساب بالبروفايل "${esc(name)}".</div>`}
+        ${warn ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">${esc(warn)}</div>` : ''}
+        ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
+      out.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => genCopy(b.dataset.c); });
+    } catch (e) {
+      let extra = '';
+      if (made) {   /* account failed: remove the profile we just made so nothing half-done is left */
+        try { await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(made.id)}`, { method: 'DELETE' }); mpState.list = mpState.list.filter(x => String(x.id) !== String(made.id)); mpPaintList(); extra = ' (البروفايل اللي اتعمل اتمسح)'; }
+        catch (e2) { extra = ' (تنبيه: البروفايل ' + name + ' اتعمل ومااتمسحش، امسحه يدوي)'; }
+      }
+      out.innerHTML = bad(e.message + extra);
+    }
+    go.disabled = false;
+  };
+}
+
+/* new profile for the person being given an account */
+async function genMakeProfile(name, email) {
+  const sample = mpState.list[0], has = sample && Object.keys(sample).length;
+  const col = k => has ? mpCol(sample, k) : k;
+  const body = {};
+  body[col('trainee') || 'trainee'] = name;
+  if (col('preferred_email')) body[col('preferred_email')] = email;
+  if (col('status_as_of_today')) body[col('status_as_of_today')] = 'Active';
+  body.needs_setup = true;
+  const post = b => sbFetch(PROFILES_TABLE, { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(b) });
+  let res;
+  try { res = await post(body); }
+  catch (e) { if (/needs_setup/.test(e.message)) { delete body.needs_setup; res = await post(body); } else throw e; }
+  const rows = await res.json(), row = Array.isArray(rows) ? rows[0] : rows;
+  if (!row || row.id == null) throw new Error('البروفايل ما اتعملش (تأكد من صلاحيات الجدول)');
+  mpState.list.push(row); mpPaintList();
+  return row;
+}
+/* link the profile to the login (login email + auth user id, whichever of those columns exist) */
+async function genLink(r, email, uid) {
+  const body = {}, keys = Object.keys(r);
+  const authCol = keys.find(k => /^(authuserid|userid|authid|uid|authuid)$/.test(mpNorm(k)));
+  if (authCol && uid && !r[authCol]) body[authCol] = uid;
+  const emailCol = mpCol(r, 'preferred_email');
+  if (emailCol && !r[emailCol]) body[emailCol] = email;
+  if (!Object.keys(body).length) return '';
+  try {
+    const rows = await (await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(r.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) })).json();
+    if (Array.isArray(rows) && rows[0]) { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = rows[0]; mpPaintList(); }
+    return '';
+  } catch (e) { return 'الحساب اتعمل بس ربطه بالبروفايل فشل: ' + e.message; }
+}
+async function genHistPaint() {
+  const host = $id('genBody'); if (!host) return;
+  host.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  if (!genState.list) {
+    try { genState.list = (await genCall({ action: 'list' })).items || []; }
+    catch (e) { host.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">${esc(e.message)}</div>`; return; }
+  }
+  host.innerHTML = `<div style="margin-bottom:10px"><button type="button" class="ds-b ghost" id="genExBtn"><i class="fa-solid fa-plus"></i> سجّل باسورد موجود</button>
+      <div id="genEx" class="p5-c" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="${INPUT_CLS}" id="genExPf" style="min-width:170px;padding:6px"><option value="">— البروفايل (اختياري) —</option>${mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('')}</select>
+          <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS}" id="genExUn" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
+          <input class="${INPUT_CLS}" id="genExPw" placeholder="الباسورد الحالي" autocomplete="off" style="width:170px;padding:6px;direction:ltr">
+          <button type="button" class="ds-b green" id="genExGo">حفظ</button></div>
+        <div id="genExMsg" class="text-xs" style="margin-top:6px"></div>
+        <div class="text-[10px] text-slate-500" style="margin-top:4px">الحساب مش بيتغيّر. بنجرّب الدخول بالباسورد ده الأول، ولو صح بيتحفظ هنا.</div></div></div>
+    <input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
+    <div id="genHist" class="p5-g"></div>`;
+  $id('genExBtn').onclick = () => { const e = $id('genEx'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
+  $id('genExUn').oninput = () => { const u = $id('genExUn'), v = genUserLive(u.value); if (v !== u.value) u.value = v; };
+  $id('genExGo').onclick = async () => {
+    const msg = $id('genExMsg'), btn = $id('genExGo'), un = genUser($id('genExUn').value), pw = $id('genExPw').value;
+    if (!un || !pw) { msg.style.color = '#fb7185'; msg.textContent = 'اكتب اليوزر والباسورد'; return; }
+    const r = mpState.list.find(x => String(x.id) === $id('genExPf').value);
+    btn.disabled = true; msg.style.color = '#fbbf24'; msg.textContent = 'جاري التأكد من الدخول...';
+    try {
+      await genCall({ action: 'save', username: un, password: pw, trainee_id: r ? String(r.id) : null, trainee_name: r ? (r.trainee || null) : null });
+      genState.list = null; showToast('اتسجّل ✓'); genHistPaint(); return;
+    } catch (e) { msg.style.color = '#fb7185'; msg.textContent = e.message; }
+    btn.disabled = false;
+  };
+  const q = $id('genQ'); q.value = genState.q;
+  q.oninput = () => { genState.q = q.value.trim().toLowerCase(); genHistList(); };
+  genHistList();
+}
+function genHistList() {
+  const g = $id('genHist'); if (!g) return;
+  const byId = new Map(mpState.list.map(r => [String(r.id), r]));
+  const items = (genState.list || []).filter(c => {
+    const pr = byId.get(String(c.trainee_id));
+    return !genState.q || `${c.email} ${c.trainee_name || ''} ${pr ? pr.trainee : ''}`.toLowerCase().includes(genState.q);
+  });
+  g.innerHTML = items.map((c, i) => {
+    const pr = byId.get(String(c.trainee_id)), info = pr ? mpStatusInfo(pr) : null;
+    const st = info ? ((MP_GROUPS.find(x => x[0] === info.key) || [0, info.label])[1]) : '';
+    const phone = pr ? mpVal(pr, 'preferred_phone') : '', pic = pr && pr.most_recent_picture_url;
+    const ini = esc(String((pr && pr.trainee) || c.trainee_name || '?').trim().charAt(0).toUpperCase());
+    return `<div class="p5-c"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <div class="mp-av">${pic ? `<img src="${esc(pic)}" alt="" onerror="this.remove()">` : ini}</div>
+        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc((pr && pr.trainee) || c.trainee_name || '(من غير بروفايل)')}</b>
+          <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
+      <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.email)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="email">نسخ</button></span></div>
+      <div class="p5-r"><span>الباسورد</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="password">نسخ</button></span></div>
+      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div>
+      <button type="button" class="ds-b amber" style="margin-top:8px" data-n="${i}"><i class="fa-solid fa-rotate"></i> New password</button></div>`;
+  }).join('') || '<div class="tha-note">مفيش باسوردات متسجّلة لسه.</div>';
+  g.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => genCopy(items[+b.dataset.i][b.dataset.k]); });
+  g.querySelectorAll('[data-n]').forEach(b => {
+    b.onclick = async () => {
+      const c = items[+b.dataset.n];
+      if (!confirm('أغيّر باسورد ' + c.email + ' لباسورد جديد؟ الباسورد القديم هيبطل يشتغل.')) return;
+      b.disabled = true;
+      try { await genCall({ action: 'create', username: c.username, trainee_id: c.trainee_id, trainee_name: c.trainee_name, overwrite: true }); genState.list = null; showToast('اتغيّر الباسورد ✓'); genHistPaint(); }
+      catch (e) { showToast(e.message, true, true); b.disabled = false; }
+    };
+  });
+}
+
+/* Generator button next to Highlights (the toolbar lives in the page HTML, so it is added from here) */
+function genInstallBtn() {
+  if (document.querySelector('.ws-lb[data-ws="gen"]')) return true;
+  const hl = document.querySelector('.ws-lb[data-ws="hl"]'); if (!hl) return false;
+  const b = hl.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick'); b.setAttribute('data-ws', 'gen'); b.classList.remove('on');
+  b.type = 'button'; b.innerHTML = '<i class="fa-solid fa-key"></i> Generator'; b.onclick = () => toggleWin('gen');
+  hl.insertAdjacentElement('afterend', b); return true;
+}
+{
+  let tries = 0; const iv = setInterval(() => { if (genInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpenMain = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain.apply(this, arguments); genInstallBtn(); return r; };
+}
