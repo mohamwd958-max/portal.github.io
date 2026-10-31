@@ -30,15 +30,8 @@
   }
 
 
-  
 function goPortal() {
   window.removeEventListener('popstate', goPortal);
-  var t = tok;
-  try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
-  try { sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
-  try {
-    fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) });
-  } catch (e) {}
   location.replace(PORTAL);
 }
 
@@ -70,6 +63,13 @@ function wipe() {   // log the trainee out the moment maintenance is shown: any 
   try { sessionStorage.clear(); sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
   try { fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) }); } catch (e) {}
 }
+
+
+function show() {
+  if (ov) { retext(); return; }
+  wipe();
+  var s = document.createElement('style');
+  ...  
   
   
   
@@ -92,4 +92,10 @@ function wipe() {   // log the trainee out the moment maintenance is shown: any 
     document.documentElement.classList.remove('mtchk');
     return on === true;
   });
+
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && !ls('thabit_trainee_token')) location.replace(PORTAL);
+  });
+
+  
 })();
