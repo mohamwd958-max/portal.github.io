@@ -29,11 +29,21 @@
       .catch(function () { return null; });
   }
 
-  function goPortal() {
-    try { sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
-    location.replace(PORTAL + '?back=1');
-  }
 
+  
+function goPortal() {
+  window.removeEventListener('popstate', goPortal);
+  var t = tok;
+  try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
+  try { sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
+  try {
+    fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) });
+  } catch (e) {}
+  location.replace(PORTAL);
+}
+
+
+  
   function gear(cx, cy, r, n, d) {
     var p = [], steps = n * 4, k, a, rr;
     for (k = 0; k < steps; k++) { a = k / steps * Math.PI * 2; rr = (k % 4 < 2) ? r + d : r; p.push((cx + Math.cos(a) * rr).toFixed(1) + ',' + (cy + Math.sin(a) * rr).toFixed(1)); }
