@@ -31,12 +31,16 @@ function toggleTheme() {
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
   try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
 }
+
+
 async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
   const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
 }
+
+
 
 function inRange(r) {
   if (range === 'all') return true;
@@ -409,16 +413,15 @@ function watchTodo() {
   if (!window.IntersectionObserver) return go();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { go(); o.disconnect(); } }, { threshold: .6 }).observe(c);
 }
+
+
+
 async function load() {
-  const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
-  if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
-    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-    $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
-    console.warn('Thabit dashboard: no valid session', d);
-    if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
-    return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
-}
+  if (window.__mtGate && await window.__mtGate) return;   // maintenance ON: the dashboard never loads
+  const d = tok() ? ...
+
+
+
 async function sendReq() {
   const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
   if (!what) { alert(t.needWhat); $('rqWhat').focus(); return; }
