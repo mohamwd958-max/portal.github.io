@@ -1128,28 +1128,137 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
 
 
 
-function openLang(btn) {
-  const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
-  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
-  const up = r.top > 130, list = (up ? others.slice().reverse() : others);
-  const left = Math.max(32, Math.min(innerWidth - 32, r.left + r.width / 2));
-  pop.innerHTML = `<div class="lgs" style="left:${left}px;${up ? 'bottom:' + (innerHeight - r.top + 10) : 'top:' + (r.bottom + 10)}px" dir="ltr">${list.map(x => `<button type="button" class="lgi" data-l="${x}">${lbl[x]}</button>`).join('')}</div>`;
+(function () {
+/* ===== Sidebar placement + pop-out options (language / pen) =====
+   - The bar can sit on the left, the right or the bottom. Pop-outs always open AWAY from the side the bar is on.
+   - Placement is saved on this device (thabit_bar_place) and stays until the trainee changes it by hand. */
+const BTX = {
+  en: { right: 'Move to the right', left: 'Move to the left', bottom: 'Move to the bottom', free: 'Move freely', hint: 'Drag the bar where you want it, then let go to pin it', pinned: 'Position pinned' },
+  ar: { right: 'انقل لليمين', left: 'انقل لليسار', bottom: 'انقل للأسفل', free: 'تحريك حر', hint: 'اسحب الشريط للمكان الذي تريده ثم اتركه ليتثبت', pinned: 'تم تثبيت المكان' },
+  eg: { right: 'انقله لليمين', left: 'انقله للشمال', bottom: 'نزّله تحت', free: 'حرّكه براحتك', hint: 'اسحب الشريط للمكان اللي عايزه وسيبه يتثبت', pinned: 'المكان اتثبت' }
+};
+const BT = () => BTX[lang] || BTX.en;
+const BAR_KEY = 'thabit_bar_place';
+const barEl = () => $('mobileFloatingBar');
+/* which side of the screen the bar is on right now (read from where it really is, so it works whatever the stylesheet does) */
+function barSide() {
+  const r = barEl().getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  if (r.width > r.height * 1.2) return cy > innerHeight / 2 ? 'bottom' : 'top';
+  return cx < innerWidth / 2 ? 'left' : 'right';
+}
+function placeGet() {
+  try { const p = JSON.parse(localStorage.getItem(BAR_KEY) || 'null'); if (p && /^(left|right|bottom)$/.test(p.dock)) return { dock: p.dock, pos: isFinite(p.pos) && p.pos !== null ? Math.min(1, Math.max(0, +p.pos)) : .5 }; } catch (e) {}
+  return null;
+}
+function placeSet(p) { try { localStorage.setItem(BAR_KEY, JSON.stringify(p)); } catch (e) {} }
+/* p = {dock, pos}: dock = left | right | bottom, pos = where the bar's centre sits along that edge (0..1). No saved place = the stylesheet's own default. */
+function applyPlace(p) {
+  const bar = barEl(), root = document.documentElement;
+  if (bar.classList.contains('moving') && !p) return;
+  p = p || placeGet();
+  if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
+  root.setAttribute('data-bar', p.dock);
+  const vert = p.dock !== 'bottom', size = vert ? innerHeight : innerWidth, r = bar.getBoundingClientRect(), half = (vert ? r.height : r.width) / 2, lo = half + 8, hi = size - half - 8;
+  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) + 'px');
+}
+function hopBar() { const b = barEl(); b.classList.remove('hop'); void b.offsetWidth; b.classList.add('hop'); setTimeout(() => b.classList.remove('hop'), 650); }
+function dockTo(side) {
+  const r = barEl().getBoundingClientRect(), from = barSide(), keep = (from === 'left' || from === 'right') && side !== 'bottom';
+  const p = { dock: side, pos: keep ? (r.top + r.height / 2) / innerHeight : .5 };
+  placeSet(p); applyPlace(p); hopBar();
+}
+
+/* ----- free move: drag the bar along its edge, let go = pinned for good ----- */
+let MV = null;
+function moveStart() {
+  const bar = barEl(); if (bar.classList.contains('moving')) return;
+  let side = barSide(); if (side === 'top') side = 'bottom';
+  if (!placeGet()) { const r = bar.getBoundingClientRect(); applyPlace({ dock: side, pos: side === 'bottom' ? (r.left + r.width / 2) / innerWidth : (r.top + r.height / 2) / innerHeight }); }
+  bar.classList.add('moving'); itToast(BT().hint);
+}
+function moveEnd(pinned) {
+  const bar = barEl(); if (!bar.classList.contains('moving')) return;
+  bar.classList.remove('moving', 'grabbing'); MV = null;
+  if (pinned) itToast(BT().pinned); else applyPlace();
+}
+(function () {
+  const bar = barEl();
+  bar.addEventListener('pointerdown', e => {
+    if (!bar.classList.contains('moving')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const vert = document.documentElement.getAttribute('data-bar') !== 'bottom', r = bar.getBoundingClientRect();
+    MV = { id: e.pointerId, vert, p0: vert ? e.clientY : e.clientX, c0: vert ? r.top + r.height / 2 : r.left + r.width / 2, half: (vert ? r.height : r.width) / 2, c: null, moved: false };
+    try { bar.setPointerCapture(e.pointerId); } catch (x) {}
+    bar.classList.add('grabbing');
+  }, true);
+  bar.addEventListener('pointermove', e => {
+    if (!MV || e.pointerId !== MV.id) return;
+    const d = (MV.vert ? e.clientY : e.clientX) - MV.p0; if (!MV.moved && Math.abs(d) < 4) return; MV.moved = true;
+    const size = MV.vert ? innerHeight : innerWidth, lo = MV.half + 8, hi = size - MV.half - 8;
+    MV.c = lo > hi ? size / 2 : Math.min(hi, Math.max(lo, MV.c0 + d));
+    bar.style.setProperty('--bp', MV.c + 'px');
+  });
+  const up = e => {
+    if (!MV || e.pointerId !== MV.id) return;
+    const m = MV; MV = null;
+    if (m.moved && e.type === 'pointerup') { placeSet({ dock: document.documentElement.getAttribute('data-bar'), pos: m.c / (m.vert ? innerHeight : innerWidth) }); moveEnd(true); }
+    else moveEnd(false);
+  };
+  bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
+  document.addEventListener('pointerdown', e => { if (bar.classList.contains('moving') && !bar.contains(e.target)) moveEnd(false); }, true);
+  window.addEventListener('resize', () => applyPlace());
+  if (window.ResizeObserver) new ResizeObserver(() => applyPlace()).observe(bar);
+  applyPlace();
+})();
+
+/* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
+let pickT = null;
+function pickOpen(btn, list) {
+  const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
+  const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  clearTimeout(pickT); pop.classList.remove('closing');
+  pop.innerHTML = list.map((o, i) => {
+    const d = GAP + S / 2 + i * (S + G); let x, y;
+    if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
+    else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}</button>`;
+  }).join('');
   pop.classList.add('open');
-  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeLang(); if (l !== lang) setLanguage(l); });
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
 }
-
-
-
-
-function closeLang() { $('langPop').classList.remove('open'); $('langPop').innerHTML = ''; }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLang(); closeBarOpts(); } });
-
-/* ===== Customize pop-up (content to be decided) ===== */
-function openBarOpts() {
-  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
-  $('boT').textContent = T2[0]; $('boN').textContent = T2[1]; $('barOpts').classList.add('open');
+function pickClose(now) {
+  const pop = $('langPop'); if (!pop.classList.contains('open')) return;
+  clearTimeout(pickT);
+  if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
+  pop.classList.add('closing');
+  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
 }
-function closeBarOpts() { $('barOpts').classList.remove('open'); }
+function closeLang() { pickClose(); }
+function openLang(btn) {
+  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
+  pickOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(l => ({ html: lbl[l], title: lbl[l], on: () => { if (l !== lang) setLanguage(l); } })));
+}
+const BIC = {
+  box: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  right: '<rect x="13.6" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
+  left: '<rect x="4.3" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
+  bottom: '<rect x="4.8" y="12.9" width="14.4" height="4.8" rx="2" fill="currentColor"/></svg>',
+  free: '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M6 3.5v15.2l4.1-3.9 2.7 5.7 2.4-1.1-2.7-5.6h5.7z" fill="currentColor"/></svg>'
+};
+function openBarOpts(btn) {
+  const t = BT(), toLeft = barSide() === 'right';
+  pickOpen(btn || $('barEdit'), [
+    { html: BIC.box + (toLeft ? BIC.left : BIC.right), title: toLeft ? t.left : t.right, on: () => dockTo(toLeft ? 'left' : 'right') },
+    { html: BIC.box + BIC.bottom, title: t.bottom, on: () => dockTo('bottom') },
+    { html: BIC.free, title: t.free, on: moveStart }
+  ]);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
+
+window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+})();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
 const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
@@ -1474,4 +1583,3 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('DOMContentLoaded', scan);
 })();
-
