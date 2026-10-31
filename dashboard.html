@@ -289,20 +289,6 @@ body.light-theme .avbox{background:#fff;color:#0f172a}
  #mobileFloatingBar{gap:3px!important;padding:6px 8px!important}
  #mobileFloatingBar>[data-bk]:not(#langBtn){width:34px!important;height:34px!important;min-width:34px!important}
 }
-.lgp{position:fixed;inset:0;z-index:10020;display:none;background:rgba(2,6,23,.35);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.lgp.open{display:block}
-.lgs{position:fixed;display:flex;flex-direction:column;gap:8px;align-items:center;transform:translateX(-50%);animation:pcIn .25s cubic-bezier(.16,1,.3,1)}
-.lgi{height:36px;min-width:96px;padding:0 20px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:#0f172a;color:#f1f5f9;font:700 .82rem Inter,Cairo,sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.4)}
-.lgi.cur{background:#fbbf24;color:#111;border-color:#fbbf24}
-body.light-theme .lgi{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.2)}body.light-theme .lgi.cur{background:#fbbf24;color:#111}
-.bop{position:fixed;inset:0;z-index:10020;display:none;align-items:center;justify-content:center;padding:18px 20px calc(96px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.4);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}.bop.open{display:flex}
-.bopb{width:100%;max-width:420px;max-height:100%;overflow:auto;border-radius:22px;padding:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 70px rgba(0,0,0,.5);scrollbar-width:none}
-.bopb::-webkit-scrollbar{display:none}
-body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
-.bopt{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.bopt b{font-size:1.02rem}
-.bopt button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(148,163,184,.2);color:inherit;font-size:1.1rem;cursor:pointer}
-.bopn{font-size:.76rem;opacity:.65;margin-bottom:12px}
-.bopc{padding:12px 14px;margin-bottom:10px;border-radius:16px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
-.bopc i{display:block;height:9px;border-radius:5px;background:rgba(148,163,184,.25);margin-top:8px}.bopc i:first-child{width:42%;margin-top:0;height:11px;background:rgba(148,163,184,.4)}.bopc i:last-child{width:72%}
 
 /* feed pop-up: cards fit inside the pop-up (no side clipping) + icons can be dragged */
 .pop,.pcs,.pc{box-sizing:border-box}
@@ -344,13 +330,21 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 
 
 /* ===== Spoken words: plain text outside, coloured only inside the pop-ups ===== */
-/* ear switch: one per container, sits right after the title */
-h4.has-ear-h{display:flex;align-items:center;gap:8px}
-.ear{flex:none;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid rgba(148,163,184,.5);background:transparent;color:#94a3b8;font-size:.7rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:.75;transition:background .2s,color .2s,border-color .2s,opacity .2s}
-.ear:hover{opacity:1}
-.ear.on{border-color:rgba(52,211,153,.65);background:rgba(52,211,153,.18);color:#34d399;opacity:1;box-shadow:0 0 10px rgba(52,211,153,.35)}
-body.light-theme .ear.on{color:#047857;border-color:rgba(4,120,87,.55);background:rgba(4,120,87,.12);box-shadow:none}
-.ear:focus-visible{outline:2px solid #fbbf24;outline-offset:2px}
+.vx:not(#mdl .vx):not(#pop .vx),
+.rt-link:not(#mdl .rt-link):not(#pop .rt-link){
+ color:inherit!important;background:none!important;border:0!important;box-shadow:none!important;
+ padding:0!important;margin:0!important;border-radius:0!important;text-decoration:none!important;
+ display:inline!important;animation:none!important;white-space:inherit!important;
+ overflow:visible!important;text-overflow:clip!important;font-weight:inherit!important;
+ pointer-events:none!important;cursor:inherit!important}
+/* small ear on every container that holds spoken words */
+.has-ear{position:relative}
+.has-ear::after{content:"\f2a2";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;top:5px;inset-inline-end:6px;
+ width:18px;height:18px;border-radius:50%;background:rgba(52,211,153,.18);color:#34d399;font-size:.62rem;
+ display:flex;align-items:center;justify-content:center;pointer-events:none}
+.has-ear.cap{padding-inline-end:30px}
+.itm.has-ear::after{inset-inline-end:36px}
+body.light-theme .has-ear::after{color:#047857;background:rgba(4,120,87,.12)}
 /* phone only: the card light sweep runs only on the card in the middle of the screen */
 @media(max-width:700px){
  .thabit-card:not(.lit)::before,.test-card:not(.lit)::before{animation:none!important;opacity:0!important}
@@ -358,21 +352,6 @@ body.light-theme .ear.on{color:#047857;border-color:rgba(4,120,87,.55);backgroun
 
  
 
- /* ===== Language picker: two round dots, blur only behind them ===== */
-.lgp{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-.lgs{transform:translateX(-50%)!important;animation:none!important;gap:10px;flex-direction:column;align-items:center;padding:0;background:none;
- -webkit-backdrop-filter:none;backdrop-filter:none}
-.lgi{position:relative;width:46px;height:46px;min-width:0;padding:0;border-radius:50%;
- display:flex;align-items:center;justify-content:center;font:800 .74rem Inter,Cairo,sans-serif;
- background:rgba(15,23,42,.55);color:#f1f5f9;border:1px solid rgba(255,255,255,.3);
- -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);
- box-shadow:0 8px 20px rgba(0,0,0,.35);
- opacity:0;transform:scale(.2);animation:lgDot .38s cubic-bezier(.3,1.5,.5,1) forwards}
-.lgi:nth-child(1){animation-delay:0s}
-.lgi:nth-child(2){animation-delay:.09s}
-body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color:rgba(15,23,42,.2)}
-@keyframes lgDot{to{opacity:1;transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.lgi{animation:none;opacity:1;transform:none}}
 
 
 
@@ -380,6 +359,7 @@ body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color
 .cap{align-items:stretch;text-align:center;min-width:0;overflow:hidden}
 .cap .dt{white-space:nowrap;text-align:center;width:100%}
 .cap>span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.has-ear::after{top:4px;inset-inline-end:5px;width:15px;height:15px;font-size:.52rem}
 .lst{overflow-x:hidden}
 .it,.nt{min-width:0}
 .nt .rich,.itd,.tkb,.itb2{overflow-wrap:anywhere;min-width:0}
@@ -400,23 +380,52 @@ body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color
  
  
 
-/* ===== Sidebar: option circles + docking ===== */
-.fan{position:fixed;display:flex;flex-direction:row;gap:12px;direction:ltr}
-.fan .lgi{font-size:.74rem}.fan .lgi i{font-size:1.05rem}
-.fan .lgi.cur{background:#fbbf24!important;color:#111!important;border-color:#fbbf24!important}
-html body #mobileFloatingBar[data-dock]{position:fixed!important;transform:none!important;margin:0!important;right:auto!important;left:auto!important;top:auto!important;bottom:auto!important;max-height:calc(100vh - 24px)}
-html body #mobileFloatingBar[data-dock="right"]{right:calc(env(safe-area-inset-right,0px) + 12px)!important;top:var(--bt,50%)!important}
-html body #mobileFloatingBar[data-dock="left"]{left:calc(env(safe-area-inset-left,0px) + 12px)!important;top:var(--bt,50%)!important}
-html body #mobileFloatingBar[data-dock="bottom"]{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)!important;left:var(--bl,50%)!important;flex-direction:row!important;align-items:center!important}
-html body #mobileFloatingBar[data-dock="right"],html body #mobileFloatingBar[data-dock="left"]{flex-direction:column!important;align-items:center!important;justify-content:center!important}
-html body #mobileFloatingBar[data-dock="right"] .bar-divider,html body #mobileFloatingBar[data-dock="left"] .bar-divider{width:22px!important;height:1px!important}
-html body #mobileFloatingBar[data-dock="bottom"] .bar-divider{width:1px!important;height:22px!important}
-html body #mobileFloatingBar[data-dock="right"] #langBtn,html body #mobileFloatingBar[data-dock="left"] #langBtn{padding:0 6px!important;font-size:.6rem!important;min-width:36px}
-html body #mobileFloatingBar[data-dock][data-drag]{left:var(--bl)!important;top:var(--bt)!important;right:auto!important;bottom:auto!important;cursor:grabbing}
-html body #mobileFloatingBar.moving{outline:2px dashed #fbbf24;outline-offset:5px;cursor:grab;touch-action:none;animation:barMv 1.2s ease-in-out infinite}
-@keyframes barMv{0%,100%{outline-color:rgba(251,191,36,.95)}50%{outline-color:rgba(251,191,36,.3)}}
-@media(prefers-reduced-motion:reduce){html body #mobileFloatingBar.moving{animation:none}}
+/* ===== Sidebar placement: left / right / bottom, free slide along the edge (set from the pen button, saved on the device) ===== */
+html[data-bar] #mobileFloatingBar{position:fixed!important;margin:0!important;width:max-content!important;height:max-content!important}
+html[data-bar="left"] #mobileFloatingBar,html[data-bar="right"] #mobileFloatingBar{top:0!important;bottom:auto!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;
+ max-width:none!important;max-height:calc(100vh - 24px)!important;max-height:calc(100dvh - 24px)!important;overflow-x:hidden!important;overflow-y:auto!important;scrollbar-width:none;
+ transform:translateY(calc(var(--bp,50vh) - 50%))!important}
+html[data-bar="left"] #mobileFloatingBar{left:16px!important;right:auto!important}
+html[data-bar="right"] #mobileFloatingBar{left:auto!important;right:16px!important}
+html[data-bar="bottom"] #mobileFloatingBar{left:0!important;right:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 16px)!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;
+ max-width:calc(100vw - 16px)!important;max-height:none!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;
+ transform:translateX(calc(var(--bp,50vw) - 50%))!important}
+html[data-bar] #mobileFloatingBar::-webkit-scrollbar{display:none}
+html[data-bar="left"] #mobileFloatingBar .bar-divider,html[data-bar="right"] #mobileFloatingBar .bar-divider{width:22px!important;height:1px!important;flex:none;align-self:center;background:rgba(148,163,184,.4)}
+html[data-bar="bottom"] #mobileFloatingBar .bar-divider{width:1px!important;height:22px!important;flex:none;align-self:center;background:rgba(148,163,184,.4)}
+#mobileFloatingBar.hop{animation:barHop .55s cubic-bezier(.16,1,.3,1)}
+@keyframes barHop{0%{opacity:0;filter:blur(8px)}100%{opacity:1;filter:blur(0)}}
+/* free-move mode: the whole bar is the handle */
+#mobileFloatingBar.moving{cursor:grab;touch-action:none;transition:none!important;animation:barPulse 1.4s ease-in-out infinite}
+#mobileFloatingBar.moving.grabbing{cursor:grabbing}
+#mobileFloatingBar.moving>*{pointer-events:none}
+@keyframes barPulse{0%,100%{box-shadow:0 0 0 2px rgba(251,191,36,.95),0 8px 26px rgba(0,0,0,.45)}50%{box-shadow:0 0 0 6px rgba(251,191,36,.3),0 8px 26px rgba(0,0,0,.45)}}
+@media(prefers-reduced-motion:reduce){#mobileFloatingBar.hop,#mobileFloatingBar.moving{animation:none}#mobileFloatingBar.moving{box-shadow:0 0 0 3px rgba(251,191,36,.95)}}
+
+/* ===== Pop-outs (language / pen): round buttons slide out of the bar, away from its side. Phone: the page behind is blurred. ===== */
+.lgp{position:fixed;inset:0;z-index:10020;display:none;background:transparent}
+.lgp.open{display:block}
+.lgi{position:fixed;width:46px;height:46px;min-width:0;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+ font:800 .74rem Inter,Cairo,sans-serif;cursor:pointer;background:rgba(15,23,42,.82);color:#f1f5f9;border:1px solid rgba(255,255,255,.32);
+ -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:0 10px 26px rgba(0,0,0,.4);
+ opacity:0;animation:lgIn .62s cubic-bezier(.16,1,.3,1) forwards;animation-delay:calc(var(--i,0) * .08s)}
+.lgi:hover{border-color:#fbbf24;color:#fbbf24}
+.lgi.cur{background:#fbbf24;color:#111;border-color:#fbbf24}
+body.light-theme .lgi{background:rgba(255,255,255,.88);color:#0f172a;border-color:rgba(15,23,42,.22)}
+body.light-theme .lgi:hover{border-color:#b45309;color:#b45309}
+.lgp.closing .lgi{animation:lgOut .24s cubic-bezier(.4,0,1,1) forwards;animation-delay:0s}
+@keyframes lgIn{0%{opacity:0;transform:translate(var(--fx,0),var(--fy,0)) scale(.3);filter:blur(8px)}55%{opacity:1;filter:blur(0)}100%{opacity:1;transform:none;filter:blur(0)}}
+@keyframes lgOut{0%{opacity:1;transform:none;filter:blur(0)}100%{opacity:0;transform:translate(var(--fx,0),var(--fy,0)) scale(.3);filter:blur(8px)}}
+@keyframes lgpIn{from{opacity:0}to{opacity:1}}
+@keyframes lgpOut{from{opacity:1}to{opacity:0}}
+@media(max-width:600px){
+ .lgp.open::before{content:"";position:absolute;inset:0;background:rgba(2,6,23,.3);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:lgpIn .35s ease-out both}
+ body.light-theme .lgp.open::before{background:rgba(255,255,255,.35)}
+ .lgp.closing::before{animation:lgpOut .26s ease-in both}
+}
+@media(prefers-reduced-motion:reduce){.lgi{animation:none!important;opacity:1}.lgp.open::before{animation:none!important}}
 </style>
+<script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 </head>
 <body id="bodyRoot">
 <script src="js/brand.js" data-profile></script>
@@ -432,7 +441,7 @@ html body #mobileFloatingBar.moving{outline:2px dashed #fbbf24;outline-offset:5p
   <div class="bar-divider"></div>
   <button type="button" data-bk="logout" onclick="logout()" class="circle-badge-btn lo" title="Log out"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
   <div class="bar-divider"></div>
-  <button type="button" id="barEdit" onclick="openBarOpts()" class="circle-badge-btn" title="Customize" aria-label="Customize" style="color:#94a3b8"><i class="fa-solid fa-pen text-sm"></i></button>
+  <button type="button" id="barEdit" onclick="openBarOpts(this)" class="circle-badge-btn" title="Customize" aria-label="Customize" style="color:#94a3b8"><i class="fa-solid fa-pen text-sm"></i></button>
 </div>
 
 
@@ -471,7 +480,6 @@ html body #mobileFloatingBar.moving{outline:2px dashed #fbbf24;outline-offset:5p
 <div class="pop" id="pop" onclick="closePop()"></div>
 <div id="barTip" role="tooltip"></div>
 <div class="lgp" id="langPop" onclick="if(event.target===this)closeLang()"></div>
-<div class="bop" id="barOpts" onclick="if(event.target===this)closeBarOpts()"><div class="bopb"><div class="bopt"><b id="boT">Customize</b><button type="button" onclick="closeBarOpts()" aria-label="Close">&times;</button></div><div class="bopn" id="boN"></div><div class="bopc"><i></i><i></i><i></i></div><div class="bopc"><i></i><i></i><i></i></div><div class="bopc"><i></i><i></i><i></i></div></div></div>
 <div class="avm" id="avm"><div class="avbox"><canvas id="avCv" class="avcv" width="320" height="320"></canvas><div class="avr"><span id="avLz">Zoom</span><input type="range" id="avZ" min="1" max="3" step="0.01" value="1"></div><div class="avr"><span id="avLb">Brightness</span><input type="range" id="avB" min="0.6" max="1.4" step="0.01" value="1"></div><div class="avf" id="avF"></div><div class="avmsg" id="avMsg"></div><div class="avact"><button type="button" class="btn2 avc" id="avCancel">Cancel</button><button type="button" class="btn2" id="avSave">Save</button></div></div></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
 
