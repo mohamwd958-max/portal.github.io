@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Css/overall.css">
+<link rel="stylesheet" href="Css/richtext.css">
 <style>
 body{font-family:Inter,Cairo,sans-serif}
 .wrap{max-width:1100px;margin:0 auto;padding:90px 16px 40px}
@@ -224,7 +225,7 @@ body.light-theme .hol{color:#92400e}body.light-theme .cd{color:#be123c}
 @keyframes fdSpin{to{--a:360deg}}
 .feed.glow{animation:fdGlow 1.3s ease-in-out 3}
 @keyframes fdGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 18px 5px rgba(255,255,255,.5)}}
-.feed .fdb{position:absolute;top:-17px;right:-17px;z-index:3;box-sizing:border-box;width:22px;height:22px;min-width:0;padding:0;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font:800 .78rem/1 Inter,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4)}.feed .fdb.sm2{font-size:.6rem}
+.feed .fdb{position:absolute;top:-17px;right:-17px;z-index:3;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#fff;color:#111;font:800 .78rem/22px Inter,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 @media(max-width:600px){.fl{flex-direction:row-reverse}.fl .feed{width:50px;height:50px}.fdp{width:26px;height:26px}}
 @media(prefers-reduced-motion:reduce){.feed.done .fdg{animation:none}.feed.pop .fdp,.feed.glow{animation:none}}
 /* copy button (TEFL / QOL / notes): the word itself, turns into a "Copied" pill */
@@ -283,7 +284,7 @@ body.light-theme .avbox{background:#fff;color:#0f172a}
 #mobileFloatingBar>.feed.empty{background:transparent}
 #mobileFloatingBar>.feed.done{border-color:transparent}
 #mobileFloatingBar>.feed .fdp{width:18px;height:18px}
-#mobileFloatingBar>.feed .fdb{top:-7px;right:-7px;width:17px;height:17px;font:800 .62rem/1 Inter,sans-serif}#mobileFloatingBar>.feed .fdb.sm2{font-size:.5rem}
+#mobileFloatingBar>.feed .fdb{top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;font:800 .62rem/17px Inter,sans-serif}
 @media(max-width:600px){
  #mobileFloatingBar{gap:3px!important;padding:6px 8px!important}
  #mobileFloatingBar>[data-bk]:not(#langBtn){width:34px!important;height:34px!important;min-width:34px!important}
@@ -309,16 +310,6 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 .pcs>.pc{width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere}
 .pc .aw,.pc .ntl,.pc .rich{max-width:100%}
 #mobileFloatingBar>[data-bk]{touch-action:none}
-
-/* no blue tap box / focus box on icons and buttons */
-*{-webkit-tap-highlight-color:transparent}
-button:focus,a:focus,summary:focus,[role=button]:focus,[tabindex]:focus{outline:none}
-button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none;box-shadow:none}
-/* fields never wider than the card they sit in */
-.dcard input,.dcard textarea,.dcard select,#rqWhat,#rqMsg,#rqType,#rqFollowVal{box-sizing:border-box;max-width:100%;min-width:0}
-#rqCard input[type=date]{-webkit-appearance:none;appearance:none;display:block}
-.avrow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.avb.avg{background:rgba(148,163,184,.22);color:inherit}
 </style>
 </head>
 <body id="bodyRoot">
@@ -359,7 +350,7 @@ button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none;box-sh
 </div>
 <div class="asm" id="asm" hidden onclick="if(event.target===this)Panels.min()"><div class="asbox"><button type="button" class="asx" onclick="Panels.close()" aria-label="Close">&times;</button>
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
-  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><div class="avrow"><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><button type="button" class="btn2 avb avg" id="avDef" hidden>Back to default</button></div><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
+  <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
 <div class="ssm" id="logm" onclick="if(event.target===this)closeLog()"><div class="ssbox">
   <div class="ssh"><b id="logT">Done tasks</b><button type="button" onclick="closeLog()" aria-label="Close">&times;</button></div>
@@ -373,5 +364,6 @@ button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none;box-sh
 <div class="bop" id="barOpts" onclick="if(event.target===this)closeBarOpts()"><div class="bopb"><div class="bopt"><b id="boT">Customize</b><button type="button" onclick="closeBarOpts()" aria-label="Close">&times;</button></div><div class="bopn" id="boN"></div><div class="bopc"><i></i><i></i><i></i></div><div class="bopc"><i></i><i></i><i></i></div><div class="bopc"><i></i><i></i><i></i></div></div></div>
 <div class="avm" id="avm"><div class="avbox"><canvas id="avCv" class="avcv" width="320" height="320"></canvas><div class="avr"><span id="avLz">Zoom</span><input type="range" id="avZ" min="1" max="3" step="0.01" value="1"></div><div class="avr"><span id="avLb">Brightness</span><input type="range" id="avB" min="0.6" max="1.4" step="0.01" value="1"></div><div class="avf" id="avF"></div><div class="avmsg" id="avMsg"></div><div class="avact"><button type="button" class="btn2 avc" id="avCancel">Cancel</button><button type="button" class="btn2" id="avSave">Save</button></div></div></div>
 <div class="mdl" id="mdl" onclick="if(event.target===this)closeModal()"><div class="mbox"><div class="mh"><b id="mT"></b><button type="button" onclick="closeModal()">×</button></div><div id="mB"></div></div></div>
+<script src="js/richtext.js"></script>
 <script src="js/dashboard.js"></script>
 </body></html>
