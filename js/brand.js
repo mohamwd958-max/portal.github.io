@@ -17,6 +17,16 @@
   brand.innerHTML = '<span class="thb-l" role="img" aria-label="THABIT"></span>' + (s && s.hasAttribute('data-profile') ? '<button type="button" class="thb-p" id="thProfile" aria-label="Profile"></button>' : '');
   (document.documentElement || document.body).appendChild(brand);
   var mark = brand.querySelector('.thb-l'), pf = brand.querySelector('.thb-p');
+  /* hard pin: if any ancestor/transform/scroller makes the fixed box drift, push it back to its place */
+  (function () {
+    var base = null, ty = 0, q = 0;
+    var fix = function () { q = 0; var r = brand.getBoundingClientRect(); if (base === null) { base = r.top; return; } var d = base - r.top; if (Math.abs(d) > .5) { ty += d; brand.style.setProperty('translate', '0 ' + ty + 'px', 'important'); } };
+    var go = function () { if (!q) q = requestAnimationFrame(fix); };
+    window.addEventListener('scroll', go, { passive: true, capture: true });
+    window.addEventListener('resize', function () { base = null; ty = 0; brand.style.removeProperty('translate'); go(); });
+    window.addEventListener('load', function () { base = null; ty = 0; brand.style.removeProperty('translate'); requestAnimationFrame(fix); });
+    requestAnimationFrame(fix);
+  })();
   if (pf) pf.onclick = function () { window.Panels && Panels.open('profile'); };
 
   window.Thabit = { setProfile: function (name, photo) {
