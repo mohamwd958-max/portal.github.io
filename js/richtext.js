@@ -3,7 +3,6 @@
    The field value stays PLAIN TEXT with tiny markers, so Supabase columns,
    the archive and CSV export keep working unchanged:
 
-
      **bold**   __italic__   ++underline++
      {{gold:colored text}}   (gold green red blue purple orange gray)
      [[word]]   a "Hyperlinked" word (its recording plays on tap in the dashboard)
