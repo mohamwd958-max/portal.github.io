@@ -342,6 +342,29 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 @media(prefers-reduced-motion:reduce){.fdn,.feed.done .fdg{animation:none!important}}
 
 
+
+/* ===== Spoken words: plain text outside, coloured only inside the pop-ups ===== */
+.vx:not(#mdl .vx):not(#pop .vx),
+.rt-link:not(#mdl .rt-link):not(#pop .rt-link){
+ color:inherit!important;background:none!important;border:0!important;box-shadow:none!important;
+ padding:0!important;margin:0!important;border-radius:0!important;text-decoration:none!important;
+ display:inline!important;animation:none!important;white-space:inherit!important;
+ overflow:visible!important;text-overflow:clip!important;font-weight:inherit!important;
+ pointer-events:none!important;cursor:inherit!important}
+/* small ear on every container that holds spoken words */
+.has-ear{position:relative}
+.has-ear::after{content:"\f2a2";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;top:5px;inset-inline-end:6px;
+ width:18px;height:18px;border-radius:50%;background:rgba(52,211,153,.18);color:#34d399;font-size:.62rem;
+ display:flex;align-items:center;justify-content:center;pointer-events:none}
+.has-ear.cap{padding-inline-end:30px}
+.itm.has-ear::after{inset-inline-end:36px}
+body.light-theme .has-ear::after{color:#047857;background:rgba(4,120,87,.12)}
+/* phone only: the card light sweep runs only on the card in the middle of the screen */
+@media(max-width:700px){
+ .thabit-card:not(.lit)::before,.test-card:not(.lit)::before{animation:none!important;opacity:0!important}
+}
+
+ 
  
 </style>
 </head>
