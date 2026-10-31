@@ -388,7 +388,7 @@ body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color
 .cap{align-items:stretch;text-align:center;min-width:0;overflow:hidden}
 .cap .dt{white-space:nowrap;text-align:center;width:100%}
 .cap>span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-.cap.has-ear{padding-inline-end:12px}
+.has-ear::after{top:4px;inset-inline-end:5px;width:15px;height:15px;font-size:.52rem}
 .lst{overflow-x:hidden}
 .it,.nt{min-width:0}
 .nt .rich,.itd,.tkb,.itb2{overflow-wrap:anywhere;min-width:0}
@@ -397,6 +397,14 @@ body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color
 .row b,.row .sm{overflow-wrap:anywhere}
 
  
+/* ===== Modal: normal size again ===== */
+.mdl{align-items:center;justify-content:center;padding:14px}
+.mbox{width:100%;max-width:520px;max-height:80vh;height:auto;overflow:auto;box-sizing:border-box}
+.mbox .rich,.mbox .rcap,.mbox .rcap>.rp,.mbox .rcap>.rl{width:auto;max-width:none}
+.mbox .rcap{display:block;text-align:start}
+.mbox .rcap>.rp,.mbox .rcap>.rl{text-align:start}
+.mbox .rcap .cpb{display:inline-flex}
+
 
  
  
