@@ -302,14 +302,15 @@ const tlHtml = (p, d, s) => {
   return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpen(t)}</span></div>`).join('')}</div>`;
 };
 
+const inl = v => window.ThabitRich ? ThabitRich.inline(esc(v)) : esc(v);
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
   const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
   const hi = it.priority === 'high' ? '<span class="hi">HIGH</span>' : '';
   const head = it.kind === 'dandana'
-    ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
-    : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
+    ? `<b dir="ltr">${inl(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${inl(it.badge)}</span>` : ''}`
+    : `<b dir="auto">${inl(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${inl(it.badge)}</span>` : ''}`;
   const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
@@ -564,7 +565,7 @@ function noteText(n) {
   const t = NT(), m = n.meta || {};
   if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
   if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? richC(m.reply) : '' };
-  return { h: esc(n.title || t.msg), b: richC(n.body || '') };
+  return { h: inl(n.title || t.msg), b: richC(n.body || '') };
 }
 function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
