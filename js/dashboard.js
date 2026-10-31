@@ -1423,3 +1423,30 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
+
+
+
+/* ===== Ear icon on containers that hold spoken words (outside the pop-ups only) ===== */
+(function () {
+  const WORD = '.vx, .rt-link', BOX = '.cap, .nt, .itm, .rcap, .dnr, .row', ACTIVE = '#mdl, #pop';
+  let t = 0;
+  function mark() {
+    document.querySelectorAll('.has-ear').forEach(b => { if (!b.querySelector(WORD)) b.classList.remove('has-ear'); });
+    document.querySelectorAll(WORD).forEach(w => { if (w.closest(ACTIVE)) return; const b = w.closest(BOX); if (b) b.classList.add('has-ear'); });
+  }
+  const run = () => { clearTimeout(t); t = setTimeout(mark, 120); };
+  new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('DOMContentLoaded', run);
+})();
+
+/* ===== Phone: only the card in the middle band of the screen gets the light sweep ===== */
+(function () {
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('lit', e.isIntersecting)), { rootMargin: '-42% 0px -42% 0px', threshold: 0 });
+  const seen = new WeakSet(); let t = 0;
+  const scan = () => document.querySelectorAll('.thabit-card,.test-card').forEach(c => { if (!seen.has(c)) { seen.add(c); io.observe(c); } });
+  new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('DOMContentLoaded', scan);
+})();
+
+
