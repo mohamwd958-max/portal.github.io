@@ -3751,3 +3751,200 @@ function ccInstallBtn() {
 {
   let tries = 0; const iv = setInterval(() => { if (ccInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
 }
+
+/* ==========================================================
+   CONTACT CENTER PATCH: paste at the END of adminpanel.js (after all other patches)
+   - Contact Center window: everything you sent to a trainee, WhatsApp-style ticks + time of each state
+   - Highlights: last 3 trainees active in the last 24h (cards) + red flags (2 sessions in a row below the request)
+   - Requests window: Financial / Session / Other, urgent first, a live timer on every unanswered one
+   Needs 10_tracking.sql.
+   ========================================================== */
+
+(function () {
+  if (document.getElementById('ccCss')) return;
+  const s = document.createElement('style'); s.id = 'ccCss';
+  s.textContent = `
+.cc-g{display:grid;grid-template-columns:230px 1fr;gap:12px}@media(max-width:760px){.cc-g{grid-template-columns:1fr}}
+.cc-l{display:flex;flex-direction:column;gap:4px;max-height:66vh;overflow:auto}
+.cc-n{padding:7px 10px;border-radius:9px;border:1px solid #1e293b;background:#0b1220;color:#e2e8f0;font-size:12px;text-align:start;cursor:pointer}
+.cc-n.on{border-color:#f59e0b;background:rgba(245,158,11,.12)}
+.cc-it{border:1px solid #1e293b;border-radius:12px;background:#0b1220;padding:10px;margin-bottom:8px}
+.cc-it.bad{border-color:rgba(244,63,94,.7);background:rgba(244,63,94,.07)}
+.cc-h{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;margin-bottom:6px}
+.cc-r{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:3px 0;border-bottom:1px dashed #1e293b}.cc-r:last-child{border:0}
+.cc-r .t{color:#94a3b8;direction:ltr}.cc-r.no .k{color:#64748b}.cc-r.red .k,.cc-r.red .t{color:#fb7185}
+.tk1{color:#94a3b8}.tk2{color:#94a3b8}.tk3{color:#38bdf8}
+.hl-c{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:12px}
+.hl-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:10px}`;
+  document.head.appendChild(s);
+})();
+
+WSD.cc = { t: 'Contact Center', i: 'fa-headset', w: 2 };
+WSD.rq = { t: 'Requests · الطلبات', i: 'fa-inbox', w: 2 };
+WS_REFRESH.cc = 1; WS_REFRESH.rq = 1;
+const REQ_TABLE = 'trainee_requests';   /* the table trainee_send_request writes into: change if yours is named differently */
+{
+  const prev = wsLoad;
+  wsLoad = function (k) {
+    if (k === 'cc') return ccRender();
+    if (k === 'rq') return rqRender();
+    if (k === 'hl') return Promise.resolve(prev(k)).then(hlActivity);
+    return prev(k);
+  };
+}
+function wsInstallBtn(k, ic, label) {
+  if (document.querySelector('.ws-lb[data-ws="' + k + '"]')) return true;
+  const hl = document.querySelector('.ws-lb[data-ws="hl"]'); if (!hl) return false;
+  const b = hl.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick'); b.setAttribute('data-ws', k); b.classList.remove('on');
+  b.type = 'button'; b.innerHTML = `<i class="fa-solid ${ic}"></i> ${label}`; b.onclick = () => toggleWin(k);
+  hl.insertAdjacentElement('afterend', b); return true;
+}
+{
+  let tries = 0; const go = () => wsInstallBtn('cc', 'fa-headset', 'Contact Center') & wsInstallBtn('rq', 'fa-inbox', 'Requests');
+  const iv = setInterval(() => { if (go() || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpen = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpen.apply(this, arguments); go(); return r; };
+}
+
+/* ---------- shared bits ---------- */
+const ccT = v => v ? fmtWordDT(v) : '';
+const ccAgo = ms => { const m = Math.max(0, Math.floor(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return (d ? d + 'ي ' : '') + (h || d ? h + 'س ' : '') + (m % 60) + 'د'; };
+const ccEvs = (evs, type, id) => evs.filter(e => e.item_type === type && String(e.item_id) === String(id));
+const ccEnd = it => { const a = fxFromWall(it.as_of), R = +it.range_hours; return Number.isFinite(a) && R > 0 ? a + R * 36e5 : null; };
+
+/* one item: ticks + every state with its time */
+function ccItem(title, tag, sentAt, ev, o) {
+  o = o || {};
+  const f = n => ev.filter(e => e.event === n), first = n => f(n)[0];
+  const del = first('delivered'), opn = f('opened'), rd = first('read'), dis = f('dismissed'), cp = f('copied'), ia = f('interacted');
+  const ticks = rd ? '<span class="tk3">✓✓</span>' : (del ? '<span class="tk2">✓✓</span>' : '<span class="tk1">✓</span>');
+  const need = o.expected || 0, short = need && ia.length < need && o.expired;
+  const row = (k, t, red, no) => `<div class="cc-r${no ? ' no' : ''}${red ? ' red' : ''}"><span class="k">${k}</span><span class="t">${t || '—'}</span></div>`;
+  const views = f('view'), dwell = views.reduce((a, e) => a + (e.dwell_ms || 0), 0);
+  return `<div class="cc-it${short ? ' bad' : ''}"><div class="cc-h"><b dir="auto">${ticks} ${esc(title)}</b><span><span class="ds-tag">${esc(tag)}</span></span></div>
+    ${row('اتبعت', ccT(sentAt))}
+    ${row('وصل للداشبورد', del ? ccT(del.created_at) : '', false, !del)}
+    ${row('فتحه (' + opn.length + ' مرة)', opn.length ? ccT(opn[0].created_at) + (opn.length > 1 ? ' · آخر مرة ' + ccT(opn[opn.length - 1].created_at) : '') : '', false, !opn.length)}
+    ${row('قرأه', rd ? ccT(rd.created_at) + ' · ' + Math.round((rd.dwell_ms || 0) / 1000) + ' ث' : '', false, !rd)}
+    ${row('إجمالي وقت المشاهدة', dwell ? Math.round(dwell / 1000) + ' ث (' + views.length + ' مرة)' : '', false, !dwell)}
+    ${row('قفله بإيده', dis.length ? ccT(dis[dis.length - 1].created_at) : '', false, !dis.length)}
+    ${row('نسخ منه', cp.length ? cp.length + ' مرة · ' + ccT(cp[cp.length - 1].created_at) : '', false, !cp.length)}
+    ${row('تفاعل' + (need ? ` (${ia.length} من ${need})` : ` (${ia.length})`), ia.length ? ia.map(e => ccT(e.created_at)).slice(-3).join(' · ') : '', short, !ia.length)}
+  </div>`;
+}
+
+/* ---------- Contact Center ---------- */
+const CC = { id: null, q: '' };
+async function ccRender() {
+  const w = WSE.cc; if (!w) return;
+  if (!mpState.list.length) { try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; } catch (e) { } }
+  w.body.innerHTML = `<div class="cc-g"><div><input id="ccQ" placeholder="ابحث بالاسم..." class="${INPUT_CLS}" style="width:100%;padding:6px 10px;margin-bottom:8px"><div class="cc-l" id="ccList"></div></div><div id="ccDet"><div class="tha-note">اختار طالب.</div></div></div>`;
+  $id('ccQ').oninput = e => { CC.q = e.target.value.trim().toLowerCase(); ccPaintList(); };
+  ccPaintList(); if (CC.id) ccLoad(CC.id);
+}
+function ccPaintList() {
+  const c = $id('ccList'); if (!c) return;
+  c.innerHTML = mpState.list.filter(r => !CC.q || String(r.trainee || '').toLowerCase().includes(CC.q))
+    .map(r => `<button type="button" class="cc-n${String(r.id) === String(CC.id) ? ' on' : ''}" dir="auto" data-id="${esc(r.id)}">${esc(r.trainee || '')}</button>`).join('');
+  c.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { CC.id = b.dataset.id; ccPaintList(); ccLoad(CC.id); });
+}
+async function ccLoad(id) {
+  const det = $id('ccDet'); if (!det) return;
+  det.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  const r = mpState.list.find(x => String(x.id) === String(id)) || {};
+  try {
+    const [nt, si, ev] = await Promise.all([
+      fetchAllRows(`notifications?select=*&trainee_id=eq.${enc(id)}&order=created_at.desc`).then(a => a.slice(0, 40)),
+      fetchAllRows(`supply_items?select=*&trainee_id=eq.${enc(id)}&order=supply_date.desc`).then(a => a.slice(0, 60)),
+      fetchAllRows(`item_events?select=*&trainee_id=eq.${enc(id)}&order=created_at.asc`)
+    ]);
+    const now = ntCairoNow();
+    const all = [];
+    nt.forEach(n => all.push({ at: n.created_at, html: ccItem(n.title || String(n.body || '').split('\n')[0] || (n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : 'رسالة'), 'إشعار', n.created_at, ccEvs(ev, n.kind === 'word_ready' ? 'assistant_words' : 'notification', n.id)) }));
+    si.forEach(i => { const end = ccEnd(i), at = i.created_at || i.supply_date + 'T12:00:00Z'; all.push({ at, html: ccItem(i.title || (i.body || '').split('\n')[0] || '—', i.kind === 'task' ? 'Task · ' + i.supply_date : 'دندنة · ' + i.supply_date, at, ccEvs(ev, i.kind, i.id), { expected: +i.repeats || 1, expired: end != null && end < now }) }); });
+    all.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    det.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#fbbf24" dir="auto">${esc(r.trainee || '')}</b>
+        <button type="button" class="ds-b blue" onclick="openStudentNotify('${esc(id)}')"><i class="fa-solid fa-paper-plane"></i> رسالة جديدة</button></div>
+      <div style="font-size:10px;color:#64748b;margin-bottom:8px">✓ اتبعت · ✓✓ وصل · <span class="tk3">✓✓</span> قرأه (ظاهر على الشاشة مدة كافية). الأحمر = تفاعل أقل من المطلوب بعد انتهاء المدة.</div>
+      <div style="max-height:62vh;overflow:auto">${all.map(x => x.html).join('') || '<div class="tha-note">لسه مبعتش له حاجة.</div>'}</div>`;
+  } catch (e) { det.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر التحميل: ${esc(e.message)} (شغّل 10_tracking.sql لو لسه)</div>`; }
+}
+
+/* ---------- Highlights: live activity + red flags ---------- */
+async function hlActivity() {
+  const w = WSE.hl; if (!w) return;
+  let host = $id('hlAct'); if (!host) { host = document.createElement('div'); host.id = 'hlAct'; w.body.insertBefore(host, w.body.firstChild); }
+  host.innerHTML = '<div class="tha-note">جاري تحميل النشاط...</div>';
+  try {
+    const since = new Date(Date.now() - 864e5).toISOString();
+    const ev = await fetchAllRows(`item_events?select=trainee_id,item_type,item_id,event,created_at&created_at=gte.${enc(since)}&event=neq.delivered&order=created_at.desc`);
+    const by = new Map();
+    ev.forEach(e => { const k = String(e.trainee_id); if (!by.has(k)) by.set(k, []); by.get(k).push(e); });
+    const ids = [...by.keys()];                                 // already newest-first = last to interact first
+    const nm = id => (mpState.list.find(x => String(x.id) === id) || {}).trainee || ('#' + id);
+    const flags = await hlFlags(), flagOf = id => flags.filter(f => String(f.id) === id);
+    const card = id => { const l = by.get(id), c = n => l.filter(e => e.event === n).length, fl = flagOf(id);
+      return `<div class="hl-c"><div style="display:flex;justify-content:space-between;gap:6px"><b dir="auto" style="color:#fbbf24">${esc(nm(id))}</b><span style="font-size:10px;color:#94a3b8">${esc(ccT(l[0].created_at))}</span></div>
+        <div style="font-size:11.5px;margin-top:6px;line-height:1.9">فتح ${c('opened')} · قرأ ${c('read')} · نسخ ${c('copied')} · قفل ${c('dismissed')} · تفاعل ${c('interacted')}</div>
+        <button type="button" class="ds-b blue" style="margin-top:6px;padding:3px 10px" onclick="CC.id='${esc(id)}';openWin('cc');ccRender()">التفاصيل</button>
+        ${fl.map(f => `<div style="margin-top:6px;font-size:11px;color:#fb7185">🚩 ${esc(f.txt)}</div>`).join('')}</div>`; };
+    host.innerHTML = `<div class="p5-c" style="margin-bottom:10px"><h6><i class="fa-solid fa-bolt"></i> آخر نشاط (آخر 24 ساعة)</h6>
+      ${ids.length ? `<div class="hl-g">${ids.slice(0, 3).map(card).join('')}</div>${ids.length > 3 ? `<div>${ids.slice(3).map(id => `<button type="button" class="nt-chip" dir="auto" data-id="${esc(id)}" style="cursor:pointer">${esc(nm(id))}</button>`).join('')}</div><div id="hlPick"></div>` : ''}` : '<div class="text-xs text-slate-500">محدش تفاعل في آخر 24 ساعة.</div>'}
+      ${flags.length ? `<h6 style="margin-top:12px;color:#fb7185"><i class="fa-solid fa-flag"></i> Red flags</h6>${flags.map(f => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #1e293b" dir="auto"><b>${esc(f.name)}</b> · ${esc(f.txt)}</div>`).join('')}` : ''}</div>`;
+    host.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { $id('hlPick').innerHTML = `<div class="hl-g" style="margin-top:8px">${card(b.dataset.id)}</div>`; });
+  } catch (e) { host.innerHTML = `<div class="tha-note" style="color:#fb7185">تعذر تحميل النشاط: ${esc(e.message)}</div>`; }
+}
+/* red flag = the last TWO session days (that already expired) both fell short of the requested repeats, for the same kind of item */
+async function hlFlags() {
+  const out = [], from = dsAddDays(dsToday(), -14), now = ntCairoNow();
+  const [items, ev] = await Promise.all([
+    fetchAllRows(`supply_items?select=id,trainee_id,supply_date,kind,title,repeats,as_of,range_hours&supply_date=gte.${from}`),
+    fetchAllRows(`item_events?select=item_type,item_id,trainee_id&event=eq.interacted&created_at=gte.${enc(new Date(Date.now() - 15 * 864e5).toISOString())}`)
+  ]);
+  const done = new Map(); ev.forEach(e => { const k = e.item_type + ':' + e.item_id; done.set(k, (done.get(k) || 0) + 1); });
+  const T = new Map();
+  items.forEach(i => { const end = ccEnd(i); if (end == null || end > now) return;
+    const k = i.trainee_id + '|' + i.kind; if (!T.has(k)) T.set(k, new Map());
+    const d = T.get(k); if (!d.has(i.supply_date)) d.set(i.supply_date, []);
+    d.get(i.supply_date).push({ t: i.title || '—', n: done.get(i.kind + ':' + i.id) || 0, of: +i.repeats || 1 }); });
+  T.forEach((days, k) => {
+    const ds = [...days.keys()].sort().reverse().slice(0, 2); if (ds.length < 2) return;
+    const bad = ds.map(d => days.get(d).filter(x => x.n < x.of));
+    if (!bad[0].length || !bad[1].length) return;
+    const [id, kind] = k.split('|'), nm = (mpState.list.find(x => String(x.id) === id) || {}).trainee || ('#' + id);
+    out.push({ id, name: nm, txt: `${kind === 'task' ? 'Task' : 'دندنة'}: ${bad[0].map(x => x.t + ' ' + x.n + '/' + x.of).join('، ')} (${ds[0]}) و ${bad[1].map(x => x.t + ' ' + x.n + '/' + x.of).join('، ')} (${ds[1]}): جلستين ورا بعض` });
+  });
+  return out;
+}
+
+/* ---------- Requests: Financial / Session / Other, urgent first, live timer ---------- */
+const RQ = { tab: 'financial', rows: [] };
+async function rqRender() {
+  const w = WSE.rq; if (!w) return;
+  w.body.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
+  try { RQ.rows = await fetchAllRows(`${REQ_TABLE}?select=*&order=created_at.desc`); }
+  catch (e) { w.body.innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذر تحميل الطلبات: ${esc(e.message)}<br>غيّر REQ_TABLE فوق لاسم الجدول الحقيقي.</div>`; return; }
+  if (!mpState.list.length) { try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=id,trainee&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; } catch (e) { } }
+  rqPaint();
+}
+const rqUrgent = r => r.priority === 'high' || /urgent|عاجل/i.test(String(r.message || ''));
+const rqOpen = r => !r.admin_reply && !/answer|done|closed|رد|تم/i.test(String(r.status || ''));
+function rqPaint() {
+  const w = WSE.rq; if (!w) return;
+  const tabs = [['financial', 'Financial'], ['session', 'Session'], ['other', 'Other']];
+  const list = RQ.rows.filter(r => (tabs.some(t => t[0] === r.type) ? r.type : 'other') === RQ.tab)
+    .sort((a, b) => (rqOpen(b) - rqOpen(a)) || (rqUrgent(b) - rqUrgent(a)) || String(b.created_at).localeCompare(String(a.created_at)));
+  w.body.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:10px">${tabs.map(([k, l]) => `<button type="button" class="ds-b ${k === RQ.tab ? 'amber' : 'ghost'}" data-t="${k}">${l} (${RQ.rows.filter(r => (tabs.some(t => t[0] === r.type) ? r.type : 'other') === k && rqOpen(r)).length})</button>`).join('')}</div>
+    ${list.map(r => { const nm = (mpState.list.find(x => String(x.id) === String(r.trainee_id)) || {}).trainee || r.trainee_name || '', open = rqOpen(r);
+      return `<div class="cc-it${open && rqUrgent(r) ? ' bad' : ''}"><div class="cc-h"><b dir="auto">${esc(nm)}</b>
+        <span>${rqUrgent(r) ? '<span class="ds-tag" style="background:#be123c;color:#fff">URGENT</span> ' : ''}<span class="ds-tag rq-t" data-at="${esc(r.created_at)}" data-open="${open ? 1 : 0}">${open ? '⏱ ' + ccAgo(Date.now() - tmsOf(r.created_at)) : 'اتردّ'}</span></span></div>
+        <div dir="auto" style="white-space:pre-wrap;font-size:12.5px">${esc(r.message || '')}</div>
+        ${r.admin_reply ? `<div style="margin-top:6px;font-size:12px;color:#34d399" dir="auto">↳ ${esc(r.admin_reply)}</div>` : `<div style="display:flex;gap:6px;margin-top:8px"><input class="ds-in rq-in" data-id="${esc(r.id)}" placeholder="الرد..." dir="auto"><button type="button" class="ds-b green" data-r="${esc(r.id)}">رد</button></div>`}</div>`; }).join('') || '<div class="tha-note">مفيش طلبات هنا.</div>'}`;
+  w.body.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { RQ.tab = b.dataset.t; rqPaint(); });
+  w.body.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => {
+    const v = w.body.querySelector('.rq-in[data-id="' + b.dataset.r + '"]').value.trim(); if (!v) return;
+    b.disabled = true;
+    try { const rows = await mutate(`${REQ_TABLE}?id=eq.${enc(b.dataset.r)}`, 'PATCH', { admin_reply: v, status: 'answered' }); const i = RQ.rows.findIndex(x => String(x.id) === String(b.dataset.r)); if (i >= 0) RQ.rows[i] = rows[0]; showToast('اتبعت الرد ✓'); rqPaint(); }
+    catch (e) { showToast('فشل: ' + e.message, true); b.disabled = false; }
+  });
+}
+setInterval(() => document.querySelectorAll('.rq-t[data-open="1"]').forEach(el => { el.textContent = '⏱ ' + ccAgo(Date.now() - tmsOf(el.dataset.at)); }), 30000);
