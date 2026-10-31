@@ -1288,6 +1288,13 @@ function pickClose(now) {
 }
 function closeLang() { pickClose(); }
 const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
+function openProf(btn) {
+  const ar = lang !== 'en';
+  pickOpen(btn || $('profBtn'), [
+    { html: '<i class="fa-solid fa-user"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+    { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+  ]);
+}
 function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
@@ -1316,7 +1323,7 @@ function openBarOpts(btn) {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
