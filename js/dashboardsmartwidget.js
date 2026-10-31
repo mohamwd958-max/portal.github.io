@@ -23,13 +23,13 @@
   'use strict';
   var T = {
     en: { orig: 'Original voice', cmp: 'Comparison: original, then yours', missing: 'No recording for this word yet', fail: 'Could not load the recording',
-          nomic: 'Microphone is blocked. Allow it in the browser settings.', prep: 'Wait a moment…', wait: 'Wait a moment…', go: 'Record now',
+          nomic: 'Microphone is blocked. Allow it in the browser settings.', prep: 'Getting the microphone ready…', wait: 'WAIT. Not recording yet. Do not speak.', go: 'RECORDING NOW. Speak!',
           stop: 'Stop', cancel: 'Cancel', silent: 'Nothing was recorded, try again', yours: 'Yours', hint: 'Tap the word for the original', nowait: 'Record yourself first' },
     ar: { orig: 'الصوت الأصلي', cmp: 'المقارنة: الأصلي ثم صوتك', missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل',
-          nomic: 'الميكروفون محظور. اسمح به من إعدادات المتصفح.', prep: 'انتظر قليلاً…', wait: 'انتظر قليلاً…', go: 'سجّل الآن',
+          nomic: 'الميكروفون محظور. اسمح به من إعدادات المتصفح.', prep: 'جاري تجهيز الميكروفون…', wait: 'انتظر. لم يبدأ التسجيل بعد. لا تتكلم.', go: 'التسجيل يعمل الآن. تكلم!',
           stop: 'إيقاف', cancel: 'إلغاء', silent: 'لم يُسجَّل أي صوت، حاول مرة أخرى', yours: 'صوتك', hint: 'اضغط على الكلمة لسماع الأصلي', nowait: 'سجّل صوتك أولاً' },
     eg: { orig: 'الصوت الأصلي', cmp: 'المقارنة: الأصلي وبعده صوتك', missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت',
-          nomic: 'المايك مقفول. افتحه من إعدادات المتصفح.', prep: 'استنى شوية…', wait: 'استنى شوية…', go: 'سجّل دلوقتي',
+          nomic: 'المايك مقفول. افتحه من إعدادات المتصفح.', prep: 'بجهّز المايك…', wait: 'استنى. لسه مبدأش تسجيل. ما تتكلمش.', go: 'بيسجّل دلوقتي. اتكلم!',
           stop: 'وقّف', cancel: 'إلغاء', silent: 'مفيش صوت اتسجل، جرب تاني', yours: 'صوتك', hint: 'دوس على الكلمة تسمع الأصلي', nowait: 'سجّل صوتك الأول' }
   };
   var L = function () { var l = 'en'; try { l = lang; } catch (e) {} return T[l] || T.en; };
@@ -77,9 +77,10 @@
       '.sw button:disabled{opacity:.35;cursor:not-allowed}',
       '.sw-ov{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;background:rgba(2,6,23,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#fff}',
       '.sw-ov[hidden]{display:none}',
-      '.sw-big,.sw-lv{display:none}',
-      '.sw-tm{font-size:1rem;font-variant-numeric:tabular-nums;opacity:.85}',
-      '.sw-ot{font-size:1.6rem;font-weight:800;color:#f59e0b}',
+      '.sw-big{width:104px;height:104px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:900;border:4px solid #f59e0b;color:#f59e0b}',
+      '.sw-ov.go .sw-big{border-color:#ef4444;color:#ef4444;animation:swRec 1s ease-in-out infinite}',
+      '@keyframes swRec{50%{box-shadow:0 0 0 14px rgba(239,68,68,.25)}}',
+      '.sw-ot{font-size:1.05rem;font-weight:800;color:#f59e0b}',
       '.sw-ov.go .sw-ot{color:#ef4444}',
       '.sw-lv{width:min(260px,80%);height:10px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden}',
       '.sw-lv i{display:block;height:100%;width:0;background:#34d399;transition:width .06s}',
@@ -186,22 +187,6 @@
     for (i = 0; i < n; i++) { var x = Math.max(-1, Math.min(1, ch[s + i])); v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
     return new Blob([v], { type: 'audio/wav' });
   }
-  /* the same kind of "ta-dat" tone the Claude app plays: rising = start, falling = done */
-  function beep(ctx, up) {
-    return new Promise(function (res) {
-      try {
-        if (ctx.state === 'suspended') ctx.resume();
-        var f = up ? [660, 990] : [990, 660], t0 = ctx.currentTime + 0.02;
-        f.forEach(function (hz, i) {
-          var o = ctx.createOscillator(), g = ctx.createGain(), s = t0 + i * 0.14;
-          o.type = 'sine'; o.frequency.value = hz;
-          g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.4, s + 0.015); g.gain.exponentialRampToValueAtTime(0.001, s + 0.12);
-          o.connect(g); g.connect(ctx.destination); o.start(s); o.stop(s + 0.13);
-        });
-        setTimeout(res, 360);
-      } catch (e) { res(); }
-    });
-  }
   function ov(state, big, text, withStop) {
     var o = q('[data-ov]'), t = L(); o.hidden = false; o.className = 'sw-ov' + (state === 'go' ? ' go' : '');
     q('[data-big]').innerHTML = big; q('[data-ot]').textContent = text;
@@ -229,18 +214,16 @@
     q('[data-ob]').onclick = function (e) { if (e.target.closest('[data-cancel]')) { S.abort = true; stopNow(); } else if (e.target.closest('[data-stop]')) stopNow(); };
 
     /* 1) microphone is already on and warming up: the shield says WAIT, nothing is kept from this part */
-    ov('wait', '', t.wait, false); await sleep(1300);
-    if (!S.abort) await beep(ctx, true);                 // start tone (it finishes BEFORE goAt, so it is never part of the recording)
+    for (var c = 3; c >= 1 && !S.abort; c--) { ov('wait', String(c), t.wait, false); await sleep(800); }
     var goAt = performance.now();
     if (!S.abort) {
-      /* 2) GO: from here on it is recorded */
-      ov('go', '', t.go, true);
+      /* 2) GO: from here on it is recorded, with a big red shield */
+      ov('go', '<i class="fa-solid fa-circle"></i>', t.go, true);
       var rt = q('[data-rt]'), iv = setInterval(function () { rt.textContent = tf((performance.now() - goAt) / 1000); }, 250);
       var auto = setTimeout(stopNow, 20000);
       await stopped; clearInterval(iv); clearTimeout(auto);
     } else { stopNow(); await stopped; }
     var endAt = performance.now();
-    if (!S.abort) await beep(ctx, false);                // end tone, after the recorder has already stopped
     finish(); S.recording = false; q('[data-ov]').hidden = true;
     if (S.abort) return;
 
@@ -267,6 +250,7 @@
   window.wpOpen = async function (word) {
     word = String(word == null ? '' : word).trim(); if (!word) return;
     if (S.recording) return;
+    if (!document.body.classList.contains('sp-on') && !document.querySelector('.sp-ok')) return;   // speech only in Notes / TEFL / QOL / Dandana
     try { if (window.ThabitRichStudent) ThabitRichStudent.stop(); } catch (e) {}
     try { wpClose(); } catch (e) {}                                // the old player, if it is somehow open
     stopAll(); ensure();
