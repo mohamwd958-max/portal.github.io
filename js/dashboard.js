@@ -994,7 +994,8 @@ html.bgl,html.bgl body{overflow:hidden!important}
 #pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
 .pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
 const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
-const syncLock = () => document.documentElement.classList.toggle('bgl', bgLocked());
+let lockOn = false;
+const syncLock = () => { const l = bgLocked(); document.documentElement.classList.toggle('bgl', l); if (l === lockOn) return; lockOn = l; const m = l ? 'addEventListener' : 'removeEventListener'; document[m]('wheel', onLockWheel, { passive: false }); document[m]('touchmove', onLockMove, { passive: false }); };
 function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
   const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
   for (let e = t; e; e = e.parentElement) {
@@ -1004,15 +1005,15 @@ function pkScroller(t, dy) {   // a scrollable element inside the feed / player 
   }
   return null;
 }
-document.addEventListener('wheel', e => { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }, { passive: false });
+function onLockWheel(e) { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }
 let pkY = 0;
 document.addEventListener('touchstart', e => { pkY = e.touches[0].clientY; }, { passive: true });
-document.addEventListener('touchmove', e => {
+function onLockMove(e) {
   if (!bgLocked()) return;
   const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
   if (e.target.closest && e.target.closest('input[type=range]')) return;
   if (!pkScroller(e.target, dy)) e.preventDefault();
-}, { passive: false });
+}
 window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
