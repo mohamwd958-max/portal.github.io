@@ -418,7 +418,15 @@ function watchTodo() {
 
 async function load() {
   if (window.__mtGate && await window.__mtGate) return;   // maintenance ON: the dashboard never loads
-  const d = tok() ? ...
+  const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
+  if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
+    console.warn('Thabit dashboard: no valid session', d);
+    if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
+    return; }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+}
 
 
 
