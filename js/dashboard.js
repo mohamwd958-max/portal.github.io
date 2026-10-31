@@ -394,7 +394,7 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i, place) { $('mdl').setAttribute('data-place', place || ''); $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i, place) { $('mdl').setAttribute('data-place', place || ''); $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); earSync(); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -519,7 +519,7 @@ const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supp
 const dndCard = d => ({ id: 'dnd', isNew: dndNew(d), html: `<h3>${TX().dnd}</h3><div dir="auto">${d.items.map(x => `<div class="dnr"><span class="chip">${esc(x)}</span>${cpBtn(x)}</div>`).join('')}</div><div class="sm" style="margin-top:8px">${d.r.supply_date}</div>` });
 function openPop(cards, from) {
   const o = $('pop'); o.innerHTML = '<div class="pcs">' + cards.filter(Boolean).map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.noX ? '' : '<button type="button" class="x">×</button>'}${c.html}</div>`).join('') + '</div>'; o.classList.add('open');
-  peekWords(o);
+  earSync(); peekWords(o);
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
     if (x) { e.preventDefault(); dismissCard(pc.dataset.cid); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
@@ -794,8 +794,7 @@ const ASX = {
 .billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
 .aww{cursor:pointer}.aww:hover{color:#34d399}
 /* hyperlinked words: no underline, just a slightly different colour */
-.rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;background:none!important;color:#7dd3fc!important;cursor:pointer}
-body.light-theme .rt-link{color:#0369a1!important}
+.rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;background:none!important;color:inherit!important;cursor:inherit;pointer-events:none}
 /* word player pop-up */
 .wp{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);width:min(92vw,360px);z-index:99999;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.45)}
 body.light-theme .wp{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
@@ -1255,7 +1254,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
   /* tap a hyperlinked word -> word player (capture phase, so the feed / modal underneath do not react to the tap) */
-  const linkOf = e => e.target && e.target.closest && e.target.closest('.rt-link[data-word]');
+  const linkOf = e => null;   // [[ ]] is only a wrapper now: the words inside it are found by the voice-lit scan like any other word
   document.addEventListener('click', e => { const s = linkOf(e); if (!s) return; e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word')); }, true);
   document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const s = linkOf(e); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); } });
 })();
@@ -1287,16 +1286,16 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   var C_QOL = '224,38,138', C_OTH = '31,182,255';   // QOL = pink, every other place = phosphor blue (R,G,B). Fixed in dark and light theme.
   var MAXN = 6, BATCH = 40, PAR = 4, MAXKEYS = 800, TTL_HIT = 600000, TTL_MISS = 120000, HINT_DAYS = 1;
   var ROOTS = '#lists, #mB, #pop .pc[data-cid="dnd"], #pop .pc[data-cid="notes"]';
-  var SKIP = 'script,style,textarea,input,select,option,code,pre,.cpb,.hnd,.itc,.vx,.rt-link,.aww,.dt,.sm,.tkt,.its,.cd,.cdn,.hi,.nth,.logb,summary,h3,h4,.awn,.billb,.billl,.hol,.ear';
+  var SKIP = 'script,style,textarea,input,select,option,code,pre,.cpb,.hnd,.itc,.vx,.aww,.dt,.sm,.tkt,.its,.cd,.cdn,.hi,.nth,.logb,summary,h3,h4,.awn,.billb,.billl,.hol,.ear';
   var HAS = /\[\[[^\[\]\n]+?\]\]|\*\*[\s\S]+?\*\*|__[\s\S]+?__|\+\+[\s\S]+?\+\+|\{\{(?:gold|green|red|blue|purple|orange|gray):[\s\S]+?\}\}/;   // left for the rich-text converter
-  var TOKEN = /[\p{L}\p{M}\p{N}]+(?:['\u2019\-][\p{L}\p{M}\p{N}]+)*/gu;
-  var GAP = /^[ \t\u00a0]+$/;
+  var TOKEN = /[\p{Script=Latin}\p{N}]+(?:['\u2019\-][\p{Script=Latin}\p{N}]+)*|[\p{Script=Arabic}\p{M}]+/gu;
+  var GAP = /^[\s\u00a0,;:'\"\u201C\u201D\u2018\u2019()\[\]\-\u2013\u2014_\/]+$/;
 
   var cache = {}; try { cache = JSON.parse(sessionStorage.getItem('thabitVoiceLit') || '{}') || {}; } catch (e) { cache = {}; }
   var hasCreated = true, disabled = false, running = false, again = false, hinted = new Set(), io = null, mo = null, timer = null;
 
   (function () { var s = document.createElement('style'); s.id = 'vxCss'; s.textContent = [
-    '.vx{font-weight:600;cursor:pointer;background:none;-webkit-tap-highlight-color:transparent}',
+    '.vx{font-weight:600;cursor:pointer;background:none;pointer-events:auto;-webkit-tap-highlight-color:transparent}',
     '.vx.vq{color:rgb(' + C_QOL + ')!important;text-shadow:0 0 8px rgba(' + C_QOL + ',.6)}',
     '.vx.vo{color:rgb(' + C_OTH + ')!important;text-shadow:0 0 8px rgba(' + C_OTH + ',.65)}',
     '.vx.vq.vx-tap{animation:vxTapQ 1.2s ease-out 1}',
@@ -1345,7 +1344,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
       var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
         var v = n.nodeValue, p = n.parentElement;
         if (v.length < 2 || !p || !/\p{L}/u.test(v) || HAS.test(v) || p.closest(SKIP)) return NodeFilter.FILTER_REJECT;
-        var pl = placeOf(p); if (!pl || !placeOn(pl)) return NodeFilter.FILTER_REJECT;   // only the places whose ear is ON
+        if (!speakOK(p)) return NodeFilter.FILTER_REJECT;   // only INSIDE a place whose ear is ON
         return NodeFilter.FILTER_ACCEPT;
       } });
       while (w.nextNode()) out.push(w.currentNode);
@@ -1353,6 +1352,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
     return out;
   }
   function toks(v) { var a = [], m; TOKEN.lastIndex = 0; while ((m = TOKEN.exec(v))) a.push({ s: m.index, e: m.index + m[0].length }); return a; }
+  function pKey(v, t, i, n) { var a = []; for (var j = i; j < i + n; j++) a.push(v.slice(t[j].s, t[j].e)); return a.join(' '); }
   function gapsOk(v, t, i, n) { for (var j = i + 1; j < i + n; j++) if (!GAP.test(v.slice(t[j - 1].e, t[j].s))) return false; return true; }
 
   /* QOL = the QOL card in the dashboard, or the full-text modal opened from it (its title says QOL) */
@@ -1366,12 +1366,12 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
         var got = 0;
         for (var n = Math.min(MAXN, t.length - i); n >= 1; n--) {
           if (!gapsOk(v, t, i, n)) continue;
-          var s = v.slice(t[i].s, t[i + n - 1].e), k = keyOf(s), c = k && cache[k];
+          var s = v.slice(t[i].s, t[i + n - 1].e), w = pKey(v, t, i, n), k = keyOf(w), c = k && cache[k];
           if (c && c.f) {
             if (t[i].s > pos) frag.appendChild(document.createTextNode(v.slice(pos, t[i].s)));
             var sp = document.createElement('span');
             sp.className = 'vx ' + (x.q ? 'vq' : 'vo') + (isNew(c.c) ? ' vxn' : '');
-            sp.setAttribute('data-word', s); sp.setAttribute('data-k', k); sp.setAttribute('role', 'button'); sp.setAttribute('tabindex', '0');
+            sp.setAttribute('data-word', w); sp.setAttribute('data-k', k); sp.setAttribute('role', 'button'); sp.setAttribute('tabindex', '0');
             sp.textContent = s; frag.appendChild(sp);
             pos = t[i + n - 1].e; hit = true; got = n; break;
           }
@@ -1411,7 +1411,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
       nodes.forEach(function (x) {
         for (var i = 0; i < x.t.length; i++) for (var n = 1; n <= MAXN && i + n <= x.t.length; n++) {
           if (!gapsOk(x.v, x.t, i, n)) break;
-          var k = keyOf(x.v.slice(x.t[i].s, x.t[i + n - 1].e));
+          var k = keyOf(pKey(x.v, x.t, i, n));
           if (k && !fresh(k) && !need[k] && cnt < MAXKEYS) { need[k] = 1; cnt++; }
         }
       });
@@ -1428,12 +1428,12 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 
   /* tap = play the recording (same player as the Words list) */
   document.addEventListener('click', function (e) {
-    var s = e.target && e.target.closest && e.target.closest('.vx'); if (!s) return;
+    var s = e.target && e.target.closest && e.target.closest('.vx'); if (!s || !speakOK(s)) return;
     e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word'));
   }, true);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
-    var s = e.target && e.target.closest && e.target.closest('.vx'); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); }
+    var s = e.target && e.target.closest && e.target.closest('.vx'); if (s && speakOK(s)) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); }
   });
 
   window.__vxRun = function () { schedule(0); };
@@ -1462,12 +1462,22 @@ function placeOf(el) {   // which place a piece of text belongs to (null = not o
   if (pc) { var c = pc.getAttribute('data-cid'); return c === 'dnd' ? 'dnd' : c === 'notes' ? 'notes' : null; }
   var d = el.closest('.dcard[data-place]'); return d ? d.getAttribute('data-place') : null;
 }
+function speakOK(el) {   // spoken words work only INSIDE a place (modal / feed card; Tasks has no inside) whose ear is ON
+  var p = placeOf(el); if (!p || !placeOn(p)) return false;
+  return !!el.closest('#mB, #pop') || !!el.closest('.dcard[data-place="tasks"]');
+}
+function earSync() {   // data-ear=1/0 on every place, so the CSS can keep everything plain while the ear is off
+  var m = document.getElementById('mdl'); if (m) { var mp = m.getAttribute('data-place'); m.setAttribute('data-ear', mp && placeOn(mp) ? '1' : '0'); }
+  document.querySelectorAll('#pop .pc[data-cid]').forEach(function (pc) { var c = pc.getAttribute('data-cid'), p = c === 'dnd' ? 'dnd' : c === 'notes' ? 'notes' : null; pc.setAttribute('data-ear', p && placeOn(p) ? '1' : '0'); });
+  document.querySelectorAll('.dcard[data-place]').forEach(function (d) { d.setAttribute('data-ear', placeOn(d.getAttribute('data-place')) ? '1' : '0'); });
+}
 var EAR_T = {
   en: { on: 'Sounds are on. You can now listen to any recorded word in this list.', off: 'Sounds are off for this list.', lbl: 'Listen to words' },
   ar: { on: 'تم التفعيل. تقدر الآن تسمع أي كلمة مسجّلة في هذه القائمة.', off: 'تم إيقاف الأصوات لهذه القائمة.', lbl: 'الاستماع للكلمات' },
   eg: { on: 'اتفعّلت. تقدر دلوقتي تسمع أي صوت موجود في القائمة دي.', off: 'الأصوات اتقفلت للقائمة دي.', lbl: 'سماع الكلمات' }
 };
 function earMount() {
+  earSync();
   var T = EAR_T[lang] || EAR_T.en;
   document.querySelectorAll('#lists .dcard[data-place]').forEach(function (c) {
     var h = c.querySelector('h4'); if (!h) return;
