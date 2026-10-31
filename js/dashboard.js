@@ -19,7 +19,7 @@ const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_han
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
-const THB_LANG_LBL = { en: 'English', ar: 'عربي', eg: 'مصري' };
+const THB_LANG_LBL = { en: 'En', ar: 'عربي', eg: 'مصري' };
 function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
   const lt = $('langTxt'); if (lt) lt.textContent = THB_LANG_LBL[l] || l;
@@ -1113,14 +1113,23 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
   let last = null; try { last = localStorage.getItem('thabit_lang_pref'); } catch (e) {}
   if (last !== String(raw)) { try { localStorage.setItem('thabit_lang_pref', String(raw)); } catch (e) {} setLanguage(n); }
 }
+
+
+
+
 function openLang(btn) {
   const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
-  const item = (x, c) => `<button type="button" class="lgi${c ? ' cur' : ''}" data-l="${x}">${THB_LANG_LBL[x]}</button>`;
-  const up = r.top > 130, list = up ? others.map(x => item(x)).join('') + item(lang, 1) : item(lang, 1) + others.map(x => item(x)).join('');
-  pop.innerHTML = `<div class="lgs" style="left:${Math.max(70, Math.min(innerWidth - 70, r.left + r.width / 2))}px;${up ? 'bottom:' + (innerHeight - r.bottom) : 'top:' + r.top}px" dir="ltr">${list}</div>`;
+  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
+  const up = r.top > 130, list = (up ? others.slice().reverse() : others);
+  const left = Math.max(32, Math.min(innerWidth - 32, r.left + r.width / 2));
+  pop.innerHTML = `<div class="lgs" style="left:${left}px;${up ? 'bottom:' + (innerHeight - r.top + 10) : 'top:' + (r.bottom + 10)}px" dir="ltr">${list.map(x => `<button type="button" class="lgi" data-l="${x}">${lbl[x]}</button>`).join('')}</div>`;
   pop.classList.add('open');
   pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeLang(); if (l !== lang) setLanguage(l); });
 }
+
+
+
+
 function closeLang() { $('langPop').classList.remove('open'); $('langPop').innerHTML = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLang(); closeBarOpts(); } });
 
