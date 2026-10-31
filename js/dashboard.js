@@ -1147,11 +1147,17 @@ function layoutBar() {
 }
 (function () {
   const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
-  function placeFeed() {
-    const b = $('feedBtn'), fl = document.querySelector('.fl');
-    if (mq.matches) { if (b.parentNode !== bar) { b.dataset.bk = 'feed'; bar.appendChild(b); layoutBar(); } }
-    else if (b.parentNode === bar) { delete b.dataset.bk; fl.insertBefore(b, fl.firstChild); layoutBar(); }
-  }
+
+                                                                                                                                                                                                                                                       
+    
+function placeFeed() {
+  const b = $('feedBtn');
+  if (b.parentNode !== bar) { b.dataset.bk = 'feed'; bar.appendChild(b); layoutBar(); }
+}
+
+
+
+  
   if (mq.addEventListener) mq.addEventListener('change', placeFeed); else if (mq.addListener) mq.addListener(placeFeed);
   layoutBar(); placeFeed();
 
