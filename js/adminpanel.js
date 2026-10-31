@@ -1143,7 +1143,7 @@ function mpPaintList() {
         const on = mpState.sel.has(String(r.id));
         return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
             <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-            <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+            <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}${mpLock(r)}
                 <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
                 <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small></div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
@@ -2932,7 +2932,7 @@ mpPaintList = function () {
     const on = mpState.sel.has(String(r.id));
     return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}${mpLock(r)}
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         ${payTag(r, paid)}</div>
@@ -3042,6 +3042,9 @@ function mpStatusInfo(r) {
   return { key: 'x:' + s.replace(/\s+/g, ' '), label: raw };
 }
 const mpStatus = r => mpStatusInfo(r).key;
+/* the portal only lets a student in when status_as_of_today is exactly "active" (case/space-insensitive): see _status_gate */
+const mpCanLogin = r => String(mpVal(r, 'status_as_of_today') || '').trim().toLowerCase() === 'active';
+const mpLock = r => mpCanLogin(r) ? '' : '<span class="ds-tag" style="background:#475569;color:#fff;margin-inline-start:6px" title="الدخول مقفول: الستاتس لازم يبقى Active بالظبط">🔒</span>';
 const OC_KEY = 'thabit_open_counts';
 function ocGet() { try { return JSON.parse(localStorage.getItem(OC_KEY) || '{}') || {}; } catch (e) { return {}; } }
 function ocBump(id) { try { const c = ocGet(); c[String(id)] = (c[String(id)] || 0) + 1; localStorage.setItem(OC_KEY, JSON.stringify(c)); } catch (e) { } }
@@ -3056,7 +3059,7 @@ function mpCardHtml(r, today) {
   const on = mpState.sel.has(String(r.id));
   return `<div class="mp-card${mpState.selecting ? ' sel-mode' : ''}${on ? ' mp-sel' : ''}${st === 'past' || st === 'terminated' || st === 'paused' ? ' mp-dim' : ''}"${mpState.selecting ? ` onclick="mpToggleSel('${esc(r.id)}',event)"` : ''}>${mpState.selecting ? `<input type="checkbox" class="mp-ck" ${on ? 'checked' : ''} tabindex="-1">` : ''}
       <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" onerror="this.remove()">` : ini}</div>
-      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}${mpLock(r)}
         <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
         <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
         ${payTag(r, paid)}</div>
@@ -3385,7 +3388,7 @@ function genHistList() {
     const nm = (pr && pr.trainee) || c.out_who || '?', ini = esc(String(nm).trim().charAt(0).toUpperCase());
     return `<div class="p5-c"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
         <div class="mp-av">${pic ? `<img src="${esc(pic)}" alt="" onerror="this.remove()">` : ini}</div>
-        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc(nm)}</b>${pr && pr.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc(nm)}</b>${pr && pr.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}${pr ? mpLock(pr) : ''}
           <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
       <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.out_username)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="out_username">نسخ</button></span></div>
       <div class="p5-r"><span>الباسورد</span>${c.out_password
