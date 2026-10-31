@@ -19,7 +19,7 @@ const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_han
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
-const THB_LANG_LBL = { en: 'EN', ar: 'عربي', eg: 'مصري' };
+const THB_LANG_LBL = { en: 'En', ar: 'عربي', eg: 'مصري' };
 function setLanguage(l) {
   lang = l; try { localStorage.setItem('thabit_lang', l); } catch (e) {}
   const lt = $('langTxt'); if (lt) lt.textContent = THB_LANG_LBL[l] || l;
@@ -31,12 +31,16 @@ function toggleTheme() {
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
   try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
 }
+
+
 async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
   const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
   location.href = PORTAL;
 }
+
+
 
 function inRange(r) {
   if (range === 'all') return true;
@@ -213,11 +217,11 @@ function render() {
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
-  return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
+  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])},'${key}')"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  return `<div class="thabit-card dcard" data-place="${key}"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
-const escv = s => esc(s).replace(/\s*\|\s*/g, '<i class="vb"></i>');
+const escv = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
@@ -335,7 +339,7 @@ function tasksCard() {
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
   const sec = (cls, title, list) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${list.length || ''}</b></div>${list.length ? group(list) : `<div class="sm">${t.none}</div>`}</div>`;
-  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
+  return `<div class="thabit-card dcard" id="taskCard" data-place="tasks">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
     + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
 }
 function openLog() {
@@ -352,7 +356,7 @@ function itemsCard(kind) {
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
   const pend = its.filter(itShown), fin = its.filter(x => !itShown(x));
-  return `<div class="thabit-card dcard" id="${kind}Card"><h4>${kind === 'task' ? t.tasks : t.dnd}</h4><div class="lst">${pend.length ? group(pend) : `<div class="sm">${T[lang].alldone}</div>`}</div>`
+  return `<div class="thabit-card dcard" id="${kind}Card" data-place="${kind === 'dandana' ? 'dnd' : 'tasks'}"><h4>${kind === 'task' ? t.tasks : t.dnd}</h4><div class="lst">${pend.length ? group(pend) : `<div class="sm">${T[lang].alldone}</div>`}</div>`
     + (fin.length ? `<details class="dtl" ${DTL2[kind] ? 'open' : ''} ontoggle="DTL2['${kind}']=this.open"><summary>${T[lang].donet}</summary><div class="lst">${group(fin)}</div></details>` : '') + '</div>';
 }
 function itToast(m) { const e = document.createElement('div'); e.className = 'ittoast'; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 2400); }
@@ -390,7 +394,7 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i, place) { $('mdl').setAttribute('data-place', place || ''); $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -409,6 +413,9 @@ function watchTodo() {
   if (!window.IntersectionObserver) return go();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { go(); o.disconnect(); } }, { threshold: .6 }).observe(c);
 }
+
+
+
 async function load() {
   if (window.__mtGate && await window.__mtGate) return;   // maintenance ON: the dashboard never loads
   const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
@@ -420,6 +427,9 @@ async function load() {
     return; }
   d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
+
+
+
 async function sendReq() {
   const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
   if (!what) { alert(t.needWhat); $('rqWhat').focus(); return; }
@@ -601,6 +611,8 @@ const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
 const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
+
+
 function updateFeed() {
   const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge'), fn = $('feedNum');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
@@ -615,8 +627,9 @@ function updateFeed() {
     // plus -> number only after the intro finished and the pop-up was closed
     btn.classList.toggle('num', n > 0 && !INTRO.hold && btn.classList.contains('done'));
   }
-  if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);   // first notification arrived while the page was open
+  if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);
 }
+
 function openFeed(from) {
   const c = feedCards(); if (!c.length) return;
   openPop(c, from);
@@ -1111,27 +1124,29 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
   let last = null; try { last = localStorage.getItem('thabit_lang_pref'); } catch (e) {}
   if (last !== String(raw)) { try { localStorage.setItem('thabit_lang_pref', String(raw)); } catch (e) {} setLanguage(n); }
 }
+
+
+
+
 function openLang(btn) {
-  const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
-  const wide = innerWidth > 700, items = list => list.map(x => `<button type="button" class="lgi" data-l="${x}">${THB_LANG_LBL[x]}</button>`).join('');
-  if (wide) {   // big screens: the two other languages slide out sideways, one behind the other
-    const rightSide = r.left > innerWidth / 2;
-    const pos = rightSide ? `right:${innerWidth - r.left + 8}px;` : `left:${r.right + 8}px;`;
-    pop.innerHTML = `<div class="lgs" style="${pos}top:${r.top + r.height / 2}px;--lw:${Math.max(r.width, 46)}px;--lh:${r.height}px" dir="ltr">${items(rightSide ? others.slice().reverse() : others)}</div>`;
-  } else {      // phone: unchanged look
-    const up = r.top > 130, list = up ? others.slice().reverse() : others, left = Math.max(32, Math.min(innerWidth - 32, r.left + r.width / 2));
-    pop.innerHTML = `<div class="lgs" style="left:${left}px;${up ? 'bottom:' + (innerHeight - r.top + 10) : 'top:' + (r.bottom + 10)}px" dir="ltr">${items(list)}</div>`;
-  }
-  pop.classList.add('open');
-  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeLang(); if (l !== lang) setLanguage(l); });
+  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
+  fanOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(x => ({ id: x, html: lbl[x], label: lbl[x], run: () => { if (x !== lang) setLanguage(x); } })));
 }
+
+
+
+
 function closeLang() { $('langPop').classList.remove('open'); $('langPop').innerHTML = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLang(); closeBarOpts(); } });
 
 /* ===== Customize pop-up (content to be decided) ===== */
 function openBarOpts() {
-  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
-  $('boT').textContent = T2[0]; $('boN').textContent = T2[1]; $('barOpts').classList.add('open');
+  const t = BD_T[lang] || BD_T.en, cur = bdCur();
+  fanOpen($('barEdit'), [
+    { id: 'right',  html: '<i class="fa-solid fa-arrow-right"></i>',   label: t.right,  cur: cur === 'right',  run: () => bdSet('right') },
+    { id: 'bottom', html: '<i class="fa-solid fa-arrow-down"></i>',    label: t.bottom, cur: cur === 'bottom', run: () => bdSet('bottom') },
+    { id: 'free',   html: '<i class="fa-solid fa-arrow-pointer"></i>', label: t.free,   run: () => bdFree() }
+  ]);
 }
 function closeBarOpts() { $('barOpts').classList.remove('open'); }
 
@@ -1151,10 +1166,17 @@ function layoutBar() {
 }
 (function () {
   const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
-  function placeFeed() {   // the Feed button lives inside the bar on every screen size
-    const b = $('feedBtn');
-    if (b.parentNode !== bar) { b.dataset.bk = 'feed'; bar.appendChild(b); layoutBar(); }
-  }
+
+                                                                                                                                                                                                                                                       
+    
+function placeFeed() {
+  const b = $('feedBtn');
+  if (b.parentNode !== bar) { b.dataset.bk = 'feed'; bar.appendChild(b); layoutBar(); }
+}
+
+
+
+  
   if (mq.addEventListener) mq.addEventListener('change', placeFeed); else if (mq.addListener) mq.addListener(placeFeed);
   layoutBar(); placeFeed();
 
@@ -1238,27 +1260,242 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const s = linkOf(e); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); } });
 })();
 
-/* ===== Speech scope: ONLY Notes, TEFL, QOL (inside their pop-up) and Dandana (feed). Everywhere else = plain text ===== */
+
+
+
+
+
+
+
+/* ==========================================================
+   Voice-lit words (paste at the END of dashboard.js)
+   Any word / phrase on the dashboard that has a recording in Supabase words_table
+   lights up in ONE fixed colour (same in dark and light theme) and plays on tap.
+   - scans: Tasks, Dandana, Notes, TEFL, QOL (#lists), the full-text modal (#mB),
+     and the Dandana / Notifications cards inside the feed
+   - matching = same as the Assistant: wpClean(text) == words_table.word_key
+     (longest phrase wins, up to 6 words)
+   - words uploaded today or yesterday (Cairo days) get a tiny "press" hint,
+     once per page load, when they first scroll into view
+   - nothing to maintain: new uploads show up on the next refresh / re-render
+     (and the page re-checks by itself every 2 minutes)
+   Needs the column words_table.word_key (already used by the Assistant).
+   created_at is optional: without it the lighting works, only the hint is skipped.
+   ========================================================== */
 (function () {
-  const ear = '<span class="ear"><i class="fa-solid fa-ear-listen"></i></span>';
-  let t = 0;
-  function mark() {
-    const title = ($('mT') && $('mT').textContent || '').trim();
-    document.body.classList.toggle('sp-on', /^\d{4}-\d\d-\d\d\s*\u00b7\s*(NOTES|TEFL|QOL|\u0645\u0644\u0627\u062d\u0638\u0627\u062a)$/i.test(title) && $('mdl').classList.contains('open'));
-    document.querySelectorAll('#pop .pc[data-cid="dnd"]').forEach(c => c.classList.add('sp-ok'));
-    document.querySelectorAll('#lists .thabit-card').forEach(card => {
-      const h = ((card.querySelector('h4') || {}).textContent || '').trim();
-      const ok = /^(notes|tefl|qol|\u0645\u0644\u0627\u062d\u0638\u0627\u062a)$/i.test(h);
-      card.querySelectorAll('.cap').forEach(c => {
-        const has = ok && (c.querySelector('.vx,.rt-link') || /[A-Za-z]{2,}/.test(c.textContent));
-        const e = c.querySelector(':scope > .ear');
-        if (has && !e) c.insertAdjacentHTML('beforeend', ear); else if (!has && e) e.remove();
+  'use strict';
+  var C_QOL = '224,38,138', C_OTH = '31,182,255';   // QOL = pink, every other place = phosphor blue (R,G,B). Fixed in dark and light theme.
+  var MAXN = 6, BATCH = 40, PAR = 4, MAXKEYS = 800, TTL_HIT = 600000, TTL_MISS = 120000, HINT_DAYS = 1;
+  var ROOTS = '#lists, #mB, #pop .pc[data-cid="dnd"], #pop .pc[data-cid="notes"]';
+  var SKIP = 'script,style,textarea,input,select,option,code,pre,.cpb,.hnd,.itc,.vx,.rt-link,.aww,.dt,.sm,.tkt,.its,.cd,.cdn,.hi,.nth,.logb,summary,h3,h4,.awn,.billb,.billl,.hol,.ear';
+  var HAS = /\[\[[^\[\]\n]+?\]\]|\*\*[\s\S]+?\*\*|__[\s\S]+?__|\+\+[\s\S]+?\+\+|\{\{(?:gold|green|red|blue|purple|orange|gray):[\s\S]+?\}\}/;   // left for the rich-text converter
+  var TOKEN = /[\p{L}\p{M}\p{N}]+(?:['\u2019\-][\p{L}\p{M}\p{N}]+)*/gu;
+  var GAP = /^[ \t\u00a0]+$/;
+
+  var cache = {}; try { cache = JSON.parse(sessionStorage.getItem('thabitVoiceLit') || '{}') || {}; } catch (e) { cache = {}; }
+  var hasCreated = true, disabled = false, running = false, again = false, hinted = new Set(), io = null, mo = null, timer = null;
+
+  (function () { var s = document.createElement('style'); s.id = 'vxCss'; s.textContent = [
+    '.vx{font-weight:600;cursor:pointer;background:none;-webkit-tap-highlight-color:transparent}',
+    '.vx.vq{color:rgb(' + C_QOL + ')!important;text-shadow:0 0 8px rgba(' + C_QOL + ',.6)}',
+    '.vx.vo{color:rgb(' + C_OTH + ')!important;text-shadow:0 0 8px rgba(' + C_OTH + ',.65)}',
+    '.vx.vq.vx-tap{animation:vxTapQ 1.2s ease-out 1}',
+    '.vx.vo.vx-tap{animation:vxTapO 1.2s ease-out 1}',
+    '@keyframes vxTapQ{0%,100%{text-shadow:0 0 8px rgba(' + C_QOL + ',.6)}22%{text-shadow:0 0 4px rgba(' + C_QOL + ',1),0 0 16px rgba(' + C_QOL + ',1)}}',
+    '@keyframes vxTapO{0%,100%{text-shadow:0 0 8px rgba(' + C_OTH + ',.65)}22%{text-shadow:0 0 4px rgba(' + C_OTH + ',1),0 0 16px rgba(' + C_OTH + ',1)}}',
+    '@media(prefers-reduced-motion:reduce){.vx.vx-tap{animation:none}}'].join(''); document.head.appendChild(s); })();
+
+  function keyOf(s) { var k = wpClean(s); return k.length >= 2 && !/^\d+$/.test(k) ? k : ''; }
+  function fresh(k) { var c = cache[k]; return !!c && Date.now() - c.t < (c.f ? TTL_HIT : TTL_MISS); }
+  function save() { try { sessionStorage.setItem('thabitVoiceLit', JSON.stringify(cache)); } catch (e) {} }
+  function isNew(ms) {
+    if (!ms) return false;
+    var d = (Date.parse(itToday()) - Date.parse(cairoDay(new Date(ms).toISOString()))) / 864e5;
+    return d >= 0 && d <= HINT_DAYS;
+  }
+
+  /* ---------- Supabase lookup: 40 keys per request ---------- */
+  function q(keys, withC) {
+    var list = keys.map(function (k) { return '"' + k + '"'; }).join(',');
+    return fetch(SB + '/rest/v1/words_table?select=' + (withC ? 'word_key,created_at' : 'word_key') + '&audio_url=not.is.null&word_key=in.(' + encodeURIComponent(list) + ')',
+      { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+  }
+  async function one(b) {
+    try {
+      var r = await q(b, hasCreated);
+      if (!r.ok && r.status === 400 && hasCreated) { hasCreated = false; r = await q(b, false); }   // no created_at column: lighting still works
+      if (!r.ok) { if (r.status === 400) { disabled = true; console.warn('[voice-lit] words_table.word_key is missing, feature is off'); } return; }
+      var rows = await r.json(), now = Date.now(), found = {};
+      (Array.isArray(rows) ? rows : []).forEach(function (x) {
+        var c = x.created_at ? Date.parse(x.created_at) || 0 : 0;
+        if (!found[x.word_key] || (c && c < found[x.word_key].c)) found[x.word_key] = { f: 1, c: c, t: now };
       });
+      b.forEach(function (k) { cache[k] = found[k] || { f: 0, c: 0, t: now }; });
+    } catch (e) { console.warn('[voice-lit] lookup failed', e); }   // not cached, so it is retried next time
+  }
+  async function lookup(keys) {
+    var bs = []; for (var i = 0; i < keys.length; i += BATCH) bs.push(keys.slice(i, i + BATCH));
+    for (var j = 0; j < bs.length; j += PAR) await Promise.all(bs.slice(j, j + PAR).map(one));
+  }
+
+  /* ---------- text nodes -> words ---------- */
+  function collect() {
+    var out = [];
+    document.querySelectorAll(ROOTS).forEach(function (root) {
+      var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
+        var v = n.nodeValue, p = n.parentElement;
+        if (v.length < 2 || !p || !/\p{L}/u.test(v) || HAS.test(v) || p.closest(SKIP)) return NodeFilter.FILTER_REJECT;
+        var pl = placeOf(p); if (!pl || !placeOn(pl)) return NodeFilter.FILTER_REJECT;   // only the places whose ear is ON
+        return NodeFilter.FILTER_ACCEPT;
+      } });
+      while (w.nextNode()) out.push(w.currentNode);
+    });
+    return out;
+  }
+  function toks(v) { var a = [], m; TOKEN.lastIndex = 0; while ((m = TOKEN.exec(v))) a.push({ s: m.index, e: m.index + m[0].length }); return a; }
+  function gapsOk(v, t, i, n) { for (var j = i + 1; j < i + n; j++) if (!GAP.test(v.slice(t[j - 1].e, t[j].s))) return false; return true; }
+
+  /* QOL = the QOL card in the dashboard, or the full-text modal opened from it (its title says QOL) */
+  function isQol(n) { return placeOf(n.parentElement) === 'qol'; }
+  function apply(nodes) {
+    nodes.forEach(function (x) {
+      x.q = isQol(x.n);
+      if (!x.n.isConnected || x.n.nodeValue !== x.v) return;
+      var v = x.v, t = x.t, frag = document.createDocumentFragment(), pos = 0, hit = false, i = 0;
+      while (i < t.length) {
+        var got = 0;
+        for (var n = Math.min(MAXN, t.length - i); n >= 1; n--) {
+          if (!gapsOk(v, t, i, n)) continue;
+          var s = v.slice(t[i].s, t[i + n - 1].e), k = keyOf(s), c = k && cache[k];
+          if (c && c.f) {
+            if (t[i].s > pos) frag.appendChild(document.createTextNode(v.slice(pos, t[i].s)));
+            var sp = document.createElement('span');
+            sp.className = 'vx ' + (x.q ? 'vq' : 'vo') + (isNew(c.c) ? ' vxn' : '');
+            sp.setAttribute('data-word', s); sp.setAttribute('data-k', k); sp.setAttribute('role', 'button'); sp.setAttribute('tabindex', '0');
+            sp.textContent = s; frag.appendChild(sp);
+            pos = t[i + n - 1].e; hit = true; got = n; break;
+          }
+        }
+        i += got || 1;
+      }
+      if (hit) { if (pos < v.length) frag.appendChild(document.createTextNode(v.slice(pos))); x.n.replaceWith(frag); }
     });
   }
-  const run = () => { clearTimeout(t); t = setTimeout(mark, 100); };
-  new MutationObserver(run).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] });
-  window.addEventListener('DOMContentLoaded', run);
+
+  /* ---------- the tiny "press" hint: once per page load, when the word first scrolls into view ---------- */
+  function watchHints() {
+    document.querySelectorAll('.vx.vxn:not([data-vo])').forEach(function (el) {
+      el.setAttribute('data-vo', '1');
+      if (hinted.has(el.getAttribute('data-k'))) return;
+      if (!('IntersectionObserver' in window)) { tap(el, 0); return; }
+      io = io || new IntersectionObserver(function (ents) {
+        var n = 0;
+        ents.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); tap(en.target, n++); } });
+      }, { threshold: 0.6 });
+      io.observe(el);
+    });
+  }
+  function tap(el, idx) {
+    var k = el.getAttribute('data-k'); if (hinted.has(k)) return; hinted.add(k);
+    setTimeout(function () { el.classList.add('vx-tap'); setTimeout(function () { el.classList.remove('vx-tap'); }, 1400); }, idx * 160);
+  }
+
+  /* ---------- run ---------- */
+  async function run() {
+    if (disabled) return;
+    if (running) { again = true; return; }
+    running = true;
+    try {
+      var nodes = collect().map(function (n) { var v = n.nodeValue; return { n: n, v: v, t: toks(v) }; }).filter(function (x) { return x.t.length; });
+      var need = {}, cnt = 0;
+      nodes.forEach(function (x) {
+        for (var i = 0; i < x.t.length; i++) for (var n = 1; n <= MAXN && i + n <= x.t.length; n++) {
+          if (!gapsOk(x.v, x.t, i, n)) break;
+          var k = keyOf(x.v.slice(x.t[i].s, x.t[i + n - 1].e));
+          if (k && !fresh(k) && !need[k] && cnt < MAXKEYS) { need[k] = 1; cnt++; }
+        }
+      });
+      var ks = Object.keys(need);
+      if (ks.length) { await lookup(ks); save(); }
+      if (disabled) return;
+      if (mo) mo.disconnect();                       // our own edits must not trigger us again
+      try { apply(nodes); watchHints(); } finally { if (mo) watch(); }
+    } catch (e) { console.error('[voice-lit]', e); }
+    finally { running = false; if (again) { again = false; schedule(300); } }
+  }
+  function schedule(ms) { clearTimeout(timer); timer = setTimeout(run, ms == null ? 400 : ms); }   // a bit after the rich-text converter, so [[..]] / ** markers are never split
+  function watch() { mo.observe(document.body, { childList: true, subtree: true, characterData: true }); }
+
+  /* tap = play the recording (same player as the Words list) */
+  document.addEventListener('click', function (e) {
+    var s = e.target && e.target.closest && e.target.closest('.vx'); if (!s) return;
+    e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word'));
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var s = e.target && e.target.closest && e.target.closest('.vx'); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); }
+  });
+
+  window.__vxRun = function () { schedule(0); };
+  function start() {
+    mo = new MutationObserver(function () { schedule(); });
+    watch(); schedule(600);
+    setInterval(function () { if (!document.hidden) schedule(0); }, 120000);     // picks up new uploads while the page stays open
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) schedule(200); });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+
+
+/* ===== Ear: ONE switch per place (container), saved on this device =====
+   QOL, TEFL, Dandana = ON by default.  Notes, Tasks = OFF until the trainee taps the ear.
+   OFF = plain text, nothing lit.  ON = words that have a recording are lit when he opens the place. */
+var VP_KEY = 'thabit_voice_places', VP_DEF = { qol: 1, tefl: 1, dnd: 1, notes: 0, tasks: 0 };
+function vpLoad() { var o = {}; try { o = JSON.parse(localStorage.getItem(VP_KEY) || '{}') || {}; } catch (e) {} return o; }
+function placeOn(p) { var o = vpLoad(); return Object.prototype.hasOwnProperty.call(o, p) ? !!o[p] : !!VP_DEF[p]; }
+function placeSet(p, on) { var o = vpLoad(); o[p] = on ? 1 : 0; try { localStorage.setItem(VP_KEY, JSON.stringify(o)); } catch (e) {} }
+function placeOf(el) {   // which place a piece of text belongs to (null = not one of the five: stays plain)
+  if (!el || !el.closest) return null;
+  if (el.closest('#mB')) return document.getElementById('mdl').getAttribute('data-place') || null;
+  var pc = el.closest('#pop .pc[data-cid]');
+  if (pc) { var c = pc.getAttribute('data-cid'); return c === 'dnd' ? 'dnd' : c === 'notes' ? 'notes' : null; }
+  var d = el.closest('.dcard[data-place]'); return d ? d.getAttribute('data-place') : null;
+}
+var EAR_T = {
+  en: { on: 'Sounds are on. You can now listen to any recorded word in this list.', off: 'Sounds are off for this list.', lbl: 'Listen to words' },
+  ar: { on: 'تم التفعيل. تقدر الآن تسمع أي كلمة مسجّلة في هذه القائمة.', off: 'تم إيقاف الأصوات لهذه القائمة.', lbl: 'الاستماع للكلمات' },
+  eg: { on: 'اتفعّلت. تقدر دلوقتي تسمع أي صوت موجود في القائمة دي.', off: 'الأصوات اتقفلت للقائمة دي.', lbl: 'سماع الكلمات' }
+};
+function earMount() {
+  var T = EAR_T[lang] || EAR_T.en;
+  document.querySelectorAll('#lists .dcard[data-place]').forEach(function (c) {
+    var h = c.querySelector('h4'); if (!h) return;
+    var b = h.querySelector('.ear');
+    if (!c.querySelector('.cap,.itm')) { if (b) b.remove(); return; }     // empty card: no ear
+    var p = c.getAttribute('data-place'), on = placeOn(p);
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'ear'; b.innerHTML = '<i class="fa-solid fa-ear-listen"></i>'; h.appendChild(b); h.classList.add('has-ear-h'); }
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', T.lbl); b.setAttribute('title', T.lbl); b.setAttribute('data-p', p);
+  });
+}
+function vxUnlit(p) {   // back to plain text
+  document.querySelectorAll('.vx').forEach(function (s) {
+    if (placeOf(s) !== p) return;
+    var par = s.parentNode; s.replaceWith(document.createTextNode(s.textContent)); if (par) par.normalize();
+  });
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('.ear'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var p = b.getAttribute('data-p'), on = !placeOn(p), T = EAR_T[lang] || EAR_T.en;
+  placeSet(p, on); earMount();
+  if (on) { if (window.__vxRun) window.__vxRun(); } else vxUnlit(p);
+  itToast(on ? T.on : T.off);
+}, true);
+(function () {
+  var t = 0, run = function () { clearTimeout(t); t = setTimeout(earMount, 60); }, root = document.getElementById('lists');
+  if (root) new MutationObserver(run).observe(root, { childList: true, subtree: true });
+  run();
 })();
 
 /* ===== Phone: only the card in the middle band of the screen gets the light sweep ===== */
@@ -1270,3 +1507,84 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('DOMContentLoaded', scan);
 })();
+
+
+/* ==========================================================
+   Sidebar: option circles + pen (dock right / dock bottom / free move)
+   - circles open in a row, left -> right, a clear gap away from the bar
+   - pen: arrow right = bar to the right edge | arrow down = bar to the bottom
+          cursor = free move: drag the bar, it snaps to the left / right / bottom edge, never the top
+   - saved on this device (thabit_bar_dock)
+   ========================================================== */
+var BD_T = {
+  en: { right: 'Bar on the right', bottom: 'Bar at the bottom', free: 'Move the bar freely', hint: 'Drag the bar to the side or the bottom, then let go.' },
+  ar: { right: 'الشريط على اليمين', bottom: 'الشريط في الأسفل', free: 'تحريك الشريط بحرية', hint: 'اسحب الشريط إلى أحد الجانبين أو إلى الأسفل ثم اتركه.' },
+  eg: { right: 'الشريط ناحية اليمين', bottom: 'الشريط تحت', free: 'حرّك الشريط براحتك', hint: 'اسحب الشريط لأي جنب أو لتحت وسيبه.' }
+};
+function fanOpen(btn, items) {
+  var pop = $('langPop'), bar = $('mobileFloatingBar'), r = btn.getBoundingClientRect(), br = bar.getBoundingClientRect();
+  var D = 46, G = 12, OFF = 26, n = items.length, w = n * D + (n - 1) * G, left, top;
+  if (br.width > br.height) {                       // horizontal bar: the row opens above it (below if there is no room)
+    left = r.left + r.width / 2 - w / 2; top = br.top - OFF - D; if (top < 8) top = br.bottom + OFF;
+  } else {                                          // vertical bar: the row opens on the free side of it
+    var onRight = br.left + br.width / 2 > innerWidth / 2;
+    top = r.top + r.height / 2 - D / 2; left = onRight ? br.left - OFF - w : br.right + OFF;
+  }
+  left = Math.max(8, Math.min(innerWidth - w - 8, left)); top = Math.max(8, Math.min(innerHeight - D - 8, top));
+  pop.innerHTML = '<div class="fan" dir="ltr" style="left:' + left + 'px;top:' + top + 'px">' + items.map(function (it, i) {
+    return '<button type="button" class="lgi' + (it.cur ? ' cur' : '') + '" data-id="' + it.id + '" title="' + esc(it.label) + '" aria-label="' + esc(it.label) + '" style="animation-delay:' + (i * 0.09) + 's">' + it.html + '</button>';
+  }).join('') + '</div>';
+  pop.classList.add('open');
+  pop.querySelectorAll('.lgi').forEach(function (b) {
+    b.onclick = function (e) { e.stopPropagation(); var it = items.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0]; closeLang(); if (it) it.run(); };
+  });
+}
+
+var BD_KEY = 'thabit_bar_dock', BD_TOP = 70, bdFreeOn = false, bdMv = null, bdSwallow = false;
+function bdLoad() { try { var o = JSON.parse(localStorage.getItem(BD_KEY) || 'null'); if (o && ['left', 'right', 'bottom'].indexOf(o.e) > -1 && typeof o.p === 'number') return o; } catch (e) {} return null; }
+var bdDock = bdLoad();
+function bdCur() { return bdDock ? bdDock.e : null; }
+function bdSave() { try { if (bdDock) localStorage.setItem(BD_KEY, JSON.stringify(bdDock)); } catch (e) {} }
+function bdPlace() {
+  var bar = $('mobileFloatingBar'); if (!bar) return;
+  if (!bdDock) { bar.removeAttribute('data-dock'); bar.style.removeProperty('--bt'); bar.style.removeProperty('--bl'); return; }   // never chosen: the original place
+  bar.setAttribute('data-dock', bdDock.e);
+  var vw = innerWidth, vh = innerHeight, w = bar.offsetWidth, h = bar.offsetHeight, p = Math.min(1, Math.max(0, bdDock.p));
+  if (bdDock.e === 'bottom') bar.style.setProperty('--bl', (8 + p * Math.max(0, vw - w - 16)) + 'px');
+  else { var mx = Math.max(BD_TOP, vh - h - 12); bar.style.setProperty('--bt', (BD_TOP + p * (mx - BD_TOP)) + 'px'); }
+}
+function bdSet(e) { bdDock = { e: e, p: 0.5 }; bdSave(); bdPlace(); }
+function bdFree() { var bar = $('mobileFloatingBar'); bdFreeOn = true; bar.classList.add('moving'); itToast((BD_T[lang] || BD_T.en).hint); }
+function bdCancel() { var bar = $('mobileFloatingBar'); bdFreeOn = false; bdMv = null; bar.classList.remove('moving'); bar.removeAttribute('data-drag'); bdPlace(); }
+function bdMove(e) {
+  var bar = $('mobileFloatingBar'), w = bar.offsetWidth, h = bar.offsetHeight;
+  bar.style.setProperty('--bl', Math.min(innerWidth - w - 4, Math.max(4, e.clientX - bdMv.dx)) + 'px');
+  bar.style.setProperty('--bt', Math.min(innerHeight - h - 4, Math.max(8, e.clientY - bdMv.dy)) + 'px');
+}
+function bdDrop() {
+  if (!bdMv) return;
+  var bar = $('mobileFloatingBar'), r = bar.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  bdMv = null; bdFreeOn = false; bar.removeAttribute('data-drag'); bar.classList.remove('moving');
+  var dl = cx, dr = innerWidth - cx, db = innerHeight - cy, m = Math.min(dl, dr, db), e = m === db ? 'bottom' : (m === dl ? 'left' : 'right');   // nearest of left / right / bottom: never the top
+  bdDock = { e: e, p: 0.5 }; bdPlace();
+  var nw = bar.offsetWidth, nh = bar.offsetHeight;
+  var p = e === 'bottom' ? (cx - nw / 2 - 8) / Math.max(1, innerWidth - nw - 16) : (cy - nh / 2 - BD_TOP) / Math.max(1, Math.max(BD_TOP, innerHeight - nh - 12) - BD_TOP);
+  bdDock.p = Math.min(1, Math.max(0, p)); bdPlace(); bdSave();
+  bdSwallow = true; setTimeout(function () { bdSwallow = false; }, 450);
+}
+document.addEventListener('pointerdown', function (e) {
+  if (!bdFreeOn) return;
+  var bar = $('mobileFloatingBar');
+  if (!bar.contains(e.target)) { bdCancel(); return; }
+  e.preventDefault(); e.stopPropagation();           // while moving, the bar is a handle: no long-press reorder, no button taps
+  var r = bar.getBoundingClientRect();
+  if (!bar.getAttribute('data-dock')) bar.setAttribute('data-dock', r.width > r.height ? 'bottom' : (r.left + r.width / 2 > innerWidth / 2 ? 'right' : 'left'));
+  bdMv = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+  bar.setAttribute('data-drag', '1'); bdMove(e);
+}, true);
+document.addEventListener('pointermove', function (e) { if (bdMv) { e.preventDefault(); bdMove(e); } }, { passive: false });
+['pointerup', 'pointercancel'].forEach(function (ev) { document.addEventListener(ev, bdDrop); });
+document.addEventListener('click', function (e) { if (bdSwallow && $('mobileFloatingBar').contains(e.target)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && bdFreeOn) bdCancel(); });
+window.addEventListener('resize', bdPlace);
+bdPlace(); window.addEventListener('load', bdPlace); setTimeout(bdPlace, 600);
