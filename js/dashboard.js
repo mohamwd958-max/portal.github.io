@@ -1183,3 +1183,145 @@ function layoutBar() {
   bar.addEventListener('contextmenu', e => e.preventDefault());
   bar.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 })();
+
+/* ==========================================================
+   TRACKING PATCH: paste at the VERY END of dashboard.js
+   1) The feed never opens by itself: only the badge shows, the trainee opens it by hand.
+   2) Every delivery / open / read (visible + enough time) / dismiss / copy / interaction
+      is sent to Supabase (item_events) through trainee_track. Nothing is stored only in the browser.
+   Nothing is tracked in the trainer's view-only mode.
+   ========================================================== */
+
+/* ---------- 1) no automatic pop-up: intro animation only, then the badge ---------- */
+function runIntro2(btn) {
+  INTRO.run = true; INTRO.hold = true; CINTRO.wait = true; $('feedBadge').hidden = true;
+  btn.classList.remove('empty'); btn.classList.add('draw');
+  setTimeout(() => btn.classList.add('done', 'pop'), 760);
+  setTimeout(() => {
+    try { if (!VIEW && tok()) localStorage.setItem(INTRO_KEY, tok()); } catch (e) {}
+    CINTRO.popShown = false; INTRO.hold = false; updateFeed(); chartsGo();   // badge appears, NOTHING opens
+  }, 1150);
+}
+
+/* ---------- 2) event queue ---------- */
+const TRK = { q: [], once: new Set() };
+const trkOn = () => !VIEW && !!tok();
+function trkEv(type, id, event, extra, onceKey) {
+  if (!trkOn() || id == null || id === '') return;
+  if (onceKey) { const k = type + ':' + id + ':' + event; if (TRK.once.has(k)) return; TRK.once.add(k); }
+  TRK.q.push(Object.assign({ item_type: type, item_id: String(id), event }, extra || {}));
+  if (TRK.q.length >= 25) trkFlush();
+}
+function trkFlush() {
+  if (!TRK.q.length || !trkOn()) return;
+  const batch = TRK.q.splice(0, 100);
+  fetch(`${SB}/rest/v1/rpc/trainee_track`, {
+    method: 'POST', keepalive: true,
+    headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_token: tok(), p_events: batch })
+  }).then(r => { if (!r.ok) throw 0; }).catch(() => { TRK.q.unshift(...batch); if (TRK.q.length > 500) TRK.q.length = 500; });
+}
+setInterval(trkFlush, 5000);
+
+/* ---------- delivered: the moment an item first reaches the trainee's dashboard ---------- */
+function trkDelivered() {
+  if (!D || !trkOn()) return;
+  (D.notes || []).forEach(n => trkEv(WORD_KINDS.includes(n.kind) ? 'assistant_words' : 'notification', n.id, 'delivered', null, 1));
+  (D.items || []).forEach(i => trkEv(i.kind, i.id, 'delivered', null, 1));
+  const b = typeof billState === 'function' ? billState() : null;
+  if (b) trkEv('bill', 'bill:' + itToday().slice(0, 7), 'delivered', null, 1);
+}
+setInterval(trkDelivered, 8000);
+
+/* ---------- visibility + dwell (an item counts as READ only when it stayed on screen long enough) ---------- */
+const TV = new Map();   // element -> state
+const trkWords = el => (String(el.textContent || '').trim().match(/\S+/g) || []).length;
+const trkNeed = el => Math.min(15000, Math.max(1800, trkWords(el) * 240));
+function trkTick() {
+  const now = Date.now();
+  TV.forEach(s => {
+    if (s.since) { s.dwell += now - s.since; s.since = (document.hidden || !s.vis) ? 0 : now; }
+    if (!s.read && s.dwell >= s.need) { s.read = true; trkEv(s.type, s.id, 'read', { dwell_ms: s.dwell }); }
+  });
+}
+setInterval(trkTick, 500);
+document.addEventListener('visibilitychange', () => { trkTick(); if (document.hidden) trkFlush(); else TV.forEach(s => { if (s.vis) s.since = Date.now(); }); });
+addEventListener('pagehide', () => { trkTick(); trkViewOut(); trkFlush(); });
+
+const trkIO = window.IntersectionObserver ? new IntersectionObserver(es => es.forEach(en => {
+  const s = TV.get(en.target); if (!s) return;
+  const now = Date.now();
+  if (en.isIntersecting) {
+    s.vis = true; if (!document.hidden) s.since = now;
+    if (!s.opened) { s.opened = true; trkEv(s.type, s.id, 'opened', null, s.persist ? 1 : 0); }
+  } else { trkTick(); s.vis = false; s.since = 0; }
+}), { threshold: 0.6 }) : null;
+function trkWatch(el, type, id, persist) {
+  if (!trkIO || !el || id == null || TV.has(el)) return;
+  el.dataset.trk = type + ':' + id;
+  TV.set(el, { type, id, need: trkNeed(el), dwell: 0, since: 0, vis: false, opened: false, read: false, persist: !!persist });
+  trkIO.observe(el);
+}
+function trkViewOut() {      // closing the feed: log how long each item was in view during THIS opening
+  trkTick();
+  TV.forEach((s, el) => { if (!s.persist) { if (s.dwell > 0) trkEv(s.type, s.id, 'view', { dwell_ms: s.dwell }); trkIO && trkIO.unobserve(el); TV.delete(el); } });
+}
+
+/* ---------- feed pop-up: annotate the cards once the trainee opens it ---------- */
+function trkAnnotateFeed() {
+  const pop = $('pop'); if (!pop) return;
+  const notes = ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind)).slice(0, 8);
+  pop.querySelectorAll('.pc[data-cid="notes"] .nt').forEach((el, i) => { if (notes[i]) trkWatch(el, 'notification', notes[i].id); });
+  const di = (D.items || []).filter(i => i.kind === 'dandana');
+  if (di.length) {
+    const last = di.reduce((m, i) => i.date > m ? i.date : m, '');
+    const ids = di.filter(i => i.date === last).sort((a, b) => a.no - b.no).map(i => i.id);
+    pop.querySelectorAll('.pc[data-cid="dnd"] .dnr').forEach((el, i) => { if (ids[i] != null) trkWatch(el, 'dandana', ids[i]); });
+  }
+  const bill = pop.querySelector('.pc[data-cid="bill"] .billb'); if (bill) trkWatch(bill, 'bill', 'bill:' + itToday().slice(0, 7));
+  const as = pop.querySelector('.pc[data-cid="as"] .aw'); if (as) trkWatch(as, 'assistant_words', 'as:' + itToday());
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const p = $('pop'); if (!p) return; let was = false;
+  new MutationObserver(() => {
+    const on = p.classList.contains('open');
+    if (on && !was) { was = true; trkEv('feed', 'feed', 'opened'); trkAnnotateFeed(); }
+    else if (!on && was) { was = false; trkViewOut(); trkEv('feed', 'feed', 'dismissed'); trkFlush(); }
+  }).observe(p, { attributes: true, attributeFilter: ['class'] });
+});
+
+/* ---------- tasks / dandana cards on the dashboard itself ---------- */
+function trkScanItems() {
+  if (!D || !trkOn()) return;
+  document.querySelectorAll('#lists .itm').forEach(el => {
+    if (el.dataset.trk) return;
+    const h = el.querySelector('.hnd'), m = h && /raiseHand\((\d+)\)/.exec(h.getAttribute('onclick') || ''), k = m && TK[+m[1]];
+    if (!k) return;
+    const it = (D.items || []).find(x => x.date === k.date && ((x.kind === 'dandana' ? 100 : 0) + x.no) === k.no);
+    if (it) trkWatch(el, it.kind, it.id, true);
+  });
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const r = $('lists'); if (!r) return; let q = 0;
+  new MutationObserver(() => { cancelAnimationFrame(q); q = requestAnimationFrame(trkScanItems); }).observe(r, { childList: true, subtree: true });
+});
+
+/* ---------- clicks (window capture = runs before the page's own handlers, which stop propagation) ---------- */
+window.addEventListener('click', e => {
+  if (!trkOn()) return;
+  const t = e.target, c = t.closest ? t.closest.bind(t) : null; if (!c) return;
+  const x = c('.pc .x');                                    // X on a card = dismissed (every item inside it)
+  if (x) { const pc = x.closest('.pc'); pc.querySelectorAll('[data-trk]').forEach(el => { const s = TV.get(el); if (s) trkEv(s.type, s.id, 'dismissed', { dwell_ms: s.dwell }); }); return; }
+  const cp = c('.cpb');                                     // copy button
+  if (cp && !cp.disabled) {
+    const host = cp.closest('[data-trk]'), s = host && TV.get(host);
+    if (s) trkEv(s.type, s.id, 'copied', { meta: { text: String(CPT[cp.dataset.cp] || '').slice(0, 200) } });
+    return;
+  }
+  const w = c('.aww');                                      // a new word opened in the player
+  if (w) { trkEv('assistant_words', 'as:' + itToday(), 'interacted', { meta: { word: w.dataset.w } }); return; }
+  const ck = c('.itc.open');                                // task / dandana circle
+  if (ck) { const m = /checkItem\((\d+)\)/.exec(ck.getAttribute('onclick') || ''); if (m) { const it = (D.items || []).find(i => i.id === +m[1]); trkEv(it ? it.kind : 'task', m[1], 'interacted', { meta: { n: ((it && it.checks) || []).length + 1, of: it && (it.plan ? it.plan.n_eff : it.repeats) } }); } return; }
+  const hd = c('.hnd');                                     // "!" help button
+  if (hd) { const m = /raiseHand\((\d+)\)/.exec(hd.getAttribute('onclick') || ''), k = m && TK[+m[1]]; if (k) { const it = (D.items || []).find(i => i.date === k.date && ((i.kind === 'dandana' ? 100 : 0) + i.no) === k.no); if (it) trkEv(it.kind, it.id, 'interacted', { meta: { help: 1 } }); } }
+}, true);
