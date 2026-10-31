@@ -15,9 +15,10 @@
     return;
   }
   var R = window.ThabitRich;
-  var RICH_FIELD = /^ds_(qol|tefl|notes)_\d+$/;
+  var RICH_FIELD = /./;                                   // EVERY text field that opens the writing popup
+  var NAME_RE = /^ds_(qol|tefl|notes)_\d+$/;
   var NAMES = { qol: 'QOL', tefl: 'TFL', notes: 'Notes' };
-  var COLORS = [['gold', 'ذهبي'], ['green', 'أخضر'], ['red', 'أحمر'], ['blue', 'أزرق'], ['purple', 'بنفسجي'], ['orange', 'برتقالي'], ['gray', 'رمادي']];
+  var COLORS = [['gold', 'ذهبي'], ['green', 'أخضر'], ['red', 'أحمر'], ['purple', 'بنفسجي'], ['orange', 'برتقالي'], ['gray', 'رمادي']];
   var lastPos = null;            // the preview remembers where you left it
   var lastTheme = null;          // and which theme you last checked
 
@@ -43,7 +44,14 @@
       '.rt-prev-b{padding:12px;overflow:auto;font-size:15px}',
       '.rt-prev-f{padding:6px 12px 10px;font-size:11px;opacity:.75;border-top:1px dashed rgba(148,163,184,.3)}',
       '.rt-empty{opacity:.55;font-size:12px;text-align:center;padding:14px 0}',
-      '.rt-prev.rt-collapsed .rt-prev-b,.rt-prev.rt-collapsed .rt-prev-f{display:none}'
+      '.rt-prev.rt-collapsed .rt-prev-b,.rt-prev.rt-collapsed .rt-prev-f{display:none}',
+      '.rt-prev .rt-link{color:#7dd3fc!important;text-decoration:none!important;border:0!important;box-shadow:none!important;cursor:pointer}',
+      '.rt-prev.rt-light .rt-link{color:#0369a1!important}',
+      '.rt-bub{position:fixed;z-index:2147483200;display:none;align-items:center;gap:4px;padding:4px;border-radius:12px;background:#0f172a;border:1px solid rgba(245,158,11,.65);box-shadow:0 10px 30px rgba(0,0,0,.55);font-family:Cairo,Inter,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}',
+      '.rt-bub.show{display:flex}',
+      '.rt-bub button{height:32px;min-width:32px;padding:0 9px;border-radius:9px;border:1px solid #475569;background:transparent;color:#e2e8f0;font:700 12px Cairo,Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}',
+      '.rt-bub button:hover{border-color:#fbbf24;background:rgba(251,191,36,.12)}',
+      '.rt-bub button.rt-bk{color:#7dd3fc;border-color:rgba(125,211,252,.55)}'
     ].join('');
     document.head.appendChild(s);
   })();
@@ -99,7 +107,20 @@
       var t = R.strip(v.slice(s, e));
       ta.setRangeText(t, s, e, 'preserve'); done(s, s + t.length);
     }
-    return { wrap: wrap, color: color, clear: clear };
+    function link() {
+      var x = sel(), t = x.v.slice(x.s, x.e);
+      if (t.indexOf('\n') === -1) return wrap('[[', ']]');
+      var lines = t.split('\n'), allOn = true, any = false;
+      lines.forEach(function (ln) { var c = ln.trim(); if (!c) return; any = true; if (!(c.indexOf('[[') === 0 && c.slice(-2) === ']]')) allOn = false; });
+      if (!any) return;
+      var out = lines.map(function (ln) {
+        var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(ln); if (!m[2]) return ln;
+        var core = allOn ? m[2].slice(2, -2) : '[[' + m[2].replace(/\[\[|\]\]/g, '') + ']]';
+        return m[1] + core + m[3];
+      }).join('\n');
+      ta.setRangeText(out, x.s, x.e, 'preserve'); done(x.s, x.s + out.length);
+    }
+    return { wrap: wrap, color: color, clear: clear, link: link };
   }
 
   /* ---------- floating preview ---------- */
@@ -168,6 +189,61 @@
     return { update: update, el: el, toggle: function () { el.style.display = el.style.display === 'none' ? '' : 'none'; } };
   }
 
+  /* ---------- floating bubble: appears right above the selected text ---------- */
+  function caretXY(ta, pos) {                       // where a character index sits on screen (mirror-div trick)
+    var cs = getComputedStyle(ta), d = document.createElement('div'), st = d.style;
+    ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing', 'textIndent', 'textTransform', 'lineHeight', 'tabSize',
+      'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth', 'textAlign'].forEach(function (k) { st[k] = cs[k]; });
+    st.boxSizing = 'border-box'; st.position = 'absolute'; st.visibility = 'hidden'; st.left = '-9999px'; st.top = '0';
+    st.whiteSpace = 'pre-wrap'; st.wordWrap = 'break-word'; st.overflow = 'hidden';
+    st.width = (ta.clientWidth + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth)) + 'px';
+    d.setAttribute('dir', cs.direction);
+    d.textContent = ta.value.slice(0, pos);
+    var m = document.createElement('span'); m.textContent = '\u200b'; d.appendChild(m);
+    document.body.appendChild(d);
+    var r = ta.getBoundingClientRect(), fs = parseFloat(cs.fontSize) || 16, lh = parseFloat(cs.lineHeight) || fs * 1.4;
+    var out = { x: r.left + parseFloat(cs.borderLeftWidth) + m.offsetLeft - ta.scrollLeft, y: r.top + parseFloat(cs.borderTopWidth) + m.offsetTop - ta.scrollTop, h: lh };
+    d.remove(); return out;
+  }
+  function Bubble(ov, ta, act) {
+    var el = document.createElement('div'); el.className = 'rt-bub'; el.setAttribute('dir', 'ltr');
+    el.innerHTML =
+      '<button type="button" class="rt-bk" data-a="k" title="Hyperlinked (Ctrl+K)"><i class="fa-solid fa-link"></i> Hyperlinked</button>' +
+      '<button type="button" data-a="b" title="Bold (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>' +
+      '<button type="button" data-a="i" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>';
+    ov.appendChild(el);
+    var raf = 0;
+    function hide() { el.classList.remove('show'); }
+    function hasSel() { var s = ta.selectionStart, e = ta.selectionEnd; return s !== e && ta.value.slice(s, e).trim().length > 0 && document.activeElement === ta; }
+    function place() {
+      if (!ov.isConnected) return;
+      if (!hasSel()) return hide();
+      var A = caretXY(ta, ta.selectionStart), B = caretXY(ta, ta.selectionEnd), tr = ta.getBoundingClientRect();
+      if (A.y + A.h < tr.top || A.y > tr.bottom) return hide();                         // selection scrolled out of the box
+      el.classList.add('show');
+      var w = el.offsetWidth, h = el.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+      var same = Math.abs(A.y - B.y) < A.h / 2, x = same ? (A.x + B.x) / 2 : A.x;
+      var coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;           // on phones the system menu sits above the text, so go below
+      var top = coarse ? B.y + B.h + 10 : A.y - h - 8;
+      if (top < 6) top = B.y + B.h + 8;
+      if (top + h > vh - 6) top = Math.max(6, A.y - h - 8);
+      el.style.left = Math.min(Math.max(6, x - w / 2), Math.max(6, vw - w - 6)) + 'px';
+      el.style.top = top + 'px';
+    }
+    function schedule() { cancelAnimationFrame(raf); raf = requestAnimationFrame(place); }
+    ['select', 'mouseup', 'keyup', 'touchend', 'input', 'focus', 'scroll'].forEach(function (ev) { ta.addEventListener(ev, schedule); });
+    ta.addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== ta) hide(); }, 150); });
+    function onSel() { if (!ov.isConnected) return document.removeEventListener('selectionchange', onSel); if (document.activeElement === ta) schedule(); }
+    document.addEventListener('selectionchange', onSel);
+    function onResize() { if (!ov.isConnected) return window.removeEventListener('resize', onResize); schedule(); }
+    window.addEventListener('resize', onResize);
+    /* run on pointerdown + keep the focus in the textarea, so the selection is never lost */
+    el.addEventListener('pointerdown', function (e) { var b = e.target.closest('button'); e.preventDefault(); if (b) act(b.dataset.a); });
+    el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    el.addEventListener('click', function (e) { e.preventDefault(); });
+    return { schedule: schedule, hide: hide, el: el };
+  }
+
   /* ---------- wrap the existing popup ---------- */
   var original = window.dsTextPop;
   window.dsTextPop = function (hiddenId, label) {
@@ -176,9 +252,11 @@
     var ov = document.body.lastElementChild;
     if (!ov || !ov.classList.contains('ds-ov')) return;
     var ta = ov.querySelector('textarea.ds-ta'); if (!ta) return;
-    var keyName = NAMES[(RICH_FIELD.exec(hiddenId) || [])[1]] || label;
+    var keyName = NAMES[(NAME_RE.exec(hiddenId) || [])[1]] || label;
 
-    var pv = Preview(ov, ta, label, keyName), ops = Ops(ta, function () { pv.update(); });
+    var bub, pv = Preview(ov, ta, label, keyName), ops = Ops(ta, function () { pv.update(); if (bub) bub.schedule(); });
+    function doAct(a) { if (a === 'k') ops.link(); else if (a === 'b') ops.wrap('**', '**'); else if (a === 'i') ops.wrap('__', '__'); }
+    bub = Bubble(ov, ta, doAct);
     ta.addEventListener('input', function () { pv.update(); });
 
     var bar = document.createElement('div');
@@ -204,16 +282,16 @@
         case 'b': ops.wrap('**', '**'); break;
         case 'i': ops.wrap('__', '__'); break;
         case 'u': ops.wrap('++', '++'); break;
-        case 'k': ops.wrap('[[', ']]'); break;
+        case 'k': ops.link(); break;
         case 'x': ops.clear(); break;
         case 'v': pv.toggle(); b.classList.toggle('on'); break;
       }
     });
     ta.addEventListener('keydown', function (e) {
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
-      var k = e.key.toLowerCase(), map = { b: ['**', '**'], i: ['__', '__'], u: ['++', '++'], k: ['[[', ']]'] };
+      var k = e.key.toLowerCase(), map = { b: ['**', '**'], i: ['__', '__'], u: ['++', '++'], k: 1 };
       if (!map[k]) return;
-      e.preventDefault(); ops.wrap(map[k][0], map[k][1]);
+      e.preventDefault(); if (k === 'k') ops.link(); else ops.wrap(map[k][0], map[k][1]);
     });
   };
 
