@@ -1426,15 +1426,16 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   function schedule(ms) { clearTimeout(timer); timer = setTimeout(run, ms == null ? 400 : ms); }   // a bit after the rich-text converter, so [[..]] / ** markers are never split
   function watch() { mo.observe(document.body, { childList: true, subtree: true, characterData: true }); }
 
-  /* tap = play the recording (same player as the Words list) */
-  document.addEventListener('click', function (e) {
-    var s = e.target && e.target.closest && e.target.closest('.vx'); if (!s || !speakOK(s)) return;
-    e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word'));
-  }, true);
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    var s = e.target && e.target.closest && e.target.closest('.vx'); if (s && speakOK(s)) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); }
-  });
+  /* tap = open the word player (play / x2 x3 x5 / record / compare).
+     Registered on window in the capture phase: it runs before every other click handler on the page, so nothing can swallow it.
+     No permission check here: a lit word exists only where the ear is ON (switching the ear off unwraps them). */
+  function vxTap(e) {
+    var s = e.target && e.target.closest && e.target.closest('.vx'); if (!s) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { wpOpen(s.getAttribute('data-word')); } catch (err) { console.error('[voice-lit] player failed', err); }
+  }
+  window.addEventListener('click', vxTap, true);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { var s = e.target && e.target.closest && e.target.closest('.vx'); if (s) vxTap(e); } }, true);
 
   window.__vxRun = function () { schedule(0); };
   function start() {
