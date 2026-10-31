@@ -1,103 +1,27 @@
 /* ==========================================================
-   ThabitRich: shared renderer for formatted text (admin preview + trainee dashboard).
-   The field value stays PLAIN TEXT with tiny markers, so Supabase columns,
-   the archive and CSV export keep working unchanged:
-
-     **bold**   __italic__   ++underline++
-     {{gold:colored text}}   (gold green red blue purple orange gray)
-     [[word]]   a "Hyperlinked" word (its recording plays on tap in the dashboard)
-
-   Layout syntax that already existed is kept:
-     blank line = new capsule · "1." / "a." numbered line · "-" or "•" bullet · " | " thin divider
-   ========================================================== */
-(function (g) {
-  var COLORS = ['gold', 'green', 'red', 'blue', 'purple', 'orange', 'gray'];
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  /* inline markers -> HTML (input is already escaped) */
-  function inline(s) {
-    s = s.replace(/\{\{(gold|green|red|blue|purple|orange|gray):([\s\S]+?)\}\}/g, '<span class="rt-c-$1">$2</span>');
-    s = s.replace(/\[\[([^\[\]\n]+?)\]\]/g, function (_, w) {
-      return '<span class="rt-link" data-word="' + w.replace(/<[^>]*>/g, '').trim() + '" role="button" tabindex="0">' + w + '</span>';
-    });
-    s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>');
-    s = s.replace(/__([\s\S]+?)__/g, '<i>$1</i>');
-    s = s.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
-    return s;
-  }
-
-  function renderLine(raw) {
-    var label = '', body = raw;
-    var m = /^\s*(\d+|[a-y])([.)])\s+([\s\S]*)$/i.exec(raw);
-    if (m) { label = m[1] + m[2]; body = m[3]; }
-    else if ((m = /^\s*[-•]\s+([\s\S]*)$/.exec(raw))) { label = '•'; body = m[1]; }
-    var cells = body.split(/\s*\|\s*/).filter(function (c) { return c.length; });
-    var html = cells.map(function (c) { return '<span class="rt-txt" dir="auto">' + inline(esc(c)) + '</span>'; })
-      .join('<span class="rt-sep" aria-hidden="true"></span>');
-    return '<div class="rt-ln">' + (label ? '<span class="rt-no">' + esc(label) + '</span>' : '') + html + '</div>';
-  }
-
-  /* text -> HTML */
-  function render(text) {
-    var t = String(text == null ? '' : text).replace(/\r/g, '').trim();
-    if (!t) return '';
-    var caps = t.split(/\n\s*\n/).map(function (block) {
-      var lines = block.split('\n').filter(function (l) { return l.trim(); });
-      return '<div class="rt-cap">' + lines.map(renderLine).join('') + '</div>';
-    });
-    return '<div class="rt-body">' + caps.join('') + '</div>';
-  }
-
-  /* text -> text without markers (for one-line summaries and exports) */
-  function strip(text) {
-    return String(text == null ? '' : text)
-      .replace(/\{\{(?:gold|green|red|blue|purple|orange|gray):([\s\S]+?)\}\}/g, '$1')
-      .replace(/\[\[([^\[\]\n]+?)\]\]/g, '$1')
-      .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
-      .replace(/__([\s\S]+?)__/g, '$1')
-      .replace(/\+\+([\s\S]+?)\+\+/g, '$1');
-  }
-
-  /* the words marked as Hyperlinked (unique, in order) */
-  function links(text) {
-    var out = [], seen = {}, re = /\[\[([^\[\]\n]+?)\]\]/g, m;
-    while ((m = re.exec(String(text || '')))) { var w = m[1].trim(); if (w && !seen[w.toLowerCase()]) { seen[w.toLowerCase()] = 1; out.push(w); } }
-    return out;
-  }
-
-  var api = { render: render, strip: strip, links: links, inline: inline, esc: esc, COLORS: COLORS };
-  g.ThabitRich = api;
-  if (typeof module !== 'undefined' && module.exports) module.exports = api;
-})(typeof window !== 'undefined' ? window : globalThis);
-/* ==========================================================
    Admin rich-text editor (loads AFTER adminpanel.js and richtext.js).
-   Adds a formatting toolbar + floating live preview on every long-text popup:
-   QOL, TFL, Notes, AND now the notification message (ntBody), the bulk Task
-   description (tkBody) and the Monthly obligations message (moBody).
-   Stored value stays plain text with markers (see richtext.js).
+   It wraps the existing dsTextPop popup, so the capsule / numbering / divider
+   tools keep working, and adds on QOL, TFL and Notes:
+     - a formatting toolbar (bold, italic, underline, theme-safe colors,
+       Hyperlinked, clear formatting) + Ctrl/Cmd + B / I / U / K
+     - a floating live preview you can drag, snap left/right, collapse,
+       and flip between dark/light to check the colors in both themes
+   The stored value stays plain text with small markers (see richtext.js).
    ========================================================== */
 (function () {
   'use strict';
-  if (!window.ThabitRich) {   // fail LOUDLY instead of silently
-    var bn = document.createElement('div');
-    bn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#be123c;color:#fff;padding:8px 12px;font:700 13px Cairo,sans-serif;text-align:center';
-    bn.textContent = 'adminpanel-rich: richtext.js مش متحمّل (js/richtext.js ناقص أو قديم). التنسيق مش هيشتغل.';
-    document.body.appendChild(bn);
+  if (!window.ThabitRich || typeof window.dsTextPop !== 'function') {
+    console.warn('adminpanel-rich: load richtext.js and adminpanel.js first');
     return;
   }
-  console.info('adminpanel-rich v2 loaded');
   var R = window.ThabitRich;
-  /* which popups get the toolbar */
-  var RICH_FIELD = /^(?:ds_(?:qol|tefl|notes)_\d+|ntBody|tkBody|moBody)$/;
+  var RICH_FIELD = /^ds_(qol|tefl|notes)_\d+$/;
   var NAMES = { qol: 'QOL', tefl: 'TFL', notes: 'Notes' };
-  var FIXED = { ntBody: 'Notification', tkBody: 'Task', moBody: 'Monthly obligations' };
   var COLORS = [['gold', 'ذهبي'], ['green', 'أخضر'], ['red', 'أحمر'], ['blue', 'أزرق'], ['purple', 'بنفسجي'], ['orange', 'برتقالي'], ['gray', 'رمادي']];
-  var lastPos = null, lastTheme = null;
+  var lastPos = null;            // the preview remembers where you left it
+  var lastTheme = null;          // and which theme you last checked
 
+  /* ---------- styles ---------- */
   (function () {
     if (document.getElementById('rtAdminCss')) return;
     var s = document.createElement('style'); s.id = 'rtAdminCss';
@@ -124,10 +48,11 @@
     document.head.appendChild(s);
   })();
 
+  /* ---------- text operations on the textarea ---------- */
   function Ops(ta, after) {
     function sel() {
       var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
-      while (s < e && /\s/.test(v.charAt(s))) s++;
+      while (s < e && /\s/.test(v.charAt(s))) s++;          // never wrap the spaces around a word
       while (e > s && /\s/.test(v.charAt(e - 1))) e--;
       return { s: s, e: e, v: v };
     }
@@ -135,11 +60,11 @@
 
     function wrap(open, close) {
       var x = sel(), s = x.s, e = x.e, v = x.v, t = v.slice(s, e);
-      if (s >= open.length && v.slice(s - open.length, s) === open && v.slice(e, e + close.length) === close) {
+      if (s >= open.length && v.slice(s - open.length, s) === open && v.slice(e, e + close.length) === close) {      // markers just outside -> remove
         ta.setRangeText(t, s - open.length, e + close.length, 'preserve');
         return done(s - open.length, s - open.length + t.length);
       }
-      if (t.length >= open.length + close.length && t.indexOf(open) === 0 && t.slice(-close.length) === close) {
+      if (t.length >= open.length + close.length && t.indexOf(open) === 0 && t.slice(-close.length) === close) {      // markers inside the selection -> remove
         var inner = t.slice(open.length, t.length - close.length);
         ta.setRangeText(inner, s, e, 'preserve');
         return done(s, s + inner.length);
@@ -152,7 +77,7 @@
     function color(tok) {
       var x = sel(), s = x.s, e = x.e, v = x.v, t = v.slice(s, e);
       var before = /\{\{(gold|green|red|blue|purple|orange|gray):$/.exec(v.slice(0, s));
-      if (before && v.slice(e, e + 2) === '}}') {
+      if (before && v.slice(e, e + 2) === '}}') {                          // already colored from outside
         var os = s - before[0].length;
         if (before[1] === tok) { ta.setRangeText(t, os, e + 2, 'preserve'); return done(os, os + t.length); }
         var open = '{{' + tok + ':';
@@ -177,6 +102,7 @@
     return { wrap: wrap, color: color, clear: clear };
   }
 
+  /* ---------- floating preview ---------- */
   function Preview(ov, ta, label, keyName) {
     var el = document.createElement('div');
     var theme = lastTheme || (document.body.classList.contains('light-theme') ? 'light' : 'dark');
@@ -220,6 +146,7 @@
       else if (p === 'theme') { theme = theme === 'dark' ? 'light' : 'dark'; lastTheme = theme; el.classList.remove('rt-dark', 'rt-light'); el.classList.add('rt-' + theme); }
       else if (p === 'fold') el.classList.toggle('rt-collapsed');
     });
+    /* dragging by the header */
     var drag = null;
     head.addEventListener('pointerdown', function (e) {
       if (e.target.closest('button')) return;
@@ -241,8 +168,19 @@
     return { update: update, el: el, toggle: function () { el.style.display = el.style.display === 'none' ? '' : 'none'; } };
   }
 
-  /* ---------- toolbar (shared by popups and inline fields) ---------- */
-  function makeBar(ops, onToggle) {
+  /* ---------- wrap the existing popup ---------- */
+  var original = window.dsTextPop;
+  window.dsTextPop = function (hiddenId, label) {
+    original.apply(this, arguments);
+    if (!RICH_FIELD.test(hiddenId)) return;
+    var ov = document.body.lastElementChild;
+    if (!ov || !ov.classList.contains('ds-ov')) return;
+    var ta = ov.querySelector('textarea.ds-ta'); if (!ta) return;
+    var keyName = NAMES[(RICH_FIELD.exec(hiddenId) || [])[1]] || label;
+
+    var pv = Preview(ov, ta, label, keyName), ops = Ops(ta, function () { pv.update(); });
+    ta.addEventListener('input', function () { pv.update(); });
+
     var bar = document.createElement('div');
     bar.className = 'rt-bar'; bar.setAttribute('dir', 'ltr');
     bar.innerHTML =
@@ -250,12 +188,15 @@
       '<button type="button" class="rt-tb" data-a="i" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>' +
       '<button type="button" class="rt-tb" data-a="u" title="Underline (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>' +
       '<span class="rt-sep2"></span>' +
-      COLORS.map(function (c) { return '<button type="button" class="rt-sw" data-c="' + c[0] + '" title="' + c[1] + '" style="background:var(--rt-' + c[0] + ',' + ({gold:'#fbbf24',green:'#34d399',red:'#f43f5e',blue:'#60a5fa',purple:'#a78bfa',orange:'#fb923c',gray:'#94a3b8'})[c[0]] + ')"></button>'; }).join('') +
+      COLORS.map(function (c) { return '<button type="button" class="rt-sw" data-c="' + c[0] + '" title="' + c[1] + '" style="background:var(--rt-' + c[0] + ')"></button>'; }).join('') +
       '<span class="rt-sep2"></span>' +
       '<button type="button" class="rt-tb rt-link-btn" data-a="k" title="Hyperlinked (Ctrl+K): الكلمة هتتنطق للطالب لما يدوس عليها"><i class="fa-solid fa-link"></i> Hyperlinked</button>' +
       '<button type="button" class="rt-tb" data-a="x" title="مسح التنسيق"><i class="fa-solid fa-eraser"></i></button>' +
-      (onToggle ? '<span style="flex:1"></span><button type="button" class="rt-tb on" data-a="v" title="إظهار / إخفاء المعاينة"><i class="fa-solid fa-eye"></i></button>' : '');
-    bar.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      '<span style="flex:1"></span>' +
+      '<button type="button" class="rt-tb on" data-a="v" title="إظهار / إخفاء المعاينة"><i class="fa-solid fa-eye"></i></button>';
+    ta.parentNode.insertBefore(bar, ta);
+
+    bar.addEventListener('mousedown', function (e) { e.preventDefault(); });           // keep the selection in the textarea
     bar.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       if (b.dataset.c) return ops.color(b.dataset.c);
@@ -265,69 +206,25 @@
         case 'u': ops.wrap('++', '++'); break;
         case 'k': ops.wrap('[[', ']]'); break;
         case 'x': ops.clear(); break;
-        case 'v': if (onToggle) { onToggle(); b.classList.toggle('on'); } break;
+        case 'v': pv.toggle(); b.classList.toggle('on'); break;
       }
     });
-    return bar;
-  }
-  function shortcuts(el, ops) {
-    el.addEventListener('keydown', function (e) {
+    ta.addEventListener('keydown', function (e) {
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
       var k = e.key.toLowerCase(), map = { b: ['**', '**'], i: ['__', '__'], u: ['++', '++'], k: ['[[', ']]'] };
       if (!map[k]) return;
       e.preventDefault(); ops.wrap(map[k][0], map[k][1]);
     });
-  }
+  };
 
-  /* ---------- every long-text popup (QOL, TFL, Notes, profile fields, messages, task text...) ---------- */
-  function enhancePopup(ov) {
-    var ta = ov.querySelector('textarea.ds-ta'); if (!ta) return;
-    var lb = ov.querySelector('.ds-box b'), label = lb ? lb.textContent : '';
-    var pv = Preview(ov, ta, label, label), ops = Ops(ta, function () { pv.update(); });
-    ta.addEventListener('input', function () { pv.update(); });
-    ta.parentNode.insertBefore(makeBar(ops, pv.toggle), ta);
-    shortcuts(ta, ops);
-  }
-
-  /* ---------- short single fields (task title / badge / description, notification title...) ---------- */
-  var INLINE = '#ntTitle,#tkTitle,#tkBadge,#moTitle,#dsi_title,#dsi_badge,#dsi_body';
-  function enhanceInline(el) {
-    el.setAttribute('data-rt', '1');
-    var box = document.createElement('div');
-    box.className = 'rt-inl'; box.style.cssText = 'display:none;margin-top:6px;padding:8px 10px;border:1px dashed #475569;border-radius:10px;font-size:13px';
-    var upd = function () { var v = el.value; box.style.display = v.trim() ? '' : 'none'; box.innerHTML = v.trim() ? R.render(v) : ''; };
-    var ops = Ops(el, upd);
-    var bar = makeBar(ops, null); bar.style.marginBottom = '6px';
-    el.parentNode.insertBefore(bar, el);
-    el.parentNode.insertBefore(box, el.nextSibling);
-    el.addEventListener('input', upd); shortcuts(el, ops); upd();
-  }
-
-  var queued = false;
-  function scan() {
-    queued = false;
-    document.querySelectorAll('.ds-ov:not([data-rt])').forEach(function (ov) {
-      if (ov.querySelector('textarea.ds-ta')) { ov.setAttribute('data-rt', '1'); enhancePopup(ov); }
-    });
-    document.querySelectorAll(INLINE).forEach(function (el) { if (!el.hasAttribute('data-rt') && el.parentNode) enhanceInline(el); });
-  }
-  new MutationObserver(function () { if (!queued) { queued = true; requestAnimationFrame(scan); } })
-    .observe(document.body, { childList: true, subtree: true });
-  scan();
-
-  /* one-line summary on the form shows clean text, without the markers */
+  /* the small one-line summary on the form shows clean text, without the markers */
   var origRefresh = window.dsRefreshPf;
   if (typeof origRefresh === 'function') {
     window.dsRefreshPf = function (id) {
       origRefresh.apply(this, arguments);
+      if (!RICH_FIELD.test(id)) return;
       var pf = document.getElementById(id + '_pf');
       if (pf && !pf.classList.contains('empty')) pf.textContent = R.strip(pf.textContent);
     };
   }
-
-  /* the small preview under the notification composer renders the real formatting now */
-  window.ntPreview = function () {
-    var b = document.getElementById('ntBody'), p = document.getElementById('ntPrev'); if (!b || !p) return;
-    var v = b.value.trim(); p.style.display = v ? '' : 'none'; p.innerHTML = v ? R.render(v) : '';
-  };
 })();
