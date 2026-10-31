@@ -16,9 +16,8 @@ body{font-family:Inter,Cairo,sans-serif}
 .rng{display:flex;gap:6px;flex-wrap:wrap}
 .rng{align-items:center}
 .rng button{width:46px;height:46px;padding:3px;display:grid;place-items:center;text-align:center;line-height:1.1;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.14);color:var(--th-muted);font-weight:700;font-size:.58rem;cursor:pointer;transition:width .35s cubic-bezier(.34,1.4,.5,1),height .35s cubic-bezier(.34,1.4,.5,1),background .3s,color .3s,font-size .3s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.rng button.on{width:66px;height:66px;font-size:.74rem;font-weight:800;color:#fff;border-color:transparent;text-shadow:0 1px 3px rgba(0,0,0,.45);background:linear-gradient(120deg,#ff5d55,#4c8dff,#22d3a6,#ffc247,#ff5d55);background-size:300% 100%;animation:rngFlow 8s linear infinite;box-shadow:0 6px 18px rgba(76,141,255,.35)}
-@keyframes rngFlow{to{background-position:300% 0}}
-@media(prefers-reduced-motion:reduce){.rng button.on{animation:none}}
+.rng button.on{width:54px;height:54px;font-size:.66rem;font-weight:800;color:#111;background:#fff;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+body.light-theme .rng button.on{border-color:#111;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px}
 .dcard{padding:16px;border-radius:18px}
 .dcard h4{margin:0 0 6px;font-size:.78rem;color:var(--th-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
@@ -89,7 +88,7 @@ html{-webkit-text-size-adjust:100%}
  .wrap{padding:64px 10px 110px}
  .top{order:-3}#overall{order:-2}
  .top h1{font-size:1.15rem}
- .rng button{width:40px;height:40px;font-size:.54rem}.rng button.on{width:56px;height:56px;font-size:.66rem}
+ .rng button{width:40px;height:40px;font-size:.54rem}.rng button.on{width:48px;height:48px;font-size:.6rem}
  .grid{gap:10px;margin-bottom:10px;grid-template-columns:1fr}
  #kpis,#lists{grid-template-columns:1fr 1fr}#kpis>:first-child,#kpis>:last-child,#lists>:nth-child(-n+2){grid-column:1/-1}
  .lst{max-height:200px}.lst.caps{max-height:164px}
@@ -434,10 +433,23 @@ body.light-theme .ear.on{color:#047857;border-color:rgba(4,120,87,.55);backgroun
 @media(prefers-reduced-motion:reduce){.ear.shk i,.ear.cls i{animation:none}}
 .cti{margin-bottom:14px}.cti:last-child{margin-bottom:0}.ctd{margin-bottom:4px}
 
+/* ===== touch = scroll: a drag anywhere on the page always scrolls the page; only a tap / long-press acts ===== */
+.wrap,.wrap *{touch-action:pan-y!important}
+.wrap input[type=range]{touch-action:pan-x!important}
+.wrap .dcard,.wrap .cap,.wrap .earc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.wrap textarea,.wrap input[type=text],.wrap select{-webkit-user-select:text;user-select:text}
+@media (hover:none) and (pointer:coarse){.wrap .lst{overflow:hidden!important}}
 /* ===== smooth touch: let the browser start page scrolling at once, also from the cards / notes ===== */
 .thabit-card,.test-card,.cap,.earc,.dcard{touch-action:pan-y;-webkit-tap-highlight-color:transparent}
 .lst,.ntl,.sslist,#mB{touch-action:pan-y;overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch}
 html.bgl,html.bgl body{overscroll-behavior:none}
+#rqm .rqd>summary{display:none}#rqm .rqd{overflow:auto;margin:0}#rqm .ssbox{overflow:hidden}
+/* plus button in the bar */
+#plusBtn svg{transition:transform .55s cubic-bezier(.34,1.5,.5,1)}#plusBtn.pk-on svg{transform:rotate(225deg)}
+.lgl{position:absolute;white-space:nowrap;pointer-events:none;font:700 .66rem Inter,Cairo,sans-serif;padding:2px 9px;border-radius:999px;background:rgba(15,23,42,.88);color:#f1f5f9;border:1px solid rgba(255,255,255,.25)}
+.lgp[data-side="left"] .lgl,.lgp[data-side="right"] .lgl{top:calc(100% + 6px);left:50%;transform:translateX(-50%)}
+.lgp[data-side="bottom"] .lgl,.lgp[data-side="top"] .lgl{left:calc(100% + 8px);top:50%;transform:translateY(-50%)}
+body.light-theme .lgl{background:rgba(255,255,255,.92);color:#0f172a;border-color:rgba(15,23,42,.25)}
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 </head>
@@ -447,7 +459,7 @@ html.bgl,html.bgl body{overscroll-behavior:none}
 <div class="mobile-floating-bar" id="mobileFloatingBar">
   <button type="button" data-bk="reload" onclick="location.reload()" class="circle-badge-btn" title="Restart Page" style="color:#3b82f6"><i class="fa-solid fa-rotate text-sm"></i></button>
   <div class="bar-divider"></div>
-  <a data-bk="assist" href="assistant.html" onclick="Panels.open('assistant',event)" id="floatBtnAssist" title="Pronunciation Assistant" aria-label="Pronunciation Assistant" class="circle-badge-btn" style="color:#34d399"><svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg></a>
+  <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="More" aria-label="More" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg></button>
   <div class="bar-divider"></div>
   <button type="button" data-bk="lang" id="langBtn" onclick="openLang(this)" class="circle-badge-btn" title="Language" aria-label="Language"><span id="langTxt">English</span></button>
   <div class="bar-divider"></div>
@@ -466,14 +478,6 @@ html.bgl,html.bgl body{overscroll-behavior:none}
   <div class="acc" id="kpiAcc"><div class="acch" id="kAccT">Scores &amp; details</div><div class="accb"><div class="grid" id="kpis"></div></div></div>
   <div class="thabit-card dcard" id="overall" style="margin-bottom:14px"></div>
   <div class="grid" id="lists"></div>
-  <div class="grid">
-    <details class="thabit-card dcard rqd" id="rqCard"><summary><h4 id="tReq">Send a request</h4></summary>
-      <select id="rqType" onchange="rqFollowUI(true)"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
-      <label class="rql" id="rqLWhat">What is your request?</label><input type="text" id="rqWhat" maxlength="140" autocomplete="off">
-      <label class="rql" id="rqLMsg">Details / reason</label><textarea id="rqMsg" rows="3" maxlength="1500"></textarea>
-      <div id="rqFollow"></div>
-      <button class="btn2" onclick="sendReq()" id="rqBtn">Send</button><div id="rqList" style="margin-top:12px"></div></details>
-  </div>
 </div>
 
  
@@ -486,6 +490,14 @@ html.bgl,html.bgl body{overscroll-behavior:none}
   <section class="pp" id="pp-assistant" hidden><iframe id="asFrame" title="Pronunciation Assistant" allow="microphone; autoplay"></iframe></section>
   <section class="pp pf" id="pp-profile" hidden><h3 id="pfT" style="margin:0 0 12px;font-size:1.05rem">My profile</h3><div class="avw"><div class="av" id="avBox"><img id="avImg" alt=""><span class="avth">Th</span></div><button type="button" class="btn2 avb" id="avBtn">Add your picture</button><input type="file" id="avFile" accept="image/*" hidden></div><div id="pcard"><div class="thabit-card dcard" style="margin-bottom:0"><h4 id="tInfo">My info</h4><div id="info"></div></div></div></section>
 </div></div>
+<div class="ssm" id="rqm" onclick="if(event.target===this)closeRq()"><div class="ssbox">
+  <div class="ssh"><b id="rqmT">Send a request</b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div>
+  <details class="thabit-card dcard rqd" id="rqCard" open><summary><h4 id="tReq">Send a request</h4></summary>
+      <select id="rqType" onchange="rqFollowUI(true)"><option value="session">Session time</option><option value="financial">Financial</option><option value="other">Other</option></select>
+      <label class="rql" id="rqLWhat">What is your request?</label><input type="text" id="rqWhat" maxlength="140" autocomplete="off">
+      <label class="rql" id="rqLMsg">Details / reason</label><textarea id="rqMsg" rows="3" maxlength="1500"></textarea>
+      <div id="rqFollow"></div>
+      <button class="btn2" onclick="sendReq()" id="rqBtn">Send</button><div id="rqList" style="margin-top:12px"></div></details></div></div>
 <div class="ssm" id="logm" onclick="if(event.target===this)closeLog()"><div class="ssbox">
   <div class="ssh"><b id="logT">Done tasks</b><button type="button" onclick="closeLog()" aria-label="Close">&times;</button></div>
   <div class="sslist" id="logList"></div></div></div>
