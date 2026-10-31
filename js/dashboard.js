@@ -1,78 +1,3 @@
-/* ==========================================================
-   ThabitRich: shared renderer for formatted text (admin preview + trainee dashboard).
-   The field value stays PLAIN TEXT with tiny markers, so Supabase columns,
-   the archive and CSV export keep working unchanged:
-
-     **bold**   __italic__   ++underline++
-     {{gold:colored text}}   (gold green red blue purple orange gray)
-     [[word]]   a "Hyperlinked" word (its recording plays on tap in the dashboard)
-
-   Layout syntax that already existed is kept:
-     blank line = new capsule · "1." / "a." numbered line · "-" or "•" bullet · " | " thin divider
-   ========================================================== */
-(function (g) {
-  var COLORS = ['gold', 'green', 'red', 'blue', 'purple', 'orange', 'gray'];
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  /* inline markers -> HTML (input is already escaped) */
-  function inline(s) {
-    s = s.replace(/\{\{(gold|green|red|blue|purple|orange|gray):([\s\S]+?)\}\}/g, '<span class="rt-c-$1">$2</span>');
-    s = s.replace(/\[\[([^\[\]\n]+?)\]\]/g, function (_, w) {
-      return '<span class="rt-link" data-word="' + w.replace(/<[^>]*>/g, '').trim() + '" role="button" tabindex="0">' + w + '</span>';
-    });
-    s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>');
-    s = s.replace(/__([\s\S]+?)__/g, '<i>$1</i>');
-    s = s.replace(/\+\+([\s\S]+?)\+\+/g, '<u>$1</u>');
-    return s;
-  }
-
-  function renderLine(raw) {
-    var label = '', body = raw;
-    var m = /^\s*(\d+|[a-y])([.)])\s+([\s\S]*)$/i.exec(raw);
-    if (m) { label = m[1] + m[2]; body = m[3]; }
-    else if ((m = /^\s*[-•]\s+([\s\S]*)$/.exec(raw))) { label = '•'; body = m[1]; }
-    var cells = body.split(/\s*\|\s*/).filter(function (c) { return c.length; });
-    var html = cells.map(function (c) { return '<span class="rt-txt" dir="auto">' + inline(esc(c)) + '</span>'; })
-      .join('<span class="rt-sep" aria-hidden="true"></span>');
-    return '<div class="rt-ln">' + (label ? '<span class="rt-no">' + esc(label) + '</span>' : '') + html + '</div>';
-  }
-
-  /* text -> HTML */
-  function render(text) {
-    var t = String(text == null ? '' : text).replace(/\r/g, '').trim();
-    if (!t) return '';
-    var caps = t.split(/\n\s*\n/).map(function (block) {
-      var lines = block.split('\n').filter(function (l) { return l.trim(); });
-      return '<div class="rt-cap">' + lines.map(renderLine).join('') + '</div>';
-    });
-    return '<div class="rt-body">' + caps.join('') + '</div>';
-  }
-
-  /* text -> text without markers (for one-line summaries and exports) */
-  function strip(text) {
-    return String(text == null ? '' : text)
-      .replace(/\{\{(?:gold|green|red|blue|purple|orange|gray):([\s\S]+?)\}\}/g, '$1')
-      .replace(/\[\[([^\[\]\n]+?)\]\]/g, '$1')
-      .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
-      .replace(/__([\s\S]+?)__/g, '$1')
-      .replace(/\+\+([\s\S]+?)\+\+/g, '$1');
-  }
-
-  /* the words marked as Hyperlinked (unique, in order) */
-  function links(text) {
-    var out = [], seen = {}, re = /\[\[([^\[\]\n]+?)\]\]/g, m;
-    while ((m = re.exec(String(text || '')))) { var w = m[1].trim(); if (w && !seen[w.toLowerCase()]) { seen[w.toLowerCase()] = 1; out.push(w); } }
-    return out;
-  }
-
-  var api = { render: render, strip: strip, links: links, inline: inline, esc: esc, COLORS: COLORS };
-  g.ThabitRich = api;
-  if (typeof module !== 'undefined' && module.exports) module.exports = api;
-})(typeof window !== 'undefined' ? window : globalThis);
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
@@ -288,11 +213,11 @@ function render() {
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc((window.ThabitRich ? ThabitRich.strip(String(r[key])) : String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
   return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
-const escv = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/\s*\|\s*/g, '<i class="vb"></i>');
+const escv = s => esc(s).replace(/\s*\|\s*/g, '<i class="vb"></i>');
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
@@ -303,7 +228,7 @@ function rich(txt) {
 }
 
 /* ===== Per-capsule copy: every block (separated by a blank line) gets its own copy button ===== */
-const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(b.trim())}</div>`).join('');
+const richC = txt => String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => `<div class="rcap">${rich(b)}${cpBtn(rtStrip(b.trim()))}</div>`).join('');
 (function () { const s = document.createElement('style'); s.textContent = `
 .rcap{margin:0 0 8px}
 .rcap>.rp,.rcap>.rl{margin:0;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}
@@ -377,15 +302,14 @@ const tlHtml = (p, d, s) => {
   return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpen(t)}</span></div>`).join('')}</div>`;
 };
 
-const inl = v => window.ThabitRich ? ThabitRich.inline(esc(v)) : esc(v);
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
   const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
   const hi = it.priority === 'high' ? '<span class="hi">HIGH</span>' : '';
   const head = it.kind === 'dandana'
-    ? `<b dir="ltr">${inl(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${inl(it.badge)}</span>` : ''}`
-    : `<b dir="auto">${inl(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${inl(it.badge)}</span>` : ''}`;
+    ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
+    : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
   const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
@@ -640,7 +564,7 @@ function noteText(n) {
   const t = NT(), m = n.meta || {};
   if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
   if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? richC(m.reply) : '' };
-  return { h: inl(n.title || t.msg), b: richC(n.body || '') };
+  return { h: esc(n.title || t.msg), b: richC(n.body || '') };
 }
 function notesCard(list, unreadOnly) {
   const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
@@ -675,11 +599,9 @@ function dismissCard(id) {
 const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
-/* the Next-session card never counts in the badge; every other card (notifications, dandana, payment, assistant words) does */
-const counts = c => c.id !== 'nxt' && (c.noX || c.isNew);
-const feedCount = () => feedCards().filter(counts).length;
+const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(counts).length, bd = $('feedBadge');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
   bd.hidden = !n || INTRO.hold; bd.textContent = n;
@@ -700,7 +622,7 @@ function runIntro2(btn) {
   setTimeout(() => btn.classList.add('done', 'pop'), 760);
   setTimeout(() => {
     try { if (!VIEW && tok()) localStorage.setItem(INTRO_KEY, tok()); } catch (e) {}
-    const c = feedCards().filter(x => x.id === 'nxt'); CINTRO.popShown = true;   // on opening the dashboard ONLY the Next-session card pops up
+    const c = feedCards(); CINTRO.popShown = true;
     if (c.length) openPop(c, btn); else { INTRO.hold = false; updateFeed(); chartsGo(); }
   }, 1150);
 }
@@ -849,7 +771,7 @@ const ASX = {
 .billl{margin-top:6px;font-size:.8rem;font-weight:700;color:#fbbf24}
 .aww{cursor:pointer}.aww:hover{color:#34d399}
 /* hyperlinked words: no underline, just a slightly different colour */
-.rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;color:#7dd3fc!important}
+.rt-link{text-decoration:none!important;border-bottom:0!important;box-shadow:none!important;background:none!important;color:#7dd3fc!important;cursor:pointer}
 body.light-theme .rt-link{color:#0369a1!important}
 /* word player pop-up */
 .wp{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);width:min(92vw,360px);z-index:99999;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.45)}
@@ -934,7 +856,7 @@ async function wpResolve(text) {   // whole text first; "a, b" -> every part, on
   const parts = wpParts(text); if (parts.length < 2) return null;
   const us = await Promise.all(parts.map(wpLookup)); return us.every(Boolean) ? us : null;
 }
-async function wpOpen(word, rep) {
+async function wpOpen(word) {
   word = String(word == null ? '' : word).trim(); if (!word) return;
   if (window.ThabitRichStudent) { try { ThabitRichStudent.stop(); } catch (e) {} }
   wpClose();
@@ -947,7 +869,7 @@ async function wpOpen(word, rep) {
   let urls, err = '';
   try { urls = await wpResolve(word); } catch (e) { urls = undefined; err = e && e.message || String(e); console.error('[word player] lookup failed for "' + word + '":', e); }
   if (my !== WP.tk) return;
-  if (!urls) { if (urls === null && rep) wpReport(word); wpMsg(urls === null ? x.missing : x.fail + (err ? ' (' + err + ')' : '')); return; }
+  if (!urls) { wpMsg(urls === null ? x.missing : x.fail + (err ? ' (' + err + ')' : '')); return; }
   WP.urls = urls; wpLoad(true);
 }
 async function wpDownload() {
@@ -967,7 +889,7 @@ async function wpDownload() {
 document.addEventListener('click', e => {
   const w = $('wp'); if (!w) return;
   const t = e.target;
-  if (w.contains(t) || (t.closest && t.closest('.aww'))) return;
+  if (w.contains(t) || (t.closest && t.closest('.aww, .rt-link'))) return;
   e.stopPropagation(); e.preventDefault(); wpClose();
 }, true);
 /* tap outside the feed (and outside the player / Feed button) closes the whole feed */
@@ -1262,25 +1184,41 @@ function layoutBar() {
   bar.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 })();
 
-/* ===== Hyperlinked words ([[word]] from the trainer): tap = play it; no recording = report it to the trainer automatically ===== */
-const RPT_KEY = 'thabit_reported_words';
-function wpReport(word) {
-  if (VIEW) return;                                   // the admin's "Dashboard View" never reports for the trainee
-  const k = wpClean(word); if (!k) return;
-  let done = {}; try { done = JSON.parse(localStorage.getItem(RPT_KEY) || '{}') || {}; } catch (e) {}
-  const day = itToday(); if (done[k] === day) return;   // once per word per day
-  const p = (D && D.profile) || {};
-  const body = { word: String(word).trim(), trainee_id: p.id != null ? p.id : null, trainee_name: p.trainee || p.name || null, status: 'pending' };
-  fetch(`${SB}/rest/v1/due_words_table`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(body) })
-    .then(r => { if (r.ok) { done[k] = day; try { localStorage.setItem(RPT_KEY, JSON.stringify(done)); } catch (e) {} } else r.text().then(t => console.warn('[report word] failed', r.status, t)); })
-    .catch(e => console.warn('[report word] error', e));
-}
-document.addEventListener('click', e => {
-  const s = e.target.closest && e.target.closest('.rt-link[data-word]');
-  if (s) { e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word'), true); }
-}, true);
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const s = e.target.closest && e.target.closest('.rt-link[data-word]');
-  if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word'), true); }
-});
+/* ===== Rich text everywhere on the student dashboard =====
+   Whatever the admin writes can carry:  **bold**  __italic__  ++underline++  {{gold:colored}}  [[hyperlinked word]]
+   Any text node on the page that contains these markers is turned into styled HTML (also text added later).
+   A tap on a hyperlinked word opens the same word player as the Words list. */
+function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s == null ? '' : s); }
+(function () {
+  const R = window.ThabitRich; if (!R) { console.warn('dashboard: richtext.js is not loaded, formatting markers will show as plain text'); return; }
+  const HAS = /\[\[[^\[\]\n]+?\]\]|\*\*[\s\S]+?\*\*|__[\s\S]+?__|\+\+[\s\S]+?\+\+|\{\{(?:gold|green|red|blue|purple|orange|gray):[\s\S]+?\}\}/;
+  const SKIP = 'script,style,textarea,input,select,option,code,pre,.rt-link';
+  function convert(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => (n.nodeValue.length > 3 && HAS.test(n.nodeValue) && !(n.parentElement && n.parentElement.closest(SKIP))) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+    });
+    const hits = []; while (w.nextNode()) hits.push(w.currentNode);
+    hits.forEach(n => { const t = document.createElement('template'); t.innerHTML = R.inline(R.esc(n.nodeValue)); n.replaceWith(t.content); });
+  }
+  const pending = new Set(); let timer = null;
+  const mo = new MutationObserver(recs => {
+    recs.forEach(r => {
+      if (r.type === 'characterData') { if (r.target.parentElement) pending.add(r.target.parentElement); return; }
+      r.addedNodes.forEach(n => { if (n.nodeType === 1) pending.add(n); else if (n.nodeType === 3 && n.parentElement) pending.add(n.parentElement); });
+    });
+    if (pending.size) { clearTimeout(timer); timer = setTimeout(flush, 40); }
+  });
+  const watch = () => mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+  function flush() {
+    mo.disconnect();                                   // our own edits must not trigger us again
+    try { pending.forEach(el => { if (el.isConnected) convert(el); }); } catch (e) { console.error('[rich text]', e); }
+    pending.clear(); watch();
+  }
+  const start = () => { try { convert(document.body); } catch (e) { console.error('[rich text]', e); } watch(); };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+
+  /* tap a hyperlinked word -> word player (capture phase, so the feed / modal underneath do not react to the tap) */
+  const linkOf = e => e.target && e.target.closest && e.target.closest('.rt-link[data-word]');
+  document.addEventListener('click', e => { const s = linkOf(e); if (!s) return; e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word')); }, true);
+  document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const s = linkOf(e); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); } });
+})();
