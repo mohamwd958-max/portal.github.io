@@ -3207,8 +3207,8 @@ async function hlRender() {
 
 
 /* ==========================================================
-   Patch 6: Generator (student login accounts) - needs the "student-accounts" Edge Function
-   (see GENERATOR_SETUP.md). The browser never sees the service key: the function checks you are the admin.
+   Patch 6: Generator (student logins via the DB functions in 10_admin_logins.sql)
+   Every call goes through an admin-only SQL function; the browser never touches the credentials table directly.
    ========================================================== */
 const GEN_DOMAIN = '@thabit.com';
 WSD.gen = { t: 'Generator · المولّد', i: 'fa-key', w: 2 };
@@ -3226,15 +3226,24 @@ function genCopy(t) {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => genCopyOld(t, done)); else genCopyOld(t, done);
 }
 function genCopyOld(t, done) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { } a.remove(); }
-async function genCall(payload) {
-  let r;
-  try { r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) }); }
-  catch (e) { throw new Error('مش قادر أوصل للفانكشن student-accounts. غالباً: (1) لسه ما اتعملتش Deploy، أو (2) اسمها في Supabase مش student-accounts بالظبط. افتح Supabase ← Edge Functions وتأكد إنها ظاهرة وحالتها Active.'); }
-  const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
-  if (r.status === 404) throw new Error('الفانكشن student-accounts لسه مش متعملة Deploy (شوف GENERATOR_SETUP.md)');
-  if (r.status === 401) { if (window.SB_ACCESS_TOKEN) onSessionExpired(); throw new Error('انتهت الجلسة، سجّل دخول تاني'); }
-  if (!r.ok) { const e = new Error(j.error || j.message || t); e.code = j.code; throw e; }
-  return j;
+const GEN_ERR = {
+  not_admin: 'مش مسموح: لازم تكون داخل بحساب الأدمن',
+  profile_not_found: 'البروفايل مش موجود',
+  bad_username: 'اليوزر نيم لازم حروف إنجليزي وأرقام (. _ - مسموحين)',
+  already_has_login: 'الطالب ده عنده حساب دخول بالفعل. استخدم New password من تبويب "المتسجّلة".',
+  username_taken: 'اليوزر نيم ده مستخدم عند حد تاني، جرّب غيره',
+  no_login: 'الطالب ده ملوش حساب دخول',
+  wrong_password: 'الباسورد ده مش مطابق للحساب (ماتسجّلش)'
+};
+function genMsg(m) {
+  m = String(m || ''); const k = Object.keys(GEN_ERR).find(x => m.includes(x));
+  if (k) return GEN_ERR[k];
+  if (/PGRST202|Could not find the function/i.test(m)) return 'الدوال لسه ما اتعملتش. شغّل 10_admin_logins.sql في Supabase SQL Editor.';
+  return m;
+}
+async function genRpc(fn, body) {
+  try { return await (await sbFetch('rpc/' + fn, { method: 'POST', body: JSON.stringify(body || {}) })).json(); }
+  catch (e) { throw new Error(genMsg(e.message)); }
 }
 async function genRender() {
   const w = WSE.gen; if (!w) return;
@@ -3254,7 +3263,7 @@ function genNewPaint() {
   const host = $id('genBody'); if (!host) return;
   host.innerHTML = `<div id="genRows"></div>
     <div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="ds-b ghost" id="genAdd"><i class="fa-solid fa-plus"></i> شخص تاني</button></div>
-    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الباسورد بيتولّد عشوائي (12 حرف وأرقام من غير حروف متشابهة)، والحساب بيتعمل على Supabase مفعّل، وبنجرّب الدخول بيه قبل ما نظهره. لو اليوزر موجود قبل كده هيسألك قبل ما يغيّر باسورده.</div>`;
+    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الطالب بيدخل من البوابة العادية بنفس اليوزر والباسورد (ممكن يكتب اللي قبل @ بس). الباسورد بيتولّد عشوائي 10 خانات من غير حروف متشابهة، ومتخزّن مشفّر للدخول، ونسخة منه في جدول مقفول عشان تقدر تشوفه تاني من "المتسجّلة".</div>`;
   $id('genAdd').onclick = () => genAddRow($id('genRows'));
   genAddRow($id('genRows'));
 }
@@ -3287,32 +3296,22 @@ function genAddRow(host) {
     let r = mpState.list.find(x => String(x.id) === sel.value), made = null;
     const name = r ? (r.trainee || '') : nm.value.trim();
     if (!name) { out.innerHTML = bad('اكتب اسم الشخص الأول'); nm.focus(); return; }
-    const email = username + GEN_DOMAIN;
     go.disabled = true;
     try {
-      if (!r) { out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل البروفايل...</span>'; made = r = await genMakeProfile(name, email); }
-      out.innerHTML = '<span class="text-amber-400 text-xs">جاري إنشاء الحساب والتأكد إن الدخول شغّال...</span>';
-      const base = { action: 'create', username, trainee_id: String(r.id), trainee_name: name };
-      let res;
-      try { res = await genCall(base); }
-      catch (e) {
-        if (e.code === 'exists' && confirm('الحساب ' + email + ' موجود قبل كده. أغيّر الباسورد بتاعه لباسورد جديد؟ (الباسورد القديم هيبطل يشتغل)')) res = await genCall(Object.assign({ overwrite: true }, base));
-        else throw e;
-      }
-      const warn = await genLink(r, email, res.user_id);
+      if (!r) { out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل البروفايل...</span>'; made = r = await genMakeProfile(name); }
+      out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل حساب الدخول...</span>';
+      const res = await genRpc('admin_create_trainee_login', { p_trainee_id: String(r.id), p_username: username });
       const wasNew = !!made; made = null;   /* success: keep the profile */
       genState.list = null;
       out.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr">
-          <code style="font-size:13px;color:#e2e8f0">${esc(res.email)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.email)}">نسخ</button>
+          <code style="font-size:13px;color:#e2e8f0">${esc(res.username)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.username)}">نسخ</button>
           <code style="font-size:15px;color:#34d399;letter-spacing:.5px">${esc(res.password)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.password)}">نسخ</button></div>
-        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتجرّب الدخول بيه وشغّال${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''}</div>
-        ${wasNew ? `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتعمل بروفايل جديد "${esc(name)}" وعليه علامة «جديد» في الداشبورد. افتحه وكمّل الصورة والأرقام.</div>` : `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتربط الحساب بالبروفايل "${esc(name)}".</div>`}
-        ${warn ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">${esc(warn)}</div>` : ''}
-        ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
+        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتعمل حساب الدخول للطالب "${esc(name)}"</div>
+        ${wasNew ? `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتعمل بروفايل جديد وعليه علامة «جديد» في الداشبورد. افتحه وكمّل الصورة والأرقام.</div>` : ''}`;
       out.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => genCopy(b.dataset.c); });
     } catch (e) {
       let extra = '';
-      if (made) {   /* account failed: remove the profile we just made so nothing half-done is left */
+      if (made) {   /* login failed: remove the profile we just made so nothing half-done is left */
         try { await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(made.id)}`, { method: 'DELETE' }); mpState.list = mpState.list.filter(x => String(x.id) !== String(made.id)); mpPaintList(); extra = ' (البروفايل اللي اتعمل اتمسح)'; }
         catch (e2) { extra = ' (تنبيه: البروفايل ' + name + ' اتعمل ومااتمسحش، امسحه يدوي)'; }
       }
@@ -3322,13 +3321,12 @@ function genAddRow(host) {
   };
 }
 
-/* new profile for the person being given an account */
-async function genMakeProfile(name, email) {
+/* new profile for the person being given a login */
+async function genMakeProfile(name) {
   const sample = mpState.list[0], has = sample && Object.keys(sample).length;
   const col = k => has ? mpCol(sample, k) : k;
   const body = {};
   body[col('trainee') || 'trainee'] = name;
-  if (col('preferred_email')) body[col('preferred_email')] = email;
   if (col('status_as_of_today')) body[col('status_as_of_today')] = 'Active';
   body.needs_setup = true;
   const post = b => sbFetch(PROFILES_TABLE, { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(b) });
@@ -3340,51 +3338,35 @@ async function genMakeProfile(name, email) {
   mpState.list.push(row); mpPaintList();
   return row;
 }
-/* link the profile to the login (login email + auth user id, whichever of those columns exist) */
-async function genLink(r, email, uid) {
-  const body = {}, keys = Object.keys(r);
-  const authCol = keys.find(k => /^(authuserid|userid|authid|uid|authuid)$/.test(mpNorm(k)));
-  if (authCol && uid && !r[authCol]) body[authCol] = uid;
-  const emailCol = mpCol(r, 'preferred_email');
-  if (emailCol && !r[emailCol]) body[emailCol] = email;
-  if (!Object.keys(body).length) return '';
-  try {
-    const rows = await (await sbFetch(`${PROFILES_TABLE}?id=eq.${enc(r.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) })).json();
-    if (Array.isArray(rows) && rows[0]) { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = rows[0]; mpPaintList(); }
-    return '';
-  } catch (e) { return 'الحساب اتعمل بس ربطه بالبروفايل فشل: ' + e.message; }
-}
 async function genHistPaint() {
   const host = $id('genBody'); if (!host) return;
   host.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
   if (!genState.list) {
-    try { genState.list = (await genCall({ action: 'list' })).items || []; }
+    try { const j = await genRpc('admin_list_trainee_logins'); genState.list = Array.isArray(j) ? j : []; }
     catch (e) { host.innerHTML = `<div class="p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 text-sm">${esc(e.message)}</div>`; return; }
   }
-  host.innerHTML = `<div style="margin-bottom:10px"><button type="button" class="ds-b ghost" id="genExBtn"><i class="fa-solid fa-plus"></i> سجّل باسورد موجود</button>
+  const missing = genState.list.filter(c => !c.out_password);
+  host.innerHTML = `${missing.length ? `<div style="margin-bottom:10px"><button type="button" class="ds-b ghost" id="genExBtn"><i class="fa-solid fa-plus"></i> سجّل باسورد موجود (${missing.length} من غير باسورد محفوظ)</button>
       <div id="genEx" class="p5-c" style="display:none;margin-top:8px">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select class="${INPUT_CLS}" id="genExPf" style="min-width:170px;padding:6px"><option value="">— البروفايل (اختياري) —</option>${mpState.list.map(r => `<option value="${esc(r.id)}">${esc(r.trainee || '')}</option>`).join('')}</select>
-          <span style="display:inline-flex;align-items:center;direction:ltr"><input class="${INPUT_CLS}" id="genExUn" placeholder="username" autocomplete="off" style="width:150px;padding:6px;border-radius:6px 0 0 6px"><span style="padding:6px 8px;background:#1e293b;border:1px solid #334155;border-left:0;border-radius:0 6px 6px 0;font-size:12px;color:#fbbf24">${GEN_DOMAIN}</span></span>
+          <select class="${INPUT_CLS}" id="genExUn" style="min-width:220px;padding:6px">${missing.map(c => `<option value="${esc(c.out_username)}">${esc(c.out_who || '')} · ${esc(c.out_username)}</option>`).join('')}</select>
           <input class="${INPUT_CLS}" id="genExPw" placeholder="الباسورد الحالي" autocomplete="off" style="width:170px;padding:6px;direction:ltr">
           <button type="button" class="ds-b green" id="genExGo">حفظ</button></div>
         <div id="genExMsg" class="text-xs" style="margin-top:6px"></div>
-        <div class="text-[10px] text-slate-500" style="margin-top:4px">الحساب مش بيتغيّر. بنجرّب الدخول بالباسورد ده الأول، ولو صح بيتحفظ هنا.</div></div></div>
+        <div class="text-[10px] text-slate-500" style="margin-top:4px">دول حسابات متعملة بالجنريتر القديم، والباسورد بتاعهم مشفّر. اكتب الباسورد اللي إنت عارفه وبنتأكد إنه مطابق للحساب قبل ما يتحفظ. الحساب نفسه مش بيتغيّر.</div></div></div>` : ''}
     <input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
     <div id="genHist" class="p5-g"></div>`;
-  $id('genExBtn').onclick = () => { const e = $id('genEx'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
-  $id('genExUn').oninput = () => { const u = $id('genExUn'), v = genUserLive(u.value); if (v !== u.value) u.value = v; };
-  $id('genExGo').onclick = async () => {
-    const msg = $id('genExMsg'), btn = $id('genExGo'), un = genUser($id('genExUn').value), pw = $id('genExPw').value;
-    if (!un || !pw) { msg.style.color = '#fb7185'; msg.textContent = 'اكتب اليوزر والباسورد'; return; }
-    const r = mpState.list.find(x => String(x.id) === $id('genExPf').value);
-    btn.disabled = true; msg.style.color = '#fbbf24'; msg.textContent = 'جاري التأكد من الدخول...';
-    try {
-      await genCall({ action: 'save', username: un, password: pw, trainee_id: r ? String(r.id) : null, trainee_name: r ? (r.trainee || null) : null });
-      genState.list = null; showToast('اتسجّل ✓'); genHistPaint(); return;
-    } catch (e) { msg.style.color = '#fb7185'; msg.textContent = e.message; }
-    btn.disabled = false;
-  };
+  if (missing.length) {
+    $id('genExBtn').onclick = () => { const e = $id('genEx'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
+    $id('genExGo').onclick = async () => {
+      const msg = $id('genExMsg'), btn = $id('genExGo'), un = $id('genExUn').value, pw = $id('genExPw').value;
+      if (!un || !pw) { msg.style.color = '#fb7185'; msg.textContent = 'اختار الحساب واكتب الباسورد'; return; }
+      btn.disabled = true; msg.style.color = '#fbbf24'; msg.textContent = 'جاري التأكد...';
+      try { await genRpc('admin_save_existing_password', { p_username: un, p_password: pw }); genState.list = null; showToast('اتسجّل ✓'); genHistPaint(); return; }
+      catch (e) { msg.style.color = '#fb7185'; msg.textContent = e.message; }
+      btn.disabled = false;
+    };
+  }
   const q = $id('genQ'); q.value = genState.q;
   q.oninput = () => { genState.q = q.value.trim().toLowerCase(); genHistList(); };
   genHistList();
@@ -3393,30 +3375,32 @@ function genHistList() {
   const g = $id('genHist'); if (!g) return;
   const byId = new Map(mpState.list.map(r => [String(r.id), r]));
   const items = (genState.list || []).filter(c => {
-    const pr = byId.get(String(c.trainee_id));
-    return !genState.q || `${c.email} ${c.trainee_name || ''} ${pr ? pr.trainee : ''}`.toLowerCase().includes(genState.q);
+    const pr = byId.get(String(c.out_trainee_id));
+    return !genState.q || `${c.out_username} ${c.out_who || ''} ${pr ? pr.trainee : ''}`.toLowerCase().includes(genState.q);
   });
   g.innerHTML = items.map((c, i) => {
-    const pr = byId.get(String(c.trainee_id)), info = pr ? mpStatusInfo(pr) : null;
+    const pr = byId.get(String(c.out_trainee_id)), info = pr ? mpStatusInfo(pr) : null;
     const st = info ? ((MP_GROUPS.find(x => x[0] === info.key) || [0, info.label])[1]) : '';
     const phone = pr ? mpVal(pr, 'preferred_phone') : '', pic = pr && pr.most_recent_picture_url;
-    const ini = esc(String((pr && pr.trainee) || c.trainee_name || '?').trim().charAt(0).toUpperCase());
+    const nm = (pr && pr.trainee) || c.out_who || '?', ini = esc(String(nm).trim().charAt(0).toUpperCase());
     return `<div class="p5-c"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
         <div class="mp-av">${pic ? `<img src="${esc(pic)}" alt="" onerror="this.remove()">` : ini}</div>
-        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc((pr && pr.trainee) || c.trainee_name || '(من غير بروفايل)')}</b>
+        <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc(nm)}</b>${pr && pr.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
           <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
-      <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.email)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="email">نسخ</button></span></div>
-      <div class="p5-r"><span>الباسورد</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="password">نسخ</button></span></div>
-      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div>
+      <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.out_username)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="out_username">نسخ</button></span></div>
+      <div class="p5-r"><span>الباسورد</span>${c.out_password
+        ? `<span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.out_password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="out_password">نسخ</button></span>`
+        : '<span style="color:#fbbf24;font-size:11px">مش محفوظ (استخدم "سجّل باسورد موجود" أو New password)</span>'}</div>
+      <div class="text-[10px] text-slate-500" style="margin-top:4px">آخر تحديث: ${esc(String(c.out_updated_at || '').slice(0, 10))}</div>
       <button type="button" class="ds-b amber" style="margin-top:8px" data-n="${i}"><i class="fa-solid fa-rotate"></i> New password</button></div>`;
-  }).join('') || '<div class="tha-note">مفيش باسوردات متسجّلة لسه.</div>';
+  }).join('') || '<div class="tha-note">مفيش حسابات دخول لسه.</div>';
   g.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => genCopy(items[+b.dataset.i][b.dataset.k]); });
   g.querySelectorAll('[data-n]').forEach(b => {
     b.onclick = async () => {
       const c = items[+b.dataset.n];
-      if (!confirm('أغيّر باسورد ' + c.email + ' لباسورد جديد؟ الباسورد القديم هيبطل يشتغل.')) return;
+      if (!confirm('أعمل باسورد جديد لـ ' + c.out_username + '؟ الباسورد القديم هيبطل يشتغل، والطالب هيتسجّل خروجه.')) return;
       b.disabled = true;
-      try { await genCall({ action: 'create', username: c.username, trainee_id: c.trainee_id, trainee_name: c.trainee_name, overwrite: true }); genState.list = null; showToast('اتغيّر الباسورد ✓'); genHistPaint(); }
+      try { await genRpc('admin_reset_trainee_password', { p_trainee_id: c.out_trainee_id }); genState.list = null; showToast('اتغيّر الباسورد ✓'); genHistPaint(); }
       catch (e) { showToast(e.message, true, true); b.disabled = false; }
     };
   });
@@ -3433,4 +3417,101 @@ function genInstallBtn() {
 {
   let tries = 0; const iv = setInterval(() => { if (genInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
   const prevOpenMain = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain.apply(this, arguments); genInstallBtn(); return r; };
+}
+
+
+/* ==========================================================
+   Patch 7: Monthly obligations that were already sent can be edited or deleted
+   (whole batch, or just one student). Shown inside the Monthly obligations window.
+   ========================================================== */
+async function moLoadSent() {
+  const box = $id('moSent'); if (!box) return;
+  box.innerHTML = '<span class="text-amber-400 text-xs">جاري التحميل...</span>';
+  let rows;
+  try { rows = await (await sbFetch('notifications?select=*&kind=eq.message&meta->>obligation=eq.monthly&order=created_at.desc&limit=200')).json(); }
+  catch (e) { box.innerHTML = `<span class="text-rose-300 text-xs">تعذر التحميل: ${esc(e.message)}</span>`; return; }
+  rows = Array.isArray(rows) ? rows : [];
+  const groups = [];
+  rows.forEach(n => {   /* same title + same text, sent within 2 minutes = one batch */
+    const t = Date.parse(n.created_at) || 0;
+    let g = groups.find(x => x.title === (n.title || '') && x.body === (n.body || '') && Math.abs(x.t - t) <= 120000);
+    if (!g) { g = { title: n.title || '', body: n.body || '', t, items: [] }; groups.push(g); }
+    g.items.push(n);
+  });
+  window.moGroups = groups;
+  const nameOf = id => { const r = mpState.list.find(x => String(x.id) === String(id)); return r ? (r.trainee || '') : '#' + id; };
+  box.innerHTML = groups.map((g, gi) => `<div class="p5-c" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><b dir="auto" style="font-size:12px">${esc(g.title)}</b>
+        <span class="text-[10px] text-slate-500">${esc(fmtDT(g.items[0].created_at))} · ${g.items.length} طالب · ✓ ${g.items.filter(n => n.read_at).length} قرأوه</span></div>
+      <div dir="auto" style="font-size:11px;color:#94a3b8;white-space:pre-wrap;max-height:54px;overflow:hidden;margin:6px 0">${esc(g.body)}</div>
+      <div class="ws-nm">${g.items.map(n => `<span class="nt-chip" dir="auto">${esc(nameOf(n.trainee_id))} <button type="button" data-dn="${esc(n.id)}" title="امسحه من الطالب ده بس" style="color:#f43f5e;margin-inline-start:4px">✕</button></span>`).join('')}</div>
+      <div style="display:flex;gap:6px;margin-top:6px"><button type="button" class="ds-b blue" data-ed="${gi}"><i class="fa-solid fa-pen"></i> تعديل</button>
+        <button type="button" class="ds-b" style="color:#f43f5e!important" data-dg="${gi}"><i class="fa-solid fa-trash"></i> مسح الكل</button></div></div>`).join('')
+    || '<span class="text-xs text-slate-500">لسه مفيش تكليفات شهرية اتبعتت.</span>';
+  box.querySelectorAll('[data-dn]').forEach(b => {
+    b.onclick = async () => {
+      if (!confirm('تمسح التكليف ده من الطالب ده بس؟ هيختفي من داشبورده.')) return;
+      try { await sbFetch(`notifications?id=eq.${enc(b.dataset.dn)}`, { method: 'DELETE' }); showToast('اتمسح ✓'); moLoadSent(); }
+      catch (e) { showToast('فشل المسح: ' + e.message, true); }
+    };
+  });
+  box.querySelectorAll('[data-dg]').forEach(b => {
+    b.onclick = async () => {
+      const g = window.moGroups[+b.dataset.dg];
+      if (!confirm('تمسح التكليفات دي من ' + g.items.length + ' طالب؟ هتختفي من داشبوردات الطلبة.')) return;
+      try {
+        await sbFetch(`notifications?id=in.(${g.items.map(n => enc(n.id)).join(',')})`, { method: 'DELETE' });
+        if (moCur && moCur.edit && moCur.edit.ids.some(id => g.items.some(n => String(n.id) === String(id)))) moEditDone();
+        showToast('اتمسحت ✓'); moLoadSent();
+      } catch (e) { showToast('فشل المسح: ' + e.message, true); }
+    };
+  });
+  box.querySelectorAll('[data-ed]').forEach(b => { b.onclick = () => moEdit(+b.dataset.ed); });
+}
+function moEditDone() {
+  if (!moCur) return;
+  moCur.edit = null;
+  const b = $id('moSend'); if (b) b.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ابعت التكليفات لـ ${moCur.st.length}`;
+  const c = $id('moCancelEdit'); if (c) c.remove();
+}
+function moEdit(gi) {
+  const g = (window.moGroups || [])[gi]; if (!g || !moCur) return;
+  const m = g.items[0].meta || {};
+  moCur.edit = { ids: g.items.map(n => String(n.id)), metas: g.items.map(n => n.meta || {}) };
+  $id('moTitle').value = g.title; $id('moBody').value = g.body; dsRefreshPf('moBody');
+  if (m.range_hours) $id('moRange').value = m.range_hours;
+  if (m.repeats) $id('moRep').value = m.repeats;
+  $id('moAsOf').value = m.as_of ? String(m.as_of).slice(0, 16) : '';
+  schedPreview('mo');
+  const b = $id('moSend');
+  b.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> حفظ التعديل (${g.items.length} طالب)`;
+  if (!$id('moCancelEdit')) b.insertAdjacentHTML('afterend', ' <button type="button" class="ds-b ghost" id="moCancelEdit" onclick="moCancelEdit()">إلغاء التعديل</button>');
+  try { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+}
+window.moCancelEdit = function () { moEditDone(); };
+{
+  const prevMoSend = window.moSend;
+  window.moSend = async function () {
+    const c = moCur; if (!c) return;
+    if (!c.edit) { await prevMoSend(); moLoadSent(); return; }
+    const title = $id('moTitle').value.trim() || MO_TITLE, body = $id('moBody').value.trim();
+    if (!body) { showToast('الرسالة فاضية', true, true); return; }
+    const sc = fxSched('mo');
+    if (!(sc.R > 0)) { showToast('اكتب المهلة بالساعات الأول', true, true); return; }
+    if (!confirm('تحفظ التعديل على ' + c.edit.ids.length + ' طالب؟')) return;
+    const btn = $id('moSend'); btn.disabled = true;
+    const meta = Object.assign({}, c.edit.metas[0] || {}, { priority: 'high', obligation: 'monthly', range_hours: sc.R, repeats: sc.n, as_of: fxWall(sc.A), opens_at: sc.opens.map(fxWall), deadline: fxWall(sc.A + sc.R * 36e5) });
+    try {
+      await sbFetch(`notifications?id=in.(${c.edit.ids.map(enc).join(',')})`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title, body, meta }) });
+      showToast('اتعدّلت التكليفات ✓'); moEditDone(); moLoadSent();
+    } catch (e) { showToast('فشل التعديل: ' + e.message, true); }
+    btn.disabled = false;
+  };
+  const prevOpenMo = window.openMonthly;
+  window.openMonthly = function () {
+    prevOpenMo.apply(this, arguments);
+    const w = WSE.mo; if (!w || !moCur) return;
+    if (!w.body.querySelector('#moSent')) w.body.insertAdjacentHTML('beforeend', '<div class="mp-sec"><h5>اتبعتت قبل كده · Sent (تعديل / مسح)</h5><div id="moSent"></div></div>');
+    moLoadSent();
+  };
 }
