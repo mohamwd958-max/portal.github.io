@@ -364,27 +364,7 @@ body.light-theme .has-ear::after{color:#047857;background:rgba(4,120,87,.12)}
  .thabit-card:not(.lit)::before,.test-card:not(.lit)::before{animation:none!important;opacity:0!important}
 }
 
-
-
-/* ===== Cells: nothing leaves its container, content centred ===== */
-.thabit-card,.dcard,.cap,.itm,.nt,.rcap,.row,.it,.tkc,.pc,.mbox,.ssi{box-sizing:border-box;max-width:100%;min-width:0}
-.thabit-card *,.dcard *,.pc *,.mbox *,.ssi *{max-width:100%;box-sizing:border-box}
-.cap,.itm,.nt,.rcap,.row,.it,.tkb,.itb2,.itd,.rich,.rp,.rl,.rl li,.sst,.dnr,.chip,.aww,.aw span,.pc,.mbox{overflow-wrap:anywhere;word-break:break-word;min-width:0}
-.cap>span,.nt .rich,.itd,.rcap>.rp,.rcap>.rl{white-space:normal}
-.cap{align-items:center;justify-content:center;text-align:center}
-.cap>span:last-child{max-width:100%}
-.cap .dt{width:100%;text-align:center}
-.rcap{display:flex;flex-direction:column;align-items:center;text-align:center}
-.rcap>.rp,.rcap>.rl{width:100%;text-align:center}
-.rcap>.rl{list-style-position:inside;padding-inline-start:12px}
-.chip{max-width:100%;white-space:normal;text-align:center}
-.dnr{justify-content:center}
-.lst{overflow-x:hidden}
-.aw span{justify-content:center;text-align:center}
-.row{align-items:center}
-.row>*{min-width:0}
-.row b,.row .sm{overflow-wrap:anywhere}
-
+ 
 
  /* ===== Language picker: two round dots, blur only behind them ===== */
 .lgp{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
@@ -403,6 +383,18 @@ body.light-theme .lgi{background:rgba(255,255,255,.6);color:#0f172a;border-color
 @media(prefers-reduced-motion:reduce){.lgi{animation:none;opacity:1;transform:none}}
 
 
+
+ /* ===== Cells: tidy, centred, nothing leaves its container ===== */
+.cap{align-items:stretch;text-align:center;min-width:0;overflow:hidden}
+.cap .dt{white-space:nowrap;text-align:center;width:100%}
+.cap>span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.cap.has-ear{padding-inline-end:12px}
+.lst{overflow-x:hidden}
+.it,.nt{min-width:0}
+.nt .rich,.itd,.tkb,.itb2{overflow-wrap:anywhere;min-width:0}
+.chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.row>*{min-width:0}
+.row b,.row .sm{overflow-wrap:anywhere}
 
  
 
