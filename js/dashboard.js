@@ -44,9 +44,17 @@ async function logout() {
 
 function inRange(r) {
   if (range === 'all') return true;
+  if (range === 'today') return r.supply_date === itToday();
   const d = new Date(r.supply_date + 'T00:00:00'), n = new Date(); n.setHours(0, 0, 0, 0);
   const days = Math.round((n - d) / 864e5);
-  return range === 'today' ? days === 0 : days >= 0 && days < ({ week: 7, month: 30, year: 365 })[range];
+  return days >= 0 && days < ({ week: 7, month: 30, year: 365 })[range];
+}
+/* Default range: today (only if a session was taken today) -> week -> month -> everything. "Today" is hidden when there is nothing today. */
+const hasToday = () => !!(D && D.rows.some(r => r.supply_date === itToday()));
+function autoRange() {
+  const keep = range; let pick = 'all';
+  for (const k of ['today', 'week', 'month']) { range = k; if (D.rows.some(inRange)) { pick = k; break; } }
+  range = keep; return pick;
 }
 function spark(vals) {
   if (vals.length < 2) return '';
@@ -55,7 +63,11 @@ function spark(vals) {
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
-const MD = [], TK = [], mk = (title, text) => MD.push([title, text]) - 1;
+const MD = [], TK = [], mk = (title, text, ear) => MD.push([title, text, ear || '']) - 1;
+/* Ear toggle per container (Notes / TEFL / QOL): QOL is on by default, the others off. Saved on this device. */
+const EAR_DEF = { qol: 1, tefl: 0, notes: 0 };
+const earOn = k => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) {} return k in s ? !!s[k] : !!EAR_DEF[k]; };
+const earSet = (k, v) => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) {} s[k] = v ? 1 : 0; try { localStorage.setItem('thabit_ear', JSON.stringify(s)); } catch (e) {} };
 /* ===== Copy button: copies a text, then turns into a disabled "✓ Copied" ===== */
 const CPT = {}; let CPN = 0;
 const cpBtn = txt => { const id = ++CPN; CPT[id] = String(txt == null ? '' : txt); return `<button type="button" class="cpb" data-cp="${id}"><i class="fa-regular fa-copy"></i><span>${lang === 'en' ? 'Copy' : 'نسخ'}</span></button>`; };
@@ -196,10 +208,13 @@ function rqFollowUI(reset) {
 }
 
 function render() {
+  if (range === 'today' && !hasToday()) range = autoRange();   // the day changed / nothing today: move to the nearest range with data
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
-  $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
+  $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].filter(k => k !== 'today' || hasToday()).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
+  { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
+    if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : lang === 'eg' ? 'آخر يوم محسوب: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
   $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
@@ -217,9 +232,18 @@ function render() {
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
-  return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
+  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key], key)})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const ear = lang === 'en' ? 'Pronunciation' : 'النطق';
+  return `<div class="thabit-card dcard earc"><button type="button" class="ear${earOn(key) ? ' on' : ''}" data-ear="${key}" aria-pressed="${earOn(key)}" aria-label="${ear}" title="${ear}"><i class="fa-solid fa-ear-listen"></i></button><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.ear'); if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  const on = !b.classList.contains('on'); earSet(b.dataset.ear, on);
+  b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  b.classList.remove('shk', 'cls'); void b.offsetWidth; b.classList.add(on ? 'shk' : 'cls');
+  setTimeout(() => b.classList.remove('shk', 'cls'), 1100);
+}, true);
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
 const escv = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
 function rich(txt) {
@@ -394,10 +418,10 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i) { $('mdl').dataset.ear = MD[i][2] && earOn(MD[i][2]) ? '1' : ''; $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
-  const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
+  const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
   $('mB').innerHTML = `<div class="sm" dir="auto" style="margin-bottom:8px">${esc(k.text)}</div><div style="margin-bottom:6px">${t.handq}</div><textarea id="hMsg" rows="4" maxlength="1000"></textarea><button type="button" class="btn2" id="hBtn">${t.send}</button><div id="hRes" class="sm" style="margin-top:8px"></div>`;
   $('hBtn').onclick = async () => {
@@ -425,7 +449,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = autoRange(); D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -1128,137 +1152,28 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
 
 
 
-(function () {
-/* ===== Sidebar placement + pop-out options (language / pen) =====
-   - The bar can sit on the left, the right or the bottom. Pop-outs always open AWAY from the side the bar is on.
-   - Placement is saved on this device (thabit_bar_place) and stays until the trainee changes it by hand. */
-const BTX = {
-  en: { right: 'Move to the right', left: 'Move to the left', bottom: 'Move to the bottom', free: 'Move freely', hint: 'Drag the bar where you want it, then let go to pin it', pinned: 'Position pinned' },
-  ar: { right: 'انقل لليمين', left: 'انقل لليسار', bottom: 'انقل للأسفل', free: 'تحريك حر', hint: 'اسحب الشريط للمكان الذي تريده ثم اتركه ليتثبت', pinned: 'تم تثبيت المكان' },
-  eg: { right: 'انقله لليمين', left: 'انقله للشمال', bottom: 'نزّله تحت', free: 'حرّكه براحتك', hint: 'اسحب الشريط للمكان اللي عايزه وسيبه يتثبت', pinned: 'المكان اتثبت' }
-};
-const BT = () => BTX[lang] || BTX.en;
-const BAR_KEY = 'thabit_bar_place';
-const barEl = () => $('mobileFloatingBar');
-/* which side of the screen the bar is on right now (read from where it really is, so it works whatever the stylesheet does) */
-function barSide() {
-  const r = barEl().getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  if (r.width > r.height * 1.2) return cy > innerHeight / 2 ? 'bottom' : 'top';
-  return cx < innerWidth / 2 ? 'left' : 'right';
-}
-function placeGet() {
-  try { const p = JSON.parse(localStorage.getItem(BAR_KEY) || 'null'); if (p && /^(left|right|bottom)$/.test(p.dock)) return { dock: p.dock, pos: isFinite(p.pos) && p.pos !== null ? Math.min(1, Math.max(0, +p.pos)) : .5 }; } catch (e) {}
-  return null;
-}
-function placeSet(p) { try { localStorage.setItem(BAR_KEY, JSON.stringify(p)); } catch (e) {} }
-/* p = {dock, pos}: dock = left | right | bottom, pos = where the bar's centre sits along that edge (0..1). No saved place = the stylesheet's own default. */
-function applyPlace(p) {
-  const bar = barEl(), root = document.documentElement;
-  if (bar.classList.contains('moving') && !p) return;
-  p = p || placeGet();
-  if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
-  root.setAttribute('data-bar', p.dock);
-  const vert = p.dock !== 'bottom', size = vert ? innerHeight : innerWidth, r = bar.getBoundingClientRect(), half = (vert ? r.height : r.width) / 2, lo = half + 8, hi = size - half - 8;
-  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) + 'px');
-}
-function hopBar() { const b = barEl(); b.classList.remove('hop'); void b.offsetWidth; b.classList.add('hop'); setTimeout(() => b.classList.remove('hop'), 650); }
-function dockTo(side) {
-  const r = barEl().getBoundingClientRect(), from = barSide(), keep = (from === 'left' || from === 'right') && side !== 'bottom';
-  const p = { dock: side, pos: keep ? (r.top + r.height / 2) / innerHeight : .5 };
-  placeSet(p); applyPlace(p); hopBar();
-}
-
-/* ----- free move: drag the bar along its edge, let go = pinned for good ----- */
-let MV = null;
-function moveStart() {
-  const bar = barEl(); if (bar.classList.contains('moving')) return;
-  let side = barSide(); if (side === 'top') side = 'bottom';
-  if (!placeGet()) { const r = bar.getBoundingClientRect(); applyPlace({ dock: side, pos: side === 'bottom' ? (r.left + r.width / 2) / innerWidth : (r.top + r.height / 2) / innerHeight }); }
-  bar.classList.add('moving'); itToast(BT().hint);
-}
-function moveEnd(pinned) {
-  const bar = barEl(); if (!bar.classList.contains('moving')) return;
-  bar.classList.remove('moving', 'grabbing'); MV = null;
-  if (pinned) itToast(BT().pinned); else applyPlace();
-}
-(function () {
-  const bar = barEl();
-  bar.addEventListener('pointerdown', e => {
-    if (!bar.classList.contains('moving')) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    const vert = document.documentElement.getAttribute('data-bar') !== 'bottom', r = bar.getBoundingClientRect();
-    MV = { id: e.pointerId, vert, p0: vert ? e.clientY : e.clientX, c0: vert ? r.top + r.height / 2 : r.left + r.width / 2, half: (vert ? r.height : r.width) / 2, c: null, moved: false };
-    try { bar.setPointerCapture(e.pointerId); } catch (x) {}
-    bar.classList.add('grabbing');
-  }, true);
-  bar.addEventListener('pointermove', e => {
-    if (!MV || e.pointerId !== MV.id) return;
-    const d = (MV.vert ? e.clientY : e.clientX) - MV.p0; if (!MV.moved && Math.abs(d) < 4) return; MV.moved = true;
-    const size = MV.vert ? innerHeight : innerWidth, lo = MV.half + 8, hi = size - MV.half - 8;
-    MV.c = lo > hi ? size / 2 : Math.min(hi, Math.max(lo, MV.c0 + d));
-    bar.style.setProperty('--bp', MV.c + 'px');
-  });
-  const up = e => {
-    if (!MV || e.pointerId !== MV.id) return;
-    const m = MV; MV = null;
-    if (m.moved && e.type === 'pointerup') { placeSet({ dock: document.documentElement.getAttribute('data-bar'), pos: m.c / (m.vert ? innerHeight : innerWidth) }); moveEnd(true); }
-    else moveEnd(false);
-  };
-  bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
-  document.addEventListener('pointerdown', e => { if (bar.classList.contains('moving') && !bar.contains(e.target)) moveEnd(false); }, true);
-  window.addEventListener('resize', () => applyPlace());
-  if (window.ResizeObserver) new ResizeObserver(() => applyPlace()).observe(bar);
-  applyPlace();
-})();
-
-/* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
-let pickT = null;
-function pickOpen(btn, list) {
-  const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
-  const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
-  clearTimeout(pickT); pop.classList.remove('closing');
-  pop.innerHTML = list.map((o, i) => {
-    const d = GAP + S / 2 + i * (S + G); let x, y;
-    if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
-    else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
-    else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
-    else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
-    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}</button>`;
-  }).join('');
-  pop.classList.add('open');
-  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
-}
-function pickClose(now) {
-  const pop = $('langPop'); if (!pop.classList.contains('open')) return;
-  clearTimeout(pickT);
-  if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
-  pop.classList.add('closing');
-  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
-}
-function closeLang() { pickClose(); }
 function openLang(btn) {
+  const pop = $('langPop'), r = btn.getBoundingClientRect(), others = ['en', 'ar', 'eg'].filter(x => x !== lang);
   const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
-  pickOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(l => ({ html: lbl[l], title: lbl[l], on: () => { if (l !== lang) setLanguage(l); } })));
+  const up = r.top > 130, list = (up ? others.slice().reverse() : others);
+  const left = Math.max(32, Math.min(innerWidth - 32, r.left + r.width / 2));
+  pop.innerHTML = `<div class="lgs" style="left:${left}px;${up ? 'bottom:' + (innerHeight - r.top + 10) : 'top:' + (r.bottom + 10)}px" dir="ltr">${list.map(x => `<button type="button" class="lgi" data-l="${x}">${lbl[x]}</button>`).join('')}</div>`;
+  pop.classList.add('open');
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeLang(); if (l !== lang) setLanguage(l); });
 }
-const BIC = {
-  box: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/>',
-  right: '<rect x="13.6" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
-  left: '<rect x="4.3" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
-  bottom: '<rect x="4.8" y="12.9" width="14.4" height="4.8" rx="2" fill="currentColor"/></svg>',
-  free: '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M6 3.5v15.2l4.1-3.9 2.7 5.7 2.4-1.1-2.7-5.6h5.7z" fill="currentColor"/></svg>'
-};
-function openBarOpts(btn) {
-  const t = BT(), toLeft = barSide() === 'right';
-  pickOpen(btn || $('barEdit'), [
-    { html: BIC.box + (toLeft ? BIC.left : BIC.right), title: toLeft ? t.left : t.right, on: () => dockTo(toLeft ? 'left' : 'right') },
-    { html: BIC.box + BIC.bottom, title: t.bottom, on: () => dockTo('bottom') },
-    { html: BIC.free, title: t.free, on: moveStart }
-  ]);
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
-})();
+
+
+
+function closeLang() { $('langPop').classList.remove('open'); $('langPop').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLang(); closeBarOpts(); } });
+
+/* ===== Customize pop-up (content to be decided) ===== */
+function openBarOpts() {
+  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
+  $('boT').textContent = T2[0]; $('boN').textContent = T2[1]; $('barOpts').classList.add('open');
+}
+function closeBarOpts() { $('barOpts').classList.remove('open'); }
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
 const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
@@ -1365,7 +1280,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
   /* tap a hyperlinked word -> word player (capture phase, so the feed / modal underneath do not react to the tap) */
-  const linkOf = e => e.target && e.target.closest && e.target.closest('.rt-link[data-word]');
+  const linkOf = e => e.target && e.target.closest && e.target.closest('#mdl[data-ear="1"] .rt-link[data-word]');
   document.addEventListener('click', e => { const s = linkOf(e); if (!s) return; e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word')); }, true);
   document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const s = linkOf(e); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); } });
 })();
@@ -1396,7 +1311,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   'use strict';
   var C_QOL = '224,38,138', C_OTH = '31,182,255';   // QOL = pink, every other place = phosphor blue (R,G,B). Fixed in dark and light theme.
   var MAXN = 6, BATCH = 40, PAR = 4, MAXKEYS = 800, TTL_HIT = 600000, TTL_MISS = 120000, HINT_DAYS = 1;
-  var ROOTS = '#lists, #mB, #pop .pc[data-cid="dnd"], #pop .pc[data-cid="notes"]';
+  var ROOTS = '#mdl[data-ear="1"] #mB';
   var SKIP = 'script,style,textarea,input,select,option,code,pre,.cpb,.hnd,.itc,.vx,.rt-link,.aww,.dt,.sm,.tkt,.its,.cd,.cdn,.hi,.nth,.logb,summary,h3,h4,.awn,.billb,.billl';
   var HAS = /\[\[[^\[\]\n]+?\]\]|\*\*[\s\S]+?\*\*|__[\s\S]+?__|\+\+[\s\S]+?\+\+|\{\{(?:gold|green|red|blue|purple|orange|gray):[\s\S]+?\}\}/;   // left for the rich-text converter
   var TOKEN = /[\p{L}\p{M}\p{N}]+(?:['\u2019\-][\p{L}\p{M}\p{N}]+)*/gu;
@@ -1561,18 +1476,6 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 
 
 
-/* ===== Ear icon on containers that hold spoken words (outside the pop-ups only) ===== */
-(function () {
-  const WORD = '.vx, .rt-link', BOX = '.cap, .nt, .itm, .rcap, .dnr, .row', ACTIVE = '#mdl, #pop';
-  let t = 0;
-  function mark() {
-    document.querySelectorAll('.has-ear').forEach(b => { if (!b.querySelector(WORD)) b.classList.remove('has-ear'); });
-    document.querySelectorAll(WORD).forEach(w => { if (w.closest(ACTIVE)) return; const b = w.closest(BOX); if (b) b.classList.add('has-ear'); });
-  }
-  const run = () => { clearTimeout(t); t = setTimeout(mark, 120); };
-  new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
-  window.addEventListener('DOMContentLoaded', run);
-})();
 
 /* ===== Phone: only the card in the middle band of the screen gets the light sweep ===== */
 (function () {
