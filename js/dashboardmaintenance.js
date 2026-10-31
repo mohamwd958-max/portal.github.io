@@ -1,4 +1,7 @@
-/* Maintenance gate: runs BEFORE dashboard.js. While maintenance is ON the dashboard never loads. */
+/* Maintenance gate: runs BEFORE dashboard.js (load it between richtext.js and dashboard.js).
+   While maintenance is ON the dashboard never loads: the trainee sees only this page.
+   Back / swipe-back / "Back to portal" = log out and return to the portal login.
+   The signal is a row in `notifications`: meta = {"maintenance": true}. Not shown in the trainer's Dashboard view. */
 (function () {
   'use strict';
   var SB = 'https://vkfexceitwjmxncwceqb.supabase.co';
@@ -17,19 +20,20 @@
   };
   var L = function () { return TX[ls('thabit_lang')] || TX.en; };
 
+  /* keep the dashboard hidden until we know whether maintenance is on (no flash) */
   var hide = document.createElement('style');
   hide.textContent = 'html.mtchk body>*:not(.mt){visibility:hidden!important}';
   document.head.appendChild(hide); document.documentElement.classList.add('mtchk');
 
   function isM(n) { var m = n && n.meta; return !!m && (m.maintenance === true || m.maintenance === 'true'); }
-  function fetchState() {
+  function fetchState() {      // true = ON, false = OFF, null = network hiccup
     return fetch(SB + '/rest/v1/rpc/trainee_notifications', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: tok }) })
       .then(function (r) { return r.json(); })
       .then(function (a) { console.log('[maintenance] notifications:', a); return Array.isArray(a) ? a.some(isM) : null; })
       .catch(function (e) { console.warn('[maintenance] fetch failed', e); return null; });
   }
 
-  function wipe() {
+  function wipe() {            // full log out: this device + the server
     var t = tok;
     try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
     try { sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
@@ -52,9 +56,14 @@
     return '<svg viewBox="0 0 240 230" width="260" height="250" aria-hidden="true" style="overflow:visible">'
       + '<defs><radialGradient id="mtG" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fbbf24" stop-opacity=".28"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>'
       + '<circle cx="120" cy="115" r="112" fill="url(#mtG)"/>' + stars
+      + '<g fill="none" stroke="#fbbf24" stroke-opacity=".35" stroke-dasharray="3 7"><ellipse cx="120" cy="115" rx="108" ry="40" transform="rotate(-24 120 115)"><animateTransform attributeName="transform" type="rotate" from="-24 120 115" to="336 120 115" dur="40s" repeatCount="indefinite"/></ellipse>'
+      + '<ellipse cx="120" cy="115" rx="108" ry="40" transform="rotate(40 120 115)"><animateTransform attributeName="transform" type="rotate" from="40 120 115" to="-320 120 115" dur="55s" repeatCount="indefinite"/></ellipse></g>'
       + '<g fill="none" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 7px rgba(251,191,36,.7))">'
       + '<g stroke="#fbbf24" stroke-width="3"><path d="' + gear(100, 128, 40, 10, 9) + '"/><circle cx="100" cy="128" r="17"/><circle cx="100" cy="128" r="5" fill="#fbbf24"/><animateTransform attributeName="transform" type="rotate" from="0 100 128" to="360 100 128" dur="14s" repeatCount="indefinite"/></g>'
-      + '<g stroke="#e2e8f0" stroke-width="2.6"><path d="' + gear(170, 70, 24, 7, 7) + '"/><circle cx="170" cy="70" r="9"/><animateTransform attributeName="transform" type="rotate" from="360 170 70" to="0 170 70" dur="10s" repeatCount="indefinite"/></g></g></svg>';
+      + '<g stroke="#e2e8f0" stroke-width="2.6"><path d="' + gear(170, 70, 24, 7, 7) + '"/><circle cx="170" cy="70" r="9"/><animateTransform attributeName="transform" type="rotate" from="360 170 70" to="0 170 70" dur="10s" repeatCount="indefinite"/></g></g>'
+      + '<g fill="#fbbf24" transform="translate(196 150)"><path d="M0-14L3-3L14 0L3 3L0 14L-3 3L-14 0L-3-3Z"><animateTransform attributeName="transform" type="scale" values="1;1.35;1" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;.55;1" dur="2.4s" repeatCount="indefinite"/></path></g>'
+      + '<g fill="#fff" transform="translate(36 56)"><path d="M0-8L2-2L8 0L2 2L0 8L-2 2L-8 0L-2-2Z"><animate attributeName="opacity" values=".2;1;.2" dur="3s" repeatCount="indefinite"/></path></g>'
+      + '</svg>';
   }
 
   var ov = null;
@@ -67,11 +76,12 @@
   function show() {
     if (ov) { retext(); return; }
     var s = document.createElement('style');
-    s.textContent = '.mt{position:fixed;inset:0;z-index:2147483600;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;font-family:Cairo,Inter,sans-serif;visibility:visible!important}'
+    s.textContent = '.mt{position:fixed;inset:0;z-index:2147483600;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;font-family:Cairo,Inter,sans-serif;visibility:visible!important;animation:mtIn .5s ease-out}'
+      + '@keyframes mtIn{from{opacity:0}to{opacity:1}}'
       + '.mt h1{margin:14px 0 4px;font-size:clamp(1.3rem,5vw,1.9rem);font-weight:800;color:#fbbf24}'
       + '.mt p{margin:0;font-size:1rem;opacity:.92;max-width:360px;line-height:1.7}.mt .mts{font-size:.82rem;opacity:.55;margin-top:6px}'
       + '.mt .mtb{width:min(240px,70vw);height:4px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:18px}'
-      + '.mt .mtb i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fbbf24,transparent);animation:mtSl 1.8s ease-in-out infinite}'
+      + '.mt .mtb i{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,transparent,#fbbf24,transparent);animation:mtSl 1.8s ease-in-out infinite}'
       + '@keyframes mtSl{from{transform:translateX(-120%)}to{transform:translateX(320%)}}'
       + '.mt .mtk{margin-top:22px;padding:9px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 .85rem Cairo,Inter,sans-serif;cursor:pointer}';
     document.head.appendChild(s);
@@ -81,7 +91,7 @@
     ov.querySelector('[data-k]').onclick = goPortal;
     document.documentElement.style.overflow = 'hidden';
     try { history.pushState({ mt: 1 }, '', location.href); } catch (e) {}
-    window.addEventListener('popstate', goPortal);
+    window.addEventListener('popstate', goPortal);          // back / swipe-back -> log out + portal
     retext();
   }
 
@@ -91,6 +101,7 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden) run(); });
   }
 
+  /* dashboard.js waits for this at the top of load() */
   window.__mtGate = Promise.race([fetchState(), new Promise(function (r) { setTimeout(function () { r(null); }, 4000); })]).then(function (on) {
     if (on === true) {
       var go = function () { show(); poll(); };
