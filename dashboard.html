@@ -450,12 +450,8 @@ html.bgl,html.bgl body{overscroll-behavior:none}
 .lgp[data-side="left"] .lgl,.lgp[data-side="right"] .lgl{top:calc(100% + 6px);left:50%;transform:translateX(-50%)}
 .lgp[data-side="bottom"] .lgl,.lgp[data-side="top"] .lgl{left:calc(100% + 8px);top:50%;transform:translateY(-50%)}
 body.light-theme .lgl{background:rgba(255,255,255,.92);color:#0f172a;border-color:rgba(15,23,42,.25)}
-
-
+/* phones: heavy blur on every card makes scrolling stick; the cards are almost opaque anyway */
 @media (hover:none) and (pointer:coarse){.thabit-card,.test-card,.dcard{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
-
-
- 
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 </head>
@@ -471,7 +467,7 @@ body.light-theme .lgl{background:rgba(255,255,255,.92);color:#0f172a;border-colo
   <div class="bar-divider"></div>
   <button type="button" data-bk="theme" onclick="toggleTheme()" id="floatBtnTheme" class="circle-badge-btn" title="Theme" style="color:#fbbf24"><i id="themeIcon" class="fa-solid fa-moon text-sm"></i></button>
   <div class="bar-divider"></div>
-  <button type="button" data-bk="logout" onclick="logout()" class="circle-badge-btn lo" title="Log out"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
+  <button type="button" data-bk="logout" id="profBtn" onclick="openProf(this)" title="Account" aria-label="Account" class="circle-badge-btn" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.7 3.7-5.6 7.5-5.6s6.7 1.9 7.5 5.6"/></svg></button>
   <div class="bar-divider"></div>
   <button type="button" id="barEdit" onclick="openBarOpts(this)" class="circle-badge-btn" title="Customize" aria-label="Customize" style="color:#94a3b8"><i class="fa-solid fa-pen text-sm"></i></button>
 </div>
