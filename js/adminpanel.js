@@ -3521,238 +3521,6 @@ window.moCancelEdit = function () { moEditDone(); };
 
 
 /* ==========================================================
-   Patch 8: Contact Center (everything sent to / received from students, live every 10 s)
-   Outgoing: notifications (incl. Monthly obligations + "word ready"), tasks, dandana  -> edit / delete
-   Incoming: reports, requests, raised hands                                          -> reply (requests) / delete
-   ========================================================== */
-WSD.cc = { t: 'Contact Center · مركز التواصل', i: 'fa-headset', w: 2 };
-WS_REFRESH.cc = 1;
-{
-  const prevLoad8 = wsLoad;
-  wsLoad = function (k) { if (k === 'cc') return ccRender(); return prevLoad8(k); };
-}
-const CC_EVERY = 10000;   /* ms between automatic updates */
-const CC_CAND = {         /* table names tried for what students send (you can type the real name in the box if none matches) */
-  req: ['trainee_requests', 'student_requests', 'requests'],
-  hand: ['trainee_hands', 'hand_raises', 'raised_hands', 'task_hands', 'hands']
-};
-const CC_KINDS = {
-  notif: { l: 'إشعار', c: '#2563eb' }, monthly: { l: 'Monthly', c: '#be123c' }, word: { l: 'كلمة جاهزة', c: '#0d9488' },
-  task: { l: 'Task', c: '#7c3aed' }, dandana: { l: 'Dandana', c: '#d97706' },
-  report: { l: 'Report', c: '#dc2626' }, req: { l: 'Request', c: '#0891b2' }, hand: { l: 'Hand', c: '#ea580c' }
-};
-const ccState = { raw: { notif: [], task: [], report: [], req: [], hand: [] }, items: [], q: '', dir: 'all', kind: 'all', paused: false, busy: false,
-  sig: '', editKey: null, editMode: null, dirty: false, shown: 100, last: null, tbl: {}, errs: [], timer: null, tickBound: false };
-
-function ccBuild() {
-  const prs = new Map(mpState.list.map(r => [String(r.id), r]));
-  const out = [];
-  const add = o => {
-    const pr = o.tid != null ? prs.get(String(o.tid)) : null;
-    o.pr = pr || null;
-    o.name = pr ? (pr.trainee || '') : (o.name || (o.tid != null ? '#' + o.tid : ''));
-    o.hay = [o.name, o.tid, pr && mpVal(pr, 'preferred_phone'), pr && mpVal(pr, 'preferred_email'), pr && mpVal(pr, 'preferred name'), o.title, o.body, o.badge, (CC_KINDS[o.kind] || {}).l, o.kind, o.reply]
-      .filter(x => x != null && x !== '').join(' ').toLowerCase();
-    out.push(o);
-  };
-  ccState.raw.notif.forEach(r => {
-    const m = r.meta || {}, word = r.kind === 'word_ready', mo = m.obligation === 'monthly';
-    add({ src: 'notif', dir: 'out', key: 'n:' + r.id, filter: `id=eq.${enc(r.id)}`, table: 'notifications', tid: r.trainee_id, when: r.created_at, t: Date.parse(r.created_at) || 0,
-      kind: word ? 'word' : mo ? 'monthly' : 'notif', title: word ? 'كلمة جاهزة: ' + (m.word || '') : (r.title || ''), body: word ? '' : (r.body || ''), read: !!r.read_at, editable: !word, raw: r });
-  });
-  ccState.raw.task.forEach(r => {
-    const w = r.updated_at || r.created_at || r.supply_date;
-    add({ src: 'task', dir: 'out', key: `t:${r.trainee_id}:${r.supply_date}:${r.kind}:${r.item_no}`,
-      filter: `trainee_id=eq.${enc(r.trainee_id)}&supply_date=eq.${enc(r.supply_date)}&kind=eq.${enc(r.kind)}&item_no=eq.${enc(r.item_no)}`, table: 'supply_items',
-      tid: r.trainee_id, when: w, t: Date.parse(w) || 0, kind: r.kind === 'dandana' ? 'dandana' : 'task', title: r.title || '', body: r.body || '', badge: r.badge || '', editable: true, raw: r });
-  });
-  ccState.raw.report.forEach(r => add({ src: 'report', dir: 'in', key: 'r:' + r.id, filter: `id=eq.${enc(r.id)}`, table: 'reports', tid: r.trainee_id != null ? r.trainee_id : null,
-    name: r.name || '', when: r.created_at, t: Date.parse(r.created_at) || 0, kind: 'report', title: r.page || '', body: r.problem || '', raw: r }));
-  ccState.raw.req.forEach(r => add({ src: 'req', dir: 'in', key: 'q:' + r.id, filter: `id=eq.${enc(r.id)}`, table: ccState.tbl.req, tid: r.trainee_id, when: r.created_at, t: Date.parse(r.created_at) || 0,
-    kind: 'req', title: [r.type, r.status].filter(Boolean).join(' · '), body: r.message || r.body || '', reply: r.admin_reply || '', canReply: 'admin_reply' in r, raw: r }));
-  ccState.raw.hand.forEach(r => add({ src: 'hand', dir: 'in', key: 'h:' + r.id, filter: `id=eq.${enc(r.id)}`, table: ccState.tbl.hand, tid: r.trainee_id, when: r.created_at, t: Date.parse(r.created_at) || 0,
-    kind: 'hand', title: r.task || r.task_text || r.p_task || '', body: r.message || r.body || '', raw: r }));
-  out.sort((a, b) => b.t - a.t);
-  ccState.items = out;
-}
-function ccMatch(it, q) { if (!q) return true; return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => it.hay.includes(w)); }
-function ccHash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return h; }
-
-async function ccTable(kind) {
-  let saved = null; try { saved = localStorage.getItem('thabit_cc_' + kind); } catch (e) { }
-  if (saved) return saved;
-  if (ccState.tbl[kind] !== undefined) return ccState.tbl[kind];
-  for (const t of CC_CAND[kind]) { try { await sbFetch(`${t}?select=*&limit=1`); return (ccState.tbl[kind] = t); } catch (e) { } }
-  return (ccState.tbl[kind] = null);
-}
-async function ccFetch(force) {
-  if (ccState.busy) return; ccState.busy = true;
-  const errs = [];
-  const get = async (path, label) => {
-    for (const pth of [path, path.replace(/&order=[^&]+/, '')]) {   /* if the order column does not exist, retry without it */
-      try { const j = await (await sbFetch(pth)).json(); return Array.isArray(j) ? j : []; } catch (e) { if (pth === path && path.includes('&order=')) continue; errs.push(label + ': ' + e.message); return null; }
-    }
-    return null;
-  };
-  try {
-    const reqT = await ccTable('req'); let handT = await ccTable('hand'); if (handT && handT === reqT) handT = null;
-    ccState.tbl.req = reqT; ccState.tbl.hand = handT;
-    const [nt, tk, rp, rq, hd] = await Promise.all([
-      get('notifications?select=*&order=created_at.desc&limit=300', 'notifications'),
-      get('supply_items?select=*&kind=in.(task,dandana)&order=updated_at.desc&limit=300', 'tasks'),
-      get('reports?select=*&order=created_at.desc&limit=200', 'reports'),
-      reqT ? get(`${reqT}?select=*&order=created_at.desc&limit=200`, reqT) : Promise.resolve([]),
-      handT ? get(`${handT}?select=*&order=created_at.desc&limit=200`, handT) : Promise.resolve([])
-    ]);
-    if (nt) ccState.raw.notif = nt; if (tk) ccState.raw.task = tk; if (rp) ccState.raw.report = rp; if (rq) ccState.raw.req = rq; if (hd) ccState.raw.hand = hd;
-    ccState.errs = errs; ccState.last = new Date();
-    const sig = ccHash(JSON.stringify(ccState.raw));
-    const changed = sig !== ccState.sig; ccState.sig = sig;
-    if (changed || force) { ccBuild(); if (ccState.editKey) ccState.dirty = true; else ccPaint(); } else ccPaintLive();
-  } catch (e) { ccState.errs = [e.message]; ccPaintLive(); }
-  ccState.busy = false;
-}
-const ccFind = key => ccState.items.find(i => i.key === key);
-function ccPaintLive() {
-  const el = $id('ccLive'); if (!el) return;
-  const t = ccState.last ? ccState.last.toTimeString().slice(0, 8) : '—';
-  el.innerHTML = ccState.paused ? '<span style="color:#fbbf24">⏸ متوقف</span>' : `<span style="color:#34d399">● Live</span> · كل ${CC_EVERY / 1000} ثواني · آخر تحديث ${esc(t)}`;
-  const er = $id('ccErr'); if (er) er.innerHTML = ccState.errs.length ? `<div class="text-[10px]" style="color:#fb7185;margin-top:4px">${ccState.errs.map(esc).join('<br>')}</div>` : '';
-}
-function ccCard(it) {
-  const k = CC_KINDS[it.kind] || { l: it.kind, c: '#475569' }, editing = ccState.editKey === it.key;
-  const inp = 'class="' + INPUT_CLS + '" style="width:100%;padding:6px;margin-top:4px;font-size:12px"';
-  let mid = '';
-  if (editing && ccState.editMode === 'reply') {
-    mid = `<span class="ds-lbl">الرد على الطالب</span><textarea id="ccE1" rows="3" ${inp} dir="auto">${esc(it.reply || '')}</textarea>`;
-  } else if (editing && it.src === 'notif') {
-    mid = `<span class="ds-lbl">العنوان</span><input id="ccE1" ${inp} dir="auto" value="${esc(it.title)}"><span class="ds-lbl" style="margin-top:6px">الرسالة</span><textarea id="ccE2" rows="5" ${inp} dir="auto">${esc(it.body)}</textarea>
-      ${it.kind === 'monthly' ? '<div class="text-[10px] text-slate-500" style="margin-top:4px">المهلة والتكرار بتتعدّل من نافذة Monthly obligations.</div>' : ''}`;
-  } else if (editing && it.src === 'task') {
-    mid = `<span class="ds-lbl">اسم التاسك</span><input id="ccE1" ${inp} dir="auto" value="${esc(it.title)}"><span class="ds-lbl" style="margin-top:6px">الوسم</span><input id="ccE2" ${inp} dir="auto" value="${esc(it.badge || '')}">
-      <span class="ds-lbl" style="margin-top:6px">الوصف</span><textarea id="ccE3" rows="4" ${inp} dir="auto">${esc(it.body)}</textarea>`;
-  } else {
-    mid = `${it.title ? `<div dir="auto" style="font-weight:700;font-size:12px;margin-top:6px">${esc(it.title)}${it.badge ? ` <span class="nt-chip">${esc(it.badge)}</span>` : ''}</div>` : ''}
-      ${it.body ? `<div dir="auto" style="white-space:pre-wrap;font-size:12px;color:#cbd5e1;max-height:130px;overflow:auto;margin-top:4px">${esc(it.body)}</div>` : ''}
-      ${it.reply ? `<div dir="auto" style="font-size:11px;color:#34d399;margin-top:6px;border-inline-start:2px solid #34d399;padding-inline-start:6px">ردّك: ${esc(it.reply)}</div>` : ''}`;
-  }
-  let act;
-  if (editing) act = `<button type="button" class="ds-b green" data-act="save"><i class="fa-solid fa-floppy-disk"></i> حفظ</button><button type="button" class="ds-b ghost" data-act="cancel">إلغاء</button>`;
-  else act = `${it.editable ? '<button type="button" class="ds-b blue" data-act="edit"><i class="fa-solid fa-pen"></i> تعديل</button>' : ''}${it.canReply ? '<button type="button" class="ds-b blue" data-act="reply"><i class="fa-solid fa-reply"></i> رد</button>' : ''}
-    <button type="button" class="ds-b" style="color:#f43f5e!important" data-act="del"><i class="fa-solid fa-trash"></i> مسح</button>`;
-  return `<div class="p5-c" data-k="${esc(it.key)}" style="margin-bottom:8px;border-inline-start:3px solid ${k.c}">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px">
-      <span title="${it.dir === 'out' ? 'اتبعت للطالب' : 'جاي من الطالب'}">${it.dir === 'out' ? '⬆' : '⬇'}</span>
-      <span class="ds-tag" style="background:${k.c};color:#fff">${esc(k.l)}</span>
-      <b dir="auto" data-act="who" style="cursor:pointer" title="دوّر على الطالب ده">${esc(it.name || '—')}</b>${it.pr ? mpLock(it.pr) : ''}
-      ${it.read ? '<span style="color:#34d399">✓ اتقرا</span>' : ''}
-      <span class="text-slate-500" style="margin-inline-start:auto">${esc(fmtDT(it.when))}</span></div>
-    ${mid}<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">${act}</div></div>`;
-}
-function ccPaint() {
-  const list = $id('ccList'); if (!list) return;
-  ccState.dirty = false;
-  document.querySelectorAll('#ccTabs [data-dir]').forEach(b => { b.className = 'ds-b ' + (b.dataset.dir === ccState.dir ? 'amber' : 'ghost'); });
-  const base = ccState.items.filter(i => (ccState.dir === 'all' || i.dir === ccState.dir) && ccMatch(i, ccState.q));
-  const cnt = {}; base.forEach(i => { cnt[i.kind] = (cnt[i.kind] || 0) + 1; });
-  const kinds = Object.keys(CC_KINDS).filter(k => cnt[k]);
-  if (ccState.kind !== 'all' && !cnt[ccState.kind]) ccState.kind = 'all';
-  $id('ccKinds').innerHTML = `<button type="button" class="ds-b ${ccState.kind === 'all' ? 'amber' : 'ghost'}" data-kind="all" style="padding:2px 8px;font-size:11px">الكل (${base.length})</button>`
-    + kinds.map(k => `<button type="button" class="ds-b ${ccState.kind === k ? 'amber' : 'ghost'}" data-kind="${k}" style="padding:2px 8px;font-size:11px">${esc(CC_KINDS[k].l)} (${cnt[k]})</button>`).join('');
-  const rows = base.filter(i => ccState.kind === 'all' || i.kind === ccState.kind);
-  list.innerHTML = rows.slice(0, ccState.shown).map(ccCard).join('') || '<div class="tha-note">مفيش حاجة مطابقة.</div>';
-  $id('ccMore').innerHTML = rows.length > ccState.shown ? `<button type="button" class="ds-b ghost" data-more="1">عرض المزيد (${rows.length - ccState.shown})</button>` : '';
-  const miss = ['req', 'hand'].filter(k => ccState.tbl[k] === null);
-  $id('ccSetup').innerHTML = miss.length ? `<div class="text-[10px] text-slate-400" style="margin:6px 0">${miss.map(k => `مش لاقي جدول "${k === 'req' ? 'الطلبات (Requests)' : 'رفع الإيد (Hand)'}" تلقائي. اكتب اسمه:
-      <input data-setup="${k}" class="${INPUT_CLS}" style="width:150px;padding:3px 6px;direction:ltr" placeholder="table_name"> <button type="button" class="ds-b ghost" data-setupgo="${k}" style="padding:2px 8px;font-size:10px">حفظ</button>`).join('<br>')}</div>` : '';
-  ccPaintLive();
-}
-async function ccRender() {
-  const w = WSE.cc; if (!w) return;
-  if (!mpState.list.length) { try { const j = await (await sbFetch(`${PROFILES_TABLE}?select=*&order=trainee.asc`)).json(); mpState.list = Array.isArray(j) ? j : []; } catch (e) { } }
-  w.body.innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <input id="ccQ" class="${INPUT_CLS}" dir="auto" placeholder="ابحث: اسم الطالب / ID / تليفون / إيميل / أي كلمة..." style="flex:1;min-width:220px;font-size:13px;padding:7px 10px" autocomplete="off">
-      <button type="button" class="ds-b ghost" id="ccPause"></button><button type="button" class="ds-b ghost" id="ccNow" title="حدّث دلوقتي"><i class="fa-solid fa-rotate"></i></button></div>
-    <div id="ccLive" class="text-[10px] text-slate-400" style="margin:6px 0"></div><div id="ccErr"></div>
-    <div id="ccTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-      <button type="button" class="ds-b ghost" data-dir="all">الكل</button><button type="button" class="ds-b ghost" data-dir="out">⬆ اتبعت للطلبة</button><button type="button" class="ds-b ghost" data-dir="in">⬇ جاي من الطلبة</button></div>
-    <div id="ccKinds" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div><div id="ccSetup"></div>
-    <div id="ccList"><div class="text-center py-6 text-amber-400">جاري التحميل...</div></div><div id="ccMore" style="margin-top:6px"></div>`;
-  const q = $id('ccQ'); q.value = ccState.q;
-  q.oninput = () => { ccState.q = q.value.trim(); ccState.shown = 100; ccPaint(); };
-  const pz = $id('ccPause'); const pzTxt = () => { pz.innerHTML = ccState.paused ? '<i class="fa-solid fa-play"></i> كمّل' : '<i class="fa-solid fa-pause"></i> وقف'; };
-  pzTxt(); pz.onclick = () => { ccState.paused = !ccState.paused; pzTxt(); ccPaintLive(); if (!ccState.paused) ccFetch(); };
-  $id('ccNow').onclick = () => { ccState.tbl = {}; ccFetch(true); };
-  w.body.onclick = ccClick;
-  ccStart(); ccPaintLive(); ccPaint();
-  await ccFetch(true);
-}
-function ccStart() {
-  if (!ccState.timer) ccState.timer = setInterval(ccTick, CC_EVERY);
-  if (!ccState.tickBound) { ccState.tickBound = true; document.addEventListener('visibilitychange', () => { if (!document.hidden) ccTick(); }); }
-}
-function ccTick() {   /* only works while the window is open, the tab is visible and you did not pause */
-  const w = WSE.cc;
-  if (!w || !w.el || w.el.style.display === 'none' || ccState.paused || document.hidden) return;
-  ccFetch();
-}
-async function ccClick(e) {
-  const t = e.target;
-  const more = t.closest('[data-more]'); if (more) { ccState.shown += 100; ccPaint(); return; }
-  const kb = t.closest('[data-kind]'); if (kb) { ccState.kind = kb.dataset.kind; ccState.shown = 100; ccPaint(); return; }
-  const db = t.closest('#ccTabs [data-dir]'); if (db) { ccState.dir = db.dataset.dir; ccState.shown = 100; ccPaint(); return; }
-  const sg = t.closest('[data-setupgo]');
-  if (sg) {
-    const k = sg.dataset.setupgo, v = (document.querySelector(`[data-setup="${k}"]`) || {}).value;
-    if (v && /^[A-Za-z0-9_]+$/.test(v.trim())) { try { localStorage.setItem('thabit_cc_' + k, v.trim()); } catch (er) { } ccState.tbl[k] = undefined; ccFetch(true); }
-    else showToast('اكتب اسم الجدول (حروف وأرقام و _ بس)', true);
-    return;
-  }
-  const a = t.closest('[data-act]'); if (!a) return;
-  const card = a.closest('[data-k]'); if (!card) return;
-  const it = ccFind(card.dataset.k); if (!it) return;
-  const act = a.dataset.act;
-  if (act === 'who') { ccState.q = it.name || ''; const q = $id('ccQ'); if (q) q.value = ccState.q; ccState.shown = 100; ccPaint(); return; }
-  if (act === 'edit' || act === 'reply') { ccState.editKey = it.key; ccState.editMode = act; ccPaint(); const f = $id('ccE1'); if (f) f.focus(); return; }
-  if (act === 'cancel') { ccState.editKey = null; ccState.editMode = null; ccPaint(); return; }
-  if (act === 'del') {
-    if (!confirm('تمسح ده؟ ' + (it.dir === 'out' ? 'هيختفي من داشبورد الطالب.' : 'مش هيرجع.'))) return;
-    try {
-      await mutate(`${it.table}?${it.filter}`, 'DELETE');
-      const arr = ccState.raw[it.src]; const i = arr.indexOf(it.raw); if (i >= 0) arr.splice(i, 1);
-      ccBuild(); ccPaint(); showToast('اتمسح ✓');
-    } catch (er) { showToast('فشل المسح: ' + er.message, true); }
-    return;
-  }
-  if (act === 'save') {
-    const v = n => { const el = $id(n); return el ? el.value.trim() : ''; };
-    let body;
-    if (ccState.editMode === 'reply') body = { admin_reply: v('ccE1') || null };
-    else if (it.src === 'notif') { if (!v('ccE2')) { showToast('الرسالة فاضية', true, true); return; } body = { title: v('ccE1') || null, body: v('ccE2') }; }
-    else if (it.src === 'task') { if (!v('ccE1') && !v('ccE3')) { showToast('اكتب اسم التاسك أو الوصف', true, true); return; } body = { title: v('ccE1') || null, badge: v('ccE2') || null, body: v('ccE3') || null, updated_at: new Date().toISOString() }; }
-    else return;
-    a.disabled = true;
-    try {
-      const rows = await mutate(`${it.table}?${it.filter}`, 'PATCH', body);
-      const arr = ccState.raw[it.src]; const i = arr.indexOf(it.raw); if (i >= 0) arr[i] = Object.assign({}, it.raw, rows[0]);
-      ccState.editKey = null; ccState.editMode = null; ccBuild(); ccPaint(); showToast('اتحفظ ✓');
-    } catch (er) { showToast('فشل الحفظ: ' + er.message, true); a.disabled = false; }
-  }
-}
-
-/* Contact Center button next to Highlights / Generator */
-function ccInstallBtn() {
-  if (document.querySelector('.ws-lb[data-ws="cc"]')) return true;
-  const after = document.querySelector('.ws-lb[data-ws="gen"]') || document.querySelector('.ws-lb[data-ws="hl"]'); if (!after) return false;
-  const b = after.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick'); b.setAttribute('data-ws', 'cc'); b.classList.remove('on');
-  b.type = 'button'; b.innerHTML = '<i class="fa-solid fa-headset"></i> Contact Center'; b.onclick = () => toggleWin('cc');
-  after.insertAdjacentElement('afterend', b); return true;
-}
-{
-  let tries = 0; const iv = setInterval(() => { if (ccInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
-}
-
-/* ==========================================================
    CONTACT CENTER PATCH: paste at the END of adminpanel.js (after all other patches)
    - Contact Center window: everything you sent to a trainee, WhatsApp-style ticks + time of each state
    - Highlights: last 3 trainees active in the last 24h (cards) + red flags (2 sessions in a row below the request)
@@ -3815,7 +3583,7 @@ const ccEnd = it => { const a = fxFromWall(it.as_of), R = +it.range_hours; retur
 function ccItem(title, tag, sentAt, ev, o) {
   o = o || {};
   const f = n => ev.filter(e => e.event === n), first = n => f(n)[0];
-  const del = first('delivered'), opn = f('opened'), rd = first('read'), dis = f('dismissed'), cp = f('copied'), ia = f('interacted');
+  const del = first('delivered'), opn = f('opened'), rd = first('read'), dis = f('dismissed'), cp = f('copied'), ia = o.checks || f('interacted');   // tasks / dandana: the REAL checks from supply_item_checks
   const ticks = rd ? '<span class="tk3">✓✓</span>' : (del ? '<span class="tk2">✓✓</span>' : '<span class="tk1">✓</span>');
   const need = o.expected || 0, short = need && ia.length < need && o.expired;
   const row = (k, t, red, no) => `<div class="cc-r${no ? ' no' : ''}${red ? ' red' : ''}"><span class="k">${k}</span><span class="t">${t || '—'}</span></div>`;
@@ -3852,15 +3620,16 @@ async function ccLoad(id) {
   det.innerHTML = '<div class="text-center py-6 text-amber-400">جاري التحميل...</div>';
   const r = mpState.list.find(x => String(x.id) === String(id)) || {};
   try {
-    const [nt, si, ev] = await Promise.all([
+    const [nt, si, ev, ck] = await Promise.all([
       fetchAllRows(`notifications?select=*&trainee_id=eq.${enc(id)}&order=created_at.desc`).then(a => a.slice(0, 40)),
       fetchAllRows(`supply_items?select=*&trainee_id=eq.${enc(id)}&order=supply_date.desc`).then(a => a.slice(0, 60)),
-      fetchAllRows(`item_events?select=*&trainee_id=eq.${enc(id)}&order=created_at.asc`)
+      fetchAllRows(`item_events?select=*&trainee_id=eq.${enc(id)}&order=created_at.asc`),
+      fetchAllRows(`supply_item_checks?select=*&trainee_id=eq.${enc(id)}&order=check_no.asc`)
     ]);
     const now = ntCairoNow();
     const all = [];
     nt.forEach(n => all.push({ at: n.created_at, html: ccItem(n.title || String(n.body || '').split('\n')[0] || (n.kind === 'word_ready' ? 'كلمة جاهزة: ' + ((n.meta || {}).word || '') : 'رسالة'), 'إشعار', n.created_at, ccEvs(ev, n.kind === 'word_ready' ? 'assistant_words' : 'notification', n.id)) }));
-    si.forEach(i => { const end = ccEnd(i), at = i.created_at || i.supply_date + 'T12:00:00Z'; all.push({ at, html: ccItem(i.title || (i.body || '').split('\n')[0] || '—', i.kind === 'task' ? 'Task · ' + i.supply_date : 'دندنة · ' + i.supply_date, at, ccEvs(ev, i.kind, i.id), { expected: +i.repeats || 1, expired: end != null && end < now }) }); });
+    si.forEach(i => { const end = ccEnd(i), at = i.created_at || i.supply_date + 'T12:00:00Z'; all.push({ at, html: ccItem(i.title || (i.body || '').split('\n')[0] || '—', i.kind === 'task' ? 'Task · ' + i.supply_date : 'دندنة · ' + i.supply_date, at, ccEvs(ev, i.kind, i.id), { expected: +i.repeats || 1, expired: end != null && end < now, checks: ck.filter(c => String(c.item_id) === String(i.id)) }) }); });
     all.sort((a, b) => String(b.at).localeCompare(String(a.at)));
     det.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#fbbf24" dir="auto">${esc(r.trainee || '')}</b>
         <button type="button" class="ds-b blue" onclick="openStudentNotify('${esc(id)}')"><i class="fa-solid fa-paper-plane"></i> رسالة جديدة</button></div>
@@ -3898,14 +3667,14 @@ async function hlFlags() {
   const out = [], from = dsAddDays(dsToday(), -14), now = ntCairoNow();
   const [items, ev] = await Promise.all([
     fetchAllRows(`supply_items?select=id,trainee_id,supply_date,kind,title,repeats,as_of,range_hours&supply_date=gte.${from}`),
-    fetchAllRows(`item_events?select=item_type,item_id,trainee_id&event=eq.interacted&created_at=gte.${enc(new Date(Date.now() - 15 * 864e5).toISOString())}`)
+    fetchAllRows(`supply_item_checks?select=item_id`)      // the real checks
   ]);
-  const done = new Map(); ev.forEach(e => { const k = e.item_type + ':' + e.item_id; done.set(k, (done.get(k) || 0) + 1); });
+  const done = new Map(); ev.forEach(e => { const k = String(e.item_id); done.set(k, (done.get(k) || 0) + 1); });
   const T = new Map();
   items.forEach(i => { const end = ccEnd(i); if (end == null || end > now) return;
     const k = i.trainee_id + '|' + i.kind; if (!T.has(k)) T.set(k, new Map());
     const d = T.get(k); if (!d.has(i.supply_date)) d.set(i.supply_date, []);
-    d.get(i.supply_date).push({ t: i.title || '—', n: done.get(i.kind + ':' + i.id) || 0, of: +i.repeats || 1 }); });
+    d.get(i.supply_date).push({ t: i.title || '—', n: done.get(String(i.id)) || 0, of: +i.repeats || 1 }); });
   T.forEach((days, k) => {
     const ds = [...days.keys()].sort().reverse().slice(0, 2); if (ds.length < 2) return;
     const bad = ds.map(d => days.get(d).filter(x => x.n < x.of));
