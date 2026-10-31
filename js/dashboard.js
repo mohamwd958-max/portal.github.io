@@ -600,13 +600,25 @@ const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
 const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
+
+
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge'), fn = $('feedNum');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
-  bd.hidden = !n || INTRO.hold; bd.textContent = n;
-  if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);   // first notification arrived while the page was open
+  bd.hidden = true; bd.textContent = n;
+  if (fn) {
+    const txt = n > 99 ? '99+' : String(n || '');
+    if (n && fn.textContent !== txt) {
+      fn.textContent = txt; fn.classList.toggle('l2', txt.length > 1);
+      fn.classList.remove('bump'); void fn.offsetWidth; fn.classList.add('bump');
+    }
+    // plus -> number only after the intro finished and the pop-up was closed
+    btn.classList.toggle('num', n > 0 && !INTRO.hold && btn.classList.contains('done'));
+  }
+  if (cards.length && btn.classList.contains('empty') && window._popDone && !INTRO.run) runIntro(btn);
 }
+
 function openFeed(from) {
   const c = feedCards(); if (!c.length) return;
   openPop(c, from);
