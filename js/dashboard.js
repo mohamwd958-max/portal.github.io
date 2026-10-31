@@ -675,9 +675,11 @@ function dismissCard(id) {
 const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
-const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
+/* the Next-session card never counts in the badge; every other card (notifications, dandana, payment, assistant words) does */
+const counts = c => c.id !== 'nxt' && (c.noX || c.isNew);
+const feedCount = () => feedCards().filter(counts).length;
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(counts).length, bd = $('feedBadge');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
   bd.hidden = !n || INTRO.hold; bd.textContent = n;
@@ -698,7 +700,7 @@ function runIntro2(btn) {
   setTimeout(() => btn.classList.add('done', 'pop'), 760);
   setTimeout(() => {
     try { if (!VIEW && tok()) localStorage.setItem(INTRO_KEY, tok()); } catch (e) {}
-    const c = feedCards(); CINTRO.popShown = true;
+    const c = feedCards().filter(x => x.id === 'nxt'); CINTRO.popShown = true;   // on opening the dashboard ONLY the Next-session card pops up
     if (c.length) openPop(c, btn); else { INTRO.hold = false; updateFeed(); chartsGo(); }
   }, 1150);
 }
