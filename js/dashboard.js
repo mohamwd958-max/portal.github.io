@@ -229,13 +229,32 @@ function render() {
   renderSessions(rows);
   watchTodo();
   renderAvatar();
+  requestAnimationFrame(fitCaps);
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key], key)})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const list = rows.slice().reverse().filter(r => r[key]).map(r => ({ date: r.supply_date, text: String(r[key]) }));
+  const mi = MD.push([title, '', key, list]) - 1;
+  const it = list.map((x, n) => `<button type="button" class="cap" data-n="${n}"><span class="dt">${x.date}</span><span dir="auto">${esc(rtStrip(x.text).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
   const ear = lang === 'en' ? 'Pronunciation' : 'النطق';
-  return `<div class="thabit-card dcard earc"><button type="button" class="ear${earOn(key) ? ' on' : ''}" data-ear="${key}" aria-pressed="${earOn(key)}" aria-label="${ear}" title="${ear}"><i class="fa-solid fa-ear-listen"></i></button><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
+  return `<div class="thabit-card dcard earc" data-md="${mi}"><div class="earh"><h4>${title}</h4><div class="earbar"><button type="button" class="ear${earOn(key) ? ' on' : ''}" data-ear="${key}" aria-pressed="${earOn(key)}" aria-label="${ear}" title="${ear}"><i class="fa-solid fa-ear-listen"></i></button></div></div><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
+/* one cell and a quarter of the next one (only one cell: just that one). Nothing scrolls inside: a tap anywhere opens the whole container. */
+function fitCaps() {
+  document.querySelectorAll('.earc .lst').forEach(l => {
+    const c = [...l.children].filter(x => x.classList.contains('cap')); l.style.maxHeight = '';
+    if (!c.length || !c[0].offsetHeight) return;
+    if (c.length < 2) { l.style.maxHeight = 'none'; return; }
+    l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
+  });
+}
+window.addEventListener('resize', fitCaps);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCaps);
+/* a tap on the container (cell, text, empty space, anything except the options bar) pops the whole container up */
+document.addEventListener('click', e => {
+  const c = e.target.closest && e.target.closest('.earc'); if (!c || e.target.closest('.earbar')) return;
+  const cell = e.target.closest('.cap'); openModal(+c.dataset.md, cell ? +cell.dataset.n : 0);
+});
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('.ear'); if (!b) return;
   e.stopPropagation(); e.preventDefault();
@@ -418,7 +437,13 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mdl').dataset.ear = MD[i][2] && earOn(MD[i][2]) ? '1' : ''; $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i, focus) {
+  const m = MD[i]; $('mdl').dataset.ear = m[2] && earOn(m[2]) ? '1' : ''; $('mT').textContent = m[0];
+  $('mB').innerHTML = m[3] ? `<div class="rich">${m[3].map((x, n) => `<div class="cti" data-n="${n}"><div class="dt ctd">${esc(x.date)}</div>${richC(x.text)}</div>`).join('')}</div>` : `<div class="rich">${richC(m[1])}</div>`;
+  $('mdl').classList.add('open');
+  const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
+  box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
+}
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
@@ -771,7 +796,7 @@ window.openAssistant = e => Panels.open('assistant', e);
 function initMiniBars() {
   const arrow = d => `<button type="button" class="mbb" data-d="${d}" aria-label="${d < 0 ? 'Up' : 'Down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
   document.querySelectorAll('.lst').forEach(el => {
-    if (el.dataset.mb) return;
+    if (el.dataset.mb || el.closest('.earc')) return;
     el.dataset.mb = '1';
     const w = document.createElement('div'); w.className = 'mbw';
     el.parentNode.insertBefore(w, el); w.appendChild(el);
@@ -998,7 +1023,7 @@ window.addEventListener('DOMContentLoaded', () => {
 const PK_BOXES = '.lst, .ntl, #mB, #ssList, #logList';      // scroll boxes that already have a height from the CSS: keep that height, only add the hint
 const PK_TEXT = [['.nt .rich', 5], ['.itd.rich', 5]];      // text blocks: capped at 5 lines (a 6th line starts -> hint + scroll)
 function peekEl(el, lines) {
-  if (el.dataset.pk) return;
+  if (el.dataset.pk || (el.closest && el.closest('.earc'))) return;
   const cs = getComputedStyle(el), u = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 14) * 1.45;
   let H;
   if (lines) {
