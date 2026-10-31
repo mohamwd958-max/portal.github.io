@@ -61,27 +61,18 @@ function goPortal() {
   }
 
   var ov = null;
-  function show() {
-    if (ov) { retext(); return; }
-    var s = document.createElement('style');
-    s.textContent = '.mt{position:fixed;inset:0;z-index:2147483600;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;font-family:Cairo,Inter,sans-serif;visibility:visible!important}'
-      + '.mt h1{margin:14px 0 4px;font-size:clamp(1.3rem,5vw,1.9rem);font-weight:800;color:#fbbf24}'
-      + '.mt p{margin:0;font-size:1rem;opacity:.92;max-width:360px;line-height:1.7}.mt .mts{font-size:.82rem;opacity:.55;margin-top:6px}'
-      + '.mt .mtb{width:min(240px,70vw);height:4px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:18px}'
-      + '.mt .mtb i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fbbf24,transparent);animation:mtSl 1.8s ease-in-out infinite}'
-      + '@keyframes mtSl{from{transform:translateX(-120%)}to{transform:translateX(320%)}}'
-      + '.mt .mtk{margin-top:22px;padding:9px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 .85rem Cairo,Inter,sans-serif;cursor:pointer}';
-    document.head.appendChild(s);
-    ov = document.createElement('div'); ov.className = 'mt'; ov.setAttribute('role', 'status');
-    ov.innerHTML = art() + '<h1 data-t></h1><p data-b></p><p class="mts" data-s></p><div class="mtb"><i></i></div><button type="button" class="mtk" data-k></button>';
-    document.body.appendChild(ov);
-    ov.querySelector('[data-k]').onclick = goPortal;
-    document.documentElement.style.overflow = 'hidden';
-    /* back gesture / back button -> straight to the portal, never the dashboard */
-    try { history.pushState({ mt: 1 }, '', location.href); } catch (e) {}
-    window.addEventListener('popstate', goPortal);
-    retext();
-  }
+
+
+  
+function wipe() {   // log the trainee out the moment maintenance is shown: any way out lands on a clean login
+  var t = tok;
+  try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
+  try { sessionStorage.clear(); sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
+  try { fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) }); } catch (e) {}
+}
+  
+  
+  
   function retext() {
     var t = L(), r = document.documentElement;
     ov.setAttribute('dir', r.dir === 'ltr' ? 'ltr' : 'rtl');
