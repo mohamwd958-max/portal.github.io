@@ -991,10 +991,16 @@ function peekWords(root) {
 /* ===== Background lock: while the feed or the word player is open, the page behind never scrolls ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
 html.bgl,html.bgl body{overflow:hidden!important}
-#pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
+#pop,.pc,.aw,.ntl{overscroll-behavior:contain}
 .pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
 const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
-const syncLock = () => document.documentElement.classList.toggle('bgl', bgLocked());
+let PKON = false;
+const syncLock = () => {
+  const on = bgLocked(); document.documentElement.classList.toggle('bgl', on);
+  if (on === PKON) return; PKON = on;
+  const f = on ? 'addEventListener' : 'removeEventListener';   // non-passive listeners slow down every scroll, so they live only while something is open
+  document[f]('wheel', pkWheel, { passive: false }); document[f]('touchstart', pkTS, { passive: true }); document[f]('touchmove', pkTM, { passive: false });
+};
 function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
   const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
   for (let e = t; e; e = e.parentElement) {
@@ -1004,15 +1010,15 @@ function pkScroller(t, dy) {   // a scrollable element inside the feed / player 
   }
   return null;
 }
-document.addEventListener('wheel', e => { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }, { passive: false });
 let pkY = 0;
-document.addEventListener('touchstart', e => { pkY = e.touches[0].clientY; }, { passive: true });
-document.addEventListener('touchmove', e => {
+function pkWheel(e) { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }
+function pkTS(e) { pkY = e.touches[0].clientY; }
+function pkTM(e) {
   if (!bgLocked()) return;
   const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
   if (e.target.closest && e.target.closest('input[type=range]')) return;
   if (!pkScroller(e.target, dy)) e.preventDefault();
-}, { passive: false });
+}
 window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
@@ -1611,12 +1617,50 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 
 
 
-/* ===== Phone: only the card in the middle band of the screen gets the light sweep ===== */
+/* ===== Phone: only the card in the middle band of the screen gets the light sweep.
+   It comes in softly after the card has settled there (a card that just passes through never lights up),
+   and fades out slowly when you move away; it does not come back until the card is in the middle again. ===== */
 (function () {
   if (!('IntersectionObserver' in window)) return;
-  const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('lit', e.isIntersecting)), { rootMargin: '-42% 0px -42% 0px', threshold: 0 });
+  const IN = 350, OUT = 1400, timers = new WeakMap();
+  const clr = c => { const t = timers.get(c); if (t) { clearTimeout(t.in); clearTimeout(t.out); } timers.delete(c); };
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const c = e.target; clr(c);
+    if (e.isIntersecting) {
+      const t = { in: setTimeout(() => { c.classList.remove('fade'); c.classList.add('lit'); }, IN) }; timers.set(c, t);
+    } else if (c.classList.contains('lit')) {
+      c.classList.remove('lit'); c.classList.add('fade');           // keeps animating while the opacity fades out
+      timers.set(c, { out: setTimeout(() => { c.classList.remove('fade'); timers.delete(c); }, OUT) });
+    }
+  }), { rootMargin: '-42% 0px -42% 0px', threshold: 0 });
   const seen = new WeakSet(); let t = 0;
   const scan = () => document.querySelectorAll('.thabit-card,.test-card').forEach(c => { if (!seen.has(c)) { seen.add(c); io.observe(c); } });
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('DOMContentLoaded', scan);
+})();
+
+/* ===== Long press on a dashboard card (phone/tablet): shows the card's options; a card without options shows a small notice.
+   A finger that stays still = press / long press. A finger that moves = the page scrolls (the press is cancelled). =====
+   Add options later:  LPOPTS.notes = card => { ... }   (keys: notes, tefl, qol, taskCard, dandanaCard) */
+window.LPOPTS = window.LPOPTS || {};
+(function () {
+  const MS = 550, MOVE = 8;
+  const MSG = { en: 'Long press has no options on this card yet', ar: 'الضغطة المطولة ليس لها خيارات هنا بعد', eg: 'الضغطة المطولة دي ملهاش خيارات عندك دلوقتي' };
+  let timer = null, sx = 0, sy = 0, fired = false, card = null;
+  const stop = () => { clearTimeout(timer); timer = null; };
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || (e.button || 0) !== 0 || VIEW) return;
+    const c = e.target.closest && e.target.closest('#lists .dcard');
+    if (!c || e.target.closest('.earbar, input, textarea, select')) return;
+    stop(); fired = false; card = c; sx = e.clientX; sy = e.clientY;
+    timer = setTimeout(() => {
+      timer = null; fired = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) {}
+      const k = c.id || ((c.querySelector('.ear') || {}).dataset || {}).ear, fn = k && window.LPOPTS[k];
+      if (typeof fn === 'function') fn(c); else itToast(MSG[lang] || MSG.en);
+    }, MS);
+  });
+  document.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > MOVE) stop(); });
+  ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { stop(); if (fired) setTimeout(() => { fired = false; }, 700); }));
+  document.addEventListener('click', e => { if (!fired) return; fired = false; e.stopImmediatePropagation(); e.preventDefault(); }, true);   // the finger lift after a long press must not open the container
+  document.addEventListener('contextmenu', e => { if ((timer || fired) && card && card.contains(e.target)) e.preventDefault(); });
 })();
