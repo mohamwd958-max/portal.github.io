@@ -310,6 +310,39 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 .pcs>.pc{width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere}
 .pc .aw,.pc .ntl,.pc .rich{max-width:100%}
 #mobileFloatingBar>[data-bk]{touch-action:none}
+
+
+
+
+ 
+/* ===== Feed: plus morphs into the count, colours slide visibly ===== */
+.fdb{display:none!important}
+.fdg{
+ background:linear-gradient(90deg,#ff5d55,#4c8dff,#22d3a6,#ffc247,#ff5d55);
+ background-size:200% 100%;background-repeat:repeat-x;
+ transition:opacity .45s ease,transform .5s cubic-bezier(.4,0,.2,1)}
+.feed.done .fdg{animation:fdSlide 2.2s linear infinite}
+.fdn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+ font:800 26px/1 Inter,sans-serif;letter-spacing:-.5px;
+ background:linear-gradient(90deg,#ff5d55,#4c8dff,#22d3a6,#ffc247,#ff5d55);
+ background-size:200% 100%;background-repeat:repeat-x;
+ -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+ opacity:0;transform:scale(.3) rotate(-90deg);pointer-events:none;
+ transition:opacity .45s ease,transform .5s cubic-bezier(.34,1.4,.5,1);
+ animation:fdSlide 2.2s linear infinite}
+.fdn.l2{font-size:20px}
+.feed.num .fdg{opacity:0;transform:scale(.3) rotate(90deg)}
+.feed.num .fdn{opacity:1;transform:none}
+.fdn.bump{animation:fdSlide 2.2s linear infinite,fdNum .4s cubic-bezier(.3,1.7,.5,1)}
+@keyframes fdSlide{to{background-position:200% 0}}
+@keyframes fdNum{0%{scale:1}45%{scale:1.25}100%{scale:1}}
+#mobileFloatingBar>.feed .fdn{font-size:17px}
+#mobileFloatingBar>.feed .fdn.l2{font-size:13px}
+@media(max-width:600px){.fl .feed .fdn{font-size:23px}.fl .feed .fdn.l2{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.fdn,.feed.done .fdg{animation:none!important}}
+
+
+ 
 </style>
 </head>
 <body id="bodyRoot">
