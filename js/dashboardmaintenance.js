@@ -29,12 +29,11 @@
       .catch(function () { return null; });
   }
 
-
 function goPortal() {
   window.removeEventListener('popstate', goPortal);
+  wipe();
   location.replace(PORTAL);
 }
-
 
   
   function gear(cx, cy, r, n, d) {
@@ -67,9 +66,8 @@ function wipe() {   // log the trainee out the moment maintenance is shown: any 
 
 function show() {
   if (ov) { retext(); return; }
-  wipe();
   var s = document.createElement('style');
-  ...  
+  ...
   
   
   
