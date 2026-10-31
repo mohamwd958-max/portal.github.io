@@ -450,6 +450,12 @@ html.bgl,html.bgl body{overscroll-behavior:none}
 .lgp[data-side="left"] .lgl,.lgp[data-side="right"] .lgl{top:calc(100% + 6px);left:50%;transform:translateX(-50%)}
 .lgp[data-side="bottom"] .lgl,.lgp[data-side="top"] .lgl{left:calc(100% + 8px);top:50%;transform:translateY(-50%)}
 body.light-theme .lgl{background:rgba(255,255,255,.92);color:#0f172a;border-color:rgba(15,23,42,.25)}
+
+
+@media (hover:none) and (pointer:coarse){.thabit-card,.test-card,.dcard{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+
+
+ 
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 </head>
