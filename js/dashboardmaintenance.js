@@ -4,9 +4,10 @@
   var SB = 'https://vkfexceitwjmxncwceqb.supabase.co';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI';
   var PORTAL = 'index.html', EVERY = 15000;
-  var tok = null, ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
   var VIEW = /vt=[A-Za-z0-9]+/.test(location.hash || '');
-  tok = ls('thabit_trainee_token');
+  var tok = ls('thabit_trainee_token');
+  console.log('[maintenance] gate loaded, token:', !!tok, 'view:', VIEW);
   if (VIEW || !tok) { window.__mtGate = Promise.resolve(false); return; }
 
   var TX = {
@@ -16,26 +17,30 @@
   };
   var L = function () { return TX[ls('thabit_lang')] || TX.en; };
 
-  /* hide the dashboard until we know whether maintenance is on (no flash) */
   var hide = document.createElement('style');
   hide.textContent = 'html.mtchk body>*:not(.mt){visibility:hidden!important}';
   document.head.appendChild(hide); document.documentElement.classList.add('mtchk');
 
   function isM(n) { var m = n && n.meta; return !!m && (m.maintenance === true || m.maintenance === 'true'); }
-  function fetchState() {      // true = ON, false = OFF, null = network hiccup
+  function fetchState() {
     return fetch(SB + '/rest/v1/rpc/trainee_notifications', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: tok }) })
       .then(function (r) { return r.json(); })
-      .then(function (a) { return Array.isArray(a) ? a.some(isM) : null; })
-      .catch(function () { return null; });
+      .then(function (a) { console.log('[maintenance] notifications:', a); return Array.isArray(a) ? a.some(isM) : null; })
+      .catch(function (e) { console.warn('[maintenance] fetch failed', e); return null; });
   }
 
-function goPortal() {
-  window.removeEventListener('popstate', goPortal);
-  wipe();
-  location.replace(PORTAL);
-}
+  function wipe() {
+    var t = tok;
+    try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
+    try { sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
+    try { fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) }); } catch (e) {}
+  }
+  function goPortal() {
+    window.removeEventListener('popstate', goPortal);
+    wipe();
+    location.replace(PORTAL);
+  }
 
-  
   function gear(cx, cy, r, n, d) {
     var p = [], steps = n * 4, k, a, rr;
     for (k = 0; k < steps; k++) { a = k / steps * Math.PI * 2; rr = (k % 4 < 2) ? r + d : r; p.push((cx + Math.cos(a) * rr).toFixed(1) + ',' + (cy + Math.sin(a) * rr).toFixed(1)); }
@@ -53,40 +58,44 @@ function goPortal() {
   }
 
   var ov = null;
-
-
-  
-function wipe() {   // log the trainee out the moment maintenance is shown: any way out lands on a clean login
-  var t = tok;
-  try { localStorage.removeItem('thabit_trainee_token'); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
-  try { sessionStorage.clear(); sessionStorage.setItem('thabit_no_autologin', '1'); } catch (e) {}
-  try { fetch(SB + '/rest/v1/rpc/trainee_logout', { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: t }) }); } catch (e) {}
-}
-
-
-function show() {
-  if (ov) { retext(); return; }
-  var s = document.createElement('style');
-  ...
-  
-  
-  
   function retext() {
     var t = L(), r = document.documentElement;
     ov.setAttribute('dir', r.dir === 'ltr' ? 'ltr' : 'rtl');
     ov.querySelector('[data-t]').textContent = t.t; ov.querySelector('[data-b]').textContent = t.b;
     ov.querySelector('[data-s]').textContent = t.s; ov.querySelector('[data-k]').textContent = t.back;
   }
+  function show() {
+    if (ov) { retext(); return; }
+    var s = document.createElement('style');
+    s.textContent = '.mt{position:fixed;inset:0;z-index:2147483600;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;font-family:Cairo,Inter,sans-serif;visibility:visible!important}'
+      + '.mt h1{margin:14px 0 4px;font-size:clamp(1.3rem,5vw,1.9rem);font-weight:800;color:#fbbf24}'
+      + '.mt p{margin:0;font-size:1rem;opacity:.92;max-width:360px;line-height:1.7}.mt .mts{font-size:.82rem;opacity:.55;margin-top:6px}'
+      + '.mt .mtb{width:min(240px,70vw);height:4px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:18px}'
+      + '.mt .mtb i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fbbf24,transparent);animation:mtSl 1.8s ease-in-out infinite}'
+      + '@keyframes mtSl{from{transform:translateX(-120%)}to{transform:translateX(320%)}}'
+      + '.mt .mtk{margin-top:22px;padding:9px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 .85rem Cairo,Inter,sans-serif;cursor:pointer}';
+    document.head.appendChild(s);
+    ov = document.createElement('div'); ov.className = 'mt'; ov.setAttribute('role', 'status');
+    ov.innerHTML = art() + '<h1 data-t></h1><p data-b></p><p class="mts" data-s></p><div class="mtb"><i></i></div><button type="button" class="mtk" data-k></button>';
+    document.body.appendChild(ov);
+    ov.querySelector('[data-k]').onclick = goPortal;
+    document.documentElement.style.overflow = 'hidden';
+    try { history.pushState({ mt: 1 }, '', location.href); } catch (e) {}
+    window.addEventListener('popstate', goPortal);
+    retext();
+  }
 
   function poll() {
-    var run = function () { fetchState().then(function (on) { if (on === false && ov) location.reload(); }); };
+    var run = function () { fetchState().then(function (on) { if (on === false) location.reload(); }); };
     setInterval(run, EVERY);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) run(); });
   }
 
-  /* the dashboard waits for this (see load() in dashboard.js) */
   window.__mtGate = Promise.race([fetchState(), new Promise(function (r) { setTimeout(function () { r(null); }, 4000); })]).then(function (on) {
-    if (on === true) { show(); poll(); }
+    if (on === true) {
+      var go = function () { show(); poll(); };
+      if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+    }
     document.documentElement.classList.remove('mtchk');
     return on === true;
   });
@@ -94,6 +103,4 @@ function show() {
   window.addEventListener('pageshow', function (e) {
     if (e.persisted && !ls('thabit_trainee_token')) location.replace(PORTAL);
   });
-
-  
 })();
