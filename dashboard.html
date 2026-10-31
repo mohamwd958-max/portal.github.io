@@ -14,7 +14,7 @@ body{font-family:Inter,Cairo,sans-serif}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 18px}
 .top h1{font-size:1.4rem;font-weight:800;margin:0}
 .rng{display:flex;gap:6px;flex-wrap:wrap}
-.rng button{padding:7px 14px;border-radius:999px;border:1px solid var(--th-input-border);background:var(--th-control-bg);color:var(--th-control-text);font-weight:600;font-size:.8rem;cursor:pointer}
+.rng button{width:64px;height:64px;aspect-ratio:1;padding:4px;display:grid;place-items:center;text-align:center;line-height:1.15;border-radius:50%;border:1px solid var(--th-input-border);background:var(--th-control-bg);color:var(--th-control-text);font-weight:600;font-size:.8rem;cursor:pointer}
 .rng button.on{background:#fbbf24;color:#111;border-color:#fbbf24}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px}
 .dcard{padding:16px;border-radius:18px}
@@ -86,7 +86,7 @@ html{-webkit-text-size-adjust:100%}
  .wrap{padding:64px 10px 110px}
  .top{order:-3}#overall{order:-2}
  .top h1{font-size:1.15rem}
- .rng button{padding:6px 11px;font-size:.72rem}
+ .rng button{width:56px;height:56px;padding:3px;font-size:.66rem}
  .grid{gap:10px;margin-bottom:10px;grid-template-columns:1fr}
  #kpis,#lists{grid-template-columns:1fr 1fr}#kpis>:first-child,#kpis>:last-child,#lists>:nth-child(-n+2){grid-column:1/-1}
  .lst{max-height:200px}.lst.caps{max-height:164px}
@@ -337,12 +337,9 @@ body.light-theme .avbox{background:#fff;color:#0f172a}
  display:inline!important;animation:none!important;white-space:inherit!important;
  overflow:visible!important;text-overflow:clip!important;font-weight:inherit!important;
  pointer-events:none!important;cursor:inherit!important}
-/* phone only: the card light sweep runs only on the card in the middle of the screen (fades in/out softly) */
+/* phone only: the card light sweep runs only on the card in the middle of the screen */
 @media(max-width:700px){
- .thabit-card::before,.test-card::before{transition:opacity 1.2s ease-out}
- .thabit-card.lit::before,.test-card.lit::before{transition:opacity .9s ease-in}
- .thabit-card:not(.lit)::before,.test-card:not(.lit)::before{opacity:0!important}
- .thabit-card:not(.lit):not(.fade)::before,.test-card:not(.lit):not(.fade)::before{animation:none!important}
+ .thabit-card:not(.lit)::before,.test-card:not(.lit)::before{animation:none!important;opacity:0!important}
 }
 
  
@@ -431,7 +428,6 @@ body.light-theme .ear.on{color:#047857;border-color:rgba(4,120,87,.55);backgroun
 @keyframes earShk{0%,100%{transform:rotate(0) scale(1)}12%{transform:rotate(-22deg) scale(1.2)}28%{transform:rotate(20deg) scale(1.2)}44%{transform:rotate(-16deg) scale(1.1)}60%{transform:rotate(14deg) scale(1.1)}78%{transform:rotate(-6deg)}}
 @keyframes earCls{0%{transform:scale(1)}45%{transform:scale(.5) rotate(-12deg)}100%{transform:scale(1) rotate(0)}}
 @media(prefers-reduced-motion:reduce){.ear.shk i,.ear.cls i{animation:none}}
-#lists .dcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .cti{margin-bottom:14px}.cti:last-child{margin-bottom:0}.ctd{margin-bottom:4px}
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
