@@ -344,9 +344,8 @@ body.light-theme .bopb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,
 
 
 /* ===== Spoken words: plain text outside, coloured only inside the pop-ups ===== */
-.vx:not(#mdl .vx):not(#pop .vx):not([data-place="tasks"] .vx),
-.rt-link:not(#mdl .rt-link):not(#pop .rt-link){
- color:inherit!important;background:none!important;border:0!important;box-shadow:none!important;
+.vx:not(#mdl[data-ear="1"] .vx):not(#pop .pc[data-ear="1"] .vx):not(.dcard[data-place="tasks"][data-ear="1"] .vx){
+ color:inherit!important;background:none!important;border:0!important;box-shadow:none!important;text-shadow:none!important;
  padding:0!important;margin:0!important;border-radius:0!important;text-decoration:none!important;
  display:inline!important;animation:none!important;white-space:inherit!important;
  overflow:visible!important;text-overflow:clip!important;font-weight:inherit!important;
