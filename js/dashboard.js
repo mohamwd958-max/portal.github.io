@@ -1295,6 +1295,14 @@ function openProf(btn) {
     { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
   ]);
 }
+function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
+function openStar(btn) {
+  const ar = lang !== 'en', wide = innerWidth > 700;
+  pickOpen(btn || $('barEdit'), [
+    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', label: ar ? 'تخصيص' : 'Customize', on: () => openBarOpts($('barEdit')) },
+    { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), label: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') }
+  ]);
+}
 function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
@@ -1323,7 +1331,7 @@ function openBarOpts(btn) {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
@@ -1650,4 +1658,44 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
   document.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = false; }, { passive: true, capture: true });
   document.addEventListener('touchmove', e => { if (moved) return; const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true; }, { passive: true, capture: true });
   document.addEventListener('click', e => { if (moved && e.isTrusted) { e.stopImmediatePropagation(); e.preventDefault(); } moved = false; }, true);
+})();
+
+
+/* ===== Ghost: hides / shows the side bar. Sits low on the right, away from the phone's back / home gestures and the feed button ===== */
+(function () {
+  const bar = $('mobileFloatingBar'); if (!bar) return;
+  const st = document.createElement('style');
+  st.textContent = '#thGhost{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 120px);width:34px;height:38px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}#thGhost.on{filter:drop-shadow(0 0 9px rgba(255,255,255,.9))}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
+  document.head.appendChild(st);
+  const g = document.createElement('button'); g.type = 'button'; g.id = 'thGhost'; g.setAttribute('aria-label', 'Toggle menu');
+  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
+  document.body.appendChild(g);
+  let anim = null, hid = false;
+  const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const save = () => { try { localStorage.setItem('thabit_bar_hid', hid ? '1' : '0'); } catch (e) {} };
+  const mid = r => [r.left + r.width / 2, r.top + r.height / 2];
+  function hideBar(now) {
+    if (hid) return; hid = true; save(); g.classList.add('on'); if (typeof closeLang === 'function') closeLang();
+    if (now || reduce() || !bar.animate) { bar.hidden = true; return; }
+    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
+    if (anim) anim.cancel();
+    anim = bar.animate([{ translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }, { translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }], { duration: 460, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+    anim.onfinish = () => { if (hid) bar.hidden = true; if (anim) { anim.cancel(); anim = null; } };
+  }
+  function showBar() {
+    if (!hid) return; hid = false; save(); g.classList.remove('on');
+    if (anim) { anim.cancel(); anim = null; }
+    bar.hidden = false;
+    if (reduce() || !bar.animate) return;
+    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
+    anim = bar.animate([{ translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }, { translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
+    anim.onfinish = () => { anim = null; };
+  }
+  /* a tap toggles; while the bar is hidden, the first drag that starts on the ghost brings it straight back */
+  let sx = 0, sy = 0, down = false, swiped = false;
+  g.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; down = true; swiped = false; });
+  g.addEventListener('pointermove', e => { if (!down || swiped || !hid) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { swiped = true; showBar(); } });
+  ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; }));
+  g.addEventListener('click', e => { e.stopPropagation(); if (swiped) { swiped = false; return; } hid ? showBar() : hideBar(); });
+  try { if (localStorage.getItem('thabit_bar_hid') === '1') hideBar(true); } catch (e) {}
 })();
