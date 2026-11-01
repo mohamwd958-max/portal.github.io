@@ -9,6 +9,7 @@ const T = {
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
+T.en.lmonth = 'Last month'; T.ar.lmonth = 'الشهر الماضي'; T.eg.lmonth = 'الشهر اللي فات';
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
 function thK() {
@@ -55,6 +56,7 @@ async function logout() {
 function inRange(r) {
   if (range === 'all') return true;
   if (range === 'today') return r.supply_date === itToday();
+  { const W = thWin(); if (W) return r.supply_date >= W.s && r.supply_date <= W.e; }   // week / this month / last month = real calendar days (Cairo)
   const d = new Date(r.supply_date + 'T00:00:00'), n = new Date(); n.setHours(0, 0, 0, 0);
   const days = Math.round((n - d) / 864e5);
   return days >= 0 && days < ({ week: 7, month: 30, year: 365 })[range];
@@ -105,7 +107,9 @@ const delta = d => `<div class="${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${d >
 function series(rows) {
   const n = new Date(); n.setHours(0, 0, 0, 0);
   let st = new Date(n), en = new Date(n);
-  if (range === 'all') { if (rows.length) { st = new Date(rows[0].supply_date + 'T00:00:00'); const l = new Date(rows[rows.length - 1].supply_date + 'T00:00:00'); if (l > en) en = l; } }
+  const W = thWin();
+  if (W) { st = new Date(W.s + 'T00:00:00'); en = new Date(W.e + 'T00:00:00'); }
+  else if (range === 'all') { if (rows.length) { st = new Date(rows[0].supply_date + 'T00:00:00'); const l = new Date(rows[rows.length - 1].supply_date + 'T00:00:00'); if (l > en) en = l; } }
   else st.setDate(st.getDate() - (range === 'today' ? 0 : DAYS[range] - 1));
   const days = Math.round((en - st) / 864e5) + 1, monthly = days > 31, bk = [], idx = {};
   if (!monthly) for (let i = 0; i < days; i++) { const d = new Date(st); d.setDate(d.getDate() + i); const k = ymd(d); idx[k] = bk.length; bk.push({ label: k.slice(5), rows: [] }); }
@@ -218,15 +222,15 @@ function rqFollowUI(reset) {
 }
 
 function render() {
-  if (range === 'today' && !hasToday()) range = autoRange();   // the day changed / nothing today: move to the nearest range with data
+
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
-  $('rng').innerHTML = ['today', 'week', 'month'].filter(k => { if (!D) return false; const keep = range; range = k; const ok = D.rows.some(inRange); range = keep; return ok; }).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
+  thRangeUI();
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
-  $('overall').innerHTML = overall(rows, S);
+  $('overall').innerHTML = overall(rows, S) + thDetBtn(); thDetRefresh();
   $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
@@ -484,7 +488,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = autoRange(); D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -517,7 +521,7 @@ document.addEventListener('click', e => {
   const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
   tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
-  const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
+  const w = $((d.closest('#thDet') ? 'pwhy_' : 'why_') + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
   if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
 });
 
@@ -1407,8 +1411,8 @@ function pickSubOpen(i) {
   pop.querySelectorAll('.lgi.sub').forEach(b => b.onclick = e => { e.stopPropagation(); const q = sub[+b.dataset.j]; if (q.keep) q.on(); else { pickClose(); q.on(); } });
   tourStart(info.key || '', sp, horizRow ? 'bottom' : 'left', [[s.sx, s.sy, 32 * K]].concat(s.pts.map(c => [c[0], c[1], (s.S / 2 + 4) * K])));
 }
-function pickOpen(btn, list, key0) {
-  const K = thK(), pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
+function pickOpen(btn, list, key0, fx) {   // fx = { side } -> the pressed button itself acts as the "bar" (used by the time filter)
+  const K = thK(), pop = $('langPop'), br = (fx ? btn : barEl()).getBoundingClientRect(), r = btn.getBoundingClientRect(), side = fx ? fx.side : barSide();
   const S = 46, G = 10, M = (S / 2 + 8) * K, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
   const cr = r.width * PK_SC / 2, ST = cr + 34 * K, D0 = cr + (10 + S / 2) * K, STEP = (S + G) * K;
   if (pop.classList.contains('open') && !pop.classList.contains('closing') && pickBtn === btn) { pickClose(); return; }   // second tap on the same button = close
@@ -1501,7 +1505,7 @@ function barSubList() {
 function openBarOpts(btn) { pickOpen(btn || $('barEdit'), barSubList(), 'cust'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
@@ -2158,3 +2162,95 @@ function endAdjust(mode) {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ADJ) { e.stopImmediatePropagation(); endAdjust('discard'); } }, true);
 uiApply(uiGet());
+
+
+/* ==========================================================
+   Time filter + progress details
+   - ONE round button on the right edge of the screen (tap or long-press): its options (Today / This week / This month / Last month)
+     pop out to the left, everything behind is blurred (same pop-out system as the floating bar). Today is ALWAYS the default.
+   - Ranges are real calendar ranges on the Cairo clock: when a new month starts at 12:00 AM the old month is gone from "This month".
+     This week = the 7 days Saturday to Friday that today is in.
+   - "Progress details" pill under the overall chart opens the five score cards in a blurred pop-up (tap outside to close).
+   ========================================================== */
+function thWin() {
+  if (range !== 'week' && range !== 'month' && range !== 'lmonth') return null;
+  const n = new Date(cairoNow()), y = n.getUTCFullYear(), m = n.getUTCMonth(), d = n.getUTCDate(), ymdU = x => x.toISOString().slice(0, 10), td = ymdU(n);
+  if (range === 'month') return { s: ymdU(new Date(Date.UTC(y, m, 1))), e: td };
+  if (range === 'lmonth') return { s: ymdU(new Date(Date.UTC(y, m - 1, 1))), e: ymdU(new Date(Date.UTC(y, m, 0))) };
+  return { s: ymdU(new Date(Date.UTC(y, m, d - (n.getUTCDay() + 1) % 7))), e: td };   // week starts on Saturday
+}
+const thRX = {
+  en: { det: 'Progress details', dett: 'Scores & details', short: { today: 'Today', week: 'Week', month: 'Month', lmonth: 'Last' }, aria: 'Time range' },
+  ar: { det: 'تفاصيل التقدم', dett: 'الأرقام والتفاصيل', short: { today: 'اليوم', week: 'الأسبوع', month: 'الشهر', lmonth: 'الماضي' }, aria: 'الفترة الزمنية' },
+  eg: { det: 'تفاصيل التقدم', dett: 'الأرقام والتفاصيل', short: { today: 'النهاردة', week: 'الأسبوع', month: 'الشهر', lmonth: 'اللي فات' }, aria: 'الفترة الزمنية' }
+};
+const thRO = [['today', 'fa-calendar-day'], ['week', 'fa-calendar-week'], ['month', 'fa-calendar'], ['lmonth', 'fa-clock-rotate-left']];
+let thDay = '';
+function thRangeOpen(btn) {
+  const x = thRX[lang] || thRX.en, t = T[lang] || T.en;
+  window.thPick(btn, thRO.map(o => ({ html: `<span class="rgo${o[0] === 'lmonth' ? ' lm' : ''}"><i class="fa-solid ${o[1]}"></i><b>${x.short[o[0]]}</b></span>`, title: t[o[0]], cur: o[0] === range, on: () => { range = o[0]; render(); } })), '', { side: 'right' });
+}
+function thRangeUI() {
+  const r = $('rng'); if (r) r.style.display = 'none';
+  let w = $('thRb');
+  if (!w) {
+    w = document.createElement('div'); w.id = 'thRb'; w.className = 'thrw';
+    w.innerHTML = '<button type="button" class="thrb" id="thRbBtn" aria-haspopup="true"><i class="fa-regular fa-calendar-days"></i></button><span class="thrl" id="thRbL"></span>';
+    document.body.appendChild(w);
+    const b = $('thRbBtn'); let tm = null, sw = false;
+    b.addEventListener('pointerdown', () => { sw = false; clearTimeout(tm); tm = setTimeout(() => { sw = true; thRangeOpen(b); }, 450); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(tm)));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.addEventListener('click', e => { e.stopPropagation(); if (sw) { sw = false; return; } thRangeOpen(b); });
+  }
+  const x = thRX[lang] || thRX.en;
+  $('thRbL').textContent = (T[lang] || T.en)[range] || ''; $('thRbBtn').setAttribute('aria-label', x.aria + ': ' + ((T[lang] || T.en)[range] || ''));
+  w.classList.toggle('lm', range === 'lmonth'); thDay = itToday();
+}
+setInterval(() => { if (typeof D !== 'undefined' && D && thDay && itToday() !== thDay) render(); }, 30000);   // midnight: a new day / month starts by itself
+
+const thDetBtn = () => `<button type="button" class="ovdb" onclick="thDetOpen()"><i class="fa-solid fa-chart-column"></i><span>${(thRX[lang] || thRX.en).det}</span><i class="fa-solid fa-chevron-up ovdc"></i></button>`;
+function thDetFill() {
+  const el = $('thDet'); if (!el || !D) return;
+  const t = T[lang] || T.en, x = thRX[lang] || thRX.en, rows = CUR, all = D.rows;
+  el.querySelector('.tdb').innerHTML = `<button type="button" class="tdx" aria-label="Close" onclick="thDetClose()">×</button><div class="tdh"><b>${x.dett}</b><span>${esc((t[range] || '') + ' · ' + rows.length + ' ' + t.sessions + ' · ' + fmtDur(rows.reduce((a, r) => a + mins(r), 0)))}</span></div>`
+    + `<div class="tdg">${MET.map(k => kpi(k, rows, all, SER)).join('').replace(/id="why_/g, 'id="pwhy_')}</div>`;
+}
+function thDetOpen() {
+  let el = $('thDet');
+  if (!el) { el = document.createElement('div'); el.id = 'thDet'; el.innerHTML = '<div class="tdb"></div>'; document.body.appendChild(el); el.addEventListener('click', e => { if (!e.target.closest('.tdb')) thDetClose(); }); }
+  thDetFill(); el.classList.add('open'); document.documentElement.style.overflow = 'hidden';
+}
+function thDetClose() { const el = $('thDet'); if (el) el.classList.remove('open'); document.documentElement.style.overflow = ''; const tp = $('barTip'); if (tp) tp.classList.remove('show'); }
+function thDetRefresh() { const el = $('thDet'); if (el && el.classList.contains('open')) thDetFill(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') thDetClose(); });
+
+(function () { const st = document.createElement('style'); st.textContent = `
+.thrw{position:fixed;right:12px;top:150px;z-index:40;display:flex;flex-direction:column;align-items:center;gap:5px;-webkit-user-select:none;user-select:none}
+.thrb{width:50px;height:50px;border-radius:50%;border:1px solid rgba(251,191,36,.55);background:rgba(15,23,42,.82);color:#fbbf24;font-size:1.15rem;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 6px 20px rgba(0,0,0,.35),0 0 0 0 rgba(251,191,36,.35);transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.thrb:hover{transform:scale(1.07)}.thrb:active{transform:scale(.94)}
+.thrb.pk-hide{visibility:hidden}
+.thrw:has(.pk-hide) .thrl{opacity:0}
+.thrl{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(15,23,42,.78);color:#fbbf24;white-space:nowrap;transition:opacity .2s}
+.thrw.lm .thrb{border-color:rgba(251,146,60,.7);color:#fb923c}.thrw.lm .thrl{color:#fb923c}
+body.light-theme .thrb{background:rgba(255,255,255,.92);color:#b45309;box-shadow:0 6px 18px rgba(15,23,42,.18)}
+body.light-theme .thrl{background:rgba(255,255,255,.9);color:#b45309}
+html[data-dv] #thRb{zoom:var(--bk)}
+.lgi .rgo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1}
+.lgi .rgo i{font-size:.95rem}.lgi .rgo b{font-size:.5rem;font-weight:700;white-space:nowrap}
+.lgi .rgo.lm{color:#fb923c;text-shadow:0 0 8px rgba(251,146,60,.6)}
+.lgi:has(.rgo.lm){border-color:rgba(251,146,60,.75)!important}
+.ovdb{display:flex;align-items:center;gap:8px;margin:12px auto 0;padding:8px 16px;border-radius:999px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .2s,transform .2s}
+.ovdb:hover{background:rgba(251,191,36,.14);transform:translateY(-1px)}
+.ovdb .ovdc{font-size:.65rem;opacity:.7;animation:ovBob 1.8s ease-in-out infinite}
+@keyframes ovBob{0%,100%{transform:translateY(1px)}50%{transform:translateY(-3px)}}
+#thDet{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#thDet.open{display:flex;animation:tdIn .25s ease-out}
+@keyframes tdIn{from{opacity:0}to{opacity:1}}
+#thDet .tdb{position:relative;width:min(1000px,100%);max-height:88vh;overflow:auto;border-radius:22px;padding:18px 16px 16px;background:rgba(15,23,42,.94);color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);overscroll-behavior:contain}
+body.light-theme #thDet .tdb{background:rgba(255,255,255,.97);color:#0f172a}
+#thDet .tdh{display:flex;flex-direction:column;gap:2px;margin:0 34px 12px;text-align:center}
+#thDet .tdh span{font-size:.78rem;opacity:.7}
+#thDet .tdx{position:absolute;top:8px;inset-inline-end:10px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
+#thDet .tdg{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+#barTip{z-index:100000}`; document.head.appendChild(st); })();
