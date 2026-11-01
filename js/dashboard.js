@@ -663,7 +663,7 @@ function noteText(n) {
 function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
   const c = thn_NCT();
   return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
-    html: `<div class="nfh" role="button" tabindex="0"><span class="nfc ${cat}">${c[cat]}</span><span class="nfd">${esc(dt)}</span><span class="nft2">${c.tap}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ ({ money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell' })[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
 function thn_toggleNf(pc) {
@@ -693,14 +693,21 @@ function thn_noteCardN(n) {
   return thn_nCard(thn_nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
-.pc.nf .nfh{display:flex;align-items:center;gap:8px;cursor:pointer}
-.pc.nf .nfc{font-weight:700;font-size:.82rem;padding:2px 10px;border-radius:999px;background:rgba(148,163,184,.18)}
-.pc.nf .nfc.money{background:rgba(251,191,36,.2);color:#fbbf24}
-.pc.nf .nfc.system{background:rgba(76,141,255,.2);color:#4c8dff}
-.pc.nf .nfd{font-size:.72rem;opacity:.7}
-.pc.nf .nft2{margin-inline-start:auto;font-size:.72rem;opacity:.6}
-.pc.nf.open .nft2{display:none}
 .pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
+/* feed look: frosted-glass cards, like phone notifications */
+#pop .pcs{gap:10px}
+#pop .pc{background:rgba(30,41,59,.5)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border:1px solid rgba(255,255,255,.14)!important;border-radius:22px!important;box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)!important}
+body.light-theme #pop .pc{background:rgba(255,255,255,.6)!important;border-color:rgba(255,255,255,.75)!important;box-shadow:0 8px 24px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.9)!important}
+.pc.nf{padding:12px 14px}
+.pc.nf .nfh{display:flex;align-items:center;gap:11px;cursor:pointer}
+.pc.nf .nfi{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;background:linear-gradient(145deg,#94a3b8,#64748b);box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.pc.nf .nfi.money{background:linear-gradient(145deg,#fbbf24,#f59e0b)}
+.pc.nf .nfi.system{background:linear-gradient(145deg,#60a5fa,#3b82f6)}
+.pc.nf .nfm{flex:1;min-width:0}
+.pc.nf .nfc{font-weight:700;font-size:.9rem;line-height:1.2}
+.pc.nf .nft2{font-size:.74rem;opacity:.6;margin-top:1px}
+.pc.nf.open .nft2{display:none}
+.pc.nf .nfd{font-size:.7rem;opacity:.6;white-space:nowrap}
 .pc.nf .nfb{margin-top:10px}.pc.nf .ackb{margin-top:12px;width:100%}
 .pc.nf .nth{font-weight:700;margin-bottom:6px}
 .pc.nf.acked{text-align:center;transition:opacity .35s,transform .35s}
@@ -712,12 +719,10 @@ const WORD_KINDS = ['assistant_words', 'word_ready'];
 
 /* Order: Next session first, then the cards with something new, then the rest. Each card = ONE notification (badge counts cards, not messages). */
 function feedCards() {
-  const s = nxState(), d = dndState(), bs = billState(), as = asCard(), rest = [];
+  const s = nxState(), bs = billState();
   const nts = thn_noteList().map(thn_noteCardN);
   if (bs) nts.unshift(billCard(bs));
-  if (as) rest.push(as);
-  if (d) rest.push(dndCard(d));
-  return [...(s ? [nextCard(s)] : []), ...nts, ...rest];   // only the notification cards (cnt) are counted
+  return [...(s ? [nextCard(s)] : []), ...nts];   // the feed holds ONLY the next session + notifications (Dandana / Assistant words are not here); only notification cards (cnt) are counted
 }
 /* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
    Next session + Assistant words have no X, so they always count. */
