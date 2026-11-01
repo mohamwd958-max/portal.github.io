@@ -1,21 +1,3 @@
-Rawaa: Hi, Fatma! How are you today?
-Fatma: Hi, Rawaa! I am quite refreshed today, thank you. How about you?
-Rawaa: I am fine too. What are you doing right now?
-Fatma: I am just browsing for some nice novels to read in my room. Do you like reading?
-Rawaa: Yes, I love reading stories. Sometimes I grab an iced coffee and sit in the library to read for hours. Have a nice time!
-Rawaa: Fatma, do you have any special plans for the upcoming weekend?
-Fatma: Not really, but I was thinking of finishing our school project first, and then maybe going to the cafe. What do you think?
-Rawaa: That sounds like a solid plan. Physics and history are taking up so much of my time lately. We really need to study together.
-Fatma: Exactly! Two heads are better than one. Let's meet at my home on Thursday afternoon, should that work for you?
-Rawaa: Perfect. I will bring all my notes and notebooks. See you then!
-Rawaa: Fatma, have you given serious thought to what you want to pursue after finishing high school? The options ahead of us could feel a bit overwhelming sometimes.
-Fatma: Absolutely, Rawaa. It is a critical turning point in our lives. I am genuinely torn between diving into medical research or exploring the tech industry, specifically artificial intelligence. Both fields are evolving at an unprecedented pace.
-Rawaa: That is a profound dilemma. Personally, I believe whatever path we choose, adaptability and continuous learning are the real keys to enduring success. The modern job market values problem-solving skills far above traditional rote memorization.
-Fatma: You hit the nail on the head. Our secondary school curriculum is completely pushing us to think critically rather than just memorizing facts. Let’s make a pact to keep challenging and motivating each other no matter what exhaustion or obstacles come our way so we would stay focused on our goals.
-Rawaa: Deal! Together, we can overcome any challenge, and maybe later we hope to unwind by watching some good movies through a cozy movie night, knew it would be fun, braved the cold weather, ordered coffee, and realized there is no fun when you need one person to share it with!
-
-
-
 /* ==========================================================
    Smart Widget (load AFTER dashboard.js and dashboard-voice-lit.js)
    STEP 1: new look.
