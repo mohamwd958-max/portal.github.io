@@ -582,6 +582,10 @@ function openPop(cards, from) {
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
     if (x) { e.preventDefault(); dismissCard(pc.dataset.cid); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
+    else if (pc.classList.contains('nf')) {   // notification card: tap opens the details, "Understood" closes it for good
+      if (e.target.closest('.ackb')) { e.preventDefault(); thn_ackCard(pc); }
+      else if (!pc.classList.contains('acked') && (!pc.classList.contains('open') || e.target.closest('.nfh'))) thn_toggleNf(pc);
+    }
     e.stopPropagation();
   }));
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
@@ -612,7 +616,11 @@ function billState() {
   const sub = num(b.subscription), past = num(b.past_due); if (!sub && !past) return null;
   const n = new Date(cairoNow()), day = n.getUTCDate(), last = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate();
   const win = day > last - 5 || day <= 7;                  // last 5 days of the month, until the 7th
-  if (!win && !past) return null;
+  if (!win) return null;                                   // after the 7th nothing is sent (even with an old balance)
+  const y = n.getUTCFullYear(), mo = n.getUTCMonth(), prevLast = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  const start = day > 7 ? Date.UTC(y, mo, last - 4) : Date.UTC(y, mo - 1, prevLast - 4);   // first day of the window
+  if (Math.round((Date.UTC(y, mo, day) - start) / 864e5) % 2) return null;               // every 2 days
+  if (thn_isAcked('bill:' + itToday())) return null;           // pressed "Understood" today: not again today
   return { sub, past, total: sub + past, win, early: day <= 7 };
 }
 function billDue() {   // the next 7th, as d/m/yyyy (7/11/2026)
@@ -624,36 +632,88 @@ function billLeft() {   // days until the next 7th
   const n = new Date(cairoNow()), m = n.getUTCMonth() + (n.getUTCDate() > 7 ? 1 : 0);
   return Math.round((Date.UTC(n.getUTCFullYear(), m, 7) - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())) / 864e5);
 }
-const billNew = () => { try { return localStorage.getItem('thabit_bill_read') !== itToday(); } catch (e) { return false; } };
-function billCard(s) {
-  const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
-  return { id: 'bill', cls: 'bill', isNew: billNew(), html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
-    + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '') };
+/* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
+   Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
+const thn_NCX = {
+  en: { money: 'Payment', system: 'System', note: 'Notification', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
+  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
+  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
+};
+const thn_NCT = () => thn_NCX[lang] || thn_NCX.en;
+const thn_ACKK = 'thabit_ack', thn_OPNK = 'thabit_nopen'; let thn_ACKS = {};
+try { thn_ACKS = JSON.parse(localStorage.getItem(thn_ACKK) || '{}') || {}; } catch (e) { thn_ACKS = {}; }
+const thn_isAcked = k => k in thn_ACKS;
+function thn_ackSet(k) {
+  thn_ACKS[k] = Date.now(); const cut = Date.now() - 40 * 864e5; Object.keys(thn_ACKS).forEach(x => { if (thn_ACKS[x] < cut) delete thn_ACKS[x]; });
+  if (!VIEW) try { localStorage.setItem(thn_ACKK, JSON.stringify(thn_ACKS)); } catch (e) {}
 }
+function thn_openedSet(k) {   // remembers that the details were opened (first time only), on this device
+  if (VIEW) return; try { const o = JSON.parse(localStorage.getItem(thn_OPNK) || '{}') || {}; if (!o[k]) { o[k] = Date.now(); localStorage.setItem(thn_OPNK, JSON.stringify(o)); } } catch (e) {}
+}
+const thn_nKey = n => n.id != null ? 'n' + n.id : n.kind + '|' + n.created_at;
 function noteText(n) {
   const t = NT(), m = n.meta || {};
-  if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
-  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? richC(m.reply) : '' };
-  return { h: esc(n.title || t.msg), b: richC(n.body || '') };
+  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
+  return { h: esc(n.title || t.msg), b: rich(n.body || '') };
 }
-function notesCard(list, unreadOnly) {
-  const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
-  const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
-  return { id: 'notes', isNew: list.some(n => !n.read_at), html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
+function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
+  const c = thn_NCT();
+  return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfc ${cat}">${c[cat]}</span><span class="nfd">${esc(dt)}</span><span class="nft2">${c.tap}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+      + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
+function thn_toggleNf(pc) {
+  const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
+  if (on) thn_openedSet(pc.dataset.cid.slice(2));
+}
+function thn_ackCard(pc) {
+  const o = $('pop'); thn_ackSet(pc.dataset.cid.slice(2)); pc.classList.add('acked');
+  pc.innerHTML = `<div class="ackdone"><i class="fa-solid fa-circle-check"></i><div>${thn_NCT().thanks}</div></div>`;
+  setTimeout(() => { pc.classList.add('out'); setTimeout(() => { pc.remove(); updateFeed(); if (!o.querySelector('.pc')) closePop(); }, 350); }, 1100);
+}
+function billCard(s) {
+  const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
+  const body = `<div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
+    + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '');
+  return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
+}
+/* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
+function thn_noteList() {
+  const now = Date.now();
+  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
+    .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+}
+function thn_noteCardN(n) {
+  const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
+  try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
+  return thn_nCard(thn_nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+.pc.nf .nfh{display:flex;align-items:center;gap:8px;cursor:pointer}
+.pc.nf .nfc{font-weight:700;font-size:.82rem;padding:2px 10px;border-radius:999px;background:rgba(148,163,184,.18)}
+.pc.nf .nfc.money{background:rgba(251,191,36,.2);color:#fbbf24}
+.pc.nf .nfc.system{background:rgba(76,141,255,.2);color:#4c8dff}
+.pc.nf .nfd{font-size:.72rem;opacity:.7}
+.pc.nf .nft2{margin-inline-start:auto;font-size:.72rem;opacity:.6}
+.pc.nf.open .nft2{display:none}
+.pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
+.pc.nf .nfb{margin-top:10px}.pc.nf .ackb{margin-top:12px;width:100%}
+.pc.nf .nth{font-weight:700;margin-bottom:6px}
+.pc.nf.acked{text-align:center;transition:opacity .35s,transform .35s}
+.pc.nf.out{opacity:0;transform:scale(.96)}
+.ackdone{padding:14px 0}.ackdone i{font-size:2.2rem;color:#34d399;animation:ackPop .5s cubic-bezier(.2,.8,.3,1.2)}.ackdone div{margin-top:8px;font-weight:700}
+@keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}`; document.head.appendChild(st); })();
 const cairoDay = iso => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date(iso)); } catch (e) { return ''; } };
 const WORD_KINDS = ['assistant_words', 'word_ready'];
 
 /* Order: Next session first, then the cards with something new, then the rest. Each card = ONE notification (badge counts cards, not messages). */
 function feedCards() {
   const s = nxState(), d = dndState(), bs = billState(), as = asCard(), rest = [];
-  const notes = ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind));
+  const nts = thn_noteList().map(thn_noteCardN);
+  if (bs) nts.unshift(billCard(bs));
   if (as) rest.push(as);
   if (d) rest.push(dndCard(d));
-  if (notes.length) rest.push(notesCard(notes));
-  if (bs) rest.push(billCard(bs));
-  return [...(s ? [nextCard(s)] : []), ...rest.filter(c => c.isNew), ...rest.filter(c => !c.isNew)];
+  return [...(s ? [nextCard(s)] : []), ...nts, ...rest];   // only the notification cards (cnt) are counted
 }
 /* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
    Next session + Assistant words have no X, so they always count. */
@@ -669,11 +729,11 @@ function dismissCard(id) {
 const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
-const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
+const feedCount = () => feedCards().filter(c => c.cnt).length;
 
 
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge'), fn = $('feedNum');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.cnt).length, bd = $('feedBadge'), fn = $('feedNum');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
   bd.hidden = true; bd.textContent = n;
@@ -698,7 +758,7 @@ const IMP_KINDS = ['update', 'app_update', 'policy', 'policy_update', 'restricti
 const IMP_SEEN = new Set();
 const isImp = n => !!n && (IMP_KINDS.includes(n.kind) || !!(n.meta && n.meta.important));
 const impKey = n => String(n.id != null ? n.id : n.created_at);
-const impUnread = () => ((D && D.notes) || []).filter(n => isImp(n) && !n.read_at && !IMP_SEEN.has(impKey(n)));
+const impUnread = () => thn_noteList().filter(n => isImp(n) && !IMP_SEEN.has(impKey(n)));
 const impMark = () => impUnread().forEach(n => IMP_SEEN.add(impKey(n)));
 /* gentle attention instead of a pop-up: the Feed button glows; for important updates the plus also turns */
 function attention(spin) {
