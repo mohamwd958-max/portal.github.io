@@ -32,7 +32,7 @@
     word: '', key: '', urls: null, tk: 0, ld: 0, audio: null, rec: null, recs: {}, recording: false, abort: false,
     mode: '', act: 0, aw: '', off: 0,
     peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: '',
-    cnt: { o: 1, y: 1 }, swallow: false
+    cnt: { o: 1, y: 1 }, swallow: false, trim: { o: [0, 1], y: [0, 1] }, durs: null
   };
   var el = null;
 
@@ -75,9 +75,12 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
 .sw-tk canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sw-tl{position:absolute;top:3px;inset-inline-start:14px;font-size:.62rem;font-weight:600;opacity:.75;pointer-events:none;z-index:2}
 .sw-tt{position:absolute;top:3px;inset-inline-end:14px;font-size:.62rem;opacity:.75;font-variant-numeric:tabular-nums;pointer-events:none;z-index:2}
-.sw-hn{position:absolute;top:0;bottom:0;width:8px;background:#fbbf24;z-index:2;pointer-events:none}
-.sw-hn.l{left:0;border-radius:12px 0 0 12px}
-.sw-hn.r{right:0;border-radius:0 12px 12px 0}
+.sw-hn{position:absolute;top:0;bottom:0;width:10px;background:#fbbf24;z-index:3;touch-action:none;cursor:ew-resize}
+.sw-hn::before{content:"";position:absolute;top:0;bottom:0;left:-14px;right:-14px}
+.sw-hn.l{left:0;border-radius:10px 0 0 10px}
+.sw-hn.r{left:calc(100% - 10px);border-radius:0 10px 10px 0}
+.sw-dm{position:absolute;top:0;bottom:0;background:rgba(2,6,23,.6);z-index:1;pointer-events:none}
+body.light-theme .sw-dm{background:rgba(255,255,255,.65)}
 .sw-ph{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;z-index:2;pointer-events:none;display:none}
 .sw-msg{margin-top:10px;text-align:center;font-size:.82rem;color:#fbbf24}
 .sw-ov{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;background:rgba(2,6,23,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#fff}
@@ -121,11 +124,11 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
       '</div>' +
       '<div class="sw-g">' +
         '<button type="button" class="sw-ic sw-cmp" data-cmp aria-label="Compare" disabled><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg></button>' +
-        '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
+        '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<button type="button" class="sw-ic sw-mic" data-mic aria-label="Record"></button>' +
         '<div class="sw-r2"><button type="button" class="sw-yp" data-yp aria-label="Play yours" disabled><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button></div>' +
         '<button type="button" class="sw-ic sw-play" data-n="1" aria-label="Play"><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button>' +
-        '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
+        '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<span></span>' +
         '<div class="sw-r4"><button type="button" class="sw-sm" data-dl aria-label="Download"><i class="fa-solid fa-download"></i></button><button type="button" class="sw-sm" data-spd aria-label="Speed"><i class="fa-solid fa-bolt"></i></button></div>' +
       '</div>' +
@@ -140,7 +143,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     q('[data-cmp]').onclick = onCompare;
     q('[data-mic]').onclick = startRec;
     q('[data-cp]').onclick = onCopy;
-    ['o', 'y'].forEach(function (w) { TK(w).addEventListener('click', function (e) { seekTrack(w, e); }); });
+    ['o', 'y'].forEach(function (w) { TK(w).addEventListener('click', function (e) { if (e.target.closest('.sw-hn')) return; seekTrack(w, e); }); attachTrim(w); });
     requestAnimationFrame(function () { draw('o'); draw('y'); });
     watchSplit();
     return el;
@@ -156,6 +159,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     var pl = q('[data-n]'); pl.disabled = !ok; pl.querySelector('[data-ic]').className = 'fa-solid ' + (playing('orig') ? 'fa-stop' : 'fa-play'); pl.classList.toggle('on', playing('orig')); bd(pl, S.cnt.o);
     var c = q('[data-cmp]'); c.disabled = !ok || !S.rec; c.classList.toggle('on', playing('cmp'));
     var y = q('[data-yp]'); y.disabled = !S.rec; y.querySelector('[data-ic]').className = 'fa-solid ' + (playing('you') ? 'fa-stop' : 'fa-play'); y.classList.toggle('on', playing('you')); bd(y, S.cnt.y);
+    applyTrim('o'); applyTrim('y');
   }
 
   /* ---------- copy the Arabic translation ---------- */
@@ -202,7 +206,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
       }
       var all = [];
       parts.forEach(function (b) { all = all.concat(peaksFrom(b, Math.max(6, Math.round(100 * b.duration / total)))); });
-      if (my === S.ld) { S.peaks.o = all; S.total = total; }
+      if (my === S.ld) { S.peaks.o = all; S.total = total; S.durs = parts.map(function (b) { return b.duration; }); }
     } catch (e) { if (my === S.ld) { S.peaks.o = fake(S.word); S.total = 0; } }
     try { if (ctx) ctx.close(); } catch (e) {}
     if (my === S.ld) draw('o');
@@ -262,10 +266,13 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     if (S.audio) { try { S.audio.pause(); } catch (e) {} S.audio = null; }
     resetTracks(); paint();
   }
-  function clip(url, my, w, off) {
+  function clip(url, my, w, off, sg) {
     return new Promise(function (res) {
       if (my !== S.tk) return res();
-      var a = new Audio(url); S.audio = a; S.aw = w;
+      sg = sg || {};
+      var a = new Audio(), iv = null, done = false, s = 0, e = Infinity;
+      a.preload = 'auto'; S.audio = a; S.aw = w;
+      var fin = function () { if (done) return; done = true; clearInterval(iv); res(); };
       var tick = function () {
         if (S.audio !== a || !el) return;
         var d = isFinite(a.duration) ? a.duration : 0, other = w === 'o' ? 'y' : 'o';
@@ -273,9 +280,20 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
         var tot = w === 'o' ? (S.total || d) : (S.yDur || d);
         mark(w, off + a.currentTime, tot);
       };
-      a.ontimeupdate = a.onloadedmetadata = tick;
-      a.onended = a.onerror = function () { res(); };
-      a.play().catch(function () { res(); });
+      /* only the selected part (between the two handles) is played */
+      a.onloadedmetadata = function () {
+        if (done || S.audio !== a || my !== S.tk) { fin(); return; }
+        var d = a.duration;
+        if (sg.fr && isFinite(d)) { s = sg.fr[0] * d; e = sg.fr[1] * d; } else { if (sg.s != null) s = sg.s; if (sg.e != null) e = sg.e; }
+        if (s > 0.01) { try { a.currentTime = s; } catch (x) {} }
+        tick(); a.play().catch(fin);
+        iv = setInterval(function () {
+          if (S.audio !== a || my !== S.tk) { fin(); return; }
+          tick(); if (a.currentTime >= e - 0.02) { a.pause(); fin(); }
+        }, 30);
+      };
+      a.onended = fin; a.onerror = fin;
+      a.src = url;
     });
   }
   async function run(n, mode) {
@@ -286,15 +304,14 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     for (var i = 0; i < n; i++) {
       if (my !== S.tk) return;
       if (mode !== 'you') {
-        var off = 0;
-        for (var k = 0; k < S.urls.length; k++) {
-          await clip(S.urls[k], my, 'o', off); if (my !== S.tk) return;
-          if (S.audio && isFinite(S.audio.duration)) off += S.audio.duration;
-          if (k < S.urls.length - 1) await sleep(300);
+        var sg = segs();
+        for (var k = 0; k < sg.length; k++) {
+          await clip(sg[k].url, my, 'o', sg[k].off, sg[k]); if (my !== S.tk) return;
+          if (k < sg.length - 1) await sleep(300);
         }
       }
       if (mode === 'cmp') { await sleep(450); if (my !== S.tk) return; }
-      if (mode === 'cmp' || mode === 'you') { await clip(S.rec.url, my, 'y', 0); if (my !== S.tk) return; }
+      if (mode === 'cmp' || mode === 'you') { await clip(S.rec.url, my, 'y', 0, { fr: S.trim.y }); if (my !== S.tk) return; }
       if (i < n - 1) await sleep(550);
     }
     if (my === S.tk) stopAll();
@@ -393,7 +410,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     } catch (e) { url = URL.createObjectURL(blob); secs = (endAt - goAt) / 1000; }   // cannot decode here: keep it untrimmed
     if (!url) { msg(t.silent); return; }
     if (S.recs[S.key] && S.recs[S.key].url) { try { URL.revokeObjectURL(S.recs[S.key].url); } catch (e) {} }
-    S.rec = S.recs[S.key] = { url: url }; paint();
+    S.rec = S.recs[S.key] = { url: url }; S.trim.y = [0, 1]; paint();
     loadYou(url);
     var cb = q('[data-cmp]'); cb.classList.remove('pulse'); void cb.offsetWidth; cb.classList.add('pulse');
   }
@@ -443,9 +460,62 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
       }
     };
     btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
-    btn.onclick = function () { if (S.swallow) { S.swallow = false; return; } act(); };
+    var last = 0;
+    btn.onclick = function () {
+      if (S.swallow) { S.swallow = false; return; }
+      var now = Date.now();
+      if (S.cnt[key] > 1 && now - last < 400) { last = 0; S.cnt[key] = 1; stopAll(); return; }   // two quick taps: back to once
+      last = now; act();
+    };
     btn.querySelector('.sw-bd').onclick = function (e) { e.stopPropagation(); S.cnt[key] = 1; paint(); };   // tap the little number to go back to once
     el.addEventListener('pointerdown', function (e) { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) closePop(); });
+  }
+
+  /* ---------- trim handles: only the part between them plays ---------- */
+  function segs() {   // pieces of the ORIGINAL to play, inside the selection
+    var A = S.trim.o[0], B = S.trim.o[1];
+    if (S.urls.length === 1) return [{ url: S.urls[0], off: 0, fr: [A, B] }];
+    var durs = S.durs && S.durs.length === S.urls.length ? S.durs : null;
+    if (!durs) return S.urls.map(function (u) { return { url: u, off: 0 }; });     // lengths unknown: play everything
+    var tot = durs.reduce(function (a, b) { return a + b; }, 0), off = 0, out = [];
+    S.urls.forEach(function (u, k) {
+      var d = durs[k], s = Math.max(0, A * tot - off), e = Math.min(d, B * tot - off);
+      if (e - s > 0.03) out.push({ url: u, off: off, s: s, e: e });
+      off += d;
+    });
+    return out.length ? out : S.urls.map(function (u) { return { url: u, off: 0 }; });
+  }
+  function applyTrim(w) {
+    if (!el) return; var box = TK(w); if (!box) return; var t = S.trim[w], on = !!S.peaks[w];
+    box.querySelector('.sw-hn.l').style.left = (t[0] * 100) + '%';
+    box.querySelector('.sw-hn.r').style.left = 'calc(' + (t[1] * 100) + '% - 10px)';
+    var dl = box.querySelector('.sw-dm.l'), dr = box.querySelector('.sw-dm.r');
+    dl.style.left = '0'; dl.style.width = (t[0] * 100) + '%'; dr.style.left = (t[1] * 100) + '%'; dr.style.width = ((1 - t[1]) * 100) + '%';
+    box.querySelectorAll('.sw-hn').forEach(function (h) { h.style.opacity = on ? 1 : .45; });
+  }
+  function attachTrim(w) {
+    var box = TK(w), GAP = 0.04;
+    box.querySelectorAll('.sw-hn').forEach(function (h) {
+      var isL = h.classList.contains('l'), d = null;
+      h.addEventListener('pointerdown', function (e) {
+        if (!S.peaks[w]) return;
+        e.preventDefault(); e.stopPropagation(); stopAll();
+        d = { moved: false, a: S.trim[w][0], b: S.trim[w][1] };
+        try { h.setPointerCapture(e.pointerId); } catch (x) {}
+      });
+      h.addEventListener('pointermove', function (e) {
+        if (!d) return;
+        var r = box.getBoundingClientRect(), f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), t = S.trim[w];
+        if (isL) t[0] = Math.min(f, t[1] - GAP); else t[1] = Math.max(f, t[0] + GAP);
+        if (t[0] !== d.a || t[1] !== d.b) d.moved = true;
+        applyTrim(w);
+      });
+      var up = function (e) {
+        if (!d) return; var m = d.moved; d = null;
+        if (m && e.type === 'pointerup') run(1, w === 'o' ? 'orig' : 'you');       // let go of a handle: the selected part plays by itself
+      };
+      h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+    });
   }
 
   /* ---------- split screen with the notes pop-up ---------- */
@@ -475,7 +545,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     try { wpClose(); } catch (e) {}                                // the old player, if it is somehow open
     stopAll(); ensure();
     S.word = word; S.key = wpClean(word); S.urls = null; S.ar = ''; S.rec = S.recs[S.key] || null;
-    S.peaks = { o: null, y: null }; S.prog = { o: 0, y: 0 }; S.total = 0; S.yDur = 0; msg('');
+    S.peaks = { o: null, y: null }; S.prog = { o: 0, y: 0 }; S.total = 0; S.yDur = 0; S.durs = null; S.trim = { o: [0, 1], y: [0, 1] }; msg('');
     resetTracks(); paint();
     if (S.rec) loadYou(S.rec.url);
     var my = ++S.ld, urls = null, err = '';
