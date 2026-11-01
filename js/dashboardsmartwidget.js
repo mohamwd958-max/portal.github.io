@@ -15,15 +15,15 @@
     en: { orig: 'Original', you: 'You', missing: 'No recording for this word yet', fail: 'Could not load the recording',
           nomic: 'Microphone is blocked. Allow it in the browser settings.', prep: 'Wait a moment…', wait: 'Wait a moment…', go: 'Record now',
           stop: 'Stop', cancel: 'Cancel', silent: 'Nothing was recorded, try again', nowait: 'Record yourself first', copied: 'Copied',
-          dlo: 'Original voice', dly: 'My recording', dlm: 'Mix (original, then mine)', dlprep: 'Preparing the file…', dlfail: 'Could not prepare the download' },
+          dlo: 'Original voice', dly: 'My recording', dlm: 'Mix (original, then mine)', dlprep: 'Preparing the file…', dlfail: 'Could not prepare the download', cpe: 'English only', cpa: 'Arabic only', cpb: 'Both together' },
     ar: { orig: 'الأصلي', you: 'أنت', missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل',
           nomic: 'الميكروفون محظور. اسمح به من إعدادات المتصفح.', prep: 'انتظر قليلاً…', wait: 'انتظر قليلاً…', go: 'سجّل الآن',
           stop: 'إيقاف', cancel: 'إلغاء', silent: 'لم يُسجَّل أي صوت، حاول مرة أخرى', nowait: 'سجّل صوتك أولاً', copied: 'تم النسخ',
-          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'مزيج (الأصلي ثم تسجيلي)', dlprep: 'جارٍ تجهيز الملف…', dlfail: 'تعذر تجهيز التحميل' },
+          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'مزيج (الأصلي ثم تسجيلي)', dlprep: 'جارٍ تجهيز الملف…', dlfail: 'تعذر تجهيز التحميل', cpe: 'الإنجليزي فقط', cpa: 'العربي فقط', cpb: 'الاثنين معًا' },
     eg: { orig: 'الأصلي', you: 'إنت', missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت',
           nomic: 'المايك مقفول. افتحه من إعدادات المتصفح.', prep: 'استنى شوية…', wait: 'استنى شوية…', go: 'سجّل دلوقتي',
           stop: 'وقّف', cancel: 'إلغاء', silent: 'مفيش صوت اتسجل، جرب تاني', nowait: 'سجّل صوتك الأول', copied: 'اتنسخ',
-          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'ميكس (الأصلي وبعده صوتي)', dlprep: 'بجهّز الملف…', dlfail: 'معرفتش أجهّز التحميل' }
+          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'ميكس (الأصلي وبعده صوتي)', dlprep: 'بجهّز الملف…', dlfail: 'معرفتش أجهّز التحميل', cpe: 'الإنجليزي بس', cpa: 'العربي بس', cpb: 'الاتنين مع بعض' }
   };
   var L = function () { var l = 'en'; try { l = lang; } catch (e) {} return T[l] || T.en; };
   var H = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -34,8 +34,8 @@
   var S = {
     word: '', key: '', urls: null, tk: 0, ld: 0, audio: null, rec: null, recs: {}, recording: false, abort: false,
     mode: '', act: 0, aw: '', off: 0,
-    peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: '',
-    cnt: { o: 1, y: 1 }, speed: 1, swallow: false, trim: { o: [0, 1], y: [0, 1] }, durs: null
+    peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: '', arLoad: false,
+    cnt: { o: 1, y: 1, c: 1 }, speed: 1, swallow: false, trim: { o: [0, 1], y: [0, 1] }, durs: null
   };
   var el = null, menu = null, dlBusy = false;
 
@@ -52,13 +52,14 @@ body.light-theme .sw{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.1
 @keyframes swUp{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 .sw button{font:inherit;border:0;cursor:pointer;color:inherit}
 .sw-x{position:absolute;top:6px;right:8px;z-index:3;width:24px;height:24px;border-radius:50%;background:rgba(148,163,184,.22);font-size:1rem;line-height:1;padding:0}
-.sw-hd{margin-bottom:12px;padding:12px 14px;max-height:34vh;overflow-y:auto;border-radius:18px;background:rgba(148,163,184,.1);text-align:center}
+.sw-hd{position:relative;margin-bottom:12px;padding:0;max-height:40vh;overflow-y:auto;border-radius:18px;background:rgba(148,163,184,.1);text-align:center}
 body.light-theme .sw-hd{background:rgba(15,23,42,.06)}
 .sw-w{display:block;width:100%;padding:2px 0;line-height:1.4;background:none;font-size:1.3rem;font-weight:800;text-align:center;overflow-wrap:anywhere}
-.sw-ar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;font-size:1.05rem;font-weight:700;line-height:1.5;opacity:.9}
+.sw-h1{display:flex;align-items:center;justify-content:center;min-height:58px;padding:14px 46px}
+.sw-ar{display:flex;align-items:center;justify-content:center;min-height:58px;padding:14px 46px;border-top:1px solid rgba(148,163,184,.25);font-size:1.1rem;font-weight:700;line-height:1.5;opacity:.95}
 .sw-ar>span{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;text-align:center}
 .sw-ar[hidden]{display:none}
-.sw-cp{flex:none;width:28px;height:28px;border-radius:8px;background:transparent;color:#fbbf24;font-size:.95rem;padding:0}
+.sw-cp{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;width:30px;height:30px;border-radius:9px;background:rgba(148,163,184,.14);color:#fbbf24;font-size:1rem;padding:0}
 body.light-theme .sw-cp{color:#b45309}
 .sw-cp.done{color:#34d399}
 .sw-g{display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px 12px;align-items:center}
@@ -69,6 +70,10 @@ body.light-theme .sw-cp{color:#b45309}
 .sw-ic.on,.sw-yp.on{box-shadow:0 0 0 3px rgba(251,191,36,.45)}
 .sw-cmp.pulse{animation:swPulse 1.2s ease-in-out 3}
 @keyframes swPulse{50%{box-shadow:0 0 0 8px rgba(245,158,11,.3)}}
+.sw-r0{display:flex;justify-content:flex-end}
+.sw-yp:not(.lit){opacity:.6}
+.sw-yp.lit{box-shadow:0 0 0 3px rgba(251,191,36,.35)}
+.sw-yp svg{display:block}
 .sw-r2{display:flex;align-items:center;gap:10px;min-height:46px}
 .sw-yp{width:34px;height:34px;border-radius:50%;background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.55)!important;color:#f59e0b!important;font-size:.9rem;padding:0}
 .sw-yp:disabled{opacity:.3;cursor:not-allowed}
@@ -141,14 +146,16 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     el.innerHTML =
       '<button type="button" class="sw-x" data-x aria-label="Close">&times;</button>' +
       '<div class="sw-hd">' +
-        '<button type="button" class="sw-w" data-word dir="auto"></button>' +
-        '<div class="sw-ar" data-ar hidden><span data-artxt dir="rtl"></span><button type="button" class="sw-cp" data-cp aria-label="Copy"><i class="fa-regular fa-copy"></i></button></div>' +
+        '<div class="sw-h1"><button type="button" class="sw-w" data-word dir="auto"></button></div>' +
+        '<div class="sw-ar" data-ar hidden><span data-artxt dir="rtl"></span></div>' +
+        '<button type="button" class="sw-cp" data-cp aria-label="Copy"><i class="fa-regular fa-copy"></i></button>' +
       '</div>' +
       '<div class="sw-g">' +
-        '<button type="button" class="sw-ic sw-cmp" data-cmp aria-label="Compare" disabled><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg></button>' +
+        '<span></span><div class="sw-r0"><button type="button" class="sw-yp" data-rs aria-label="Reset" title="Reset"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12H3M7 8l-4 4 4 4M14 12h7M17 8l4 4-4 4"/></svg></button></div>' +
+        '<button type="button" class="sw-ic sw-cmp" data-cmp aria-label="Compare" disabled><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg><b class="sw-bd" hidden></b></button>' +
         '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<button type="button" class="sw-ic sw-mic" data-mic aria-label="Record"></button>' +
-        '<div class="sw-r2"><button type="button" class="sw-yp" data-rs aria-label="Reset" title="Reset" disabled><i class="fa-solid fa-rotate-left"></i></button></div>' +
+        '<span></span>' +
         '<button type="button" class="sw-ic sw-play" data-n="1" aria-label="Play"><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button>' +
         '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<span></span>' +
@@ -162,13 +169,13 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     q('[data-word]').onclick = function () { if (!S.urls) return; run(1, 'orig'); };
     attachCount(q('[data-n]'), 'o', function () { onPlay(S.cnt.o); });
     q('[data-rs]').onclick = resetTrim;
-    q('[data-cmp]').onclick = onCompare;
+    attachCount(q('[data-cmp]'), 'c', onCompare);
     q('[data-mic]').onclick = startRec;
     q('[data-cp]').onclick = onCopy;
     menu = null; q('[data-dl]').onclick = openMenu;
     q('[data-spd]').oninput = function () { S.speed = +this.value; applySpeed(); };
     q('[data-sv]').onclick = function () { S.speed = 1; applySpeed(); };
-    el.addEventListener('pointerdown', function (e) { if (menu && !menu.contains(e.target) && !e.target.closest('[data-dl]')) closeMenu(); });
+    el.addEventListener('pointerdown', function (e) { if (menu && !menu.contains(e.target) && !e.target.closest('[data-dl],[data-cp]')) closeMenu(); });
     applySpeed();
     ['o', 'y'].forEach(function (w) { TK(w).addEventListener('click', function (e) { if (e.target.closest('.sw-hn')) return; if (w === 'y' && S.rec && !(S.audio && S.aw === 'y')) { run(1, 'you'); return; } seekTrack(w, e); }); attachTrim(w); });
     requestAnimationFrame(function () { draw('o'); draw('y'); });
@@ -179,21 +186,43 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
   function paint() {
     if (!el) return; var t = L(), ok = !!S.urls;
     q('[data-word]').textContent = S.word; q('[data-word]').disabled = !ok;
-    var ar = q('[data-ar]'); ar.hidden = !S.ar; q('[data-artxt]').textContent = S.ar || '';
+    var ar = q('[data-ar]'); ar.hidden = !S.ar && !S.arLoad; q('[data-artxt]').textContent = S.ar || (S.arLoad ? '…' : '');
     q('[data-lb="o"]').textContent = t.orig; q('[data-lb="y"]').textContent = t.you;
     var playing = function (m) { return S.mode === m && S.act > 0; };
     var bd = function (b, v) { var x = b.querySelector('.sw-bd'); x.hidden = !(v > 1); x.textContent = v; };
     var pl = q('[data-n]'); pl.disabled = !ok; pl.querySelector('[data-ic]').className = 'fa-solid ' + (playing('orig') ? 'fa-stop' : 'fa-play'); pl.classList.toggle('on', playing('orig')); bd(pl, S.cnt.o);
-    var c = q('[data-cmp]'); c.disabled = !ok || !S.rec; c.classList.toggle('on', playing('cmp'));
+    var c = q('[data-cmp]'); c.disabled = !ok || !S.rec; c.classList.toggle('on', playing('cmp')); bd(c, S.cnt.c);
     applyTrim('o'); applyTrim('y');
   }
 
-  /* ---------- copy the Arabic translation ---------- */
-  function onCopy() {
-    var b = q('[data-cp]'), txt = S.ar || ''; if (!txt) return;
+  /* ---------- copy: English / Arabic / both ---------- */
+  function doCopy(txt) {
+    var b = q('[data-cp]'); if (!txt || !b) return;
     var done = function () { b.classList.add('done'); b.innerHTML = '<i class="fa-solid fa-check"></i>'; setTimeout(function () { if (b.isConnected) { b.classList.remove('done'); b.innerHTML = '<i class="fa-regular fa-copy"></i>'; } }, 1300); };
     var old = function () { var t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); done(); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, old); else old();
+  }
+  function onCopy() {
+    var t = L();
+    showMenu(q('[data-cp]'), [
+      { ic: 'fa-font', t: t.cpe, off: !S.word, fn: function () { doCopy(S.word); } },
+      { ic: 'fa-language', t: t.cpa, off: !S.ar, fn: function () { doCopy(S.ar); } },
+      { ic: 'fa-clone', t: t.cpb, off: !S.ar, fn: function () { doCopy(S.word + '\n' + S.ar); } }
+    ], true);
+  }
+  /* Arabic translation from Google Translate (falls back to the one saved with the word) */
+  var trC = {};
+  async function translate(word) {
+    var k = String(word == null ? '' : word).trim(); if (!k) return '';
+    if (trC[k]) return trC[k];
+    var out = '';
+    try {
+      var r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=' + encodeURIComponent(k));
+      if (r.ok) { var j = await r.json(); out = (j && j[0] || []).map(function (p) { return p && p[0] || ''; }).join('').trim(); }
+    } catch (e) {}
+    if (!/[\u0600-\u06FF]/.test(out)) { try { out = await getAr(word); } catch (e) { out = ''; } }
+    if (out) trC[k] = out;
+    return out;
   }
   /* Arabic translation from the word row (first column whose value is Arabic text and whose name looks like translation / arabic / meaning) */
   async function getAr(word) {
@@ -356,7 +385,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
   function onCompare() {
     if (!S.rec) { msg(L().nowait); return; }
     if (S.mode === 'cmp' && S.act) { stopAll(); return; }
-    run(1, 'cmp');
+    run(S.cnt.c, 'cmp');
   }
 
   /* ---------- recording ---------- */
@@ -520,7 +549,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     var dl = box.querySelector('.sw-dm.l'), dr = box.querySelector('.sw-dm.r');
     dl.style.left = '0'; dl.style.width = (t[0] * 100) + '%'; dr.style.left = (t[1] * 100) + '%'; dr.style.width = ((1 - t[1]) * 100) + '%';
     box.querySelectorAll('.sw-hn').forEach(function (h) { h.style.opacity = on ? 1 : .45; });
-    var rs = q('[data-rs]'); if (rs) rs.disabled = !(trimmed('o') || trimmed('y'));
+    var rs = q('[data-rs]'); if (rs) rs.classList.toggle('lit', trimmed('o') || trimmed('y'));
   }
   function attachTrim(w) {
     var box = TK(w), GAP = 0.04;
@@ -602,17 +631,24 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     return m.subarray(a, b);
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; } }
-  function openMenu() {
-    if (dlBusy) return;
-    if (menu) { closeMenu(); return; }
-    var t = L(), btn = q('[data-dl]'), sr = el.getBoundingClientRect(), br = btn.getBoundingClientRect();
-    menu = document.createElement('div'); menu.className = 'sw-mn';
-    menu.innerHTML = [['orig', 'fa-volume-high', t.dlo, !S.urls], ['mine', 'fa-microphone', t.dly, !S.rec], ['mix', 'fa-wave-square', t.dlm, !S.urls || !S.rec]].map(function (o) {
-      return '<button type="button" data-k="' + o[0] + '"' + (o[3] ? ' disabled' : '') + '><i class="fa-solid ' + o[1] + '"></i><span>' + H(o[2]) + '</span></button>';
-    }).join('');
-    menu.style.left = (br.left - sr.left) + 'px'; menu.style.bottom = (sr.bottom - br.top + 8) + 'px';
-    menu.querySelectorAll('button').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); doDownload(b.dataset.k); }; });
+  function showMenu(btn, items, below) {
+    var same = menu && menu._for === btn; closeMenu(); if (same) return;
+    var sr = el.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    menu = document.createElement('div'); menu.className = 'sw-mn'; menu._for = btn;
+    menu.innerHTML = items.map(function (o, i) { return '<button type="button" data-i="' + i + '"' + (o.off ? ' disabled' : '') + '><i class="fa-solid ' + o.ic + '"></i><span>' + H(o.t) + '</span></button>'; }).join('');
+    menu.querySelectorAll('button').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var f = items[+b.dataset.i].fn; closeMenu(); f(); }; });
     el.appendChild(menu);
+    var w = menu.offsetWidth;
+    menu.style.left = Math.max(8, Math.min(sr.width - w - 8, br.left - sr.left - (below ? w - br.width : 0))) + 'px';
+    if (below) menu.style.top = (br.bottom - sr.top + 6) + 'px'; else menu.style.bottom = (sr.bottom - br.top + 8) + 'px';
+  }
+  function openMenu() {
+    if (dlBusy) return; var t = L();
+    showMenu(q('[data-dl]'), [
+      { ic: 'fa-volume-high', t: t.dlo, off: !S.urls, fn: function () { doDownload('orig'); } },
+      { ic: 'fa-microphone', t: t.dly, off: !S.rec, fn: function () { doDownload('mine'); } },
+      { ic: 'fa-wave-square', t: t.dlm, off: !S.urls || !S.rec, fn: function () { doDownload('mix'); } }
+    ], false);
   }
   async function doDownload(kind) {
     closeMenu(); if (dlBusy) return;
@@ -632,7 +668,7 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
       if (el) msg('');
-    } catch (e) { if (el) msg(t.dlfail); }
+    } catch (e) { if (el) msg(t.dlfail + (e && e.message ? ' (' + e.message + ')' : '')); }
     try { if (ctx) ctx.close(); } catch (e) {}
     dlBusy = false;
   }
@@ -663,12 +699,12 @@ html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe
     try { if (window.ThabitRichStudent) ThabitRichStudent.stop(); } catch (e) {}
     try { wpClose(); } catch (e) {}                                // the old player, if it is somehow open
     stopAll(); ensure();
-    S.word = word; S.key = wpClean(word); S.urls = null; S.ar = ''; S.rec = S.recs[S.key] || null;
+    S.word = word; S.key = wpClean(word); S.urls = null; S.ar = ''; S.arLoad = true; S.rec = S.recs[S.key] || null;
     S.peaks = { o: null, y: null }; S.prog = { o: 0, y: 0 }; S.total = 0; S.yDur = 0; S.durs = null; S.trim = { o: [0, 1], y: [0, 1] }; msg('');
     resetTracks(); paint();
     if (S.rec) loadYou(S.rec.url);
     var my = ++S.ld, urls = null, err = '';
-    getAr(word).then(function (a) { if (my === S.ld && el) { S.ar = a; paint(); } });
+    translate(word).then(function (a) { if (my === S.ld && el) { S.ar = a; S.arLoad = false; paint(); } });
     try { urls = await wpResolve(word); } catch (e) { urls = undefined; err = e && e.message || ''; }
     if (my !== S.ld || !el) return;
     if (!urls) { msg(urls === null ? L().missing : L().fail + (err ? ' (' + err + ')' : '')); return; }
