@@ -3,24 +3,14 @@ const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
 const T = {
-  en: { hi: 'Welcome, ', today: 'Today', week: 'This week', month: 'This month', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
+  en: { hi: 'Welcome, ', today: 'Today', week: '7 days', month: '30 days', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
         performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', compliance: 'Compliance', attendance: 'Attendance', metrics: 'Scores & details', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
-  ar: { hi: 'أهلاً ', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
+  ar: { hi: 'أهلاً ', today: 'اليوم', week: '٧ أيام', month: '٣٠ يوم', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
-function thK() {
-  try {
-    if (localStorage.getItem('thabit_view') !== 'desktop') return 1;
-    const a = Math.min(screen.width, screen.height); if (!(a < 700)) return 1;
-    const dw = innerWidth > innerHeight ? Math.max(screen.width, screen.height) : a;
-    return Math.max(1, innerWidth / dw);
-  } catch (e) { return 1; }
-}
-function thKApply() { const k = thK(), r = document.documentElement; r.style.setProperty('--bk', k); if (k > 1.05) r.setAttribute('data-dv', '1'); else r.removeAttribute('data-dv'); }
-thKApply(); window.addEventListener('resize', thKApply);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
@@ -222,7 +212,7 @@ function render() {
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
-  $('rng').innerHTML = ['today', 'week', 'month'].filter(k => { if (!D) return false; const keep = range; range = k; const ok = D.rows.some(inRange); range = keep; return ok; }).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
+  $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].filter(k => k !== 'today' || hasToday()).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
@@ -582,6 +572,10 @@ function openPop(cards, from) {
   o.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {   // clicks inside a card never close the feed; X closes only its own card
     const x = e.target.closest && e.target.closest('.x');
     if (x) { e.preventDefault(); dismissCard(pc.dataset.cid); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
+    else if (pc.classList.contains('nf')) {   // notification card: tap opens the details, "Understood" closes it for good
+      if (e.target.closest('.ackb')) { e.preventDefault(); ackCard(pc); }
+      else if (!pc.classList.contains('acked') && (!pc.classList.contains('open') || e.target.closest('.nfh'))) toggleNf(pc);
+    }
     e.stopPropagation();
   }));
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
@@ -612,7 +606,11 @@ function billState() {
   const sub = num(b.subscription), past = num(b.past_due); if (!sub && !past) return null;
   const n = new Date(cairoNow()), day = n.getUTCDate(), last = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate();
   const win = day > last - 5 || day <= 7;                  // last 5 days of the month, until the 7th
-  if (!win && !past) return null;
+  if (!win) return null;                                   // after the 7th nothing is sent (even with an old balance)
+  const y = n.getUTCFullYear(), mo = n.getUTCMonth(), prevLast = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  const start = day > 7 ? Date.UTC(y, mo, last - 4) : Date.UTC(y, mo - 1, prevLast - 4);   // first day of the window
+  if (Math.round((Date.UTC(y, mo, day) - start) / 864e5) % 2) return null;               // every 2 days
+  if (isAcked('bill:' + itToday())) return null;           // pressed "Understood" today: not again today
   return { sub, past, total: sub + past, win, early: day <= 7 };
 }
 function billDue() {   // the next 7th, as d/m/yyyy (7/11/2026)
@@ -624,36 +622,88 @@ function billLeft() {   // days until the next 7th
   const n = new Date(cairoNow()), m = n.getUTCMonth() + (n.getUTCDate() > 7 ? 1 : 0);
   return Math.round((Date.UTC(n.getUTCFullYear(), m, 7) - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())) / 864e5);
 }
-const billNew = () => { try { return localStorage.getItem('thabit_bill_read') !== itToday(); } catch (e) { return false; } };
-function billCard(s) {
-  const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
-  return { id: 'bill', cls: 'bill', isNew: billNew(), html: `<h3>${t.billT}</h3><div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
-    + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '') };
+/* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
+   Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
+const NCX = {
+  en: { money: 'Payment', system: 'System', note: 'Notification', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
+  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
+  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
+};
+const NCT = () => NCX[lang] || NCX.en;
+const ACKK = 'thabit_ack', OPNK = 'thabit_nopen'; let ACKS = {};
+try { ACKS = JSON.parse(localStorage.getItem(ACKK) || '{}') || {}; } catch (e) { ACKS = {}; }
+const isAcked = k => k in ACKS;
+function ackSet(k) {
+  ACKS[k] = Date.now(); const cut = Date.now() - 40 * 864e5; Object.keys(ACKS).forEach(x => { if (ACKS[x] < cut) delete ACKS[x]; });
+  if (!VIEW) try { localStorage.setItem(ACKK, JSON.stringify(ACKS)); } catch (e) {}
 }
+function openedSet(k) {   // remembers that the details were opened (first time only), on this device
+  if (VIEW) return; try { const o = JSON.parse(localStorage.getItem(OPNK) || '{}') || {}; if (!o[k]) { o[k] = Date.now(); localStorage.setItem(OPNK, JSON.stringify(o)); } } catch (e) {}
+}
+const nKey = n => n.id != null ? 'n' + n.id : n.kind + '|' + n.created_at;
 function noteText(n) {
   const t = NT(), m = n.meta || {};
-  if (n.kind === 'word_ready') return { h: '', b: esc(t.word(m.word || '')) };
-  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? richC(m.reply) : '' };
-  return { h: esc(n.title || t.msg), b: richC(n.body || '') };
+  if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
+  return { h: esc(n.title || t.msg), b: rich(n.body || '') };
 }
-function notesCard(list, unreadOnly) {
-  const t = NT(), loc = lang === 'en' ? 'en-GB' : 'ar-EG';
-  const items = list.slice(0, 8).map(n => { const x = noteText(n); let dt = ''; try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-    return `<div class="nt${n.read_at ? '' : ' un'}"><div class="dt">${esc(dt)}</div>${x.h ? `<div class="nth" dir="auto">${x.h}</div>` : ''}<div class="rich" dir="auto">${x.b}</div></div>`; }).join('');
-  return { id: 'notes', isNew: list.some(n => !n.read_at), html: `<h3>${t.notes}</h3><div class="ntl">${items}</div>` };
+function nCard(key, cat, headHtml, bodyHtml, dt) {
+  const c = NCT();
+  return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfc ${cat}">${c[cat]}</span><span class="nfd">${esc(dt)}</span><span class="nft2">${c.tap}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+      + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
+function toggleNf(pc) {
+  const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
+  if (on) openedSet(pc.dataset.cid.slice(2));
+}
+function ackCard(pc) {
+  const o = $('pop'); ackSet(pc.dataset.cid.slice(2)); pc.classList.add('acked');
+  pc.innerHTML = `<div class="ackdone"><i class="fa-solid fa-circle-check"></i><div>${NCT().thanks}</div></div>`;
+  setTimeout(() => { pc.classList.add('out'); setTimeout(() => { pc.remove(); updateFeed(); if (!o.querySelector('.pc')) closePop(); }, 350); }, 1100);
+}
+function billCard(s) {
+  const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
+  const body = `<div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
+    + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '');
+  return nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
+}
+/* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
+function noteList() {
+  const now = Date.now();
+  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !isAcked(nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
+    .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+}
+function noteCardN(n) {
+  const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
+  try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
+  return nCard(nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+.pc.nf .nfh{display:flex;align-items:center;gap:8px;cursor:pointer}
+.pc.nf .nfc{font-weight:700;font-size:.82rem;padding:2px 10px;border-radius:999px;background:rgba(148,163,184,.18)}
+.pc.nf .nfc.money{background:rgba(251,191,36,.2);color:#fbbf24}
+.pc.nf .nfc.system{background:rgba(76,141,255,.2);color:#4c8dff}
+.pc.nf .nfd{font-size:.72rem;opacity:.7}
+.pc.nf .nft2{margin-inline-start:auto;font-size:.72rem;opacity:.6}
+.pc.nf.open .nft2{display:none}
+.pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
+.pc.nf .nfb{margin-top:10px}.pc.nf .ackb{margin-top:12px;width:100%}
+.pc.nf .nth{font-weight:700;margin-bottom:6px}
+.pc.nf.acked{text-align:center;transition:opacity .35s,transform .35s}
+.pc.nf.out{opacity:0;transform:scale(.96)}
+.ackdone{padding:14px 0}.ackdone i{font-size:2.2rem;color:#34d399;animation:ackPop .5s cubic-bezier(.2,.8,.3,1.2)}.ackdone div{margin-top:8px;font-weight:700}
+@keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}`; document.head.appendChild(st); })();
 const cairoDay = iso => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date(iso)); } catch (e) { return ''; } };
 const WORD_KINDS = ['assistant_words', 'word_ready'];
 
 /* Order: Next session first, then the cards with something new, then the rest. Each card = ONE notification (badge counts cards, not messages). */
 function feedCards() {
   const s = nxState(), d = dndState(), bs = billState(), as = asCard(), rest = [];
-  const notes = ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind));
+  const nts = noteList().map(noteCardN);
+  if (bs) nts.unshift(billCard(bs));
   if (as) rest.push(as);
   if (d) rest.push(dndCard(d));
-  if (notes.length) rest.push(notesCard(notes));
-  if (bs) rest.push(billCard(bs));
-  return [...(s ? [nextCard(s)] : []), ...rest.filter(c => c.isNew), ...rest.filter(c => !c.isNew)];
+  return [...(s ? [nextCard(s)] : []), ...nts, ...rest];   // only the notification cards (cnt) are counted
 }
 /* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
    Next session + Assistant words have no X, so they always count. */
@@ -669,11 +719,11 @@ function dismissCard(id) {
 const INTRO = { hold: false, run: false };
 const INTRO_KEY = 'thabit_intro_tok';
 const introDone = () => { try { return !VIEW && !!tok() && localStorage.getItem(INTRO_KEY) === tok(); } catch (e) { return false; } };
-const feedCount = () => feedCards().filter(c => c.noX || c.isNew).length;
+const feedCount = () => feedCards().filter(c => c.cnt).length;
 
 
 function updateFeed() {
-  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.noX || c.isNew).length, bd = $('feedBadge'), fn = $('feedNum');
+  const btn = $('feedBtn'), cards = feedCards(), n = cards.filter(c => c.cnt).length, bd = $('feedBadge'), fn = $('feedNum');
   btn.hidden = !cards.length; btn.setAttribute('aria-label', NT().feed);
   if (btn.dataset.bk && btn._hid !== btn.hidden) { btn._hid = btn.hidden; if (typeof layoutBar === 'function') layoutBar(); }
   bd.hidden = true; bd.textContent = n;
@@ -693,18 +743,6 @@ function openFeed(from) {
   const c = feedCards(); if (!c.length) return;
   openPop(c, from);
 }
-/* Important = app updates, policy updates, restrictions (kind), or any notification with meta.important = true. Only these may pop up by themselves, once each. */
-const IMP_KINDS = ['update', 'app_update', 'policy', 'policy_update', 'restriction', 'restrictions'];
-const IMP_SEEN = new Set();
-const isImp = n => !!n && (IMP_KINDS.includes(n.kind) || !!(n.meta && n.meta.important));
-const impKey = n => String(n.id != null ? n.id : n.created_at);
-const impUnread = () => ((D && D.notes) || []).filter(n => isImp(n) && !n.read_at && !IMP_SEEN.has(impKey(n)));
-const impMark = () => impUnread().forEach(n => IMP_SEEN.add(impKey(n)));
-/* gentle attention instead of a pop-up: the Feed button glows; for important updates the plus also turns */
-function attention(spin) {
-  glowFeed();
-  if (spin) { const b = $('feedBtn'); b.classList.remove('upd'); void b.offsetWidth; b.classList.add('upd'); setTimeout(() => b.classList.remove('upd'), 4800); }
-}
 function glowFeed() { const b = $('feedBtn'); b.classList.remove('glow'); void b.offsetWidth; b.classList.add('glow'); setTimeout(() => b.classList.remove('glow'), 4200); }
 /* Intro: white empty ring -> plus drawn (horizontal, then vertical) in white -> pop + moving colours -> feed pop-up -> badge after it closes */
 function runIntro(btn) {
@@ -717,18 +755,13 @@ function runIntro2(btn) {
   setTimeout(() => {
     try { if (!VIEW && tok()) localStorage.setItem(INTRO_KEY, tok()); } catch (e) {}
     const c = feedCards(); CINTRO.popShown = true;
-    if (c.length && impUnread().length) { impMark(); openPop(c, btn); }       // only important updates pop up by themselves
-    else { INTRO.hold = false; updateFeed(); chartsGo(); if (c.some(x => x.noX || x.isNew)) attention(false); }
+    if (c.length) openPop(c, btn); else { INTRO.hold = false; updateFeed(); chartsGo(); }
   }, 1150);
 }
 function refreshNotes() {
   if (!D || INTRO.hold) return Promise.resolve();
   const before = feedCount();
-  return fetchNotes().then(list => {
-    D.notes = list; updateFeed();
-    if (impUnread().length && !$('pop').classList.contains('open')) { impMark(); openPop(feedCards(), $('feedBtn')); }
-    else if (feedCount() > before) attention(((D && D.notes) || []).some(n => isImp(n) && !n.read_at));
-  });
+  return fetchNotes().then(list => { D.notes = list; updateFeed(); if (feedCount() > before) glowFeed(); });
 }
 function initFloat() {
   const btn = $('feedBtn');
@@ -761,11 +794,10 @@ window.Panels = (function () {
   const lock = on => { document.documentElement.style.overflow = on ? 'hidden' : ''; };
 
   function dock() {
-    $('dock').innerHTML = mins.map((id, ix) => `<div class="aswrap dkw ${dkSide(id)}" data-id="${id}" style="${dkStyle(id, ix)}"><button type="button" class="dk" data-p="${id}" style="background:${DEF[id].color}" aria-label="${TTL[id][L()]}" title="${TTL[id][L()]}">${DEF[id].svg || `<i class="fa-solid ${DEF[id].icon}"></i>`}</button><span class="dkx" data-x="${id}" role="button" tabindex="0" aria-label="Close" title="Close">×</span>${id === 'assistant' ? '<div class="asn" id="asNudge" role="button" tabindex="0" hidden></div>' : ''}</div>`).join('');
+    $('dock').innerHTML = mins.map(id => `<div class="aswrap"><button type="button" class="dk" data-p="${id}" style="background:${DEF[id].color}" aria-label="${TTL[id][L()]}" title="${TTL[id][L()]}">${DEF[id].svg || `<i class="fa-solid ${DEF[id].icon}"></i>`}</button><span class="dkx" data-x="${id}" role="button" tabindex="0" aria-label="Close" title="Close">×</span>${id === 'assistant' ? '<div class="asn" id="asNudge" role="button" tabindex="0" hidden></div>' : ''}</div>`).join('');
     $('dock').querySelectorAll('.dk').forEach(b => b.onclick = e => open(b.dataset.p, e));
     $('dock').querySelectorAll('.dkx').forEach(x => { x.onclick = e => { e.stopPropagation(); dismiss(x.dataset.x); }; x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismiss(x.dataset.x); } }; });
     const n = $('asNudge'); if (n) n.onclick = e => open('assistant', e);
-    dkDrag();
   }
   function dismiss(id) {
     const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
@@ -1022,8 +1054,7 @@ html.bgl,html.bgl body{overflow:hidden!important}
 #pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
 .pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
 const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
-let lockOn = false;
-const syncLock = () => { const l = bgLocked(); document.documentElement.classList.toggle('bgl', l); if (l === lockOn) return; lockOn = l; const m = l ? 'addEventListener' : 'removeEventListener'; document[m]('wheel', onLockWheel, { passive: false }); document[m]('touchmove', onLockMove, { passive: false }); };
+const syncLock = () => document.documentElement.classList.toggle('bgl', bgLocked());
 function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
   const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
   for (let e = t; e; e = e.parentElement) {
@@ -1033,15 +1064,15 @@ function pkScroller(t, dy) {   // a scrollable element inside the feed / player 
   }
   return null;
 }
-function onLockWheel(e) { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }
+document.addEventListener('wheel', e => { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }, { passive: false });
 let pkY = 0;
 document.addEventListener('touchstart', e => { pkY = e.touches[0].clientY; }, { passive: true });
-function onLockMove(e) {
+document.addEventListener('touchmove', e => {
   if (!bgLocked()) return;
   const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
   if (e.target.closest && e.target.closest('input[type=range]')) return;
   if (!pkScroller(e.target, dy)) e.preventDefault();
-}
+}, { passive: false });
 window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
@@ -1237,7 +1268,7 @@ function applyPlace(p) {
   if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
   root.setAttribute('data-bar', p.dock);
   const vert = p.dock !== 'bottom', size = vert ? innerHeight : innerWidth, r = bar.getBoundingClientRect(), half = (vert ? r.height : r.width) / 2, lo = half + 8, hi = size - half - 8;
-  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) / thK() + 'px');
+  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) + 'px');
 }
 function hopBar() { const b = barEl(); b.classList.remove('hop'); void b.offsetWidth; b.classList.add('hop'); setTimeout(() => b.classList.remove('hop'), 650); }
 function dockTo(side) {
@@ -1274,7 +1305,7 @@ function moveEnd(pinned) {
     const d = (MV.vert ? e.clientY : e.clientX) - MV.p0; if (!MV.moved && Math.abs(d) < 4) return; MV.moved = true;
     const size = MV.vert ? innerHeight : innerWidth, lo = MV.half + 8, hi = size - MV.half - 8;
     MV.c = lo > hi ? size / 2 : Math.min(hi, Math.max(lo, MV.c0 + d));
-    bar.style.setProperty('--bp', MV.c / thK() + 'px');
+    bar.style.setProperty('--bp', MV.c + 'px');
   });
   const up = e => {
     if (!MV || e.pointerId !== MV.id) return;
@@ -1290,135 +1321,30 @@ function moveEnd(pinned) {
 })();
 
 /* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
-let pickT = null, pickBtn = null, pkFly = null, pkS = null;
-const pkReduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
-function pkSolid(c, light) { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (m) { const p = m[1].split(',').map(parseFloat); if (p.length < 4 || p[3] > .5) return c; } return light ? 'rgba(255,255,255,.96)' : 'rgba(15,23,42,.94)'; }
-function pkFlyDone(f) { f.el.remove(); f.btn.classList.remove('pk-hide'); if (pkFly === f) pkFly = null; }
-const PK_SC = 1.3;
-/* the pressed button leaves the bar (a copy flies out; the original stays empty in the bar) and lands on the stage, away from the bar */
-function pkFlyOut(pop, btn, sx, sy, bx, by) {
-  const K = thK(), r = btn.getBoundingClientRect(), cs = getComputedStyle(btn), light = document.body.classList.contains('light-theme');
-  const el = document.createElement('div'); el.className = 'pkfly'; el.innerHTML = btn.innerHTML;
-  const s = el.style; s.left = r.left / K + 'px'; s.top = r.top / K + 'px'; s.width = r.width / K + 'px'; s.height = r.height / K + 'px';
-  s.borderRadius = '50%'; s.color = cs.color; s.font = cs.font; s.background = pkSolid(cs.backgroundColor, light);
-  s.border = cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor; s.transformOrigin = '50% 50%';
-  pop.appendChild(el);
-  const dx = (sx - bx) / K, dy = (sy - by) / K;
-  const f = pkFly = { el, btn, anim: null, timer: null, st: 'translate(' + dx + 'px,' + dy + 'px) scale(' + PK_SC + ')', sh: '0 16px 40px rgba(0,0,0,.6)' };
-  btn.classList.add('pk-hide');
-  el.onclick = e => { e.stopPropagation(); pickClose(); };
-  if (pkReduce() || !el.animate) { s.transform = f.st; s.boxShadow = f.sh; if (btn.id === 'plusBtn') el.classList.add('rot'); return; }
-  f.anim = el.animate([
-    { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 rgba(0,0,0,0)' },
-    { transform: 'translate(' + dx * .6 + 'px,' + dy * .6 + 'px) scale(' + (PK_SC + .35) + ')', offset: .55 },
-    { transform: f.st, boxShadow: f.sh }
-  ], { duration: 640, easing: 'cubic-bezier(.2,.9,.25,1)', fill: 'forwards' });
-  if (btn.id === 'plusBtn') requestAnimationFrame(() => el.classList.add('rot'));
-}
-function pkFlyBack(now) {
-  const f = pkFly; if (!f || f.back) return;
-  f.back = true; f.el.classList.remove('rot');
-  if (now || pkReduce() || !f.el.animate) { pkFlyDone(f); return; }
-  if (f.anim) f.anim.cancel();
-  f.el.style.transform = f.st; f.el.style.boxShadow = f.sh;
-  f.anim = f.el.animate([{ transform: f.st, boxShadow: f.sh }, { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 rgba(0,0,0,0)' }], { duration: 300, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
-  f.anim.onfinish = () => pkFlyDone(f); f.timer = setTimeout(() => pkFlyDone(f), 420);
-}
-/* second level: an option that has its own options (o.sub) fans them out sideways from itself, across the free space. Only one fan is open at a time. */
-function pickSubClose() {
-  const pop = $('langPop');
-  pop.querySelectorAll('.lgi.sub').forEach(b => { b.classList.add('out'); setTimeout(() => b.remove(), 210); });
-  pop.querySelectorAll('.lgi.sel').forEach(b => b.classList.remove('sel'));
-  if (pkS) pkS.subI = -1;
-}
-function pickSubOpen(i) {
-  const s = pkS, pop = $('langPop'); if (!s) return;
-  if (s.subI === i) { pickSubClose(); tourStop(); return; }
-  pickSubClose(); s.subI = i;
-  const o = s.list[i], info = o.sub(), sub = info.list, K = s.K, STEP = (s.S + s.G) * K, x = s.pts[i][0], y = s.pts[i][1];
-  const horizRow = s.ux !== 0;                                   // options sit in a row -> their fan goes up or down, toward the roomier side
-  let dx = 0, dy = 0; if (horizRow) dy = (innerHeight - y) >= y ? 1 : -1; else dx = (innerWidth - x) >= x ? 1 : -1;
-  const sp = [];
-  pop.insertAdjacentHTML('beforeend', sub.map((q, j) => {
-    const px = x + dx * (j + 1) * STEP, py = y + dy * (j + 1) * STEP; sp.push([px, py]);
-    return `<button type="button" class="lgi sub${q.cur ? ' cur' : ''}" data-j="${j}" title="${esc(q.title || '')}" aria-label="${esc(q.title || '')}" style="left:${px / K - s.S / 2}px;top:${py / K - s.S / 2}px;--fx:${(x - px) / K}px;--fy:${(y - py) / K}px;--i:${j}">${q.html}</button>`;
-  }).join(''));
-  const own = pop.querySelector('.lgi[data-i="' + i + '"]'); if (own) own.classList.add('sel');
-  pop.querySelectorAll('.lgi.sub').forEach(b => b.onclick = e => { e.stopPropagation(); const q = sub[+b.dataset.j]; if (q.keep) q.on(); else { pickClose(); q.on(); } });
-  tourStart(info.key || '', sp, horizRow ? 'bottom' : 'left', [[s.sx, s.sy, 32 * K]].concat(s.pts.map(c => [c[0], c[1], (s.S / 2 + 4) * K])));
-}
-function pickOpen(btn, list, key0) {
-  const K = thK(), pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
-  const S = 46, G = 10, M = (S / 2 + 8) * K, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
-  const cr = r.width * PK_SC / 2, ST = cr + 34 * K, D0 = cr + (10 + S / 2) * K, STEP = (S + G) * K;
-  if (pop.classList.contains('open') && !pop.classList.contains('closing') && pickBtn === btn) { pickClose(); return; }   // second tap on the same button = close
-  clearTimeout(pickT); pop.classList.remove('closing'); pop.dataset.side = side;
-  pop.dataset.lab = (side === 'bottom' || side === 'top') ? (bx > innerWidth / 2 ? 'l' : 'r') : '';
-  document.documentElement.classList.add('pk-open');
-  /* same button opening again (e.g. the old pen -> customize): keep its copy on the stage instead of flying it again */
-  let keep = null;
-  if (pkFly && pkFly.btn === btn) { keep = pkFly; clearTimeout(keep.timer); keep.back = false; if (keep.anim) keep.anim.cancel(); keep.el.style.transform = keep.st; keep.el.style.boxShadow = keep.sh; if (btn.id === 'plusBtn') keep.el.classList.add('rot'); }
-  else if (pkFly) pkFlyDone(pkFly);
-  if (pickBtn && pickBtn !== btn) pickBtn.classList.remove('pk-on'); pickBtn = btn; btn.classList.add('pk-on');
-  const key = key0 || ({ langBtn: 'lang', barEdit: 'star', plusBtn: 'plus', profBtn: 'prof' })[btn.id] || '', pts = [];
-  /* stage = where the pressed button sits, away from the bar; its options fan out beyond it */
-  let sx, sy, ux = 0, uy = 0;
-  if (side === 'left') { sx = br.right + ST; sy = cl(by, M, innerHeight - M); ux = 1; }
-  else if (side === 'right') { sx = br.left - ST; sy = cl(by, M, innerHeight - M); ux = -1; }
-  else if (side === 'top') { sy = br.bottom + ST; sx = cl(bx, M, innerWidth - M); uy = 1; }
-  else { sy = br.top - ST; sx = cl(bx, M, innerWidth - M); uy = -1; }
+let pickT = null;
+function pickOpen(btn, list) {
+  const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
+  const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  clearTimeout(pickT); pop.classList.remove('closing');
   pop.innerHTML = list.map((o, i) => {
-    const d = D0 + i * STEP, x = sx + ux * d, y = sy + uy * d;
-    pts.push([x, y]);
-    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x / K - S / 2}px;top:${y / K - S / 2}px;--fx:${(sx - x) / K}px;--fy:${(sy - y) / K}px;--i:${i}">${o.html}</button>`;
+    const d = GAP + S / 2 + i * (S + G); let x, y;
+    if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
+    else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}</button>`;
   }).join('');
-  pkS = { list, pts, ux, uy, sx, sy, K, S, G, subI: -1 };
-  if (keep) pop.appendChild(keep.el); else pkFlyOut(pop, btn, sx, sy, bx, by);
   pop.classList.add('open');
-  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const i = +b.dataset.i, o = list[i]; if (o.sub) pickSubOpen(i); else { pickClose(); o.on(); } });
-  tourStart(key, pts, side, [[sx, sy, 32 * K]]);
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
 }
 function pickClose(now) {
-  tourStop();
   const pop = $('langPop'); if (!pop.classList.contains('open')) return;
-  clearTimeout(pickT); document.documentElement.classList.remove('pk-open'); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; } pkS = null;
-  pkFlyBack(now);
-  if (now || pkReduce()) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
+  clearTimeout(pickT);
+  if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
   pop.classList.add('closing');
-  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 340);
+  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
 }
 function closeLang() { pickClose(); }
-const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
-function openProf(btn) {
-  const ar = lang !== 'en';
-  pickOpen(btn || $('profBtn'), [
-    { html: '<i class="fa-solid fa-user"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
-    { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
-  ]);
-}
-function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
-function viewSubList() {
-  const ar = lang !== 'en', wide = innerWidth > 700, U = UIT[lang] || UIT.en;
-  return [
-    { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') },
-    { html: '<i class="fa-solid fa-text-height"></i>', title: U.zoom, keep: 1, on: () => startAdjust('zoom') },
-    { html: '<i class="fa-solid fa-sun"></i>', title: U.bri, keep: 1, on: () => startAdjust('bri') }
-  ];
-}
-function openStar(btn) {
-  const ar = lang !== 'en';
-  pickOpen(btn || $('barEdit'), [
-    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', sub: () => ({ key: 'cust', list: barSubList() }) },
-    { html: '<i class="fa-solid fa-eye"></i>', title: ar ? 'العرض' : 'View', sub: () => ({ key: 'view', list: viewSubList() }) }
-  ]);
-}
-function openPlus(btn) {
-  const ar = lang !== 'en';
-  pickOpen(btn || $('plusBtn'), [
-    { html: ASSIST_SVG_SM, title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
-    { html: '<i class="fa-solid fa-paper-plane"></i>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
-  ]);
-}
 function openLang(btn) {
   const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
   pickOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(l => ({ html: lbl[l], title: lbl[l], on: () => { if (l !== lang) setLanguage(l); } })));
@@ -1430,18 +1356,17 @@ const BIC = {
   bottom: '<rect x="4.8" y="12.9" width="14.4" height="4.8" rx="2" fill="currentColor"/></svg>',
   free: '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M6 3.5v15.2l4.1-3.9 2.7 5.7 2.4-1.1-2.7-5.6h5.7z" fill="currentColor"/></svg>'
 };
-function barSubList() {
+function openBarOpts(btn) {
   const t = BT(), toLeft = barSide() === 'right';
-  return [
+  pickOpen(btn || $('barEdit'), [
     { html: BIC.box + (toLeft ? BIC.left : BIC.right), title: toLeft ? t.left : t.right, on: () => dockTo(toLeft ? 'left' : 'right') },
     { html: BIC.box + BIC.bottom, title: t.bottom, on: () => dockTo('bottom') },
     { html: BIC.free, title: t.free, on: moveStart }
-  ];
+  ]);
 }
-function openBarOpts(btn) { pickOpen(btn || $('barEdit'), barSubList(), 'cust'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
-window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
@@ -1755,346 +1680,3 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 100); }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('DOMContentLoaded', scan);
 })();
-
-/* ===== Send-request popup (opened from the + button) ===== */
-function openRq() { const m = $('rqm'); if (!m) return; const t = $('tReq'); if (t) $('rqmT').textContent = t.textContent; m.classList.add('open'); }
-function closeRq() { const m = $('rqm'); if (m) m.classList.remove('open'); }
-window.openRq = openRq; window.closeRq = closeRq;
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); });
-
-/* ===== Touch = scroll. A finger that moves is a scroll, never a click: only a real tap or a long press (finger stays still) can act ===== */
-(function () {
-  let sx = 0, sy = 0, moved = false;
-  document.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = false; }, { passive: true, capture: true });
-  document.addEventListener('touchmove', e => { if (moved) return; const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true; }, { passive: true, capture: true });
-  document.addEventListener('click', e => { if (moved && e.isTrusted) { e.stopImmediatePropagation(); e.preventDefault(); } moved = false; }, true);
-})();
-
-
-/* ===== Ghost: hides / shows the side bar. Sits low on the right, away from the phone's back / home gestures and the feed button ===== */
-(function () {
-  const bar = $('mobileFloatingBar'); if (!bar) return;
-  const st = document.createElement('style');
-  st.textContent = '#thGhost{position:fixed;left:auto;right:10px;top:60%;width:24px;height:27px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
-  document.head.appendChild(st);
-  const g = document.createElement('button'); g.type = 'button'; g.id = 'thGhost'; g.setAttribute('aria-label', 'Toggle menu');
-  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><defs><filter id="thEyeGlow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
-  document.body.appendChild(g);
-  /* position: left or right edge only, any height except the bottom strip (phone gestures live there). Long-press + drag to move. */
-  const GK = 'thabit_ghost_pos', GH = 27, GW = 24;
-  /* lowest the ghost may sit = the same bottom line the bar uses (16px + the phone's safe area), so it never goes below the bar */
-  const BOT = () => { const p = document.createElement('div'); p.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none'; document.body.appendChild(p); const h = p.offsetHeight; p.remove(); return 16 + h; };
-  const GM = { en: "The ghost can't go lower than the bar.", ar: 'لا يمكن إنزال الشبح أسفل من مستوى الشريط.', eg: 'ما ينفعش تنزّل الشبح أنزل من مستوى الشريط.' };
-  const gget = () => { try { const o = JSON.parse(localStorage.getItem(GK) || 'null'); if (o && (o.s === 'l' || o.s === 'r') && isFinite(o.y)) return o; } catch (e) {} return null; };
-  const gplace = o => {
-    o = o || gget() || { s: 'r', y: innerHeight - 190 };
-    const k = thK(), y = Math.max(10, Math.min(innerHeight - BOT() - GH * k, o.y));
-    g.style.top = y / k + 'px'; g.style.bottom = 'auto';
-    if (o.s === 'l') { g.style.left = '10px'; g.style.right = 'auto'; } else { g.style.right = '10px'; g.style.left = 'auto'; }
-    return { s: o.s, y };
-  };
-  gplace(); window.addEventListener('resize', () => gplace());
-  let lp = null, drag = null, dragMoved = false;
-  function endGhostDrag() {
-    const d = drag; drag = null; g.classList.remove('drag'); if (!d) return;
-    const r = g.getBoundingClientRect();
-    if (r.bottom > innerHeight - BOT() + 2) { itToast(GM[lang] || GM.en); gplace(d.prev); return; }
-    const o = { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top };
-    try { localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
-    gplace(o);
-  }
-  let anim = null, hid = false;
-  const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const save = () => { try { localStorage.setItem('thabit_bar_hid', hid ? '1' : '0'); } catch (e) {} };
-  const mid = r => [r.left + r.width / 2, r.top + r.height / 2];
-  const rootEl = document.documentElement;
-  function hideBar(now) {
-    if (hid) return; hid = true; save(); rootEl.classList.add('bar-hid'); if (typeof closeLang === 'function') closeLang();
-    if (anim) { anim.cancel(); anim = null; }
-    const fin = () => { if (hid) { bar.hidden = true; g.classList.add('on'); } };   // only now do the ghost's eyes light up
-    if (now || reduce() || !bar.animate) { fin(); return; }
-    anim = bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' });
-    anim.onfinish = () => { fin(); if (anim) { anim.cancel(); anim = null; } };
-  }
-  function showBar() {
-    if (!hid) return; hid = false; save(); g.classList.remove('on'); rootEl.classList.remove('bar-hid');
-    if (anim) { anim.cancel(); anim = null; }
-    bar.hidden = false;
-    if (reduce() || !bar.animate) return;
-    anim = bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, easing: 'ease-out' });
-    anim.onfinish = () => { anim = null; };
-  }
-  /* a tap toggles; while the bar is hidden, the first drag that starts on the ghost brings it straight back */
-  let sx = 0, sy = 0, down = false, swiped = false;
-  g.addEventListener('pointerdown', e => {
-    sx = e.clientX; sy = e.clientY; down = true; swiped = false; dragMoved = false; clearTimeout(lp);
-    const r = g.getBoundingClientRect();
-    lp = setTimeout(() => { if (!down) return; drag = { dx: sx - r.left, dy: sy - r.top, prev: gplace(gget() || { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top }) }; dragMoved = true; g.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch (x) {} try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} }, 380);
-  });
-  g.addEventListener('pointermove', e => {
-    if (drag) { const k = thK(); g.style.left = Math.max(4, Math.min(innerWidth - GW * k - 4, e.clientX - drag.dx)) / k + 'px'; g.style.right = 'auto'; g.style.top = Math.max(4, Math.min(innerHeight - GH * k - 4, e.clientY - drag.dy)) / k + 'px'; return; }
-    if (down && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(lp);
-    if (!down || swiped || !hid) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { swiped = true; showBar(); } });
-  ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; clearTimeout(lp); endGhostDrag(); }));
-  g.addEventListener('click', e => { e.stopPropagation(); if (dragMoved) { dragMoved = false; return; } if (swiped) { swiped = false; return; } hid ? showBar() : hideBar(); });
-  try { if (localStorage.getItem('thabit_bar_hid') === '1') hideBar(true); } catch (e) {}
-})();
-
-/* ===== Pop-out buttons: the pressed button stays visible (above the blur); labels flip to the roomy side so nothing is cut at the screen edge ===== */
-(function () { const st = document.createElement('style'); st.textContent = `
-/* focus mode: the page + the rest of the bar sit under the blur; only the pressed button (a copy) flies out above it */
-#mobileFloatingBar .pk-hide{visibility:hidden}
-.pkfly{position:fixed;z-index:3;box-sizing:border-box;display:flex;align-items:center;justify-content:center;margin:0;padding:0;cursor:pointer;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);will-change:transform}
-.pkfly svg{transition:transform .55s cubic-bezier(.34,1.5,.5,1)}
-.pkfly.rot svg{transform:rotate(225deg)}
-/* the parked tabs (assistant / profile) follow the bar: hidden with it, back with it */
-#dock .aswrap{transition:opacity .3s,visibility 0s}
-html.bar-hid #dock .aswrap{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s,visibility 0s .3s}
-.lgp[data-lab="l"] .lgl{left:auto!important;right:calc(100% + 8px)!important;top:50%!important;transform:translateY(-50%)!important}
-.lgp[data-lab="r"] .lgl{left:calc(100% + 8px)!important;right:auto!important;top:50%!important;transform:translateY(-50%)!important}
-.lgl{max-width:calc(100vw - 96px);overflow:hidden;text-overflow:ellipsis}
-/* parked tab: small, long-press + drag to the left or right edge */
-:root{--dk:44px}
-@media(max-width:600px){:root{--dk:36px}}
-.aswrap.dkw{position:fixed;z-index:61;width:var(--dk);height:var(--dk);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.aswrap.dkw.sr{right:14px;left:auto}
-.aswrap.dkw.sl{left:14px;right:auto}
-.aswrap.dkw.dragging{transition:none;z-index:70}
-.aswrap.dkw .dk{width:100%;height:100%;padding:0;border:0;border-radius:50%;color:#111;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:calc(var(--dk) * .42);transition:transform .2s}
-.aswrap.dkw .dk .asv{width:calc(var(--dk) * .5);height:calc(var(--dk) * .5)}
-.aswrap.dkw .dk.shk{animation:asShk .9s ease-in-out 2}
-.aswrap.dkw.dragging .dk{transform:scale(1.12);box-shadow:0 8px 22px rgba(0,0,0,.55)}
-.aswrap.dkw .dkx{top:-6px;right:-6px;width:18px;height:18px;font-size:13px}
-.aswrap.dkw.sl .dkx{right:auto;left:-6px}
-.aswrap.sr .asn{left:auto!important;right:calc(100% + 10px)!important}
-.aswrap.sl .asn{right:auto!important;left:calc(100% + 10px)!important}
-.aswrap.sl .asn::after{inset-inline-end:auto;right:auto;left:-5px}
-@media(max-width:600px){
- .aswrap.sr .asn{left:auto!important;right:0!important;top:auto!important;bottom:calc(100% + 12px)!important}
- .aswrap.sl .asn{right:auto!important;left:0!important;top:auto!important;bottom:calc(100% + 12px)!important}
- .aswrap.sr .asn::after{top:auto;bottom:-5px;left:auto;right:14px;inset-inline-end:auto}
- .aswrap.sl .asn::after{top:auto;bottom:-5px;right:auto;left:14px}
-}
-/* Feed button: the plus turns when there is an important update (instead of a pop-up) */
-.feed.upd .fdp{animation:fdTurn 1.5s cubic-bezier(.4,0,.2,1) 3}
-@keyframes fdTurn{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.25)}100%{transform:rotate(360deg) scale(1)}}
-@media(prefers-reduced-motion:reduce){.feed.upd .fdp{animation:none}}`; document.head.appendChild(st); })();
-
-const DK_KEY = 'thabit_dock_pos';
-const dkAll = () => { try { return JSON.parse(localStorage.getItem(DK_KEY) || '{}') || {}; } catch (e) { return {}; } };
-const dkSide = id => (dkAll()[id] && dkAll()[id].s === 'l') ? 'sl' : 'sr';
-const dkSize = () => (matchMedia('(max-width:600px)').matches ? 36 : 44);
-function dkStyle(id, ix) {
-  const o = dkAll()[id], size = dkSize(), def = (matchMedia('(max-width:600px)').matches ? 84 : 92) + ix * (size + 10);
-  const b = o && typeof o.b === 'number' ? Math.max(8, Math.min(innerHeight - size - 8, o.b)) : def;
-  return 'bottom:' + b + 'px';
-}
-function dkDrag() {
-  document.querySelectorAll('#dock .aswrap.dkw').forEach(w => {
-    if (w.dataset.dg) return; w.dataset.dg = '1';
-    let timer = null, st = null, moved = false, swallow = false;
-    const begin = e => { st.on = true; w.classList.add('dragging'); try { w.setPointerCapture(e.pointerId); } catch (x) {} try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} };
-    w.addEventListener('pointerdown', e => {
-      if (e.target.closest('.dkx, .asn')) return;
-      const r = w.getBoundingClientRect(); st = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, on: false }; moved = false;
-      clearTimeout(timer); timer = setTimeout(() => begin(e), 380);
-    });
-    w.addEventListener('pointermove', e => {
-      if (!st) return;
-      if (!st.on) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 8) { clearTimeout(timer); st = null; } return; }
-      moved = true; const size = w.offsetWidth;
-      const l = Math.max(4, Math.min(innerWidth - size - 4, st.l + e.clientX - st.x)), t = Math.max(4, Math.min(innerHeight - size - 4, st.t + e.clientY - st.y));
-      w.style.left = l + 'px'; w.style.right = 'auto'; w.style.bottom = 'auto'; w.style.top = t + 'px';
-    });
-    const end = () => {
-      clearTimeout(timer); if (!st) return;
-      const on = st.on; st = null; if (!on) return;
-      const r = w.getBoundingClientRect(), side = (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', b = Math.max(8, innerHeight - r.bottom);
-      w.classList.remove('dragging', 'sl', 'sr'); w.classList.add(side === 'l' ? 'sl' : 'sr');
-      w.style.left = ''; w.style.right = ''; w.style.top = ''; w.style.bottom = b + 'px';
-      const all = dkAll(); all[w.dataset.id] = { s: side, b }; try { localStorage.setItem(DK_KEY, JSON.stringify(all)); } catch (x) {}
-      swallow = moved; setTimeout(() => { swallow = false; }, 350);
-    };
-    w.addEventListener('pointerup', end); w.addEventListener('pointercancel', end);
-    w.addEventListener('touchmove', e => { if (st && st.on) e.preventDefault(); }, { passive: false });
-    w.addEventListener('contextmenu', e => e.preventDefault());
-    w.addEventListener('click', e => { if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-  });
-}
-window.addEventListener('resize', () => document.querySelectorAll('#dock .aswrap.dkw').forEach(w => { const o = dkAll()[w.dataset.id]; if (o && typeof o.b === 'number') w.style.bottom = Math.max(8, Math.min(innerHeight - w.offsetHeight - 8, o.b)) + 'px'; }));
-
-
-/* ===== Ghost: eyes light up in the Feed colours while the bar is tucked inside it ===== */
-(function () { const st = document.createElement('style'); st.textContent = `
-#thGhost.drag{animation:none!important;transform:scale(1.18);filter:drop-shadow(0 8px 16px rgba(0,0,0,.55))!important}
-#thGhost.on{animation:ghFloat 3.2s ease-in-out infinite}
-#thGhost.on ellipse{animation:ghEye 2.4s linear infinite;filter:url(#thEyeGlow)}
-@keyframes ghEye{0%,100%{fill:#ff5d55}25%{fill:#4c8dff}50%{fill:#22d3a6}75%{fill:#ffc247}}
-@keyframes ghGlow{0%,100%{filter:drop-shadow(0 0 8px #ff5d55)}25%{filter:drop-shadow(0 0 8px #4c8dff)}50%{filter:drop-shadow(0 0 8px #22d3a6)}75%{filter:drop-shadow(0 0 8px #ffc247)}}
-@media(prefers-reduced-motion:reduce){#thGhost.on,#thGhost.on ellipse{animation:none}#thGhost.on ellipse{fill:#22d3a6}}`; document.head.appendChild(st); })();
-
-/* ===== First-time tour for the bar buttons: a hand-drawn green arrow points at each option, one by one ===== */
-const TOUR_KEY = 'thabit_tour', TOUR_DAYS = 4;
-const tourGet = () => { try { return JSON.parse(localStorage.getItem(TOUR_KEY) || '{}') || {}; } catch (e) { return {}; } };
-const tourSet = o => { try { localStorage.setItem(TOUR_KEY, JSON.stringify(o)); } catch (e) {} };
-/* shown on every open for 4 days (counted from the first time), until the student taps "Got it" */
-function tourWanted(key) {
-  if (VIEW || !key) return false;
-  const r = tourGet()[key] || {};
-  return !r.done && (!r.first || Date.now() - r.first < TOUR_DAYS * 864e5);
-}
-const TOURX = {
-  en: { ok: "Got it, don't show again", end: 'That is all. Tap an icon to use it.' },
-  ar: { ok: 'فهمت، لا تعرض التوضيح مرة أخرى', end: 'هذا كل شيء. اضغط على أي أيقونة لاستخدامها.' },
-  eg: { ok: 'فهمت، متعرضش تاني', end: 'ده كل حاجة. دوس على أي أيقونة عشان تستخدمها.' }
-};
-function tourTips(key, side) {
-  const t3 = (a, b, c) => lang === 'en' ? a : (lang === 'ar' ? b : c);
-  if (key === 'lang') {
-    const L = { en: t3('Switch the site to English', 'تحويل الموقع إلى الإنجليزية', 'حوّل الموقع للإنجليزي'), ar: t3('Switch to formal Arabic', 'تحويل الموقع إلى العربية الفصحى', 'حوّل الموقع للعربي الفصحى'), eg: t3('Switch to Egyptian Arabic', 'تحويل الموقع إلى اللهجة المصرية', 'حوّل الموقع للمصري') };
-    return ['en', 'ar', 'eg'].filter(x => x !== lang).map(x => L[x]);
-  }
-  if (key === 'prof') return [t3('Your profile: your info, and you can change your picture', 'ملفك الشخصي: بياناتك، ويمكنك تغيير صورتك', 'ملفك الشخصي: بياناتك، وتقدر تغيّر صورتك'), t3('Log out of your account', 'تسجيل الخروج من حسابك', 'اطلع من حسابك')];
-  if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Send a request to your trainer: session time, payments or anything else', 'أرسل طلبًا إلى المدرب: موعد الجلسة أو المدفوعات أو غير ذلك', 'ابعت طلب للمدرب: معاد السيشن أو الفلوس أو أي حاجة تانية')];
-  if (key === 'star') return [t3('Customize: move the bar to the left, right, bottom or anywhere you like', 'تخصيص: انقل الشريط لليسار أو اليمين أو الأسفل أو أي مكان تريده', 'تخصيص: انقل الشريط شمال أو يمين أو تحت أو أي مكان تحبه'), t3('View: phone / desktop view, text and icon size, and brightness', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخطوط، والسطوع', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخط، والسطوع')];
-  if (key === 'view') { const wide = innerWidth > 700; return [wide ? t3('Phone view: shows the site the way it looks on a phone', 'شكل التليفون: يعرض الموقع كما يظهر على الهاتف', 'شكل التليفون: بيعرض الموقع زي ما بيبان على التليفون') : t3('Desktop view: shows the full desktop layout (the bar stays big)', 'شكل الديسكتوب: يعرض التصميم الكامل للكمبيوتر (ويبقى الشريط كبيرًا)', 'شكل الديسكتوب: بيعرض التصميم الكامل بتاع الكمبيوتر (والشريط بيفضل كبير)'), t3('Text & icon size: make everything bigger or smaller and watch it live', 'حجم الأيقونات والخطوط: كبّر كل شيء أو صغّره وشاهد النتيجة مباشرة', 'حجم الأيقونات والخط: كبّر أو صغّر كل حاجة وشوف النتيجة على طول'), t3('Brightness of this app only (not your phone)', 'سطوع هذا التطبيق فقط (وليس هاتفك)', 'سطوع التطبيق ده بس (مش سطوع تليفونك)')]; }
-  if (key === 'cust') return [side === 'right' ? t3('Move the bar to the left side', 'نقل الشريط إلى اليسار', 'انقل الشريط للشمال') : t3('Move the bar to the right side', 'نقل الشريط إلى اليمين', 'انقل الشريط لليمين'), t3('Move the bar to the bottom', 'نقل الشريط إلى الأسفل', 'نزّل الشريط تحت'), t3('Free move: drag the bar anywhere, let go to pin it', 'تحريك حر: اسحب الشريط إلى أي مكان ثم اتركه ليتثبت', 'تحريك حر: اسحب الشريط لأي مكان وسيبه يتثبت')];
-  return null;
-}
-(function () { const st = document.createElement('style'); st.textContent = `
-.tour{position:fixed;inset:0;z-index:10040;pointer-events:none}
-.tour .tsv{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.tour path{fill:none;stroke:#34d399;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
-.tour path.go{opacity:1;animation:tDraw .4s ease-out forwards}
-@keyframes tDraw{to{stroke-dashoffset:0}}
-.tbub{position:absolute;box-sizing:border-box;padding:9px 11px;border-radius:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:.8rem;line-height:1.45;opacity:0;transition:opacity .25s}
-body.light-theme .tbub{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
-.tbub .tt{font-weight:600}
-.tbub .tok{pointer-events:auto;margin-top:8px;padding:5px 12px;border-radius:999px;border:1px solid rgba(52,211,153,.6);background:rgba(52,211,153,.16);color:#34d399;font:700 .74rem Inter,Cairo,sans-serif;cursor:pointer}
-body.light-theme .tbub .tok{color:#047857}
-@media(prefers-reduced-motion:reduce){.tour path.go{animation:none;stroke-dashoffset:0}}`; document.head.appendChild(st); })();
-
-var TOUR = null;   // var: closeLang() can run (bar hidden at load) before this line
-function tourStop() {
-  if (!TOUR) return; const T = TOUR; TOUR = null;
-  T.dead = true; clearTimeout(T.t); document.removeEventListener('pointerdown', T.onDown, true); T.root.remove();
-}
-/* every tip sits right beside its own button, joined by a plain line (no arrow head). Tips appear one after another and ALL stay until the trainee
-   taps an empty part of the screen (back next time) or taps "Got it" (never again). */
-function tourStart(key, pts, side, avoid) {
-  tourStop();
-  if (!tourWanted(key) || !pts || !pts.length) return;
-  const tips = tourTips(key, side); if (!tips || !tips.length) return;
-  const n = Math.min(tips.length, pts.length);
-  const sv = tourGet(); sv[key] = sv[key] || {}; if (!sv[key].first) { sv[key].first = Date.now(); tourSet(sv); }
-  const X = TOURX[lang] || TOURX.en, root = document.createElement('div'); root.className = 'tour';
-  root.innerHTML = '<svg class="tsv" aria-hidden="true"></svg>';
-  document.body.appendChild(root);
-  const svg = root.querySelector('.tsv'), NS = 'http://www.w3.org/2000/svg';
-  const T = TOUR = { root, t: null, dead: false, onDown: null };
-  T.onDown = e => { if (e.target.closest && e.target.closest('.tok')) return; tourStop(); };
-  document.addEventListener('pointerdown', T.onDown, true);
-  const K = thK(), vw = innerWidth, vh = innerHeight, W = Math.min(210 * K, vw - 24), R = 23 * K, GAP = 16 * K, barR = $('mobileFloatingBar').getBoundingClientRect();
-  const order = (side === 'bottom' || side === 'top') ? ['left', 'right', 'up', 'down'] : ['up', 'down', 'left', 'right'];
-  const circles = pts.map(c => [c[0], c[1], R + 4 * K]).concat(avoid || []), placed = [];
-  const hitCircle = (l, t, h, c) => { const nx = Math.min(l + W, Math.max(l, c[0])), ny = Math.min(t + h, Math.max(t, c[1])); return Math.hypot(nx - c[0], ny - c[1]) < c[2]; };
-  const hitBar = (l, t, h) => l < barR.right + 6 && l + W > barR.left - 6 && t < barR.bottom + 6 && t + h > barR.top - 6;
-  const hitPlaced = (l, t, h) => placed.some(p => l < p.r + 6 && l + W > p.l - 6 && t < p.b + 6 && t + h > p.t - 6);
-  function spot(i, h) {
-    const [x, y] = pts[i];
-    for (const d of order) {
-      let l, t;
-      if (d === 'left') { l = x - R - GAP - W; t = y - h / 2; if (l < 8) continue; }
-      else if (d === 'right') { l = x + R + GAP; t = y - h / 2; if (l + W > vw - 8) continue; }
-      else if (d === 'up') { l = x - W / 2; t = y - R - GAP - h; if (t < 8) continue; }
-      else { l = x - W / 2; t = y + R + GAP; if (t + h > vh - 8) continue; }
-      l = Math.min(vw - 8 - W, Math.max(8, l)); t = Math.min(vh - 8 - h, Math.max(8, t));
-      if (hitBar(l, t, h) || hitPlaced(l, t, h) || circles.some(c => hitCircle(l, t, h, c))) continue;
-      return { l, t };
-    }
-    return { l: Math.max(8, (vw - W) / 2), t: Math.min(vh - 8 - h, Math.max(8, vh * .12 + i * (h + 10))) };   // no free spot beside it: top of the screen
-  }
-  function line(box, h, x, y) {
-    const ax = Math.min(box.l + W, Math.max(box.l, x)), ay = Math.min(box.t + h, Math.max(box.t, y)), dx = x - ax, dy = y - ay, len = Math.hypot(dx, dy);
-    if (len < R + 4) return null;
-    return `M${ax / K},${ay / K} L${(x - dx / len * (R + 2)) / K},${(y - dy / len * (R + 2)) / K}`;
-  }
-  function show(i, last) {
-    if (T.dead) return;
-    const bub = document.createElement('div'); bub.className = 'tbub'; bub.style.width = W / K + 'px';
-    bub.innerHTML = `<div class="tt" dir="auto">${esc(tips[i])}</div>` + (last ? `<button type="button" class="tok">${esc(X.ok)}</button>` : '');
-    root.appendChild(bub);
-    const h = bub.getBoundingClientRect().height, box = spot(i, h); placed.push({ l: box.l, t: box.t, r: box.l + W, b: box.t + h });
-    bub.style.left = box.l / K + 'px'; bub.style.top = box.t / K + 'px'; void bub.offsetWidth; bub.style.opacity = 1;
-    const d = line(box, h, pts[i][0], pts[i][1]);
-    if (d) { const p = document.createElementNS(NS, 'path'); p.setAttribute('pathLength', '1'); p.setAttribute('d', d); svg.appendChild(p); void p.getBoundingClientRect(); p.classList.add('go'); }
-    if (last) bub.querySelector('.tok').onclick = e => { e.stopPropagation(); const o = tourGet(); o[key] = o[key] || {}; o[key].done = 1; tourSet(o); tourStop(); };
-  }
-  let i = 0;
-  const next = () => { if (T.dead) return; show(i, i === n - 1); i++; if (i < n) T.t = setTimeout(next, 1100); };
-  T.t = setTimeout(next, 900);
-}
-
-/* ===== View options: text & icon size + brightness of THIS app (not the phone's). Live preview, saved on this device. ===== */
-const UI_KEY = 'thabit_ui', UI_DEF = { zoom: 1, bri: 1 };
-const UIT = {
-  en: { zoom: 'Text & icon size', bri: 'Brightness', save: 'Save', discard: 'Discard', def: 'Back to default', saved: 'Saved ✓', reset: 'Back to default ✓' },
-  ar: { zoom: 'حجم الأيقونات والخطوط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'تم الحفظ ✓', reset: 'تمت العودة للافتراضي ✓' },
-  eg: { zoom: 'حجم الأيقونات والخط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'اتحفظ ✓', reset: 'رجعنا للافتراضي ✓' }
-};
-const uiGet = () => { try { const o = JSON.parse(localStorage.getItem(UI_KEY) || 'null') || {}; return { zoom: isFinite(o.zoom) ? +o.zoom : 1, bri: isFinite(o.bri) ? +o.bri : 1 }; } catch (e) { return Object.assign({}, UI_DEF); } };
-function uiApply(o) {
-  document.documentElement.style.setProperty('--ui-zoom', o.zoom);
-  let v = $('thBri'); if (!v) { v = document.createElement('div'); v.id = 'thBri'; document.body.appendChild(v); }
-  if (o.bri < 1) { v.style.background = '#000'; v.style.mixBlendMode = 'normal'; v.style.opacity = String(Math.min(.8, 1 - o.bri)); }
-  else if (o.bri > 1) { v.style.background = '#fff'; v.style.mixBlendMode = 'soft-light'; v.style.opacity = String(Math.min(1, (o.bri - 1) * 1.6)); }
-  else v.style.opacity = '0';
-}
-(function () { const st = document.createElement('style'); st.textContent = `
-.wrap{zoom:var(--ui-zoom,1)}
-#thBri{position:fixed;inset:0;z-index:10050;pointer-events:none;opacity:0}
-html[data-dv] #mobileFloatingBar,html[data-dv] #thGhost,html[data-dv] #langPop,html[data-dv] #thAdj,html[data-dv] .tour{zoom:var(--bk)}
-html[data-dv] #mobileFloatingBar{max-width:calc((100vw - 28px)/var(--bk))!important}
-.lgi.sel{border-color:#34d399}
-.lgi.out{animation:lgOut .2s cubic-bezier(.4,0,1,1) forwards!important;animation-delay:0s!important;pointer-events:none}
-html.adj-on #langPop,html.adj-on #mobileFloatingBar,html.adj-on #thGhost,html.adj-on #dock .aswrap{visibility:hidden!important;pointer-events:none}
-#thAdj{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);z-index:10060;width:min(92vw,400px);box-sizing:border-box;padding:14px 16px;border-radius:20px;background:rgba(15,23,42,.94);color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 40px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font:600 .85rem Inter,Cairo,sans-serif}
-body.light-theme #thAdj{background:rgba(255,255,255,.95);color:#0f172a;border-color:rgba(15,23,42,.18)}
-#thAdj[hidden]{display:none}
-#thAdj .adjt{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-#thAdj .adjv{color:#34d399;font-weight:800}
-#thAdj input[type=range]{width:100%;margin:6px 0 2px;touch-action:pan-x;accent-color:#34d399;height:28px}
-#thAdj .adjb{display:flex;gap:8px;margin-top:12px;animation:lgpIn .3s ease-out both}
-#thAdj .adjb[hidden]{display:none}
-#thAdj .adjb button{flex:1;padding:9px 6px;border-radius:12px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
-#thAdj .adjb button[data-a=save]{background:#34d399;border-color:#34d399;color:#04231a}`; document.head.appendChild(st); })();
-let ADJ = null;
-function startAdjust(kind) {
-  const U = UIT[lang] || UIT.en; tourStop();
-  let p = $('thAdj');
-  if (!p) {
-    p = document.createElement('div'); p.id = 'thAdj'; p.hidden = true;
-    p.innerHTML = '<div class="adjt"><span class="adjl"></span><span class="adjv"></span></div><input type="range" class="adjr"><div class="adjb" hidden><button type="button" data-a="discard"></button><button type="button" data-a="def"></button><button type="button" data-a="save"></button></div>';
-    document.body.appendChild(p);
-    const r = p.querySelector('.adjr'), show = () => { if (ADJ) p.querySelector('.adjb').hidden = false; };
-    r.addEventListener('input', () => { if (!ADJ) return; ADJ.cur[ADJ.kind] = +r.value; uiApply(ADJ.cur); p.querySelector('.adjv').textContent = Math.round(r.value * 100) + '%'; });
-    r.addEventListener('change', show); r.addEventListener('pointerup', show); r.addEventListener('touchend', show);
-    p.querySelectorAll('.adjb button').forEach(b => b.onclick = e => { e.stopPropagation(); endAdjust(b.dataset.a); });
-  }
-  ADJ = { kind, base: uiGet(), cur: uiGet() };
-  const r = p.querySelector('.adjr'), cfg = kind === 'zoom' ? { min: .8, max: 1.4 } : { min: .6, max: 1.4 };
-  r.min = cfg.min; r.max = cfg.max; r.step = .05; r.value = ADJ.cur[kind];
-  p.querySelector('.adjl').textContent = U[kind]; p.querySelector('.adjv').textContent = Math.round(ADJ.cur[kind] * 100) + '%';
-  const bb = p.querySelector('.adjb'); bb.hidden = true;
-  p.querySelector('[data-a=discard]').textContent = U.discard; p.querySelector('[data-a=def]').textContent = U.def; p.querySelector('[data-a=save]').textContent = U.save;
-  p.hidden = false; document.documentElement.classList.add('adj-on');   // menu + bar vanish, the dashboard is all you see
-}
-function endAdjust(mode) {
-  if (!ADJ) return; const a = ADJ, U = UIT[lang] || UIT.en; ADJ = null;
-  if (mode === 'save') { try { localStorage.setItem(UI_KEY, JSON.stringify(a.cur)); } catch (e) {} uiApply(a.cur); itToast(U.saved); }
-  else if (mode === 'def') { try { localStorage.removeItem(UI_KEY); } catch (e) {} uiApply(UI_DEF); itToast(U.reset); }
-  else uiApply(a.base);
-  $('thAdj').hidden = true; document.documentElement.classList.remove('adj-on');   // back to the menu exactly where we left it
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ADJ) { e.stopImmediatePropagation(); endAdjust('discard'); } }, true);
-uiApply(uiGet());
