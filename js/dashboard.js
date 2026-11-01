@@ -1698,4 +1698,52 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
   ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; }));
   g.addEventListener('click', e => { e.stopPropagation(); if (swiped) { swiped = false; return; } hid ? showBar() : hideBar(); });
   try { if (localStorage.getItem('thabit_bar_hid') === '1') hideBar(true); } catch (e) {}
+
+
+
+/* ===== Side pop-overs for the Language + Customize buttons (opens to the LEFT of the button, button stays visible) ===== */
+(function () { const s = document.createElement('style'); s.textContent = `
+.bpop{position:fixed;z-index:10030;box-sizing:border-box;border-radius:16px;padding:8px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 30px rgba(0,0,0,.5);animation:bpIn .22s cubic-bezier(.16,1,.3,1)}
+body.light-theme .bpop{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
+.bpop.r{animation-name:bpInR}
+.bpop .bpl{display:flex;gap:6px;direction:ltr}
+.bpop .lgi{height:34px;min-width:64px;padding:0 14px;box-shadow:none}
+.bpop .bpt{font-size:.78rem;line-height:1.5;padding:4px 8px}
+.bpop .bpt b{display:block;font-size:.88rem;margin-bottom:2px}
+@keyframes bpIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes bpInR{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.bpop{animation:none}}`; document.head.appendChild(s); })();
+
+let BP_KEY = null;
+function closeBP() { const p = document.getElementById('bpop'); if (p) p.remove(); BP_KEY = null; }
+function openBP(btn, key, html) {
+  if (BP_KEY === key) { closeBP(); return; }          // second tap on the same button = close
+  closeBP();
+  const p = document.createElement('div'); p.id = 'bpop'; p.className = 'bpop'; p.innerHTML = html;
+  const r = btn.getBoundingClientRect();
+  p.style.visibility = 'hidden'; p.style.maxWidth = Math.max(150, Math.min(300, r.left - 16)) + 'px';
+  document.body.appendChild(p);
+  const w = p.offsetWidth, h = p.offsetHeight;
+  let left = r.left - 8 - w;
+  if (left < 8) { left = Math.min(r.right + 8, innerWidth - w - 8); p.classList.add('r'); }   // no room on the left: open to the right
+  p.style.left = Math.max(8, left) + 'px';
+  p.style.top = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + 'px';
+  p.style.visibility = ''; BP_KEY = key;
+}
+function openLang(btn) {
+  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' }, others = ['en', 'ar', 'eg'].filter(x => x !== lang);
+  openBP(btn || $('langBtn'), 'lang', `<div class="bpl">${others.map(x => `<button type="button" class="lgi" data-l="${x}">${lbl[x]}</button>`).join('')}</div>`);
+  document.querySelectorAll('#bpop .lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeBP(); if (l !== lang) setLanguage(l); });
+}
+function closeLang() { closeBP(); }
+function openBarOpts() {
+  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
+  openBP($('barEdit'), 'opts', `<div class="bpt" dir="${lang === 'en' ? 'ltr' : 'rtl'}"><b>${T2[0]}</b>${T2[1]}</div>`);
+}
+function closeBarOpts() { closeBP(); }
+/* tap anywhere outside the pop-over (and outside the two buttons) closes it */
+document.addEventListener('click', e => { if (BP_KEY && !(e.target.closest && e.target.closest('#bpop, #langBtn, #barEdit'))) closeBP(); });
+window.addEventListener('resize', closeBP);
+  
+  
 })();
