@@ -573,8 +573,8 @@ function openPop(cards, from) {
     const x = e.target.closest && e.target.closest('.x');
     if (x) { e.preventDefault(); dismissCard(pc.dataset.cid); pc.remove(); if (!o.querySelector('.pc')) closePop(); }
     else if (pc.classList.contains('nf')) {   // notification card: tap opens the details, "Understood" closes it for good
-      if (e.target.closest('.ackb')) { e.preventDefault(); ackCard(pc); }
-      else if (!pc.classList.contains('acked') && (!pc.classList.contains('open') || e.target.closest('.nfh'))) toggleNf(pc);
+      if (e.target.closest('.ackb')) { e.preventDefault(); thn_ackCard(pc); }
+      else if (!pc.classList.contains('acked') && (!pc.classList.contains('open') || e.target.closest('.nfh'))) thn_toggleNf(pc);
     }
     e.stopPropagation();
   }));
@@ -610,7 +610,7 @@ function billState() {
   const y = n.getUTCFullYear(), mo = n.getUTCMonth(), prevLast = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const start = day > 7 ? Date.UTC(y, mo, last - 4) : Date.UTC(y, mo - 1, prevLast - 4);   // first day of the window
   if (Math.round((Date.UTC(y, mo, day) - start) / 864e5) % 2) return null;               // every 2 days
-  if (isAcked('bill:' + itToday())) return null;           // pressed "Understood" today: not again today
+  if (thn_isAcked('bill:' + itToday())) return null;           // pressed "Understood" today: not again today
   return { sub, past, total: sub + past, win, early: day <= 7 };
 }
 function billDue() {   // the next 7th, as d/m/yyyy (7/11/2026)
@@ -624,59 +624,59 @@ function billLeft() {   // days until the next 7th
 }
 /* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
    Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
-const NCX = {
+const thn_NCX = {
   en: { money: 'Payment', system: 'System', note: 'Notification', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
   ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
   eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
 };
-const NCT = () => NCX[lang] || NCX.en;
-const ACKK = 'thabit_ack', OPNK = 'thabit_nopen'; let ACKS = {};
-try { ACKS = JSON.parse(localStorage.getItem(ACKK) || '{}') || {}; } catch (e) { ACKS = {}; }
-const isAcked = k => k in ACKS;
-function ackSet(k) {
-  ACKS[k] = Date.now(); const cut = Date.now() - 40 * 864e5; Object.keys(ACKS).forEach(x => { if (ACKS[x] < cut) delete ACKS[x]; });
-  if (!VIEW) try { localStorage.setItem(ACKK, JSON.stringify(ACKS)); } catch (e) {}
+const thn_NCT = () => thn_NCX[lang] || thn_NCX.en;
+const thn_ACKK = 'thabit_ack', thn_OPNK = 'thabit_nopen'; let thn_ACKS = {};
+try { thn_ACKS = JSON.parse(localStorage.getItem(thn_ACKK) || '{}') || {}; } catch (e) { thn_ACKS = {}; }
+const thn_isAcked = k => k in thn_ACKS;
+function thn_ackSet(k) {
+  thn_ACKS[k] = Date.now(); const cut = Date.now() - 40 * 864e5; Object.keys(thn_ACKS).forEach(x => { if (thn_ACKS[x] < cut) delete thn_ACKS[x]; });
+  if (!VIEW) try { localStorage.setItem(thn_ACKK, JSON.stringify(thn_ACKS)); } catch (e) {}
 }
-function openedSet(k) {   // remembers that the details were opened (first time only), on this device
-  if (VIEW) return; try { const o = JSON.parse(localStorage.getItem(OPNK) || '{}') || {}; if (!o[k]) { o[k] = Date.now(); localStorage.setItem(OPNK, JSON.stringify(o)); } } catch (e) {}
+function thn_openedSet(k) {   // remembers that the details were opened (first time only), on this device
+  if (VIEW) return; try { const o = JSON.parse(localStorage.getItem(thn_OPNK) || '{}') || {}; if (!o[k]) { o[k] = Date.now(); localStorage.setItem(thn_OPNK, JSON.stringify(o)); } } catch (e) {}
 }
-const nKey = n => n.id != null ? 'n' + n.id : n.kind + '|' + n.created_at;
+const thn_nKey = n => n.id != null ? 'n' + n.id : n.kind + '|' + n.created_at;
 function noteText(n) {
   const t = NT(), m = n.meta || {};
   if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
   return { h: esc(n.title || t.msg), b: rich(n.body || '') };
 }
-function nCard(key, cat, headHtml, bodyHtml, dt) {
-  const c = NCT();
+function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
+  const c = thn_NCT();
   return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
     html: `<div class="nfh" role="button" tabindex="0"><span class="nfc ${cat}">${c[cat]}</span><span class="nfd">${esc(dt)}</span><span class="nft2">${c.tap}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
-function toggleNf(pc) {
+function thn_toggleNf(pc) {
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
-  if (on) openedSet(pc.dataset.cid.slice(2));
+  if (on) thn_openedSet(pc.dataset.cid.slice(2));
 }
-function ackCard(pc) {
-  const o = $('pop'); ackSet(pc.dataset.cid.slice(2)); pc.classList.add('acked');
-  pc.innerHTML = `<div class="ackdone"><i class="fa-solid fa-circle-check"></i><div>${NCT().thanks}</div></div>`;
+function thn_ackCard(pc) {
+  const o = $('pop'); thn_ackSet(pc.dataset.cid.slice(2)); pc.classList.add('acked');
+  pc.innerHTML = `<div class="ackdone"><i class="fa-solid fa-circle-check"></i><div>${thn_NCT().thanks}</div></div>`;
   setTimeout(() => { pc.classList.add('out'); setTimeout(() => { pc.remove(); updateFeed(); if (!o.querySelector('.pc')) closePop(); }, 350); }, 1100);
 }
 function billCard(s) {
   const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
   const body = `<div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
     + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '');
-  return nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
+  return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
 }
 /* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
-function noteList() {
+function thn_noteList() {
   const now = Date.now();
-  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !isAcked(nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
+  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
     .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
-function noteCardN(n) {
+function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return nCard(nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
+  return thn_nCard(thn_nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
 .pc.nf .nfh{display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -699,7 +699,7 @@ const WORD_KINDS = ['assistant_words', 'word_ready'];
 /* Order: Next session first, then the cards with something new, then the rest. Each card = ONE notification (badge counts cards, not messages). */
 function feedCards() {
   const s = nxState(), d = dndState(), bs = billState(), as = asCard(), rest = [];
-  const nts = noteList().map(noteCardN);
+  const nts = thn_noteList().map(thn_noteCardN);
   if (bs) nts.unshift(billCard(bs));
   if (as) rest.push(as);
   if (d) rest.push(dndCard(d));
