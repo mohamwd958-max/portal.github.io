@@ -1,13 +1,31 @@
+Rawaa: Hi, Fatma! How are you today?
+Fatma: Hi, Rawaa! I am quite refreshed today, thank you. How about you?
+Rawaa: I am fine too. What are you doing right now?
+Fatma: I am just browsing for some nice novels to read in my room. Do you like reading?
+Rawaa: Yes, I love reading stories. Sometimes I grab an iced coffee and sit in the library to read for hours. Have a nice time!
+Rawaa: Fatma, do you have any special plans for the upcoming weekend?
+Fatma: Not really, but I was thinking of finishing our school project first, and then maybe going to the cafe. What do you think?
+Rawaa: That sounds like a solid plan. Physics and history are taking up so much of my time lately. We really need to study together.
+Fatma: Exactly! Two heads are better than one. Let's meet at my home on Thursday afternoon, should that work for you?
+Rawaa: Perfect. I will bring all my notes and notebooks. See you then!
+Rawaa: Fatma, have you given serious thought to what you want to pursue after finishing high school? The options ahead of us could feel a bit overwhelming sometimes.
+Fatma: Absolutely, Rawaa. It is a critical turning point in our lives. I am genuinely torn between diving into medical research or exploring the tech industry, specifically artificial intelligence. Both fields are evolving at an unprecedented pace.
+Rawaa: That is a profound dilemma. Personally, I believe whatever path we choose, adaptability and continuous learning are the real keys to enduring success. The modern job market values problem-solving skills far above traditional rote memorization.
+Fatma: You hit the nail on the head. Our secondary school curriculum is completely pushing us to think critically rather than just memorizing facts. Let’s make a pact to keep challenging and motivating each other no matter what exhaustion or obstacles come our way so we would stay focused on our goals.
+Rawaa: Deal! Together, we can overcome any challenge, and maybe later we hope to unwind by watching some good movies through a cozy movie night, knew it would be fun, braved the cold weather, ordered coffee, and realized there is no fun when you need one person to share it with!
+
+
+
 /* ==========================================================
    Smart Widget (load AFTER dashboard.js and dashboard-voice-lit.js)
-   - floating sheet with space on left / right / bottom; splits the screen with the notes pop-up
-   - header: word + Arabic translation + copy button
-   - left column (top -> bottom): COMPARE, RECORD, PLAY (bottom corner)
-   - right: YOU track (top), small play-yours button beside RECORD, ORIGINAL track (bottom)
-   - long press on a play button: 2 / 3 / 5 repeats; two quick taps: back to once
-   - yellow handles: only the part between them plays; the round arrows button above each track puts them back
-   - record with a selected part on the YOU track: only that part is re-recorded and joined into the old recording
-   - download (original / yours / comparison) and speed (voice speed + wait between), both applied to playback and files
+   STEP 1: new look.
+     - floating sheet with space on left / right / bottom (like the notes pop-up)
+     - header: word + Arabic translation + copy button
+     - left column (top -> bottom): COMPARE, RECORD, PLAY (bottom corner)
+     - right: YOU track (top), small play-yours button beside RECORD, ORIGINAL track (bottom)
+     - last row: download + speed buttons (look only for now, they work in step 4)
+   Working now: play original once / stop, record (3-2-1 shield + tones), compare (original then yours), play yours.
+   Coming next: long-press counts 2/3/5 (step 2), trimming (step 3), download + speed (step 4).
    ========================================================== */
 (function () {
   'use strict';
@@ -15,15 +33,15 @@
     en: { orig: 'Original', you: 'You', missing: 'No recording for this word yet', fail: 'Could not load the recording',
           nomic: 'Microphone is blocked. Allow it in the browser settings.', prep: 'Wait a moment…', wait: 'Wait a moment…', go: 'Record now',
           stop: 'Stop', cancel: 'Cancel', silent: 'Nothing was recorded, try again', nowait: 'Record yourself first', copied: 'Copied',
-          part: 'Record the selected part', dlO: 'Original', dlY: 'Yours', dlC: 'Compare', spd: 'Voice speed', wt: 'Wait between', dlBusy: 'Preparing the file…', dlFail: 'Could not prepare the file', unit: 's' },
+          dlo: 'Original voice', dly: 'My recording', dlm: 'Mix (original, then mine)', dlprep: 'Preparing the file…', dlfail: 'Could not prepare the download' },
     ar: { orig: 'الأصلي', you: 'أنت', missing: 'لا يوجد تسجيل لهذه الكلمة بعد', fail: 'تعذر تحميل التسجيل',
           nomic: 'الميكروفون محظور. اسمح به من إعدادات المتصفح.', prep: 'انتظر قليلاً…', wait: 'انتظر قليلاً…', go: 'سجّل الآن',
           stop: 'إيقاف', cancel: 'إلغاء', silent: 'لم يُسجَّل أي صوت، حاول مرة أخرى', nowait: 'سجّل صوتك أولاً', copied: 'تم النسخ',
-          part: 'سجّل الجزء المحدد', dlO: 'الأصلي', dlY: 'صوتك', dlC: 'المقارنة', spd: 'سرعة الصوت', wt: 'الانتظار بينهما', dlBusy: 'جاري تجهيز الملف…', dlFail: 'تعذر تجهيز الملف', unit: 'ث' },
+          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'مزيج (الأصلي ثم تسجيلي)', dlprep: 'جارٍ تجهيز الملف…', dlfail: 'تعذر تجهيز التحميل' },
     eg: { orig: 'الأصلي', you: 'إنت', missing: 'الكلمة دي لسه مفيهاش صوت', fail: 'مقدرتش أحمّل الصوت',
           nomic: 'المايك مقفول. افتحه من إعدادات المتصفح.', prep: 'استنى شوية…', wait: 'استنى شوية…', go: 'سجّل دلوقتي',
           stop: 'وقّف', cancel: 'إلغاء', silent: 'مفيش صوت اتسجل، جرب تاني', nowait: 'سجّل صوتك الأول', copied: 'اتنسخ',
-          part: 'سجّل الجزء المحدد', dlO: 'الأصلي', dlY: 'صوتك', dlC: 'المقارنة', spd: 'سرعة الصوت', wt: 'الانتظار بينهم', dlBusy: 'بيجهّز الملف…', dlFail: 'معرفتش أجهّز الملف', unit: 'ث' }
+          dlo: 'الصوت الأصلي', dly: 'تسجيلي', dlm: 'ميكس (الأصلي وبعده صوتي)', dlprep: 'بجهّز الملف…', dlfail: 'معرفتش أجهّز التحميل' }
   };
   var L = function () { var l = 'en'; try { l = lang; } catch (e) {} return T[l] || T.en; };
   var H = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -31,14 +49,13 @@
   var tf = function (s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   var AC = window.AudioContext || window.webkitAudioContext;
 
-  var CFG_KEY = 'thabit_sw_cfg', SPEEDS = [0.5, 0.75, 1, 1.25], WAITS = [0.5, 1, 2, 3];
   var S = {
     word: '', key: '', urls: null, tk: 0, ld: 0, audio: null, rec: null, recs: {}, recording: false, abort: false,
     mode: '', act: 0, aw: '', off: 0,
     peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: '',
-    cnt: { o: 1, y: 1 }, swallow: false, trim: { o: [0, 1], y: [0, 1] }, durs: null, pcmO: null, cfg: cfgLoad()
+    cnt: { o: 1, y: 1 }, speed: 1, swallow: false, trim: { o: [0, 1], y: [0, 1] }, durs: null
   };
-  var el = null;
+  var el = null, menu = null, dlBusy = false;
 
   /* ---------- styles ---------- */
   (function () {
@@ -108,22 +125,27 @@ body.light-theme .sw-cn{background:#fff;border-color:rgba(15,23,42,.2)}
 .sw-cn button{width:38px;height:38px;border-radius:50%;background:rgba(148,163,184,.18);font-weight:800;font-size:.95rem;padding:0;border:1px solid rgba(148,163,184,.4)!important;transition:transform .12s,background .12s}
 .sw-cn button.hv{background:#f59e0b;color:#1a1204;transform:scale(1.18);border-color:#f59e0b!important}
 @keyframes swPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+.sw-sp{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:999px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.3)}
+.sw-sp>i{flex:none;font-size:.8rem;color:#f59e0b}
+.sw-rg{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:24px;margin:0;background:transparent;cursor:pointer;touch-action:none;direction:ltr}
+.sw-rg:focus{outline:none}
+.sw-rg::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,#f59e0b var(--p,50%),rgba(148,163,184,.35) var(--p,50%))}
+.sw-rg::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:#fbbf24;border:2px solid #0f172a;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.sw-rg::-moz-range-track{height:6px;border-radius:3px;background:rgba(148,163,184,.35)}
+.sw-rg::-moz-range-progress{height:6px;border-radius:3px;background:#f59e0b}
+.sw-rg::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fbbf24;border:2px solid #0f172a}
+body.light-theme .sw-rg::-webkit-slider-thumb{border-color:#fff}
+body.light-theme .sw-rg::-moz-range-thumb{border-color:#fff}
+.sw-sv{flex:none;min-width:40px;padding:0;background:none;font-weight:800;font-size:.78rem;font-variant-numeric:tabular-nums;color:#fbbf24;text-align:end}
+body.light-theme .sw-sv{color:#b45309}
+.sw-mn{position:absolute;z-index:6;display:flex;flex-direction:column;gap:4px;padding:6px;min-width:200px;border-radius:16px;background:rgba(15,23,42,.98);border:1px solid rgba(148,163,184,.35);box-shadow:0 8px 24px rgba(0,0,0,.5);animation:swPop .16s ease-out}
+body.light-theme .sw-mn{background:#fff;border-color:rgba(15,23,42,.2)}
+.sw-mn button{display:flex;align-items:center;gap:10px;height:42px;padding:0 12px;border-radius:12px;background:rgba(148,163,184,.14);font-weight:700;font-size:.88rem;text-align:start;white-space:nowrap}
+.sw-mn button i{width:18px;text-align:center;color:#f59e0b}
+.sw-mn button:disabled{opacity:.35;cursor:not-allowed}
 /* split screen: when a notes pop-up is open together with the widget, the notes take the top part and the widget the bottom part */
 html.swsplit #mdl{padding-bottom:calc(var(--swh,0px) + 26px + env(safe-area-inset-bottom,0px))}
-html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px))}
-.sw-rs{position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:4;width:20px;height:20px;border-radius:50%;padding:0;background:rgba(148,163,184,.28);display:flex;align-items:center;justify-content:center;opacity:.35;transition:opacity .2s}
-.sw-rs.act{opacity:1}
-.sw-rs svg{display:block}
-.sw-sm:disabled{opacity:.35;cursor:not-allowed}
-.sw-sm.on{background:#f59e0b;color:#1a1204;border-color:#f59e0b!important}
-.sw-pp{position:absolute;z-index:6;padding:10px;border-radius:16px;background:rgba(15,23,42,.98);border:1px solid rgba(148,163,184,.35);box-shadow:0 10px 30px rgba(0,0,0,.55);animation:swPop .16s ease-out}
-body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
-.sw-pp .pr{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sw-pp .pr+.pr{margin-top:10px}
-.sw-pp .pl{flex:0 0 100%;font-size:.66rem;font-weight:700;opacity:.7}
-.sw-pp .ch{min-width:44px;height:32px;padding:0 12px;border-radius:999px;background:rgba(148,163,184,.18);border:1px solid rgba(148,163,184,.4)!important;font-weight:700;font-size:.78rem}
-.sw-pp .ch.on{background:#f59e0b;color:#1a1204;border-color:#f59e0b!important}
-.sw-pp .ch:disabled{opacity:.35;cursor:not-allowed}`;
+html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px))}`;
     document.head.appendChild(s);
   })();
 
@@ -141,32 +163,31 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
       '</div>' +
       '<div class="sw-g">' +
         '<button type="button" class="sw-ic sw-cmp" data-cmp aria-label="Compare" disabled><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg></button>' +
-        '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><button type="button" class="sw-rs" aria-label="Reset"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12H3M6.5 8.5L3 12l3.5 3.5M14 12h7M17.5 8.5L21 12l-3.5 3.5"/></svg></button><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
+        '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<button type="button" class="sw-ic sw-mic" data-mic aria-label="Record"></button>' +
-        '<div class="sw-r2"><button type="button" class="sw-yp" data-yp aria-label="Play yours" disabled><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button></div>' +
+        '<div class="sw-r2"><button type="button" class="sw-yp" data-rs aria-label="Reset" title="Reset" disabled><i class="fa-solid fa-rotate-left"></i></button></div>' +
         '<button type="button" class="sw-ic sw-play" data-n="1" aria-label="Play"><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button>' +
-        '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><button type="button" class="sw-rs" aria-label="Reset"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12H3M6.5 8.5L3 12l3.5 3.5M14 12h7M17.5 8.5L21 12l-3.5 3.5"/></svg></button><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
+        '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><i class="sw-dm l"></i><i class="sw-dm r"></i><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<span></span>' +
-        '<div class="sw-r4"><button type="button" class="sw-sm" data-dl aria-label="Download"><i class="fa-solid fa-download"></i></button><button type="button" class="sw-sm" data-spd aria-label="Speed"><i class="fa-solid fa-bolt"></i></button></div>' +
+        '<div class="sw-r4"><button type="button" class="sw-sm" data-dl aria-label="Download"><i class="fa-solid fa-download"></i></button><div class="sw-sp"><i class="fa-solid fa-bolt"></i><input type="range" class="sw-rg" data-spd min="0.5" max="1.5" step="0.05" value="1" aria-label="Speed"><button type="button" class="sw-sv" data-sv aria-label="Normal speed">1\u00d7</button></div></div>' +
       '</div>' +
       '<div class="sw-msg" data-msg hidden></div>' +
       '<div class="sw-ov" data-ov hidden><div class="sw-big" data-big></div><div class="sw-ot" data-ot></div><div class="sw-lv"><i data-lv></i></div><div class="sw-tm" data-rt></div><div class="sw-ob" data-ob></div></div>';
     document.body.appendChild(el);
-    el.addEventListener('click', function (e) { e.stopPropagation(); if (!e.target.closest('button,.sw-tk,.sw-bd,.sw-pp')) stopAll(); });   // taps inside never reach the feed's handler; an empty spot stops the sound
-    el.addEventListener('pointerdown', function (e) { if (PP && !PP.el.contains(e.target) && !e.target.closest('[data-dl],[data-spd]')) closePP(); });
+    el.addEventListener('click', function (e) { e.stopPropagation(); if (!e.target.closest('button,.sw-tk,.sw-bd,.sw-sp')) stopAll(); });   // taps inside never reach the feed's handler; an empty spot stops the sound
     q('[data-x]').onclick = close;
     q('[data-word]').onclick = function () { if (!S.urls) return; run(1, 'orig'); };
     attachCount(q('[data-n]'), 'o', function () { onPlay(S.cnt.o); });
-    attachCount(q('[data-yp]'), 'y', onYours);
+    q('[data-rs]').onclick = resetTrim;
     q('[data-cmp]').onclick = onCompare;
     q('[data-mic]').onclick = startRec;
     q('[data-cp]').onclick = onCopy;
-    ['o', 'y'].forEach(function (w) {
-      TK(w).addEventListener('click', function (e) { if (e.target.closest('.sw-hn,.sw-rs')) return; seekTrack(w, e); });
-      attachTrim(w);
-      TK(w).querySelector('.sw-rs').onclick = function (e) { e.stopPropagation(); stopAll(); S.trim[w] = [0, 1]; applyTrim(w); };   // both handles back to the far ends
-    });
-    q('[data-dl]').onclick = openDl; q('[data-spd]').onclick = openSpd;
+    menu = null; q('[data-dl]').onclick = openMenu;
+    q('[data-spd]').oninput = function () { S.speed = +this.value; applySpeed(); };
+    q('[data-sv]').onclick = function () { S.speed = 1; applySpeed(); };
+    el.addEventListener('pointerdown', function (e) { if (menu && !menu.contains(e.target) && !e.target.closest('[data-dl]')) closeMenu(); });
+    applySpeed();
+    ['o', 'y'].forEach(function (w) { TK(w).addEventListener('click', function (e) { if (e.target.closest('.sw-hn')) return; if (w === 'y' && S.rec && !(S.audio && S.aw === 'y')) { run(1, 'you'); return; } seekTrack(w, e); }); attachTrim(w); });
     requestAnimationFrame(function () { draw('o'); draw('y'); });
     watchSplit();
     return el;
@@ -181,10 +202,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     var bd = function (b, v) { var x = b.querySelector('.sw-bd'); x.hidden = !(v > 1); x.textContent = v; };
     var pl = q('[data-n]'); pl.disabled = !ok; pl.querySelector('[data-ic]').className = 'fa-solid ' + (playing('orig') ? 'fa-stop' : 'fa-play'); pl.classList.toggle('on', playing('orig')); bd(pl, S.cnt.o);
     var c = q('[data-cmp]'); c.disabled = !ok || !S.rec; c.classList.toggle('on', playing('cmp'));
-    var y = q('[data-yp]'); y.disabled = !S.rec; y.querySelector('[data-ic]').className = 'fa-solid ' + (playing('you') ? 'fa-stop' : 'fa-play'); y.classList.toggle('on', playing('you')); bd(y, S.cnt.y);
     applyTrim('o'); applyTrim('y');
-    q('[data-dl]').disabled = !S.urls && !S.rec;
-    q('[data-spd]').classList.toggle('on', S.cfg.speed !== 1 || S.cfg.wait !== 0.5);
   }
 
   /* ---------- copy the Arabic translation ---------- */
@@ -194,49 +212,19 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     var old = function () { var t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) {} t.remove(); done(); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, old); else old();
   }
-  /* Arabic translation of the word, from Supabase words_table.
-     The column is found automatically (a column whose value is Arabic text). If the console says it could not be found,
-     write the exact column name here, e.g.  var AR_COL = 'translation';  */
-  var AR_COL = '';
-  var AR = { col: null }, AR_SKIP = /^(id|word|word_key|audio_url|created_at|updated_at)$/i, AR_NAME = /arab|transl|mean|^ar(_|$)|_ar$/i;
-  var AR_GUESS = ['translation', 'arabic', 'ar', 'meaning', 'arabic_translation', 'translation_ar', 'ar_translation', 'arabic_meaning', 'meaning_ar', 'word_ar', 'arabic_word', 'ar_meaning'];
-  var isAr = function (v) { return typeof v === 'string' && /[\u0600-\u06FF]/.test(v); };
-  async function sb(qs) {
-    try {
-      var r = await fetch(SB + '/rest/v1/words_table?' + qs, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
-      return { ok: r.ok, status: r.status, body: r.ok ? await r.json() : null };
-    } catch (e) { return { ok: false, status: 0, body: null }; }
-  }
-  async function arCol() {   // once per page load
-    if (AR.col !== null) return AR.col;
-    if (AR_COL) return (AR.col = AR_COL);
-    var r = await sb('select=*&limit=30'), rows = r.ok && Array.isArray(r.body) ? r.body : [], i, j, ks;
-    for (i = 0; i < rows.length; i++) { ks = Object.keys(rows[i]); for (j = 0; j < ks.length; j++) if (!AR_SKIP.test(ks[j]) && !/url/i.test(ks[j]) && isAr(rows[i][ks[j]])) return (AR.col = ks[j]); }
-    if (rows[0]) {
-      var k0 = Object.keys(rows[0]).find(function (k) { return AR_NAME.test(k) && !AR_SKIP.test(k); });
-      if (k0) return (AR.col = k0);
-      console.info('[smart widget] words_table columns:', Object.keys(rows[0]));
-    }
-    for (i = 0; i < AR_GUESS.length; i++) { var p = await sb('select=' + AR_GUESS[i] + '&limit=1'); if (p.ok) return (AR.col = AR_GUESS[i]); }   // select=* may be blocked: try likely names one by one
-    console.warn('[smart widget] could not find the Arabic column in words_table (select=* answered ' + r.status + '). Write its name in AR_COL (search for "var AR_COL" in dashboardsmartwidget.js).');
-    return (AR.col = '');
-  }
-  async function arOne(col, word) {
-    var c = wpClean(word); if (!c) return '';
-    var qs = ['word_key=eq.' + encodeURIComponent(c), 'word=ilike.' + encodeURIComponent(String(word).trim().replace(/[\\%_]/g, function (m) { return '\\' + m; }))], i, k;
-    for (k = 0; k < qs.length; k++) {
-      var r = await sb('select=' + encodeURIComponent(col) + '&limit=5&' + qs[k]), rows = r.ok && Array.isArray(r.body) ? r.body : [];
-      for (i = 0; i < rows.length; i++) if (isAr(rows[i][col])) return rows[i][col].trim();
-    }
-    return '';
-  }
+  /* Arabic translation from the word row (first column whose value is Arabic text and whose name looks like translation / arabic / meaning) */
   async function getAr(word) {
-    var col = await arCol(); if (!col) return '';
-    var v = await arOne(col, word); if (v) return v;
-    var parts = String(word).split(/[,\u060C\n]+/).map(function (x) { return x.trim(); }).filter(Boolean);
-    if (parts.length < 2) return '';
-    var all = await Promise.all(parts.map(function (x) { return arOne(col, x); }));
-    return all.every(Boolean) ? all.join(' \u060C ') : '';
+    var c = wpClean(word); if (!c) return '';
+    var h = { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }, rows = null;
+    try {
+      var r = await fetch(SB + '/rest/v1/words_table?select=*&limit=1&word_key=eq.' + encodeURIComponent(c), h);
+      if (!r.ok) r = await fetch(SB + '/rest/v1/words_table?select=*&limit=1&word=ilike.' + encodeURIComponent(String(word).trim().replace(/[\\%_]/g, function (m) { return '\\' + m; })), h);
+      if (r.ok) rows = await r.json();
+    } catch (e) {}
+    var row = Array.isArray(rows) && rows[0]; if (!row) return '';
+    var ks = Object.keys(row), k = ks.find(function (x) { return /^(ar|arabic|translation|meaning)$/i.test(x); }) || ks.find(function (x) { return /arab|transl|mean/i.test(x); });
+    var v = k && row[k];
+    return typeof v === 'string' && /[\u0600-\u06FF]/.test(v) ? v.trim() : '';
   }
 
   /* ---------- waveforms ---------- */
@@ -261,7 +249,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
       }
       var all = [];
       parts.forEach(function (b) { all = all.concat(peaksFrom(b, Math.max(6, Math.round(100 * b.duration / total)))); });
-      if (my === S.ld) { S.peaks.o = all; S.total = total; S.durs = parts.map(function (b) { return b.duration; }); S.pcmO = parts.map(function (b) { return { d: b.getChannelData(0), sr: b.sampleRate }; }); }
+      if (my === S.ld) { S.peaks.o = all; S.total = total; S.durs = parts.map(function (b) { return b.duration; }); }
     } catch (e) { if (my === S.ld) { S.peaks.o = fake(S.word); S.total = 0; } }
     try { if (ctx) ctx.close(); } catch (e) {}
     if (my === S.ld) draw('o');
@@ -327,6 +315,8 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
       sg = sg || {};
       var a = new Audio(), iv = null, done = false, s = 0, e = Infinity;
       a.preload = 'auto'; S.audio = a; S.aw = w;
+      a.defaultPlaybackRate = S.speed; a.playbackRate = S.speed;
+      ['preservesPitch', 'mozPreservesPitch', 'webkitPreservesPitch'].forEach(function (k) { try { a[k] = true; } catch (x) {} });
       var fin = function () { if (done) return; done = true; clearInterval(iv); res(); };
       var tick = function () {
         if (S.audio !== a || !el) return;
@@ -341,8 +331,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
         var d = a.duration;
         if (sg.fr && isFinite(d)) { s = sg.fr[0] * d; e = sg.fr[1] * d; } else { if (sg.s != null) s = sg.s; if (sg.e != null) e = sg.e; }
         if (s > 0.01) { try { a.currentTime = s; } catch (x) {} }
-        if (w === 'o') { a.playbackRate = S.cfg.speed; try { a.preservesPitch = true; a.webkitPreservesPitch = true; a.mozPreservesPitch = true; } catch (x) {} }   // voice speed applies to the original only
-        tick(); a.play().catch(fin);
+        a.playbackRate = S.speed; tick(); a.play().catch(fin);
         iv = setInterval(function () {
           if (S.audio !== a || my !== S.tk) { fin(); return; }
           tick(); if (a.currentTime >= e - 0.02) { a.pause(); fin(); }
@@ -366,7 +355,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
           if (k < sg.length - 1) await sleep(300);
         }
       }
-      if (mode === 'cmp') { await sleep(S.cfg.wait * 1000); if (my !== S.tk) return; }
+      if (mode === 'cmp') { await sleep(450); if (my !== S.tk) return; }
       if (mode === 'cmp' || mode === 'you') { await clip(S.rec.url, my, 'y', 0, { fr: S.trim.y }); if (my !== S.tk) return; }
       if (i < n - 1) await sleep(550);
     }
@@ -420,8 +409,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
   }
   async function startRec() {
     if (S.recording) return;
-    var t = L(); stopAll(); msg(''); closePP();
-    var tr = S.trim.y, part = (S.rec && S.rec.pcm && (tr[0] > .001 || tr[1] < .999)) ? { a: tr[0], b: tr[1], old: S.rec.pcm } : null;   // a part is selected on YOU: only that part is re-recorded
+    var t = L(); stopAll(); msg('');
     if (!navigator.mediaDevices || !window.MediaRecorder) { msg(t.nomic); return; }
     var stream;
     ov('wait', '<i class="fa-solid fa-microphone"></i>', t.prep, false); S.recording = true; S.abort = false;
@@ -446,7 +434,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     var goAt = performance.now();
     if (!S.abort) {
       /* 2) GO: from here on it is recorded */
-      ov('go', '', part ? t.part : t.go, true);
+      ov('go', '', t.go, true);
       var rt = q('[data-rt]'), iv = setInterval(function () { rt.textContent = tf((performance.now() - goAt) / 1000); }, 250);
       var auto = setTimeout(stopNow, 20000);
       await stopped; clearInterval(iv); clearTimeout(auto);
@@ -457,21 +445,17 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     if (S.abort) return;
 
     /* 3) cut everything before GO (and the tap sound at the end) */
-    var blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' }), url = null, secs = 0, pcm = null;
+    var blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' }), url = null, secs = 0;
     try {
       var ctx2 = new AC(), ab = await blob.arrayBuffer();
       var buf = await new Promise(function (res, rej) { var p = ctx2.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
       var from = Math.max(0, (goAt - t0) / 1000 - 0.05), to = Math.max(from, buf.duration - 0.12);
-      secs = to - from;
-      if (secs >= 0.25) pcm = { d: buf.getChannelData(0).slice(Math.floor(from * buf.sampleRate), Math.floor(to * buf.sampleRate)), sr: buf.sampleRate };
+      secs = to - from; if (secs >= 0.25) url = URL.createObjectURL(wav(buf, from, to));
       try { ctx2.close(); } catch (e) {}
     } catch (e) { url = URL.createObjectURL(blob); secs = (endAt - goAt) / 1000; }   // cannot decode here: keep it untrimmed
-    var span = null;
-    if (pcm && part) { var mg = joinPart(part.old, pcm, part.a, part.b); pcm = mg.pcm; span = mg.span; }   // the new take replaces ONLY the selected part
-    if (pcm) url = URL.createObjectURL(pcmWav(pcm));
     if (!url) { msg(t.silent); return; }
     if (S.recs[S.key] && S.recs[S.key].url) { try { URL.revokeObjectURL(S.recs[S.key].url); } catch (e) {} }
-    S.rec = S.recs[S.key] = { url: url, pcm: pcm }; S.trim.y = span || [0, 1]; paint();   // the handles stay around the part that was just recorded
+    S.rec = S.recs[S.key] = { url: url }; S.trim.y = [0, 1]; paint();
     loadYou(url);
     var cb = q('[data-cmp]'); cb.classList.remove('pulse'); void cb.offsetWidth; cb.classList.add('pulse');
   }
@@ -553,7 +537,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     var dl = box.querySelector('.sw-dm.l'), dr = box.querySelector('.sw-dm.r');
     dl.style.left = '0'; dl.style.width = (t[0] * 100) + '%'; dr.style.left = (t[1] * 100) + '%'; dr.style.width = ((1 - t[1]) * 100) + '%';
     box.querySelectorAll('.sw-hn').forEach(function (h) { h.style.opacity = on ? 1 : .45; });
-    box.querySelector('.sw-rs').classList.toggle('act', t[0] > .001 || t[1] < .999);
+    var rs = q('[data-rs]'); if (rs) rs.disabled = !(trimmed('o') || trimmed('y'));
   }
   function attachTrim(w) {
     var box = TK(w), GAP = 0.04;
@@ -580,137 +564,94 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     });
   }
 
-  /* ---------- audio helpers ---------- */
-  function pcmWav(p) { return wav({ sampleRate: p.sr, getChannelData: function () { return p.d; } }, 0, p.d.length / p.sr); }
-  function resamp(d, from, to) {
-    if (from === to) return d;
-    var n = Math.round(d.length * to / from), o = new Float32Array(n), r = from / to, i;
-    for (i = 0; i < n; i++) { var x = i * r, k = Math.floor(x), f = x - k, a = d[k] || 0, b = d[k + 1] != null ? d[k + 1] : a; o[i] = a + (b - a) * f; }
-    return o;
+  /* ---------- reset the two trim handles to the left / right ends ---------- */
+  function trimmed(w) { var t = S.trim[w]; return t[0] > 0.001 || t[1] < 0.999; }
+  function resetTrim() {
+    stopAll(); S.trim.o = [0, 1]; S.trim.y = [0, 1]; applyTrim('o'); applyTrim('y');
   }
-  /* new take `nw` replaces the part [a, b] (fractions) of the old recording; the rest of the old recording stays exactly as it was */
-  function joinPart(old, nw, a, b) {
-    var sr = old.sr, nd = resamp(nw.d, nw.sr, sr).slice(), L0 = old.d.length, ia = Math.floor(a * L0), ib = Math.floor(b * L0), f = Math.min(Math.floor(sr * 0.005), nd.length >> 1), i;
-    for (i = 0; i < f; i++) { var g = i / f; nd[i] *= g; nd[nd.length - 1 - i] *= g; }      // 5 ms fades so the joins do not click
-    var out = new Float32Array(ia + nd.length + (L0 - ib));
-    out.set(old.d.subarray(0, ia), 0); out.set(nd, ia); out.set(old.d.subarray(ib), ia + nd.length);
-    return { pcm: { d: out, sr: sr }, span: [ia / out.length, (ia + nd.length) / out.length] };
+
+  /* ---------- speed slider (drag, no button press) ---------- */
+  function applySpeed() {
+    if (S.audio) { try { S.audio.playbackRate = S.speed; } catch (x) {} }
+    var rg = q('[data-spd]'), sv = q('[data-sv]'); if (!rg || !sv) return;
+    rg.value = S.speed; rg.style.setProperty('--p', ((S.speed - 0.5) / 1 * 100) + '%');
+    sv.textContent = (Math.round(S.speed * 100) / 100) + '\u00d7';
   }
-  function stretch(x, sr, rate) {   // change the speed without changing the pitch (WSOLA)
-    if (Math.abs(rate - 1) < 0.01 || x.length < 4096) return x;
-    var N = Math.round(sr * 0.04); N -= N % 2;
-    var Hs = N / 2, Ha = Hs * rate, tol = Math.round(N / 4), i, d, oi;
-    var outLen = Math.ceil(x.length / rate) + N, y = new Float32Array(outLen), w = new Float32Array(outLen), win = new Float32Array(N), prev = -1;
-    for (i = 0; i < N; i++) win[i] = .5 - .5 * Math.cos(2 * Math.PI * i / N);
-    for (oi = 0; ; oi++) {
-      var o = oi * Hs; if (o + N > outLen) break;
-      var tgt = Math.round(oi * Ha), best = tgt; if (tgt + N > x.length) break;
-      if (oi > 0 && prev >= 0) {
-        var ref = prev + Hs, bc = -Infinity;
-        if (ref + Hs <= x.length) {
-          for (d = -tol; d <= tol; d += 2) {
-            var p = tgt + d; if (p < 0 || p + Hs > x.length) continue;
-            var c = 0; for (i = 0; i < Hs; i += 4) c += x[ref + i] * x[p + i];
-            if (c > bc) { bc = c; best = p; }
-          }
-        }
-      }
-      if (best + N > x.length) best = x.length - N;
-      for (i = 0; i < N; i++) { y[o + i] += x[best + i] * win[i]; w[o + i] += win[i]; }
-      prev = best;
-    }
-    var n = Math.min(outLen, Math.floor(x.length / rate)), out = new Float32Array(n);
-    for (i = 0; i < n; i++) out[i] = w[i] > 1e-3 ? y[i] / w[i] : 0;
+
+  /* ---------- download: original / my recording / mix ---------- */
+  function wavOf(smp, sr) {
+    var n = smp.length, v = new DataView(new ArrayBuffer(44 + n * 2)), i;
+    var w = function (o, t) { for (var j = 0; j < t.length; j++) v.setUint8(o + j, t.charCodeAt(j)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (i = 0; i < n; i++) { var x = Math.max(-1, Math.min(1, smp[i])); v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
+    return new Blob([v], { type: 'audio/wav' });
+  }
+  async function decodeUrl(ctx, url) {
+    var ab = await (await fetch(url)).arrayBuffer();
+    return await new Promise(function (res, rej) { var p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+  }
+  function mono(buf) {
+    var n = buf.length, k = buf.numberOfChannels, out = new Float32Array(n), c, i;
+    for (c = 0; c < k; c++) { var d = buf.getChannelData(c); for (i = 0; i < n; i++) out[i] += d[i] / k; }
     return out;
   }
-
-  /* ---------- settings: voice speed + wait between (saved on this device, applied at once) ---------- */
-  function cfgLoad() {
-    var o = { speed: 1, wait: 0.5 };
-    try { var j = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); if (j && SPEEDS.indexOf(+j.speed) > -1) o.speed = +j.speed; if (j && WAITS.indexOf(+j.wait) > -1) o.wait = +j.wait; } catch (e) {}
-    return o;
+  function cat(list, sr, gap) {
+    var g = Math.round(gap * sr), total = 0, p = 0;
+    list.forEach(function (a, k) { total += a.length + (k ? g : 0); });
+    var out = new Float32Array(total);
+    list.forEach(function (a, k) { if (k) p += g; out.set(a, p); p += a.length; });
+    return out;
   }
-  function cfgSave() { try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)); } catch (e) {} }
-
-  /* ---------- small pop-up above the bottom buttons (download choices / speed) ---------- */
-  var PP = null;
-  function closePP() { if (PP) { PP.el.remove(); PP = null; } }
-  function openPP(kind, btn, html, wire) {
-    if (PP && PP.kind === kind) { closePP(); return; }
-    closePP();
-    var p = document.createElement('div'); p.className = 'sw-pp'; p.innerHTML = html; el.appendChild(p);
-    var sr = el.getBoundingClientRect(), br = btn.getBoundingClientRect();
-    p.style.left = Math.max(8, Math.min(br.left - sr.left, sr.width - p.offsetWidth - 8)) + 'px'; p.style.bottom = (sr.bottom - br.top + 8) + 'px';
-    PP = { kind: kind, el: p }; wire(p);
-  }
-  function openDl() {
-    var t = L(), b = function (k, lab, on) { return '<button type="button" class="ch" data-k="' + k + '"' + (on ? '' : ' disabled') + '>' + H(lab) + '</button>'; };
-    openPP('dl', q('[data-dl]'), '<div class="pr">' + b('o', t.dlO, !!S.urls) + b('y', t.dlY, !!S.rec) + b('c', t.dlC, !!(S.urls && S.rec)) + '</div>', function (p) {
-      p.querySelectorAll('.ch').forEach(function (x) { x.onclick = function (e) { e.stopPropagation(); closePP(); download(x.dataset.k); }; });
+  async function origSamples(ctx, urls, tr) {      // only the selected part, like what you hear when you play
+    var bufs = [], i; for (i = 0; i < urls.length; i++) bufs.push(await decodeUrl(ctx, urls[i]));
+    var sr = ctx.sampleRate, tot = bufs.reduce(function (a, b) { return a + b.duration; }, 0), off = 0, parts = [];
+    bufs.forEach(function (b) {
+      var d = b.duration, s0 = Math.max(0, tr[0] * tot - off), e0 = Math.min(d, tr[1] * tot - off);
+      if (e0 - s0 > 0.03) { var m = mono(b); parts.push(m.subarray(Math.floor(s0 * sr), Math.min(m.length, Math.floor(e0 * sr)))); }
+      off += d;
     });
+    if (!parts.length) parts = bufs.map(mono);
+    return cat(parts, sr, 0.3);
   }
-  function openSpd() {
-    var t = L(), c = S.cfg;
-    var row = function (lab, key, list, cur, fmt) { return '<div class="pr"><div class="pl">' + H(lab) + '</div>' + list.map(function (v) { return '<button type="button" class="ch' + (v === cur ? ' on' : '') + '" data-key="' + key + '" data-v="' + v + '">' + fmt(v) + '</button>'; }).join('') + '</div>'; };
-    openPP('spd', q('[data-spd]'), row(t.spd, 'speed', SPEEDS, c.speed, function (v) { return v + '×'; }) + row(t.wt, 'wait', WAITS, c.wait, function (v) { return v + t.unit; }), function (p) {
-      p.querySelectorAll('.ch').forEach(function (x) {
-        x.onclick = function (e) {
-          e.stopPropagation(); S.cfg[x.dataset.key] = +x.dataset.v; cfgSave();
-          p.querySelectorAll('.ch[data-key="' + x.dataset.key + '"]').forEach(function (z) { z.classList.toggle('on', z === x); });
-          if (S.audio && S.aw === 'o' && x.dataset.key === 'speed') S.audio.playbackRate = S.cfg.speed;     // also changes what is playing right now
-          paint();
-        };
-      });
-    });
+  async function mineSamples(ctx, url, tr) {
+    var m = mono(await decodeUrl(ctx, url)), a = Math.floor(tr[0] * m.length), b = Math.max(a + 1, Math.floor(tr[1] * m.length));
+    return m.subarray(a, b);
   }
-
-  /* ---------- download: the selected parts, with the chosen speed / wait applied ---------- */
-  function origPcm() {   // selected part of the original as one buffer, at the chosen speed
-    var P = S.pcmO; if (!P || !S.urls || P.length !== S.urls.length) return null;
-    var A = S.trim.o[0], B = S.trim.o[1], sr = P[0].sr, tot = 0, off = 0, parts = [], n = 0, pos = 0;
-    P.forEach(function (p) { tot += p.d.length / p.sr; });
-    P.forEach(function (p) {
-      var dur = p.d.length / p.sr, s = Math.max(0, A * tot - off), e = Math.min(dur, B * tot - off);
-      if (e - s > 0.03) parts.push(resamp(p.d.subarray(Math.floor(s * p.sr), Math.floor(e * p.sr)), p.sr, sr));
-      off += dur;
-    });
-    if (!parts.length) return null;
-    var gap = Math.round(sr * 0.3);
-    parts.forEach(function (x, k) { n += x.length + (k ? gap : 0); });
-    var all = new Float32Array(n);
-    parts.forEach(function (x, k) { if (k) pos += gap; all.set(x, pos); pos += x.length; });
-    return { d: stretch(all, sr, S.cfg.speed), sr: sr };
+  function closeMenu() { if (menu) { menu.remove(); menu = null; } }
+  function openMenu() {
+    if (dlBusy) return;
+    if (menu) { closeMenu(); return; }
+    var t = L(), btn = q('[data-dl]'), sr = el.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    menu = document.createElement('div'); menu.className = 'sw-mn';
+    menu.innerHTML = [['orig', 'fa-volume-high', t.dlo, !S.urls], ['mine', 'fa-microphone', t.dly, !S.rec], ['mix', 'fa-wave-square', t.dlm, !S.urls || !S.rec]].map(function (o) {
+      return '<button type="button" data-k="' + o[0] + '"' + (o[3] ? ' disabled' : '') + '><i class="fa-solid ' + o[1] + '"></i><span>' + H(o[2]) + '</span></button>';
+    }).join('');
+    menu.style.left = (br.left - sr.left) + 'px'; menu.style.bottom = (sr.bottom - br.top + 8) + 'px';
+    menu.querySelectorAll('button').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); doDownload(b.dataset.k); }; });
+    el.appendChild(menu);
   }
-  function yourPcm() {   // selected part of your recording
-    var p = S.rec && S.rec.pcm; if (!p) return null;
-    var a = Math.floor(S.trim.y[0] * p.d.length), b = Math.max(a + 1, Math.floor(S.trim.y[1] * p.d.length));
-    return { d: p.d.subarray(a, b), sr: p.sr };
-  }
-  function saveBlob(blob, name) {
-    var u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 8000);
-  }
-  async function download(kind) {
-    var t = L(), nm = (S.word.replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 40) || 'word'), my = S.ld;
-    try { itToast(t.dlBusy); } catch (e) {}
-    await sleep(40);
+  async function doDownload(kind) {
+    closeMenu(); if (dlBusy) return;
+    var t = L();
+    if (kind !== 'mine' && !S.urls) return;
+    if (kind !== 'orig' && !S.rec) { msg(t.nowait); return; }
+    var urls = S.urls, rurl = S.rec && S.rec.url, to = S.trim.o.slice(), ty = S.trim.y.slice(), word = S.word, ctx = null;
+    dlBusy = true; msg(t.dlprep);
     try {
-      var o = kind !== 'y' ? origPcm() : null, y = kind !== 'o' ? yourPcm() : null;
-      if (kind === 'o') {
-        if (o) saveBlob(pcmWav(o), nm + '-original.wav');
-        else if (S.urls && S.urls[0]) { var a = document.createElement('a'); a.href = S.urls[0]; a.download = nm + '-original'; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }   // cannot decode it here: the plain file
-        else throw new Error('no audio');
-      } else if (kind === 'y') {
-        if (y) saveBlob(pcmWav(y), nm + '-you.wav');
-        else if (S.rec) saveBlob(await (await fetch(S.rec.url)).blob(), nm + '-you.webm');
-        else throw new Error('no recording');
-      } else {
-        if (!o || !y) throw new Error('missing part');
-        var yy = resamp(y.d, y.sr, o.sr), gap = Math.round(o.sr * S.cfg.wait), out = new Float32Array(o.d.length + gap + yy.length);
-        out.set(o.d, 0); out.set(yy, o.d.length + gap);
-        saveBlob(pcmWav({ d: out, sr: o.sr }), nm + '-compare.wav');
-      }
-    } catch (e) { console.warn('[smart widget] download failed', e); try { itToast(t.dlFail); } catch (x) {} }
+      ctx = new AC(); var sr = ctx.sampleRate, smp;
+      if (kind === 'orig') smp = await origSamples(ctx, urls, to);
+      else if (kind === 'mine') smp = await mineSamples(ctx, rurl, ty);
+      else smp = cat([await origSamples(ctx, urls, to), await mineSamples(ctx, rurl, ty)], sr, 0.45);   // original, a short pause, then yours (same as Compare)
+      if (!smp || !smp.length) throw new Error('empty');
+      var url = URL.createObjectURL(wavOf(smp, sr)), a = document.createElement('a');
+      a.href = url; a.download = (String(word).replace(/[\\\/:*?"<>|\s]+/g, '_').slice(0, 40) || 'word') + '-' + ({ orig: 'original', mine: 'mine', mix: 'mix' })[kind] + '.wav';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+      if (el) msg('');
+    } catch (e) { if (el) msg(t.dlfail); }
+    try { if (ctx) ctx.close(); } catch (e) {}
+    dlBusy = false;
   }
 
   /* ---------- split screen with the notes pop-up ---------- */
@@ -730,7 +671,7 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
   /* ---------- open / close ---------- */
   function close() {
     if (S.recording) { S.abort = true; var m = q('[data-ob] [data-cancel]'); if (m) m.click(); }
-    S.ld++; stopAll(); PP = null; if (el) { el.remove(); el = null; }
+    S.ld++; stopAll(); if (el) { el.remove(); el = null; }
     if (SPLIT.ro) SPLIT.ro.disconnect(); syncSplit();
   }
   window.wpOpen = async function (word) {
@@ -738,13 +679,13 @@ body.light-theme .sw-pp{background:#fff;border-color:rgba(15,23,42,.2)}
     if (S.recording) return;
     try { if (window.ThabitRichStudent) ThabitRichStudent.stop(); } catch (e) {}
     try { wpClose(); } catch (e) {}                                // the old player, if it is somehow open
-    stopAll(); ensure(); closePP();
+    stopAll(); ensure();
     S.word = word; S.key = wpClean(word); S.urls = null; S.ar = ''; S.rec = S.recs[S.key] || null;
-    S.peaks = { o: null, y: null }; S.prog = { o: 0, y: 0 }; S.total = 0; S.yDur = 0; S.durs = null; S.pcmO = null; S.trim = { o: [0, 1], y: [0, 1] }; msg('');
+    S.peaks = { o: null, y: null }; S.prog = { o: 0, y: 0 }; S.total = 0; S.yDur = 0; S.durs = null; S.trim = { o: [0, 1], y: [0, 1] }; msg('');
     resetTracks(); paint();
     if (S.rec) loadYou(S.rec.url);
     var my = ++S.ld, urls = null, err = '';
-    getAr(word).then(function (a) { if (my === S.ld && el) { S.ar = a; paint(); } }).catch(function (e) { console.warn('[smart widget] translation lookup failed', e); });
+    getAr(word).then(function (a) { if (my === S.ld && el) { S.ar = a; paint(); } });
     try { urls = await wpResolve(word); } catch (e) { urls = undefined; err = e && e.message || ''; }
     if (my !== S.ld || !el) return;
     if (!urls) { msg(urls === null ? L().missing : L().fail + (err ? ' (' + err + ')' : '')); return; }
