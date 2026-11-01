@@ -15,7 +15,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_log_event', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -607,8 +607,32 @@ function ackAdd(k) {   // saved by id; the 'thabit:ack' event is where the futur
     Object.keys(m).forEach(x => { if (Date.parse(m[x]) < lim) delete m[x]; });
     m[k] = at; localStorage.setItem(ACK_K(), JSON.stringify(m));
     document.dispatchEvent(new CustomEvent('thabit:ack', { detail: { key: k, at } }));
+    logEvent('understood', k, { kind: ({ n: 'notification', bill: 'payment_reminder', paid: 'payment_thanks' })[k.split(':')[0]] || 'other' });
   } catch (e) {}
 }
+/* every student action worth remembering goes to Supabase through ONE function: trainee_log_event(p_token, p_event, p_ref, p_meta, p_at).
+   Until that function exists (or while offline) the events wait in a queue on the device and are sent later, so nothing is lost. */
+const EVQ = 'thabit_evq_v1'; let evBusy = false;
+const evRead = () => { try { const q = JSON.parse(localStorage.getItem(EVQ) || '[]'); return Array.isArray(q) ? q : []; } catch (e) { return []; } };
+const evSave = q => { try { localStorage.setItem(EVQ, JSON.stringify(q.slice(-300))); } catch (e) {} };
+function logEvent(ev, ref, meta) {
+  if (VIEW) return;
+  const q = evRead(); q.push({ ev, ref: ref || '', meta: meta || {}, at: new Date().toISOString(), tk: tok() }); evSave(q); flushEvents();
+}
+async function flushEvents() {
+  if (evBusy || VIEW) return; evBusy = true;
+  try {
+    let q = evRead();
+    while (q.length) {
+      const e = q[0]; if (!e.tk) { q.shift(); evSave(q); continue; }
+      const r = await rpc('trainee_log_event', { p_token: e.tk, p_event: e.ev, p_ref: e.ref, p_meta: e.meta, p_at: e.at }).catch(() => ({ message: 'offline' }));
+      if (r && (r.code || r.message)) break;    // the function is not there yet, or no network: keep the rest and try again later
+      q.shift(); evSave(q);
+    }
+  } catch (x) {}
+  evBusy = false;
+}
+setTimeout(flushEvents, 3000); setInterval(flushEvents, 60000); window.addEventListener('online', flushEvents);
 const monthKey = () => { const c = new Date(cairoNow()); return `${c.getUTCFullYear()}-${String(c.getUTCMonth() + 1).padStart(2, '0')}`; };
 const NOTE_SKIP = /task|dand|dnd|todo|word|repl|bill|pay|remind/i;   // never in the feed: tasks, dandana, assistant words, replies to requests, payment (it has its own card)
 const nid = n => String(n.id != null ? n.id : (n.created_at || '') + '|' + (n.title || ''));
@@ -667,7 +691,7 @@ function billState() {
   const sub = num(b.subscription), past = num(b.past_due); if (!sub && !past) return null;
   const n = new Date(cairoNow()), day = n.getUTCDate(), last = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 0)).getUTCDate();
   const win = day > last - 5 || day <= 7;                  // last 5 days of the month, until the 7th
-  if (!win && !past) return null;
+  if (!win) return null;   // after the 7th: no payment notification at all (not even for old balances), until the next window
   if (billLeft() % 2 !== 0 || ackHas('bill:' + itToday())) return null;   // one reminder every 2nd day (the 7th is always the last one); Understood hides today's
   return { sub, past, total: sub + past, win, early: day <= 7 };
 }
