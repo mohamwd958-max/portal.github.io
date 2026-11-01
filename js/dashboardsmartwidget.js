@@ -31,7 +31,8 @@
   var S = {
     word: '', key: '', urls: null, tk: 0, ld: 0, audio: null, rec: null, recs: {}, recording: false, abort: false,
     mode: '', act: 0, aw: '', off: 0,
-    peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: ''
+    peaks: { o: null, y: null }, prog: { o: 0, y: 0 }, total: 0, yDur: 0, ar: '',
+    cnt: { o: 1, y: 1 }, swallow: false
   };
   var el = null;
 
@@ -89,7 +90,20 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
 .sw-lv i{display:block;height:100%;width:0;background:#34d399;transition:width .06s}
 .sw-ob{display:flex;gap:10px}
 .sw-ob button{height:48px;padding:0 22px;border-radius:14px;font-weight:800;background:rgba(255,255,255,.16);color:#fff}
-.sw-ob button.stop{background:#ef4444}`;
+.sw-ob button.stop{background:#ef4444}
+.sw-ic,.sw-yp{position:relative;touch-action:none;-webkit-user-select:none;user-select:none}
+.sw-bd{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#0f172a;color:#fbbf24;border:2px solid #fbbf24;font:800 .68rem/16px Inter,sans-serif;text-align:center;cursor:pointer}
+.sw-bd[hidden]{display:none}
+.sw-yp .sw-bd{top:-6px;right:-6px;min-width:18px;height:18px;line-height:14px;font-size:.62rem}
+body.light-theme .sw-bd{background:#fff;color:#b45309;border-color:#b45309}
+.sw-cn{position:absolute;z-index:4;display:flex;gap:8px;padding:6px;border-radius:999px;background:rgba(15,23,42,.96);border:1px solid rgba(148,163,184,.35);box-shadow:0 8px 24px rgba(0,0,0,.5);animation:swPop .16s ease-out}
+body.light-theme .sw-cn{background:#fff;border-color:rgba(15,23,42,.2)}
+.sw-cn button{width:38px;height:38px;border-radius:50%;background:rgba(148,163,184,.18);font-weight:800;font-size:.95rem;padding:0;border:1px solid rgba(148,163,184,.4)!important;transition:transform .12s,background .12s}
+.sw-cn button.hv{background:#f59e0b;color:#1a1204;transform:scale(1.18);border-color:#f59e0b!important}
+@keyframes swPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+/* split screen: when a notes pop-up is open together with the widget, the notes take the top part and the widget the bottom part */
+html.swsplit #mdl{padding-bottom:calc(var(--swh,0px) + 26px + env(safe-area-inset-bottom,0px))}
+html.swsplit #mdl .mbox{max-height:calc(100vh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 40px - var(--swh,0px) - env(safe-area-inset-bottom,0px))}`;
     document.head.appendChild(s);
   })();
 
@@ -109,8 +123,8 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
         '<button type="button" class="sw-ic sw-cmp" data-cmp aria-label="Compare" disabled><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg></button>' +
         '<div class="sw-tk" data-t="y"><span class="sw-tl" data-lb="y"></span><span class="sw-tt" data-tm="y">0:00 / 0:00</span><canvas></canvas><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<button type="button" class="sw-ic sw-mic" data-mic aria-label="Record"></button>' +
-        '<div class="sw-r2"><button type="button" class="sw-yp" data-yp aria-label="Play yours" disabled><i class="fa-solid fa-play"></i></button></div>' +
-        '<button type="button" class="sw-ic sw-play" data-n="1" aria-label="Play"><i class="fa-solid fa-play"></i></button>' +
+        '<div class="sw-r2"><button type="button" class="sw-yp" data-yp aria-label="Play yours" disabled><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button></div>' +
+        '<button type="button" class="sw-ic sw-play" data-n="1" aria-label="Play"><i class="fa-solid fa-play" data-ic></i><b class="sw-bd" hidden></b></button>' +
         '<div class="sw-tk" data-t="o"><span class="sw-tl" data-lb="o"></span><span class="sw-tt" data-tm="o">0:00 / 0:00</span><canvas></canvas><i class="sw-hn l"></i><i class="sw-hn r"></i><i class="sw-ph"></i></div>' +
         '<span></span>' +
         '<div class="sw-r4"><button type="button" class="sw-sm" data-dl aria-label="Download"><i class="fa-solid fa-download"></i></button><button type="button" class="sw-sm" data-spd aria-label="Speed"><i class="fa-solid fa-bolt"></i></button></div>' +
@@ -118,16 +132,17 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
       '<div class="sw-msg" data-msg hidden></div>' +
       '<div class="sw-ov" data-ov hidden><div class="sw-big" data-big></div><div class="sw-ot" data-ot></div><div class="sw-lv"><i data-lv></i></div><div class="sw-tm" data-rt></div><div class="sw-ob" data-ob></div></div>';
     document.body.appendChild(el);
-    el.addEventListener('click', function (e) { e.stopPropagation(); });          // taps inside never reach the feed's "tap outside closes" handler
+    el.addEventListener('click', function (e) { e.stopPropagation(); if (!e.target.closest('button,.sw-tk,.sw-bd')) stopAll(); });   // taps inside never reach the feed's handler; an empty spot stops the sound
     q('[data-x]').onclick = close;
     q('[data-word]').onclick = function () { if (!S.urls) return; run(1, 'orig'); };
-    q('[data-n]').onclick = function () { onPlay(1); };
+    attachCount(q('[data-n]'), 'o', function () { onPlay(S.cnt.o); });
+    attachCount(q('[data-yp]'), 'y', onYours);
     q('[data-cmp]').onclick = onCompare;
-    q('[data-yp]').onclick = onYours;
     q('[data-mic]').onclick = startRec;
     q('[data-cp]').onclick = onCopy;
     ['o', 'y'].forEach(function (w) { TK(w).addEventListener('click', function (e) { seekTrack(w, e); }); });
     requestAnimationFrame(function () { draw('o'); draw('y'); });
+    watchSplit();
     return el;
   }
   function msg(t) { var m = q('[data-msg]'); if (!m) return; m.textContent = t || ''; m.hidden = !t; }
@@ -137,9 +152,10 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
     var ar = q('[data-ar]'); ar.hidden = !S.ar; q('[data-artxt]').textContent = S.ar || '';
     q('[data-lb="o"]').textContent = t.orig; q('[data-lb="y"]').textContent = t.you;
     var playing = function (m) { return S.mode === m && S.act > 0; };
-    var pl = q('[data-n]'); pl.disabled = !ok; pl.innerHTML = '<i class="fa-solid ' + (playing('orig') ? 'fa-stop' : 'fa-play') + '"></i>'; pl.classList.toggle('on', playing('orig'));
+    var bd = function (b, v) { var x = b.querySelector('.sw-bd'); x.hidden = !(v > 1); x.textContent = v; };
+    var pl = q('[data-n]'); pl.disabled = !ok; pl.querySelector('[data-ic]').className = 'fa-solid ' + (playing('orig') ? 'fa-stop' : 'fa-play'); pl.classList.toggle('on', playing('orig')); bd(pl, S.cnt.o);
     var c = q('[data-cmp]'); c.disabled = !ok || !S.rec; c.classList.toggle('on', playing('cmp'));
-    var y = q('[data-yp]'); y.disabled = !S.rec; y.innerHTML = '<i class="fa-solid ' + (playing('you') ? 'fa-stop' : 'fa-play') + '"></i>'; y.classList.toggle('on', playing('you'));
+    var y = q('[data-yp]'); y.disabled = !S.rec; y.querySelector('[data-ic]').className = 'fa-solid ' + (playing('you') ? 'fa-stop' : 'fa-play'); y.classList.toggle('on', playing('you')); bd(y, S.cnt.y);
   }
 
   /* ---------- copy the Arabic translation ---------- */
@@ -290,7 +306,7 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
   function onYours() {
     if (!S.rec) { msg(L().nowait); return; }
     if (S.mode === 'you' && S.act) { stopAll(); return; }
-    run(1, 'you');
+    run(S.cnt.y, 'you');
   }
   function onCompare() {
     if (!S.rec) { msg(L().nowait); return; }
@@ -382,10 +398,75 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
     var cb = q('[data-cmp]'); cb.classList.remove('pulse'); void cb.offsetWidth; cb.classList.add('pulse');
   }
 
+  /* ---------- long press on a play button: 2 / 3 / 5 repeats ---------- */
+  function attachCount(btn, key, act) {
+    var lp = null, pop = null, st = null;
+    var closePop = function () { if (pop) { pop.remove(); pop = null; } st = null; };
+    var choose = function (v) { S.cnt[key] = v; closePop(); paint(); };
+    var hover = function (e) {
+      var hv = 0; if (!pop) return 0;
+      pop.querySelectorAll('button').forEach(function (b) {
+        var r = b.getBoundingClientRect(), on = e.clientX > r.left - 6 && e.clientX < r.right + 6 && e.clientY > r.top - 14 && e.clientY < r.bottom + 14;
+        b.classList.toggle('hv', on); if (on) hv = +b.dataset.v;
+      });
+      return hv;
+    };
+    var openPop = function () {
+      if (!st || btn.disabled) return;
+      st.open = true; S.swallow = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) {}
+      pop = document.createElement('div'); pop.className = 'sw-cn';
+      pop.innerHTML = [2, 3, 5].map(function (v) { return '<button type="button" data-v="' + v + '">' + v + '</button>'; }).join('');
+      var sr = el.getBoundingClientRect(), br = btn.getBoundingClientRect();
+      pop.style.left = (br.right - sr.left + 8) + 'px'; pop.style.top = (br.top - sr.top + br.height / 2 - 25) + 'px';
+      pop.querySelectorAll('button').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); choose(+b.dataset.v); }; });
+      el.appendChild(pop);
+      try { btn.setPointerCapture(st.id); } catch (x) {}
+    };
+    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    btn.addEventListener('pointerdown', function (e) {
+      if (btn.disabled || e.button > 0) return;
+      if (e.target.closest('.sw-bd')) return;
+      closePop(); st = { x: e.clientX, y: e.clientY, id: e.pointerId, open: false, hv: 0 };
+      clearTimeout(lp); lp = setTimeout(openPop, 450);
+    });
+    btn.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      if (!st.open) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { clearTimeout(lp); st = null; } return; }
+      st.hv = hover(e);
+    });
+    var up = function (e) {
+      clearTimeout(lp); if (!st) return;
+      var s = st; st = s.open ? s : null;
+      if (s.open) {
+        if (e.type === 'pointerup' && s.hv) choose(s.hv);         // finger slid onto a number and lifted: that is the choice
+        setTimeout(function () { S.swallow = false; }, 500);     // the click that follows a long press must not play
+      }
+    };
+    btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
+    btn.onclick = function () { if (S.swallow) { S.swallow = false; return; } act(); };
+    btn.querySelector('.sw-bd').onclick = function (e) { e.stopPropagation(); S.cnt[key] = 1; paint(); };   // tap the little number to go back to once
+    el.addEventListener('pointerdown', function (e) { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) closePop(); });
+  }
+
+  /* ---------- split screen with the notes pop-up ---------- */
+  var SPLIT = { ro: null, mo: null };
+  function syncSplit() {
+    var m = document.getElementById('mdl'), on = !!(el && m && m.classList.contains('open')), r = document.documentElement;
+    if (on) r.style.setProperty('--swh', el.getBoundingClientRect().height + 'px');
+    r.classList.toggle('swsplit', on);
+  }
+  function watchSplit() {
+    var m = document.getElementById('mdl');
+    if (m && !SPLIT.mo) { SPLIT.mo = new MutationObserver(syncSplit); SPLIT.mo.observe(m, { attributes: true, attributeFilter: ['class'] }); }
+    if (window.ResizeObserver) { if (SPLIT.ro) SPLIT.ro.disconnect(); SPLIT.ro = new ResizeObserver(syncSplit); SPLIT.ro.observe(el); }
+    syncSplit();
+  }
+
   /* ---------- open / close ---------- */
   function close() {
     if (S.recording) { S.abort = true; var m = q('[data-ob] [data-cancel]'); if (m) m.click(); }
     S.ld++; stopAll(); if (el) { el.remove(); el = null; }
+    if (SPLIT.ro) SPLIT.ro.disconnect(); syncSplit();
   }
   window.wpOpen = async function (word) {
     word = String(word == null ? '' : word).trim(); if (!word) return;
@@ -410,7 +491,9 @@ body.light-theme .sw-tk{background:rgba(15,23,42,.04)}
     if (!el || S.recording) return;
     var t = e.target; if (el.contains(t)) return;
     if (t.closest && t.closest('.vx, .aww, .rt-link')) return;
-    e.stopPropagation(); e.preventDefault(); close();
+    e.stopPropagation(); e.preventDefault();
+    if (document.documentElement.classList.contains('swsplit') && t.closest && t.closest('#mdl .mbox')) { stopAll(); return; }   // tapping the notes beside the widget only stops the sound
+    close();
   }, true);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && el && !S.recording) close(); });
   window.addEventListener('resize', function () { if (el) { draw('o'); draw('y'); } });
