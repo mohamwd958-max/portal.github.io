@@ -1280,36 +1280,80 @@ function moveEnd(pinned) {
 })();
 
 /* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
-let pickT = null, pickBtn = null;
+let pickT = null, pickBtn = null, pkFly = null;
+const pkReduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+function pkSolid(c, light) { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (m) { const p = m[1].split(',').map(parseFloat); if (p.length < 4 || p[3] > .5) return c; } return light ? 'rgba(255,255,255,.96)' : 'rgba(15,23,42,.94)'; }
+function pkFlyDone(f) { f.el.remove(); f.btn.classList.remove('pk-hide'); if (pkFly === f) pkFly = null; }
+/* the pressed button leaves the bar (a copy flies out; the original stays empty in the bar) and lands on the stage, away from the bar */
+function pkFlyOut(pop, btn, sx, sy, bx, by) {
+  const r = btn.getBoundingClientRect(), cs = getComputedStyle(btn), light = document.body.classList.contains('light-theme');
+  const el = document.createElement('div'); el.className = 'pkfly'; el.innerHTML = btn.innerHTML;
+  const s = el.style; s.left = r.left + 'px'; s.top = r.top + 'px'; s.width = r.width + 'px'; s.height = r.height + 'px';
+  s.borderRadius = '50%'; s.color = cs.color; s.font = cs.font; s.background = pkSolid(cs.backgroundColor, light);
+  s.border = cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor; s.transformOrigin = '50% 50%';
+  pop.appendChild(el);
+  const f = pkFly = { el, btn, anim: null, timer: null, st: 'translate(' + (sx - bx) + 'px,' + (sy - by) + 'px) scale(1.4)', sh: '0 0 0 3px rgba(251,191,36,.85),0 16px 40px rgba(0,0,0,.6)' };
+  btn.classList.add('pk-hide');
+  el.onclick = e => { e.stopPropagation(); pickClose(); };
+  const dx = sx - bx, dy = sy - by;
+  if (pkReduce() || !el.animate) { s.transform = f.st; s.boxShadow = f.sh; if (btn.id === 'plusBtn') el.classList.add('rot'); return; }
+  f.anim = el.animate([
+    { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 0 rgba(251,191,36,0)' },
+    { transform: 'translate(' + dx * .6 + 'px,' + dy * .6 + 'px) scale(1.75)', offset: .55 },
+    { transform: f.st, boxShadow: f.sh }
+  ], { duration: 640, easing: 'cubic-bezier(.2,.9,.25,1)', fill: 'forwards' });
+  if (btn.id === 'plusBtn') requestAnimationFrame(() => el.classList.add('rot'));
+}
+function pkFlyBack(now) {
+  const f = pkFly; if (!f || f.back) return;
+  f.back = true; f.el.classList.remove('rot');
+  if (now || pkReduce() || !f.el.animate) { pkFlyDone(f); return; }
+  if (f.anim) f.anim.cancel();
+  f.el.style.transform = f.st; f.el.style.boxShadow = f.sh;
+  f.anim = f.el.animate([{ transform: f.st, boxShadow: f.sh }, { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 0 rgba(0,0,0,0)' }], { duration: 300, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+  f.anim.onfinish = () => pkFlyDone(f); f.timer = setTimeout(() => pkFlyDone(f), 420);
+}
 function pickOpen(btn, list, key0) {
   const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
-  const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  const S = 46, G = 10, M = S / 2 + 8, ST = 66, D0 = 58, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
   if (pop.classList.contains('open') && !pop.classList.contains('closing') && pickBtn === btn) { pickClose(); return; }   // second tap on the same button = close
   clearTimeout(pickT); pop.classList.remove('closing'); pop.dataset.side = side;
-  pop.dataset.lab = (side === 'bottom' || side === 'top') ? (bx > innerWidth / 2 ? 'l' : 'r') : '';   // labels open toward the roomy side
+  pop.dataset.lab = (side === 'bottom' || side === 'top') ? (bx > innerWidth / 2 ? 'l' : 'r') : '';
   document.documentElement.classList.add('pk-open');
+  /* same button opening a second level (pen -> customize): keep its copy on the stage instead of flying it again */
+  let keep = null;
+  if (pkFly && pkFly.btn === btn) { keep = pkFly; clearTimeout(keep.timer); keep.back = false; if (keep.anim) keep.anim.cancel(); keep.el.style.transform = keep.st; keep.el.style.boxShadow = keep.sh; if (btn.id === 'plusBtn') keep.el.classList.add('rot'); }
+  else if (pkFly) pkFlyDone(pkFly);
   if (pickBtn && pickBtn !== btn) pickBtn.classList.remove('pk-on'); pickBtn = btn; btn.classList.add('pk-on');
   const key = key0 || ({ langBtn: 'lang', barEdit: 'star', plusBtn: 'plus', profBtn: 'prof' })[btn.id] || '', pts = [];
+  /* stage = where the pressed button sits, away from the bar; its options fan out beyond it */
+  let sx, sy;
+  if (side === 'left') { sx = br.right + ST; sy = cl(by, M, innerHeight - M); }
+  else if (side === 'right') { sx = br.left - ST; sy = cl(by, M, innerHeight - M); }
+  else if (side === 'top') { sy = br.bottom + ST; sx = cl(bx, M, innerWidth - M); }
+  else { sy = br.top - ST; sx = cl(bx, M, innerWidth - M); }
   pop.innerHTML = list.map((o, i) => {
-    const d = GAP + S / 2 + i * (S + G); let x, y;
-    if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
-    else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
-    else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
-    else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
+    const d = D0 + i * (S + G); let x, y;
+    if (side === 'left') { x = sx + d; y = sy; }
+    else if (side === 'right') { x = sx - d; y = sy; }
+    else if (side === 'top') { y = sy + d; x = sx; }
+    else { y = sy - d; x = sx; }
     pts.push([x, y]);
-    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}</button>`;
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${sx - x}px;--fy:${sy - y}px;--i:${i}">${o.html}</button>`;
   }).join('');
+  if (keep) pop.appendChild(keep.el); else pkFlyOut(pop, btn, sx, sy, bx, by);
   pop.classList.add('open');
   pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
-  tourStart(key, pts, side);
+  tourStart(key, pts, side, [sx, sy]);
 }
 function pickClose(now) {
   tourStop();
   const pop = $('langPop'); if (!pop.classList.contains('open')) return;
   clearTimeout(pickT); document.documentElement.classList.remove('pk-open'); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; }
-  if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
+  pkFlyBack(now);
+  if (now || pkReduce()) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
   pop.classList.add('closing');
-  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
+  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 340);
 }
 function closeLang() { pickClose(); }
 const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
@@ -1690,18 +1734,20 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
 (function () {
   const bar = $('mobileFloatingBar'); if (!bar) return;
   const st = document.createElement('style');
-  st.textContent = '#thGhost{position:fixed;left:auto;right:10px;top:60%;width:30px;height:34px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}#thGhost.on{filter:drop-shadow(0 0 9px rgba(255,255,255,.9))}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
+  st.textContent = '#thGhost{position:fixed;left:auto;right:10px;top:60%;width:24px;height:27px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
   document.head.appendChild(st);
   const g = document.createElement('button'); g.type = 'button'; g.id = 'thGhost'; g.setAttribute('aria-label', 'Toggle menu');
-  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
+  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><defs><filter id="thEyeGlow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
   document.body.appendChild(g);
   /* position: left or right edge only, any height except the bottom strip (phone gestures live there). Long-press + drag to move. */
-  const GK = 'thabit_ghost_pos', GH = 34, GW = 30, BOT = 100;
-  const GM = { en: "The ghost can't sit at the bottom, it would clash with your phone's own gestures.", ar: 'لا يمكن وضع الشبح في أسفل الشاشة، لأنه سيتعارض مع خصائص هاتفك.', eg: 'ما ينفعش تحط الشبح تحت، هيتعارض مع خصائص تليفونك.' };
+  const GK = 'thabit_ghost_pos', GH = 27, GW = 24;
+  /* lowest the ghost may sit = the same bottom line the bar uses (16px + the phone's safe area), so it never goes below the bar */
+  const BOT = () => { const p = document.createElement('div'); p.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none'; document.body.appendChild(p); const h = p.offsetHeight; p.remove(); return 16 + h; };
+  const GM = { en: "The ghost can't go lower than the bar.", ar: 'لا يمكن إنزال الشبح أسفل من مستوى الشريط.', eg: 'ما ينفعش تنزّل الشبح أنزل من مستوى الشريط.' };
   const gget = () => { try { const o = JSON.parse(localStorage.getItem(GK) || 'null'); if (o && (o.s === 'l' || o.s === 'r') && isFinite(o.y)) return o; } catch (e) {} return null; };
   const gplace = o => {
     o = o || gget() || { s: 'r', y: innerHeight - 190 };
-    const y = Math.max(10, Math.min(innerHeight - BOT - GH, o.y));
+    const y = Math.max(10, Math.min(innerHeight - BOT() - GH, o.y));
     g.style.top = y + 'px'; g.style.bottom = 'auto';
     if (o.s === 'l') { g.style.left = '10px'; g.style.right = 'auto'; } else { g.style.right = '10px'; g.style.left = 'auto'; }
     return { s: o.s, y };
@@ -1711,7 +1757,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
   function endGhostDrag() {
     const d = drag; drag = null; g.classList.remove('drag'); if (!d) return;
     const r = g.getBoundingClientRect();
-    if (r.bottom > innerHeight - BOT + 2) { itToast(GM[lang] || GM.en); gplace(d.prev); return; }
+    if (r.bottom > innerHeight - BOT() + 2) { itToast(GM[lang] || GM.en); gplace(d.prev); return; }
     const o = { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top };
     try { localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
     gplace(o);
@@ -1720,21 +1766,21 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
   const save = () => { try { localStorage.setItem('thabit_bar_hid', hid ? '1' : '0'); } catch (e) {} };
   const mid = r => [r.left + r.width / 2, r.top + r.height / 2];
+  const rootEl = document.documentElement;
   function hideBar(now) {
-    if (hid) return; hid = true; save(); g.classList.add('on'); if (typeof closeLang === 'function') closeLang();
-    if (now || reduce() || !bar.animate) { bar.hidden = true; return; }
-    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
-    if (anim) anim.cancel();
-    anim = bar.animate([{ translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }, { translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }], { duration: 460, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
-    anim.onfinish = () => { if (hid) bar.hidden = true; if (anim) { anim.cancel(); anim = null; } };
+    if (hid) return; hid = true; save(); rootEl.classList.add('bar-hid'); if (typeof closeLang === 'function') closeLang();
+    if (anim) { anim.cancel(); anim = null; }
+    const fin = () => { if (hid) { bar.hidden = true; g.classList.add('on'); } };   // only now do the ghost's eyes light up
+    if (now || reduce() || !bar.animate) { fin(); return; }
+    anim = bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' });
+    anim.onfinish = () => { fin(); if (anim) { anim.cancel(); anim = null; } };
   }
   function showBar() {
-    if (!hid) return; hid = false; save(); g.classList.remove('on');
+    if (!hid) return; hid = false; save(); g.classList.remove('on'); rootEl.classList.remove('bar-hid');
     if (anim) { anim.cancel(); anim = null; }
     bar.hidden = false;
     if (reduce() || !bar.animate) return;
-    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
-    anim = bar.animate([{ translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }, { translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
+    anim = bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, easing: 'ease-out' });
     anim.onfinish = () => { anim = null; };
   }
   /* a tap toggles; while the bar is hidden, the first drag that starts on the ghost brings it straight back */
@@ -1755,7 +1801,14 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
 
 /* ===== Pop-out buttons: the pressed button stays visible (above the blur); labels flip to the roomy side so nothing is cut at the screen edge ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
-html.pk-open #mobileFloatingBar{z-index:10030!important}
+/* focus mode: the page + the rest of the bar sit under the blur; only the pressed button (a copy) flies out above it */
+#mobileFloatingBar .pk-hide{visibility:hidden}
+.pkfly{position:fixed;z-index:3;box-sizing:border-box;display:flex;align-items:center;justify-content:center;margin:0;padding:0;cursor:pointer;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);will-change:transform}
+.pkfly svg{transition:transform .55s cubic-bezier(.34,1.5,.5,1)}
+.pkfly.rot svg{transform:rotate(225deg)}
+/* the parked tabs (assistant / profile) follow the bar: hidden with it, back with it */
+#dock .aswrap{transition:opacity .3s,visibility 0s}
+html.bar-hid #dock .aswrap{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s,visibility 0s .3s}
 .lgp[data-lab="l"] .lgl{left:auto!important;right:calc(100% + 8px)!important;top:50%!important;transform:translateY(-50%)!important}
 .lgp[data-lab="r"] .lgl{left:calc(100% + 8px)!important;right:auto!important;top:50%!important;transform:translateY(-50%)!important}
 .lgl{max-width:calc(100vw - 96px);overflow:hidden;text-overflow:ellipsis}
@@ -1833,8 +1886,8 @@ window.addEventListener('resize', () => document.querySelectorAll('#dock .aswrap
 /* ===== Ghost: eyes light up in the Feed colours while the bar is tucked inside it ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
 #thGhost.drag{animation:none!important;transform:scale(1.18);filter:drop-shadow(0 8px 16px rgba(0,0,0,.55))!important}
-#thGhost.on{animation:ghFloat 3.2s ease-in-out infinite,ghGlow 2.4s linear infinite}
-#thGhost.on ellipse{animation:ghEye 2.4s linear infinite}
+#thGhost.on{animation:ghFloat 3.2s ease-in-out infinite}
+#thGhost.on ellipse{animation:ghEye 2.4s linear infinite;filter:url(#thEyeGlow)}
 @keyframes ghEye{0%,100%{fill:#ff5d55}25%{fill:#4c8dff}50%{fill:#22d3a6}75%{fill:#ffc247}}
 @keyframes ghGlow{0%,100%{filter:drop-shadow(0 0 8px #ff5d55)}25%{filter:drop-shadow(0 0 8px #4c8dff)}50%{filter:drop-shadow(0 0 8px #22d3a6)}75%{filter:drop-shadow(0 0 8px #ffc247)}}
 @media(prefers-reduced-motion:reduce){#thGhost.on,#thGhost.on ellipse{animation:none}#thGhost.on ellipse{fill:#22d3a6}}`; document.head.appendChild(st); })();
@@ -1869,40 +1922,42 @@ function tourTips(key, side) {
 (function () { const st = document.createElement('style'); st.textContent = `
 .tour{position:fixed;inset:0;z-index:10040;pointer-events:none}
 .tour .tsv{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.tour path{fill:none;stroke:#34d399;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;transition:opacity .2s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
-.tour.arrow path{opacity:1}
-.tour.go .tp{animation:tDraw .55s ease-out forwards}
-.tour.go .th{animation:tDraw .22s ease-out .5s forwards}
+.tour path{fill:none;stroke:#34d399;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.tour path.go{opacity:1;animation:tDraw .4s ease-out forwards}
 @keyframes tDraw{to{stroke-dashoffset:0}}
-.tbub{position:absolute;box-sizing:border-box;padding:10px 12px;border-radius:16px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:.84rem;line-height:1.5;opacity:0;transition:opacity .25s}
+.tbub{position:absolute;box-sizing:border-box;padding:9px 11px;border-radius:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:.8rem;line-height:1.45;opacity:0;transition:opacity .25s}
 body.light-theme .tbub{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
 .tbub .tt{font-weight:600}
 .tbub .tok{pointer-events:auto;margin-top:8px;padding:5px 12px;border-radius:999px;border:1px solid rgba(52,211,153,.6);background:rgba(52,211,153,.16);color:#34d399;font:700 .74rem Inter,Cairo,sans-serif;cursor:pointer}
 body.light-theme .tbub .tok{color:#047857}
-@media(prefers-reduced-motion:reduce){.tour.go .tp,.tour.go .th{animation:none;stroke-dashoffset:0}}`; document.head.appendChild(st); })();
+@media(prefers-reduced-motion:reduce){.tour path.go{animation:none;stroke-dashoffset:0}}`; document.head.appendChild(st); })();
 
 var TOUR = null;   // var: closeLang() can run (bar hidden at load) before this line
 function tourStop() {
   if (!TOUR) return; const T = TOUR; TOUR = null;
   T.dead = true; clearTimeout(T.t); document.removeEventListener('pointerdown', T.onDown, true); T.root.remove();
 }
-function tourStart(key, pts, side) {
+/* every tip sits right beside its own button, joined by a plain line (no arrow head). Tips appear one after another and ALL stay until the trainee
+   taps an empty part of the screen (back next time) or taps "Got it" (never again). */
+function tourStart(key, pts, side, stage) {
   tourStop();
   if (!tourWanted(key) || !pts || !pts.length) return;
   const tips = tourTips(key, side); if (!tips || !tips.length) return;
+  const n = Math.min(tips.length, pts.length);
   const sv = tourGet(); sv[key] = sv[key] || {}; if (!sv[key].first) { sv[key].first = Date.now(); tourSet(sv); }
   const X = TOURX[lang] || TOURX.en, root = document.createElement('div'); root.className = 'tour';
-  root.innerHTML = '<svg class="tsv" aria-hidden="true"><path class="tp" pathLength="1"/><path class="th" pathLength="1"/></svg><div class="tbub"></div>';
+  root.innerHTML = '<svg class="tsv" aria-hidden="true"></svg>';
   document.body.appendChild(root);
-  const bub = root.querySelector('.tbub'), tp = root.querySelector('.tp'), th = root.querySelector('.th');
+  const svg = root.querySelector('.tsv'), NS = 'http://www.w3.org/2000/svg';
   const T = TOUR = { root, t: null, dead: false, onDown: null };
-  /* any tap ends the demo (it comes back next time); only "Got it" stops it for good */
   T.onDown = e => { if (e.target.closest && e.target.closest('.tok')) return; tourStop(); };
   document.addEventListener('pointerdown', T.onDown, true);
-  const vw = innerWidth, vh = innerHeight, W = Math.min(250, vw - 24), R = 23, GAP = 46, barR = $('mobileFloatingBar').getBoundingClientRect();
+  const vw = innerWidth, vh = innerHeight, W = Math.min(210, vw - 24), R = 23, GAP = 16, barR = $('mobileFloatingBar').getBoundingClientRect();
   const order = (side === 'bottom' || side === 'top') ? ['left', 'right', 'up', 'down'] : ['up', 'down', 'left', 'right'];
-  const hitCircle = (l, t, h, c) => { const nx = Math.min(l + W, Math.max(l, c[0])), ny = Math.min(t + h, Math.max(t, c[1])); return Math.hypot(nx - c[0], ny - c[1]) < R + 4; };
+  const circles = pts.map(c => [c[0], c[1], R + 4]).concat(stage ? [[stage[0], stage[1], 32]] : []), placed = [];
+  const hitCircle = (l, t, h, c) => { const nx = Math.min(l + W, Math.max(l, c[0])), ny = Math.min(t + h, Math.max(t, c[1])); return Math.hypot(nx - c[0], ny - c[1]) < c[2]; };
   const hitBar = (l, t, h) => l < barR.right + 6 && l + W > barR.left - 6 && t < barR.bottom + 6 && t + h > barR.top - 6;
+  const hitPlaced = (l, t, h) => placed.some(p => l < p.r + 6 && l + W > p.l - 6 && t < p.b + 6 && t + h > p.t - 6);
   function spot(i, h) {
     const [x, y] = pts[i];
     for (const d of order) {
@@ -1912,32 +1967,28 @@ function tourStart(key, pts, side) {
       else if (d === 'up') { l = x - W / 2; t = y - R - GAP - h; if (t < 8) continue; }
       else { l = x - W / 2; t = y + R + GAP; if (t + h > vh - 8) continue; }
       l = Math.min(vw - 8 - W, Math.max(8, l)); t = Math.min(vh - 8 - h, Math.max(8, t));
-      if (hitBar(l, t, h) || pts.some(c => hitCircle(l, t, h, c))) continue;
+      if (hitBar(l, t, h) || hitPlaced(l, t, h) || circles.some(c => hitCircle(l, t, h, c))) continue;
       return { l, t };
     }
-    return { l: Math.max(8, (vw - W) / 2), t: Math.max(8, vh * .18) };   // no free spot beside it: top of the screen
+    return { l: Math.max(8, (vw - W) / 2), t: Math.min(vh - 8 - h, Math.max(8, vh * .12 + i * (h + 10))) };   // no free spot beside it: top of the screen
   }
-  function arrow(box, h, x, y) {
+  function line(box, h, x, y) {
     const ax = Math.min(box.l + W, Math.max(box.l, x)), ay = Math.min(box.t + h, Math.max(box.t, y)), dx = x - ax, dy = y - ay, len = Math.hypot(dx, dy);
-    if (len < R + 22) return false;
-    const ux = dx / len, uy = dy / len, bx = x - ux * (R + 7), by = y - uy * (R + 7), ex = bx - ax, ey = by - ay, nx = -uy, ny = ux, r = () => Math.random() * 2 - 1;
-    const k1 = len * (.09 + .08 * Math.random()) * (Math.random() < .5 ? -1 : 1), k2 = -k1 * (.5 + Math.random() * .6);
-    const c1 = [ax + ex * .3 + nx * k1, ay + ey * .3 + ny * k1], c2 = [ax + ex * .7 + nx * k2, ay + ey * .7 + ny * k2];
-    tp.setAttribute('d', `M${ax},${ay} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${bx},${by}`);
-    const a = Math.atan2(by - c2[1], bx - c2[0]), hl = 13;
-    th.setAttribute('d', `M${bx - hl * Math.cos(a - .5) + r() * 1.5},${by - hl * Math.sin(a - .5) + r() * 1.5} L${bx},${by} L${bx - hl * Math.cos(a + .5) + r() * 1.5},${by - hl * Math.sin(a + .5) + r() * 1.5}`);
-    return true;
+    if (len < R + 4) return null;
+    return `M${ax},${ay} L${x - dx / len * (R + 2)},${y - dy / len * (R + 2)}`;
   }
   function show(i, last) {
     if (T.dead) return;
-    root.classList.remove('go', 'arrow'); bub.style.opacity = 0; bub.style.width = W + 'px';
-    bub.innerHTML = `<div class="tt" dir="auto">${esc(last ? X.end : tips[i])}</div><button type="button" class="tok">${esc(X.ok)}</button>`;
-    bub.querySelector('.tok').onclick = e => { e.stopPropagation(); const o = tourGet(); o[key] = o[key] || {}; o[key].done = 1; tourSet(o); tourStop(); };
-    const h = bub.offsetHeight, box = spot(i, h);
-    bub.style.left = box.l + 'px'; bub.style.top = box.t + 'px'; bub.style.opacity = 1;
-    if (!last && arrow(box, h, pts[i][0], pts[i][1])) { void root.offsetWidth; root.classList.add('arrow', 'go'); }
+    const bub = document.createElement('div'); bub.className = 'tbub'; bub.style.width = W + 'px';
+    bub.innerHTML = `<div class="tt" dir="auto">${esc(tips[i])}</div>` + (last ? `<button type="button" class="tok">${esc(X.ok)}</button>` : '');
+    root.appendChild(bub);
+    const h = bub.offsetHeight, box = spot(i, h); placed.push({ l: box.l, t: box.t, r: box.l + W, b: box.t + h });
+    bub.style.left = box.l + 'px'; bub.style.top = box.t + 'px'; void bub.offsetWidth; bub.style.opacity = 1;
+    const d = line(box, h, pts[i][0], pts[i][1]);
+    if (d) { const p = document.createElementNS(NS, 'path'); p.setAttribute('pathLength', '1'); p.setAttribute('d', d); svg.appendChild(p); void p.getBoundingClientRect(); p.classList.add('go'); }
+    if (last) bub.querySelector('.tok').onclick = e => { e.stopPropagation(); const o = tourGet(); o[key] = o[key] || {}; o[key].done = 1; tourSet(o); tourStop(); };
   }
   let i = 0;
-  const next = () => { if (T.dead) return; if (i < pts.length) { show(i, false); i++; T.t = setTimeout(next, 2900); } else show(pts.length - 1, true); };
-  T.t = setTimeout(next, 900 + pts.length * 80);
+  const next = () => { if (T.dead) return; show(i, i === n - 1); i++; if (i < n) T.t = setTimeout(next, 1100); };
+  T.t = setTimeout(next, 900);
 }
