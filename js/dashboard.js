@@ -231,7 +231,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S) + thDetBtn(); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL'); thListsApply();
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -2237,10 +2237,19 @@ function thCordEnsure() {
     ov.insertAdjacentElement('afterend', c); thCordBind(c);
   } else if (c.previousElementSibling !== ov) ov.insertAdjacentElement('afterend', c);
   const x = thRX[lang] || thRX.en; let used = false; try { used = !!localStorage.getItem('thabit_cord_used'); } catch (e) {}
+  c.classList.toggle('flat', thKpisShown());
   c.querySelector('.tch').textContent = used ? '' : x.pull; c.querySelector('.tcb').setAttribute('aria-label', x.det);
   const cs = getComputedStyle(ov), par = ov.parentElement ? getComputedStyle(ov.parentElement) : null;   // the cord hangs right from the card's bottom edge, whatever gap the page puts between its blocks
   c.style.marginTop = -((par ? parseFloat(par.rowGap) || 0 : 0) + (parseFloat(cs.marginBottom) || 0)) + 'px';
 }
+/* the five score cards are visible on their own (computer / wide screen): no cord needed */
+function thKpisShown() {
+  const k = $('kpis'); if (!k) return false;
+  const r = k.getBoundingClientRect(), cs = getComputedStyle(k), a = k.closest('.acc');
+  if (!(r.width > 0 && r.height > 0) || cs.display === 'none' || cs.visibility === 'hidden') return false;
+  return !a || a.classList.contains('open') || innerWidth > 700;
+}
+window.addEventListener('resize', () => { clearTimeout(thKpisShown.t); thKpisShown.t = setTimeout(() => { try { thCordEnsure(); } catch (e) {} }, 150); });
 function thCordBind(c) {
   const b = c.querySelector('.tcb'); let st = null, raf = 0;
   const set = v => c.style.setProperty('--pl', v + 'px');
@@ -2290,16 +2299,16 @@ body.light-theme #thRov .thrp.cur{background:#000;color:#fff;border-color:#000}
 #thRov .thrp.lm{color:#fb923c;border-color:rgba(251,146,60,.8)}
 #thRov .thrp.lm.cur{background:#fb923c;color:#1a0f00;border-color:#fb923c}
 @keyframes thrIn{from{opacity:0;transform:translateY(var(--oy)) scale(.85)}to{opacity:1;transform:none}}
-.thcord{position:relative;z-index:2;grid-column:1/-1;height:96px;display:flex;justify-content:center;pointer-events:none;--pl:0px;color:#94a3b8}
+.thcord{position:relative;z-index:2;grid-column:1/-1;height:var(--thgap);display:flex;justify-content:center;pointer-events:none;--pl:0px;color:#94a3b8}
 body.light-theme .thcord{color:#64748b}
-.thcord .tcs{position:absolute;top:0;left:50%;width:2px;margin-left:-1px;height:calc(40px + var(--pl));background:linear-gradient(180deg,transparent 0,currentColor 14px);border-radius:2px;transition:color .3s}
-.thcord .tcb{position:absolute;left:50%;top:calc(32px + var(--pl));width:48px;height:48px;margin-left:-24px;display:flex;align-items:flex-start;justify-content:center;cursor:grab;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none}
+.thcord .tcs{position:absolute;top:0;left:50%;width:2px;margin-left:-1px;height:calc(30px + var(--pl));background:linear-gradient(180deg,transparent 0,currentColor 14px);border-radius:2px;transition:color .3s}
+.thcord .tcb{position:absolute;left:50%;top:calc(22px + var(--pl));width:48px;height:44px;margin-left:-24px;display:flex;align-items:flex-start;justify-content:center;cursor:grab;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none}
 .thcord .tcb:active{cursor:grabbing}
 .thcord .tcr{width:18px;height:18px;margin-top:2px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,currentColor 72%);box-shadow:0 3px 8px rgba(0,0,0,.4);transition:box-shadow .3s,background .3s}
 .thcord .tcb:focus-visible .tcr{outline:2px solid #fbbf24;outline-offset:3px}
 .thcord.lit .tcr{background:radial-gradient(circle at 35% 30%,#fff7d6,#fbbf24 65%);box-shadow:0 0 16px 5px rgba(251,191,36,.7)}
 .thcord.lit .tcs{color:#fbbf24}
-.thcord .tch{position:absolute;top:calc(36px + var(--pl));left:calc(50% + 26px);font-size:.68rem;opacity:.6;white-space:nowrap;pointer-events:none}
+.thcord .tch{position:absolute;top:calc(26px + var(--pl));left:calc(50% + 26px);font-size:.68rem;opacity:.6;white-space:nowrap;pointer-events:none}
 @media(prefers-reduced-motion:reduce){#thRov .thrp{animation:none;opacity:1}}
 #thDet{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 #thDet.open{display:flex;animation:tdIn .25s ease-out}
@@ -2311,3 +2320,87 @@ body.light-theme #thDet .tdb{background:rgba(255,255,255,.97);color:#0f172a}
 #thDet .tdx{position:absolute;top:8px;inset-inline-end:10px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
 #thDet .tdg{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
 #barTip{z-index:100000}`; document.head.appendChild(st); })();
+
+
+/* ==========================================================
+   Cards area (Tasks / Dandana / Notes / TEFL / QOL): a finger-wide space between the cards, and each card can be moved:
+   press and hold a card (about half a second), then drag it where you want it. The order is remembered on this device.
+   Works with touch and mouse, on the phone and the computer.
+   ========================================================== */
+const thLX = {
+  en: 'Tip: press and hold any card, then drag it to where you want it',
+  ar: 'نصيحة: اضغط مطولاً على أي كارت ثم اسحبه إلى المكان الذي تريده',
+  eg: 'نصيحة: دوس دوسة طويلة على أي كارت واسحبه للمكان اللي عايزه'
+};
+const thCardKey = el => el.id === 'taskCard' ? 'tasks' : el.id === 'dandanaCard' ? 'dandana' : ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
+function thListsApply() {
+  const L = $('lists'); if (!L) return;
+  let ord = []; try { ord = JSON.parse(localStorage.getItem('thabit_lists_order') || '[]') || []; } catch (e) {}
+  if (ord.length) {
+    const kids = [...L.children], nat = new Map(kids.map((k, i) => [k, i])), at = k => { const i = ord.indexOf(thCardKey(k)); return i < 0 ? 100 + nat.get(k) : i; };
+    kids.slice().sort((a, b) => at(a) - at(b)).forEach(k => L.appendChild(k));
+  }
+  const flex = /grid|flex/.test(getComputedStyle(L).display);
+  L.style.columnGap = 'var(--thgap)'; L.style.rowGap = flex ? 'var(--thgap)' : '';
+  [...L.children].forEach(k => { k.style.marginBottom = flex ? '' : 'var(--thgap)'; });
+  thListsBind();
+  if (!VIEW && !window._thLH) { window._thLH = 1; let seen = false; try { seen = !!localStorage.getItem('thabit_lists_hint'); } catch (e) {} if (!seen) setTimeout(() => { try { localStorage.setItem('thabit_lists_hint', '1'); } catch (e) {} itToast(thLX[lang] || thLX.en); }, 3500); }
+}
+function thListsBind() {
+  const L = $('lists'); if (!L || L.dataset.thb || VIEW) return; L.dataset.thb = '1';
+  let dr = null, timer = null, px = 0, py = 0, swallow = 0, raf = 0, lx = 0, ly = 0, lastSwap = 0;
+  const kids = () => [...L.children];
+  const cardOf = t => { let e = t; while (e && e.parentElement !== L) e = e.parentElement; return e && e.parentElement === L ? e : null; };
+  const place = (x, y) => { const it = dr.it; it.style.transform = ''; const n = it.getBoundingClientRect(); it.style.transform = `translate(${x - dr.ox - n.left}px,${y - dr.oy - n.top}px) scale(1.03)`; };
+  const retarget = (x, y) => {
+    if (Date.now() - lastSwap < 120) return;
+    const it = dr.it, ks = kids().filter(k => k !== it);
+    const t = ks.find(k => { const r = k.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }); if (!t) return;
+    it.style.transform = ''; const n = it.getBoundingClientRect(), r = t.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, vy = Math.abs(cy - (n.top + n.height / 2)) >= Math.abs(cx - (n.left + n.width / 2));
+    const all = kids(), before = all.indexOf(it) > all.indexOf(t), rtl = getComputedStyle(L).direction === 'rtl';
+    const past = vy ? (before ? y < cy : y > cy) : ((before !== rtl) ? x < cx : x > cx);   // only swap once the finger is past the middle of the other card (no flicker)
+    if (!past) return;
+    const rects = new Map(ks.map(k => [k, k.getBoundingClientRect()]));
+    L.insertBefore(it, before ? t : t.nextSibling); lastSwap = Date.now();
+    ks.forEach(k => { const a = rects.get(k), b = k.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top; if ((dx || dy) && k.animate) k.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 200, easing: 'ease-out' }); });
+  };
+  const move = (x, y) => { lx = x; ly = y; retarget(x, y); place(x, y); };
+  const tick = () => { if (!dr) return; if (ly < 80) scrollBy(0, -(80 - ly) / 5); else if (ly > innerHeight - 80) scrollBy(0, (ly - (innerHeight - 80)) / 5); place(lx, ly); raf = requestAnimationFrame(tick); };
+  const begin = it => {
+    timer = null; const r = it.getBoundingClientRect();
+    dr = { it, ox: px - r.left, oy: py - r.top }; lx = px; ly = py;
+    it.classList.add('thlift'); L.classList.add('thdrag');
+    try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
+    try { getSelection().removeAllRanges(); } catch (e) {}
+    place(px, py); raf = requestAnimationFrame(tick);
+  };
+  const end = () => {
+    clearTimeout(timer); timer = null; if (!dr) return;
+    const it = dr.it; dr = null; cancelAnimationFrame(raf);
+    it.style.transition = 'transform .2s'; it.style.transform = '';
+    setTimeout(() => { it.style.transition = ''; it.classList.remove('thlift'); L.classList.remove('thdrag'); }, 230);
+    try { localStorage.setItem('thabit_lists_order', JSON.stringify(kids().map(thCardKey))); } catch (e) {}
+    swallow = Date.now() + 400;
+  };
+  L.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    if (e.target.closest && e.target.closest('input,textarea,select,.mb,.earbar,.hnd,.itc,.cpb')) return;
+    const it = cardOf(e.target); if (!it) return;
+    px = e.clientX; py = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it), 450);
+  });
+  document.addEventListener('pointermove', e => {
+    if (dr) { e.preventDefault(); move(e.clientX, e.clientY); return; }
+    if (timer && Math.hypot(e.clientX - px, e.clientY - py) > 8) { clearTimeout(timer); timer = null; }
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, end));
+  L.addEventListener('touchmove', e => { if (dr) e.preventDefault(); }, { passive: false });
+  L.addEventListener('contextmenu', e => { if (dr || timer) e.preventDefault(); });
+  L.addEventListener('click', e => { if (Date.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+:root{--thgap:72px}   /* ONE number: the space under Overall progress (where the cord hangs) AND between every two cards. Change it here. */
+#lists>*{-webkit-touch-callout:none}
+#lists.thdrag,#lists.thdrag *{-webkit-user-select:none;user-select:none}
+#lists>.thlift{position:relative;z-index:60;cursor:grabbing;box-shadow:0 22px 50px rgba(0,0,0,.5)!important;will-change:transform}
+.thcord.flat .tcs,.thcord.flat .tcb,.thcord.flat .tch{display:none}`; document.head.appendChild(st); })();
