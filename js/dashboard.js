@@ -3,9 +3,9 @@ const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
 const T = {
-  en: { hi: 'Welcome, ', today: 'Today', week: '7 days', month: '30 days', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
+  en: { hi: 'Welcome, ', today: 'Today', week: 'This week', month: 'This month', all: 'Since start', last: 'Last session', info: 'My info', req: 'Send a request', hist: 'Sessions', send: 'Send', sessions: 'Sessions',
         performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', tefl: 'TEFL', qol: 'QOL', none: 'No data yet', ph: 'Write your request...', overall: 'Overall progress', avg: 'Average', tap: 'Tap a dot to see why', revision: 'Revision', compliance: 'Compliance', attendance: 'Attendance', metrics: 'Scores & details', todo: 'To-Do', donet: 'Done tasks', alldone: 'All caught up ✓', handtip: 'Not sure about a task? Tap the ! next to it and tell me.', handq: 'What is unclear about this task?', sent: 'Sent ✓', fail: 'Could not send, try again', year: 'Year', duration: 'Time in program', subs: 'Sessions & sub titles', notes: 'Notes' },
-  ar: { hi: 'أهلاً ', today: 'اليوم', week: '٧ أيام', month: '٣٠ يوم', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
+  ar: { hi: 'أهلاً ', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
@@ -63,7 +63,11 @@ function spark(vals) {
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
-const MD = [], TK = [], mk = (title, text) => MD.push([title, text]) - 1;
+const MD = [], TK = [], mk = (title, text, ear) => MD.push([title, text, ear || '']) - 1;
+/* Ear toggle per container (Notes / TEFL / QOL): QOL is on by default, the others off. Saved on this device. */
+const EAR_DEF = { qol: 1, tefl: 0, notes: 0 };
+const earOn = k => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) {} return k in s ? !!s[k] : !!EAR_DEF[k]; };
+const earSet = (k, v) => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) {} s[k] = v ? 1 : 0; try { localStorage.setItem('thabit_ear', JSON.stringify(s)); } catch (e) {} };
 /* ===== Copy button: copies a text, then turns into a disabled "✓ Copied" ===== */
 const CPT = {}; let CPN = 0;
 const cpBtn = txt => { const id = ++CPN; CPT[id] = String(txt == null ? '' : txt); return `<button type="button" class="cpb" data-cp="${id}"><i class="fa-regular fa-copy"></i><span>${lang === 'en' ? 'Copy' : 'نسخ'}</span></button>`; };
@@ -208,9 +212,9 @@ function render() {
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
-  $('rng').innerHTML = ['today', 'week', 'month', 'year', 'all'].filter(k => k !== 'today' || hasToday()).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
+  $('rng').innerHTML = ['today', 'week', 'month'].filter(k => { if (!D) return false; const keep = range; range = k; const ok = D.rows.some(inRange); range = keep; return ok; }).map(k => `<button class="${k === range ? 'on' : ''}" onclick="range='${k}';render()">${t[k]}</button>`).join('');
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
-    if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : lang === 'eg' ? 'آخر يوم محسوب: ' : 'آخر يوم محسوب: ') + last; } }
+    if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S);
   $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL');
@@ -225,12 +229,40 @@ function render() {
   renderSessions(rows);
   watchTodo();
   renderAvatar();
+  requestAnimationFrame(fitCaps);
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 const cap = (rows, key, title) => {
-  const it = rows.slice().reverse().filter(r => r[key]).map(r => `<button type="button" class="cap" onclick="openModal(${mk(r.supply_date + ' · ' + title, r[key])})"><span class="dt">${r.supply_date}</span><span dir="auto">${esc(rtStrip(String(r[key])).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
-  return `<div class="thabit-card dcard"><h4>${title}</h4><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
+  const list = rows.slice().reverse().filter(r => r[key]).map(r => ({ date: r.supply_date, text: String(r[key]) }));
+  const mi = MD.push([title, '', key, list]) - 1;
+  const it = list.map((x, n) => `<button type="button" class="cap" data-n="${n}"><span class="dt">${x.date}</span><span dir="auto">${esc(rtStrip(x.text).replace(/\s+/g, ' ').slice(0, 70))}</span></button>`).join('');
+  const ear = lang === 'en' ? 'Pronunciation' : 'النطق';
+  return `<div class="thabit-card dcard earc" data-md="${mi}"><div class="earh"><h4>${title}</h4><div class="earbar"><button type="button" class="ear${earOn(key) ? ' on' : ''}" data-ear="${key}" aria-pressed="${earOn(key)}" aria-label="${ear}" title="${ear}"><i class="fa-solid fa-ear-listen"></i></button></div></div><div class="lst">${it || `<div class="sm">${T[lang].none}</div>`}</div></div>`;
 };
+/* one cell and a quarter of the next one (only one cell: just that one). Nothing scrolls inside: a tap anywhere opens the whole container. */
+function fitCaps() {
+  document.querySelectorAll('.earc .lst').forEach(l => {
+    const c = [...l.children].filter(x => x.classList.contains('cap')); l.style.maxHeight = '';
+    if (!c.length || !c[0].offsetHeight) return;
+    if (c.length < 2) { l.style.maxHeight = 'none'; return; }
+    l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
+  });
+}
+window.addEventListener('resize', fitCaps);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCaps);
+/* a tap on the container (cell, text, empty space, anything except the options bar) pops the whole container up */
+document.addEventListener('click', e => {
+  const c = e.target.closest && e.target.closest('.earc'); if (!c || e.target.closest('.earbar')) return;
+  const cell = e.target.closest('.cap'); openModal(+c.dataset.md, cell ? +cell.dataset.n : 0);
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.ear'); if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  const on = !b.classList.contains('on'); earSet(b.dataset.ear, on);
+  b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  b.classList.remove('shk', 'cls'); void b.offsetWidth; b.classList.add(on ? 'shk' : 'cls');
+  setTimeout(() => b.classList.remove('shk', 'cls'), 1100);
+}, true);
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
 const escv = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
 function rich(txt) {
@@ -405,10 +437,16 @@ async function toggleTask(i, on) {
   const ok = await rpc('trainee_set_task', { p_token: tok(), p_date: k.date, p_no: k.no, p_text: k.text, p_done: on }).catch(() => null);
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
-function openModal(i) { $('mT').textContent = MD[i][0]; $('mB').innerHTML = `<div class="rich">${richC(MD[i][1])}</div>`; $('mdl').classList.add('open'); }
+function openModal(i, focus) {
+  const m = MD[i]; $('mdl').dataset.ear = m[2] && earOn(m[2]) ? '1' : ''; $('mT').textContent = m[0];
+  $('mB').innerHTML = m[3] ? `<div class="rich">${m[3].map((x, n) => `<div class="cti" data-n="${n}"><div class="dt ctd">${esc(x.date)}</div>${richC(x.text)}</div>`).join('')}</div>` : `<div class="rich">${richC(m[1])}</div>`;
+  $('mdl').classList.add('open');
+  const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
+  box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
+}
 function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
-  const k = TK[i], t = T[lang]; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
+  const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
   $('mB').innerHTML = `<div class="sm" dir="auto" style="margin-bottom:8px">${esc(k.text)}</div><div style="margin-bottom:6px">${t.handq}</div><textarea id="hMsg" rows="4" maxlength="1000"></textarea><button type="button" class="btn2" id="hBtn">${t.send}</button><div id="hRes" class="sm" style="margin-top:8px"></div>`;
   $('hBtn').onclick = async () => {
@@ -652,7 +690,7 @@ const isImp = n => !!n && (IMP_KINDS.includes(n.kind) || !!(n.meta && n.meta.imp
 const impKey = n => String(n.id != null ? n.id : n.created_at);
 const impUnread = () => ((D && D.notes) || []).filter(n => isImp(n) && !n.read_at && !IMP_SEEN.has(impKey(n)));
 const impMark = () => impUnread().forEach(n => IMP_SEEN.add(impKey(n)));
-/* gentle attention instead of a pop-up: the Feed button glows; for updates the plus turns once */
+/* gentle attention instead of a pop-up: the Feed button glows; for important updates the plus also turns */
 function attention(spin) {
   glowFeed();
   if (spin) { const b = $('feedBtn'); b.classList.remove('upd'); void b.offsetWidth; b.classList.add('upd'); setTimeout(() => b.classList.remove('upd'), 4800); }
@@ -678,9 +716,8 @@ function refreshNotes() {
   const before = feedCount();
   return fetchNotes().then(list => {
     D.notes = list; updateFeed();
-    const imp = impUnread();
-    if (imp.length && !$('pop').classList.contains('open')) { impMark(); openPop(feedCards(), $('feedBtn')); }
-    else if (feedCount() > before) attention(false);
+    if (impUnread().length && !$('pop').classList.contains('open')) { impMark(); openPop(feedCards(), $('feedBtn')); }
+    else if (feedCount() > before) attention(((D && D.notes) || []).some(n => isImp(n) && !n.read_at));
   });
 }
 function initFloat() {
@@ -777,7 +814,7 @@ window.openAssistant = e => Panels.open('assistant', e);
 function initMiniBars() {
   const arrow = d => `<button type="button" class="mbb" data-d="${d}" aria-label="${d < 0 ? 'Up' : 'Down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
   document.querySelectorAll('.lst').forEach(el => {
-    if (el.dataset.mb) return;
+    if (el.dataset.mb || el.closest('.earc')) return;
     el.dataset.mb = '1';
     const w = document.createElement('div'); w.className = 'mbw';
     el.parentNode.insertBefore(w, el); w.appendChild(el);
@@ -975,7 +1012,8 @@ html.bgl,html.bgl body{overflow:hidden!important}
 #pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
 .pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
 const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
-const syncLock = () => document.documentElement.classList.toggle('bgl', bgLocked());
+let lockOn = false;
+const syncLock = () => { const l = bgLocked(); document.documentElement.classList.toggle('bgl', l); if (l === lockOn) return; lockOn = l; const m = l ? 'addEventListener' : 'removeEventListener'; document[m]('wheel', onLockWheel, { passive: false }); document[m]('touchmove', onLockMove, { passive: false }); };
 function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
   const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
   for (let e = t; e; e = e.parentElement) {
@@ -985,15 +1023,15 @@ function pkScroller(t, dy) {   // a scrollable element inside the feed / player 
   }
   return null;
 }
-document.addEventListener('wheel', e => { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }, { passive: false });
+function onLockWheel(e) { if (bgLocked() && !pkScroller(e.target, e.deltaY)) e.preventDefault(); }
 let pkY = 0;
 document.addEventListener('touchstart', e => { pkY = e.touches[0].clientY; }, { passive: true });
-document.addEventListener('touchmove', e => {
+function onLockMove(e) {
   if (!bgLocked()) return;
   const y = e.touches[0].clientY, dy = pkY - y; pkY = y;
   if (e.target.closest && e.target.closest('input[type=range]')) return;
   if (!pkScroller(e.target, dy)) e.preventDefault();
-}, { passive: false });
+}
 window.addEventListener('DOMContentLoaded', () => {
   const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
@@ -1004,7 +1042,7 @@ window.addEventListener('DOMContentLoaded', () => {
 const PK_BOXES = '.lst, .ntl, #mB, #ssList, #logList';      // scroll boxes that already have a height from the CSS: keep that height, only add the hint
 const PK_TEXT = [['.nt .rich', 5], ['.itd.rich', 5]];      // text blocks: capped at 5 lines (a 6th line starts -> hint + scroll)
 function peekEl(el, lines) {
-  if (el.dataset.pk) return;
+  if (el.dataset.pk || (el.closest && el.closest('.earc'))) return;
   const cs = getComputedStyle(el), u = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 14) * 1.45;
   let H;
   if (lines) {
@@ -1158,48 +1196,164 @@ function applyPrefLang(p) {   // applied when the column value is new/changed; a
 
 
 
-/* ===== Language + Customize: small pop-over that opens to the LEFT of its button (the button stays visible; tap again = close) ===== */
-(function () { const st = document.createElement('style'); st.textContent = `
-.bpop{position:fixed;left:0;top:0;z-index:10030;box-sizing:border-box;width:max-content;border-radius:16px;padding:8px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 30px rgba(0,0,0,.5);animation:bpIn .22s cubic-bezier(.16,1,.3,1)}
-body.light-theme .bpop{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
-.bpop.r{animation-name:bpInR}
-.bpop .bpl{display:flex;gap:6px;direction:ltr}
-.bpop .lgi{height:34px;min-width:64px;padding:0 14px;box-shadow:none}
-.bpop .bpt{font-size:.78rem;line-height:1.55;padding:4px 8px}
-.bpop .bpt b{display:block;font-size:.88rem;margin-bottom:2px}
-@keyframes bpIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-@keyframes bpInR{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.bpop{animation:none}}`; document.head.appendChild(st); })();
-let BP_KEY = null;
-function closeBP() { const p = document.getElementById('bpop'); if (p) p.remove(); BP_KEY = null; }
-function openBP(btn, key, html) {
-  if (BP_KEY === key) { closeBP(); return; }
-  closeBP();
-  const p = document.createElement('div'); p.id = 'bpop'; p.className = 'bpop'; p.innerHTML = html;
-  const r = btn.getBoundingClientRect();
-  p.style.visibility = 'hidden'; p.style.maxWidth = Math.max(150, Math.min(300, r.left - 16)) + 'px';
-  document.body.appendChild(p);                                   // left:0 / top:0 in the CSS, so the width is measured with the full screen available
-  const w = p.offsetWidth, h = p.offsetHeight;
-  let left = r.left - 8 - w;
-  if (left < 8) { left = Math.min(r.right + 8, innerWidth - w - 8); p.classList.add('r'); }   // no room on the left: open on its right
-  p.style.left = Math.max(8, left) + 'px';
-  p.style.top = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + 'px';
-  p.style.visibility = ''; BP_KEY = key;
+(function () {
+/* ===== Sidebar placement + pop-out options (language / pen) =====
+   - The bar can sit on the left, the right or the bottom. Pop-outs always open AWAY from the side the bar is on.
+   - Placement is saved on this device (thabit_bar_place) and stays until the trainee changes it by hand. */
+const BTX = {
+  en: { right: 'Move to the right', left: 'Move to the left', bottom: 'Move to the bottom', free: 'Move freely', hint: 'Drag the bar where you want it, then let go to pin it', pinned: 'Position pinned' },
+  ar: { right: 'انقل لليمين', left: 'انقل لليسار', bottom: 'انقل للأسفل', free: 'تحريك حر', hint: 'اسحب الشريط للمكان الذي تريده ثم اتركه ليتثبت', pinned: 'تم تثبيت المكان' },
+  eg: { right: 'انقله لليمين', left: 'انقله للشمال', bottom: 'نزّله تحت', free: 'حرّكه براحتك', hint: 'اسحب الشريط للمكان اللي عايزه وسيبه يتثبت', pinned: 'المكان اتثبت' }
+};
+const BT = () => BTX[lang] || BTX.en;
+const BAR_KEY = 'thabit_bar_place';
+const barEl = () => $('mobileFloatingBar');
+/* which side of the screen the bar is on right now (read from where it really is, so it works whatever the stylesheet does) */
+function barSide() {
+  const r = barEl().getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  if (r.width > r.height * 1.2) return cy > innerHeight / 2 ? 'bottom' : 'top';
+  return cx < innerWidth / 2 ? 'left' : 'right';
+}
+function placeGet() {
+  try { const p = JSON.parse(localStorage.getItem(BAR_KEY) || 'null'); if (p && /^(left|right|bottom)$/.test(p.dock)) return { dock: p.dock, pos: isFinite(p.pos) && p.pos !== null ? Math.min(1, Math.max(0, +p.pos)) : .5 }; } catch (e) {}
+  return null;
+}
+function placeSet(p) { try { localStorage.setItem(BAR_KEY, JSON.stringify(p)); } catch (e) {} }
+/* p = {dock, pos}: dock = left | right | bottom, pos = where the bar's centre sits along that edge (0..1). No saved place = the stylesheet's own default. */
+function applyPlace(p) {
+  const bar = barEl(), root = document.documentElement;
+  if (bar.classList.contains('moving') && !p) return;
+  p = p || placeGet();
+  if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
+  root.setAttribute('data-bar', p.dock);
+  const vert = p.dock !== 'bottom', size = vert ? innerHeight : innerWidth, r = bar.getBoundingClientRect(), half = (vert ? r.height : r.width) / 2, lo = half + 8, hi = size - half - 8;
+  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) + 'px');
+}
+function hopBar() { const b = barEl(); b.classList.remove('hop'); void b.offsetWidth; b.classList.add('hop'); setTimeout(() => b.classList.remove('hop'), 650); }
+function dockTo(side) {
+  const r = barEl().getBoundingClientRect(), from = barSide(), keep = (from === 'left' || from === 'right') && side !== 'bottom';
+  const p = { dock: side, pos: keep ? (r.top + r.height / 2) / innerHeight : .5 };
+  placeSet(p); applyPlace(p); hopBar();
+}
+
+/* ----- free move: drag the bar along its edge, let go = pinned for good ----- */
+let MV = null;
+function moveStart() {
+  const bar = barEl(); if (bar.classList.contains('moving')) return;
+  let side = barSide(); if (side === 'top') side = 'bottom';
+  if (!placeGet()) { const r = bar.getBoundingClientRect(); applyPlace({ dock: side, pos: side === 'bottom' ? (r.left + r.width / 2) / innerWidth : (r.top + r.height / 2) / innerHeight }); }
+  bar.classList.add('moving'); itToast(BT().hint);
+}
+function moveEnd(pinned) {
+  const bar = barEl(); if (!bar.classList.contains('moving')) return;
+  bar.classList.remove('moving', 'grabbing'); MV = null;
+  if (pinned) itToast(BT().pinned); else applyPlace();
+}
+(function () {
+  const bar = barEl();
+  bar.addEventListener('pointerdown', e => {
+    if (!bar.classList.contains('moving')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const vert = document.documentElement.getAttribute('data-bar') !== 'bottom', r = bar.getBoundingClientRect();
+    MV = { id: e.pointerId, vert, p0: vert ? e.clientY : e.clientX, c0: vert ? r.top + r.height / 2 : r.left + r.width / 2, half: (vert ? r.height : r.width) / 2, c: null, moved: false };
+    try { bar.setPointerCapture(e.pointerId); } catch (x) {}
+    bar.classList.add('grabbing');
+  }, true);
+  bar.addEventListener('pointermove', e => {
+    if (!MV || e.pointerId !== MV.id) return;
+    const d = (MV.vert ? e.clientY : e.clientX) - MV.p0; if (!MV.moved && Math.abs(d) < 4) return; MV.moved = true;
+    const size = MV.vert ? innerHeight : innerWidth, lo = MV.half + 8, hi = size - MV.half - 8;
+    MV.c = lo > hi ? size / 2 : Math.min(hi, Math.max(lo, MV.c0 + d));
+    bar.style.setProperty('--bp', MV.c + 'px');
+  });
+  const up = e => {
+    if (!MV || e.pointerId !== MV.id) return;
+    const m = MV; MV = null;
+    if (m.moved && e.type === 'pointerup') { placeSet({ dock: document.documentElement.getAttribute('data-bar'), pos: m.c / (m.vert ? innerHeight : innerWidth) }); moveEnd(true); }
+    else moveEnd(false);
+  };
+  bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
+  document.addEventListener('pointerdown', e => { if (bar.classList.contains('moving') && !bar.contains(e.target)) moveEnd(false); }, true);
+  window.addEventListener('resize', () => applyPlace());
+  if (window.ResizeObserver) new ResizeObserver(() => applyPlace()).observe(bar);
+  applyPlace();
+})();
+
+/* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
+let pickT = null, pickBtn = null;
+function pickOpen(btn, list) {
+  const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
+  const S = 46, G = 10, GAP = 12, M = S / 2 + 8, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  if (pop.classList.contains('open') && !pop.classList.contains('closing') && pickBtn === btn) { pickClose(); return; }   // second tap on the same button = close
+  clearTimeout(pickT); pop.classList.remove('closing'); pop.dataset.side = side;
+  pop.dataset.lab = (side === 'bottom' || side === 'top') ? (bx > innerWidth / 2 ? 'l' : 'r') : '';   // labels open toward the roomy side
+  document.documentElement.classList.add('pk-open');
+  if (pickBtn && pickBtn !== btn) pickBtn.classList.remove('pk-on'); pickBtn = btn; btn.classList.add('pk-on');
+  pop.innerHTML = list.map((o, i) => {
+    const d = GAP + S / 2 + i * (S + G); let x, y;
+    if (side === 'left') { x = br.right + d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'right') { x = br.left - d; y = cl(by, M, innerHeight - M); }
+    else if (side === 'top') { y = br.bottom + d; x = cl(bx, M, innerWidth - M); }
+    else { y = br.top - d; x = cl(bx, M, innerWidth - M); }
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${bx - x}px;--fy:${by - y}px;--i:${i}">${o.html}${o.label ? `<span class="lgl">${esc(o.label)}</span>` : ''}</button>`;
+  }).join('');
+  pop.classList.add('open');
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
+}
+function pickClose(now) {
+  const pop = $('langPop'); if (!pop.classList.contains('open')) return;
+  clearTimeout(pickT); document.documentElement.classList.remove('pk-open'); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; }
+  if (now || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
+  pop.classList.add('closing');
+  pickT = setTimeout(() => { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; }, 260);
+}
+function closeLang() { pickClose(); }
+const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
+function openProf(btn) {
+  const ar = lang !== 'en';
+  pickOpen(btn || $('profBtn'), [
+    { html: '<i class="fa-solid fa-user"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+    { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+  ]);
+}
+function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
+function openStar(btn) {
+  const ar = lang !== 'en', wide = innerWidth > 700;
+  pickOpen(btn || $('barEdit'), [
+    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', label: ar ? 'تخصيص' : 'Customize', on: () => openBarOpts($('barEdit')) },
+    { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), label: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') }
+  ]);
+}
+function openPlus(btn) {
+  const ar = lang !== 'en';
+  pickOpen(btn || $('plusBtn'), [
+    { html: ASSIST_SVG_SM, title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
+    { html: '<i class="fa-solid fa-paper-plane"></i>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
+  ]);
 }
 function openLang(btn) {
-  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' }, others = ['en', 'ar', 'eg'].filter(x => x !== lang);
-  openBP(btn || $('langBtn'), 'lang', `<div class="bpl">${others.map(x => `<button type="button" class="lgi" data-l="${x}">${lbl[x]}</button>`).join('')}</div>`);
-  document.querySelectorAll('#bpop .lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const l = b.dataset.l; closeBP(); if (l !== lang) setLanguage(l); });
+  const lbl = { en: 'EN', ar: 'عربي', eg: 'مصري' };
+  pickOpen(btn, ['en', 'ar', 'eg'].filter(x => x !== lang).map(l => ({ html: lbl[l], title: lbl[l], on: () => { if (l !== lang) setLanguage(l); } })));
 }
-function closeLang() { closeBP(); }
-function openBarOpts() {
-  const T2 = { en: ['Customize', 'Hold any icon in the bar and drag it to change its place.'], ar: ['تخصيص', 'اضغط مطولاً على أي أيقونة في الشريط واسحبها لتغيير مكانها.'], eg: ['تخصيص', 'دوس مطولاً على أي أيقونة في الشريط واسحبها عشان تغيّر مكانها.'] }[lang] || ['Customize', ''];
-  openBP($('barEdit'), 'opts', `<div class="bpt" dir="${lang === 'en' ? 'ltr' : 'rtl'}"><b>${T2[0]}</b>${T2[1]}</div>`);
+const BIC = {
+  box: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  right: '<rect x="13.6" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
+  left: '<rect x="4.3" y="6.3" width="6.1" height="11.4" rx="2" fill="currentColor"/></svg>',
+  bottom: '<rect x="4.8" y="12.9" width="14.4" height="4.8" rx="2" fill="currentColor"/></svg>',
+  free: '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M6 3.5v15.2l4.1-3.9 2.7 5.7 2.4-1.1-2.7-5.6h5.7z" fill="currentColor"/></svg>'
+};
+function openBarOpts(btn) {
+  const t = BT(), toLeft = barSide() === 'right';
+  pickOpen(btn || $('barEdit'), [
+    { html: BIC.box + (toLeft ? BIC.left : BIC.right), title: toLeft ? t.left : t.right, on: () => dockTo(toLeft ? 'left' : 'right') },
+    { html: BIC.box + BIC.bottom, title: t.bottom, on: () => dockTo('bottom') },
+    { html: BIC.free, title: t.free, on: moveStart }
+  ]);
 }
-function closeBarOpts() { closeBP(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBP(); });
-document.addEventListener('click', e => { if (BP_KEY && !(e.target.closest && e.target.closest('#bpop, #langBtn, #barEdit'))) closeBP(); });
-window.addEventListener('resize', closeBP);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
+
+window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
+})();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
 const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
@@ -1306,7 +1460,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
   /* tap a hyperlinked word -> word player (capture phase, so the feed / modal underneath do not react to the tap) */
-  const linkOf = e => e.target && e.target.closest && e.target.closest('.rt-link[data-word]');
+  const linkOf = e => e.target && e.target.closest && e.target.closest('#mdl[data-ear="1"] .rt-link[data-word]');
   document.addEventListener('click', e => { const s = linkOf(e); if (!s) return; e.preventDefault(); e.stopPropagation(); wpOpen(s.getAttribute('data-word')); }, true);
   document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const s = linkOf(e); if (s) { e.preventDefault(); wpOpen(s.getAttribute('data-word')); } });
 })();
@@ -1337,7 +1491,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   'use strict';
   var C_QOL = '224,38,138', C_OTH = '31,182,255';   // QOL = pink, every other place = phosphor blue (R,G,B). Fixed in dark and light theme.
   var MAXN = 6, BATCH = 40, PAR = 4, MAXKEYS = 800, TTL_HIT = 600000, TTL_MISS = 120000, HINT_DAYS = 1;
-  var ROOTS = '#lists, #mB, #pop .pc[data-cid="dnd"], #pop .pc[data-cid="notes"]';
+  var ROOTS = '#mdl[data-ear="1"] #mB';
   var SKIP = 'script,style,textarea,input,select,option,code,pre,.cpb,.hnd,.itc,.vx,.rt-link,.aww,.dt,.sm,.tkt,.its,.cd,.cdn,.hi,.nth,.logb,summary,h3,h4,.awn,.billb,.billl';
   var HAS = /\[\[[^\[\]\n]+?\]\]|\*\*[\s\S]+?\*\*|__[\s\S]+?__|\+\+[\s\S]+?\+\+|\{\{(?:gold|green|red|blue|purple|orange|gray):[\s\S]+?\}\}/;   // left for the rich-text converter
   var TOKEN = /[\p{L}\p{M}\p{N}]+(?:['\u2019\-][\p{L}\p{M}\p{N}]+)*/gu;
@@ -1502,18 +1656,6 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 
 
 
-/* ===== Ear icon on containers that hold spoken words (outside the pop-ups only) ===== */
-(function () {
-  const WORD = '.vx, .rt-link', BOX = '.cap, .nt, .itm, .rcap, .dnr, .row', ACTIVE = '#mdl, #pop';
-  let t = 0;
-  function mark() {
-    document.querySelectorAll('.has-ear').forEach(b => { if (!b.querySelector(WORD)) b.classList.remove('has-ear'); });
-    document.querySelectorAll(WORD).forEach(w => { if (w.closest(ACTIVE)) return; const b = w.closest(BOX); if (b) b.classList.add('has-ear'); });
-  }
-  const run = () => { clearTimeout(t); t = setTimeout(mark, 120); };
-  new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
-  window.addEventListener('DOMContentLoaded', run);
-})();
 
 /* ===== Phone: only the card in the middle band of the screen gets the light sweep ===== */
 (function () {
@@ -1525,20 +1667,79 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   window.addEventListener('DOMContentLoaded', scan);
 })();
 
-/* ===== Parked tab (assistant / profile): small, same size as the Feed button, long-press and drag it to the left or right edge ===== */
+/* ===== Send-request popup (opened from the + button) ===== */
+function openRq() { const m = $('rqm'); if (!m) return; const t = $('tReq'); if (t) $('rqmT').textContent = t.textContent; m.classList.add('open'); }
+function closeRq() { const m = $('rqm'); if (m) m.classList.remove('open'); }
+window.openRq = openRq; window.closeRq = closeRq;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); });
+
+/* ===== Touch = scroll. A finger that moves is a scroll, never a click: only a real tap or a long press (finger stays still) can act ===== */
+(function () {
+  let sx = 0, sy = 0, moved = false;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = false; }, { passive: true, capture: true });
+  document.addEventListener('touchmove', e => { if (moved) return; const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true; }, { passive: true, capture: true });
+  document.addEventListener('click', e => { if (moved && e.isTrusted) { e.stopImmediatePropagation(); e.preventDefault(); } moved = false; }, true);
+})();
+
+
+/* ===== Ghost: hides / shows the side bar. Sits low on the right, away from the phone's back / home gestures and the feed button ===== */
+(function () {
+  const bar = $('mobileFloatingBar'); if (!bar) return;
+  const st = document.createElement('style');
+  st.textContent = '#thGhost{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 120px);width:34px;height:38px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}#thGhost.on{filter:drop-shadow(0 0 9px rgba(255,255,255,.9))}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
+  document.head.appendChild(st);
+  const g = document.createElement('button'); g.type = 'button'; g.id = 'thGhost'; g.setAttribute('aria-label', 'Toggle menu');
+  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
+  document.body.appendChild(g);
+  let anim = null, hid = false;
+  const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const save = () => { try { localStorage.setItem('thabit_bar_hid', hid ? '1' : '0'); } catch (e) {} };
+  const mid = r => [r.left + r.width / 2, r.top + r.height / 2];
+  function hideBar(now) {
+    if (hid) return; hid = true; save(); g.classList.add('on'); if (typeof closeLang === 'function') closeLang();
+    if (now || reduce() || !bar.animate) { bar.hidden = true; return; }
+    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
+    if (anim) anim.cancel();
+    anim = bar.animate([{ translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }, { translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }], { duration: 460, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+    anim.onfinish = () => { if (hid) bar.hidden = true; if (anim) { anim.cancel(); anim = null; } };
+  }
+  function showBar() {
+    if (!hid) return; hid = false; save(); g.classList.remove('on');
+    if (anim) { anim.cancel(); anim = null; }
+    bar.hidden = false;
+    if (reduce() || !bar.animate) return;
+    const a = mid(bar.getBoundingClientRect()), b = mid(g.getBoundingClientRect());
+    anim = bar.animate([{ translate: (b[0] - a[0]) + 'px ' + (b[1] - a[1]) + 'px', scale: .08, opacity: 0, filter: 'blur(6px)' }, { translate: '0px 0px', scale: 1, opacity: 1, filter: 'blur(0px)' }], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
+    anim.onfinish = () => { anim = null; };
+  }
+  /* a tap toggles; while the bar is hidden, the first drag that starts on the ghost brings it straight back */
+  let sx = 0, sy = 0, down = false, swiped = false;
+  g.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; down = true; swiped = false; });
+  g.addEventListener('pointermove', e => { if (!down || swiped || !hid) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { swiped = true; showBar(); } });
+  ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; }));
+  g.addEventListener('click', e => { e.stopPropagation(); if (swiped) { swiped = false; return; } hid ? showBar() : hideBar(); });
+  try { if (localStorage.getItem('thabit_bar_hid') === '1') hideBar(true); } catch (e) {}
+})();
+
+/* ===== Pop-out buttons: the pressed button stays visible (above the blur); labels flip to the roomy side so nothing is cut at the screen edge ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
+html.pk-open #mobileFloatingBar{z-index:10030!important}
+.lgp[data-lab="l"] .lgl{left:auto!important;right:calc(100% + 8px)!important;top:50%!important;transform:translateY(-50%)!important}
+.lgp[data-lab="r"] .lgl{left:calc(100% + 8px)!important;right:auto!important;top:50%!important;transform:translateY(-50%)!important}
+.lgl{max-width:calc(100vw - 96px);overflow:hidden;text-overflow:ellipsis}
+/* parked tab: small, long-press + drag to the left or right edge */
 :root{--dk:44px}
 @media(max-width:600px){:root{--dk:36px}}
-.aswrap.dkw{position:fixed;z-index:61;width:var(--dk);height:var(--dk);touch-action:none;-webkit-user-select:none;user-select:none}
+.aswrap.dkw{position:fixed;z-index:61;width:var(--dk);height:var(--dk);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .aswrap.dkw.sr{right:14px;left:auto}
 .aswrap.dkw.sl{left:14px;right:auto}
 .aswrap.dkw.dragging{transition:none;z-index:70}
-.aswrap.dkw .dk{width:100%;height:100%;font-size:calc(var(--dk) * .42)}
+.aswrap.dkw .dk{width:100%;height:100%;padding:0;border:0;border-radius:50%;color:#111;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:calc(var(--dk) * .42);transition:transform .2s}
 .aswrap.dkw .dk .asv{width:calc(var(--dk) * .5);height:calc(var(--dk) * .5)}
+.aswrap.dkw .dk.shk{animation:asShk .9s ease-in-out 2}
 .aswrap.dkw.dragging .dk{transform:scale(1.12);box-shadow:0 8px 22px rgba(0,0,0,.55)}
 .aswrap.dkw .dkx{top:-6px;right:-6px;width:18px;height:18px;font-size:13px}
 .aswrap.dkw.sl .dkx{right:auto;left:-6px}
-/* speech bubble follows the side the tab sits on */
 .aswrap.sr .asn{left:auto!important;right:calc(100% + 10px)!important}
 .aswrap.sl .asn{right:auto!important;left:calc(100% + 10px)!important}
 .aswrap.sl .asn::after{inset-inline-end:auto;right:auto;left:-5px}
@@ -1548,7 +1749,7 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
  .aswrap.sr .asn::after{top:auto;bottom:-5px;left:auto;right:14px;inset-inline-end:auto}
  .aswrap.sl .asn::after{top:auto;bottom:-5px;right:auto;left:14px}
 }
-/* Feed button: the plus turns once when there is an important update (instead of a pop-up) */
+/* Feed button: the plus turns when there is an important update (instead of a pop-up) */
 .feed.upd .fdp{animation:fdTurn 1.5s cubic-bezier(.4,0,.2,1) 3}
 @keyframes fdTurn{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.25)}100%{transform:rotate(360deg) scale(1)}}
 @media(prefers-reduced-motion:reduce){.feed.upd .fdp{animation:none}}`; document.head.appendChild(st); })();
@@ -1557,7 +1758,7 @@ const DK_KEY = 'thabit_dock_pos';
 const dkAll = () => { try { return JSON.parse(localStorage.getItem(DK_KEY) || '{}') || {}; } catch (e) { return {}; } };
 const dkSide = id => (dkAll()[id] && dkAll()[id].s === 'l') ? 'sl' : 'sr';
 const dkSize = () => (matchMedia('(max-width:600px)').matches ? 36 : 44);
-function dkStyle(id, ix) {   // default: right side, just above the Feed button / bar, tabs stacked
+function dkStyle(id, ix) {
   const o = dkAll()[id], size = dkSize(), def = (matchMedia('(max-width:600px)').matches ? 84 : 92) + ix * (size + 10);
   const b = o && typeof o.b === 'number' ? Math.max(8, Math.min(innerHeight - size - 8, o.b)) : def;
   return 'bottom:' + b + 'px';
@@ -1569,7 +1770,7 @@ function dkDrag() {
     const begin = e => { st.on = true; w.classList.add('dragging'); try { w.setPointerCapture(e.pointerId); } catch (x) {} try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} };
     w.addEventListener('pointerdown', e => {
       if (e.target.closest('.dkx, .asn')) return;
-      const r = w.getBoundingClientRect(); st = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, on: false, id: e.pointerId }; moved = false;
+      const r = w.getBoundingClientRect(); st = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, on: false }; moved = false;
       clearTimeout(timer); timer = setTimeout(() => begin(e), 380);
     });
     w.addEventListener('pointermove', e => {
@@ -1583,7 +1784,7 @@ function dkDrag() {
       clearTimeout(timer); if (!st) return;
       const on = st.on; st = null; if (!on) return;
       const r = w.getBoundingClientRect(), side = (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', b = Math.max(8, innerHeight - r.bottom);
-      w.classList.remove('dragging'); w.classList.remove('sl', 'sr'); w.classList.add(side === 'l' ? 'sl' : 'sr');
+      w.classList.remove('dragging', 'sl', 'sr'); w.classList.add(side === 'l' ? 'sl' : 'sr');
       w.style.left = ''; w.style.right = ''; w.style.top = ''; w.style.bottom = b + 'px';
       const all = dkAll(); all[w.dataset.id] = { s: side, b }; try { localStorage.setItem(DK_KEY, JSON.stringify(all)); } catch (x) {}
       swallow = moved; setTimeout(() => { swallow = false; }, 350);
