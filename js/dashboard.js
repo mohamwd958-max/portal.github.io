@@ -11,6 +11,16 @@ const T = {
 T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
+function thK() {
+  try {
+    if (localStorage.getItem('thabit_view') !== 'desktop') return 1;
+    const a = Math.min(screen.width, screen.height); if (!(a < 700)) return 1;
+    const dw = innerWidth > innerHeight ? Math.max(screen.width, screen.height) : a;
+    return Math.max(1, innerWidth / dw);
+  } catch (e) { return 1; }
+}
+function thKApply() { const k = thK(), r = document.documentElement; r.style.setProperty('--bk', k); if (k > 1.05) r.setAttribute('data-dv', '1'); else r.removeAttribute('data-dv'); }
+thKApply(); window.addEventListener('resize', thKApply);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
@@ -1227,7 +1237,7 @@ function applyPlace(p) {
   if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
   root.setAttribute('data-bar', p.dock);
   const vert = p.dock !== 'bottom', size = vert ? innerHeight : innerWidth, r = bar.getBoundingClientRect(), half = (vert ? r.height : r.width) / 2, lo = half + 8, hi = size - half - 8;
-  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) + 'px');
+  bar.style.setProperty('--bp', (lo > hi ? size / 2 : Math.min(hi, Math.max(lo, p.pos * size))) / thK() + 'px');
 }
 function hopBar() { const b = barEl(); b.classList.remove('hop'); void b.offsetWidth; b.classList.add('hop'); setTimeout(() => b.classList.remove('hop'), 650); }
 function dockTo(side) {
@@ -1264,7 +1274,7 @@ function moveEnd(pinned) {
     const d = (MV.vert ? e.clientY : e.clientX) - MV.p0; if (!MV.moved && Math.abs(d) < 4) return; MV.moved = true;
     const size = MV.vert ? innerHeight : innerWidth, lo = MV.half + 8, hi = size - MV.half - 8;
     MV.c = lo > hi ? size / 2 : Math.min(hi, Math.max(lo, MV.c0 + d));
-    bar.style.setProperty('--bp', MV.c + 'px');
+    bar.style.setProperty('--bp', MV.c / thK() + 'px');
   });
   const up = e => {
     if (!MV || e.pointerId !== MV.id) return;
@@ -1280,26 +1290,27 @@ function moveEnd(pinned) {
 })();
 
 /* ----- pop-outs: round buttons that slide out of the bar, away from the side it sits on ----- */
-let pickT = null, pickBtn = null, pkFly = null;
+let pickT = null, pickBtn = null, pkFly = null, pkS = null;
 const pkReduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
 function pkSolid(c, light) { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (m) { const p = m[1].split(',').map(parseFloat); if (p.length < 4 || p[3] > .5) return c; } return light ? 'rgba(255,255,255,.96)' : 'rgba(15,23,42,.94)'; }
 function pkFlyDone(f) { f.el.remove(); f.btn.classList.remove('pk-hide'); if (pkFly === f) pkFly = null; }
+const PK_SC = 1.3;
 /* the pressed button leaves the bar (a copy flies out; the original stays empty in the bar) and lands on the stage, away from the bar */
 function pkFlyOut(pop, btn, sx, sy, bx, by) {
-  const r = btn.getBoundingClientRect(), cs = getComputedStyle(btn), light = document.body.classList.contains('light-theme');
+  const K = thK(), r = btn.getBoundingClientRect(), cs = getComputedStyle(btn), light = document.body.classList.contains('light-theme');
   const el = document.createElement('div'); el.className = 'pkfly'; el.innerHTML = btn.innerHTML;
-  const s = el.style; s.left = r.left + 'px'; s.top = r.top + 'px'; s.width = r.width + 'px'; s.height = r.height + 'px';
+  const s = el.style; s.left = r.left / K + 'px'; s.top = r.top / K + 'px'; s.width = r.width / K + 'px'; s.height = r.height / K + 'px';
   s.borderRadius = '50%'; s.color = cs.color; s.font = cs.font; s.background = pkSolid(cs.backgroundColor, light);
   s.border = cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor; s.transformOrigin = '50% 50%';
   pop.appendChild(el);
-  const f = pkFly = { el, btn, anim: null, timer: null, st: 'translate(' + (sx - bx) + 'px,' + (sy - by) + 'px) scale(1.4)', sh: '0 0 0 3px rgba(251,191,36,.85),0 16px 40px rgba(0,0,0,.6)' };
+  const dx = (sx - bx) / K, dy = (sy - by) / K;
+  const f = pkFly = { el, btn, anim: null, timer: null, st: 'translate(' + dx + 'px,' + dy + 'px) scale(' + PK_SC + ')', sh: '0 16px 40px rgba(0,0,0,.6)' };
   btn.classList.add('pk-hide');
   el.onclick = e => { e.stopPropagation(); pickClose(); };
-  const dx = sx - bx, dy = sy - by;
   if (pkReduce() || !el.animate) { s.transform = f.st; s.boxShadow = f.sh; if (btn.id === 'plusBtn') el.classList.add('rot'); return; }
   f.anim = el.animate([
-    { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 0 rgba(251,191,36,0)' },
-    { transform: 'translate(' + dx * .6 + 'px,' + dy * .6 + 'px) scale(1.75)', offset: .55 },
+    { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 rgba(0,0,0,0)' },
+    { transform: 'translate(' + dx * .6 + 'px,' + dy * .6 + 'px) scale(' + (PK_SC + .35) + ')', offset: .55 },
     { transform: f.st, boxShadow: f.sh }
   ], { duration: 640, easing: 'cubic-bezier(.2,.9,.25,1)', fill: 'forwards' });
   if (btn.id === 'plusBtn') requestAnimationFrame(() => el.classList.add('rot'));
@@ -1310,46 +1321,67 @@ function pkFlyBack(now) {
   if (now || pkReduce() || !f.el.animate) { pkFlyDone(f); return; }
   if (f.anim) f.anim.cancel();
   f.el.style.transform = f.st; f.el.style.boxShadow = f.sh;
-  f.anim = f.el.animate([{ transform: f.st, boxShadow: f.sh }, { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 0 rgba(0,0,0,0)' }], { duration: 300, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+  f.anim = f.el.animate([{ transform: f.st, boxShadow: f.sh }, { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 rgba(0,0,0,0)' }], { duration: 300, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
   f.anim.onfinish = () => pkFlyDone(f); f.timer = setTimeout(() => pkFlyDone(f), 420);
 }
+/* second level: an option that has its own options (o.sub) fans them out sideways from itself, across the free space. Only one fan is open at a time. */
+function pickSubClose() {
+  const pop = $('langPop');
+  pop.querySelectorAll('.lgi.sub').forEach(b => { b.classList.add('out'); setTimeout(() => b.remove(), 210); });
+  pop.querySelectorAll('.lgi.sel').forEach(b => b.classList.remove('sel'));
+  if (pkS) pkS.subI = -1;
+}
+function pickSubOpen(i) {
+  const s = pkS, pop = $('langPop'); if (!s) return;
+  if (s.subI === i) { pickSubClose(); tourStop(); return; }
+  pickSubClose(); s.subI = i;
+  const o = s.list[i], info = o.sub(), sub = info.list, K = s.K, STEP = (s.S + s.G) * K, x = s.pts[i][0], y = s.pts[i][1];
+  const horizRow = s.ux !== 0;                                   // options sit in a row -> their fan goes up or down, toward the roomier side
+  let dx = 0, dy = 0; if (horizRow) dy = (innerHeight - y) >= y ? 1 : -1; else dx = (innerWidth - x) >= x ? 1 : -1;
+  const sp = [];
+  pop.insertAdjacentHTML('beforeend', sub.map((q, j) => {
+    const px = x + dx * (j + 1) * STEP, py = y + dy * (j + 1) * STEP; sp.push([px, py]);
+    return `<button type="button" class="lgi sub${q.cur ? ' cur' : ''}" data-j="${j}" title="${esc(q.title || '')}" aria-label="${esc(q.title || '')}" style="left:${px / K - s.S / 2}px;top:${py / K - s.S / 2}px;--fx:${(x - px) / K}px;--fy:${(y - py) / K}px;--i:${j}">${q.html}</button>`;
+  }).join(''));
+  const own = pop.querySelector('.lgi[data-i="' + i + '"]'); if (own) own.classList.add('sel');
+  pop.querySelectorAll('.lgi.sub').forEach(b => b.onclick = e => { e.stopPropagation(); const q = sub[+b.dataset.j]; if (q.keep) q.on(); else { pickClose(); q.on(); } });
+  tourStart(info.key || '', sp, horizRow ? 'bottom' : 'left', [[s.sx, s.sy, 32 * K]].concat(s.pts.map(c => [c[0], c[1], (s.S / 2 + 4) * K])));
+}
 function pickOpen(btn, list, key0) {
-  const pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
-  const S = 46, G = 10, M = S / 2 + 8, ST = 66, D0 = 58, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  const K = thK(), pop = $('langPop'), br = barEl().getBoundingClientRect(), r = btn.getBoundingClientRect(), side = barSide();
+  const S = 46, G = 10, M = (S / 2 + 8) * K, bx = r.left + r.width / 2, by = r.top + r.height / 2, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  const cr = r.width * PK_SC / 2, ST = cr + 34 * K, D0 = cr + (10 + S / 2) * K, STEP = (S + G) * K;
   if (pop.classList.contains('open') && !pop.classList.contains('closing') && pickBtn === btn) { pickClose(); return; }   // second tap on the same button = close
   clearTimeout(pickT); pop.classList.remove('closing'); pop.dataset.side = side;
   pop.dataset.lab = (side === 'bottom' || side === 'top') ? (bx > innerWidth / 2 ? 'l' : 'r') : '';
   document.documentElement.classList.add('pk-open');
-  /* same button opening a second level (pen -> customize): keep its copy on the stage instead of flying it again */
+  /* same button opening again (e.g. the old pen -> customize): keep its copy on the stage instead of flying it again */
   let keep = null;
   if (pkFly && pkFly.btn === btn) { keep = pkFly; clearTimeout(keep.timer); keep.back = false; if (keep.anim) keep.anim.cancel(); keep.el.style.transform = keep.st; keep.el.style.boxShadow = keep.sh; if (btn.id === 'plusBtn') keep.el.classList.add('rot'); }
   else if (pkFly) pkFlyDone(pkFly);
   if (pickBtn && pickBtn !== btn) pickBtn.classList.remove('pk-on'); pickBtn = btn; btn.classList.add('pk-on');
   const key = key0 || ({ langBtn: 'lang', barEdit: 'star', plusBtn: 'plus', profBtn: 'prof' })[btn.id] || '', pts = [];
   /* stage = where the pressed button sits, away from the bar; its options fan out beyond it */
-  let sx, sy;
-  if (side === 'left') { sx = br.right + ST; sy = cl(by, M, innerHeight - M); }
-  else if (side === 'right') { sx = br.left - ST; sy = cl(by, M, innerHeight - M); }
-  else if (side === 'top') { sy = br.bottom + ST; sx = cl(bx, M, innerWidth - M); }
-  else { sy = br.top - ST; sx = cl(bx, M, innerWidth - M); }
+  let sx, sy, ux = 0, uy = 0;
+  if (side === 'left') { sx = br.right + ST; sy = cl(by, M, innerHeight - M); ux = 1; }
+  else if (side === 'right') { sx = br.left - ST; sy = cl(by, M, innerHeight - M); ux = -1; }
+  else if (side === 'top') { sy = br.bottom + ST; sx = cl(bx, M, innerWidth - M); uy = 1; }
+  else { sy = br.top - ST; sx = cl(bx, M, innerWidth - M); uy = -1; }
   pop.innerHTML = list.map((o, i) => {
-    const d = D0 + i * (S + G); let x, y;
-    if (side === 'left') { x = sx + d; y = sy; }
-    else if (side === 'right') { x = sx - d; y = sy; }
-    else if (side === 'top') { y = sy + d; x = sx; }
-    else { y = sy - d; x = sx; }
+    const d = D0 + i * STEP, x = sx + ux * d, y = sy + uy * d;
     pts.push([x, y]);
-    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x - S / 2}px;top:${y - S / 2}px;--fx:${sx - x}px;--fy:${sy - y}px;--i:${i}">${o.html}</button>`;
+    return `<button type="button" class="lgi${o.cur ? ' cur' : ''}" data-i="${i}" title="${esc(o.title || '')}" aria-label="${esc(o.title || '')}" style="left:${x / K - S / 2}px;top:${y / K - S / 2}px;--fx:${(sx - x) / K}px;--fy:${(sy - y) / K}px;--i:${i}">${o.html}</button>`;
   }).join('');
+  pkS = { list, pts, ux, uy, sx, sy, K, S, G, subI: -1 };
   if (keep) pop.appendChild(keep.el); else pkFlyOut(pop, btn, sx, sy, bx, by);
   pop.classList.add('open');
-  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const o = list[+b.dataset.i]; pickClose(); o.on(); });
-  tourStart(key, pts, side, [sx, sy]);
+  pop.querySelectorAll('.lgi').forEach(b => b.onclick = e => { e.stopPropagation(); const i = +b.dataset.i, o = list[i]; if (o.sub) pickSubOpen(i); else { pickClose(); o.on(); } });
+  tourStart(key, pts, side, [[sx, sy, 32 * K]]);
 }
 function pickClose(now) {
   tourStop();
   const pop = $('langPop'); if (!pop.classList.contains('open')) return;
-  clearTimeout(pickT); document.documentElement.classList.remove('pk-open'); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; }
+  clearTimeout(pickT); document.documentElement.classList.remove('pk-open'); if (pickBtn) { pickBtn.classList.remove('pk-on'); pickBtn = null; } pkS = null;
   pkFlyBack(now);
   if (now || pkReduce()) { pop.classList.remove('open', 'closing'); pop.innerHTML = ''; return; }
   pop.classList.add('closing');
@@ -1365,11 +1397,19 @@ function openProf(btn) {
   ]);
 }
 function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
+function viewSubList() {
+  const ar = lang !== 'en', wide = innerWidth > 700, U = UIT[lang] || UIT.en;
+  return [
+    { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') },
+    { html: '<i class="fa-solid fa-text-height"></i>', title: U.zoom, keep: 1, on: () => startAdjust('zoom') },
+    { html: '<i class="fa-solid fa-sun"></i>', title: U.bri, keep: 1, on: () => startAdjust('bri') }
+  ];
+}
 function openStar(btn) {
-  const ar = lang !== 'en', wide = innerWidth > 700;
+  const ar = lang !== 'en';
   pickOpen(btn || $('barEdit'), [
-    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', label: ar ? 'تخصيص' : 'Customize', on: () => openBarOpts($('barEdit')) },
-    { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), label: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') }
+    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', sub: () => ({ key: 'cust', list: barSubList() }) },
+    { html: '<i class="fa-solid fa-eye"></i>', title: ar ? 'العرض' : 'View', sub: () => ({ key: 'view', list: viewSubList() }) }
   ]);
 }
 function openPlus(btn) {
@@ -1390,14 +1430,15 @@ const BIC = {
   bottom: '<rect x="4.8" y="12.9" width="14.4" height="4.8" rx="2" fill="currentColor"/></svg>',
   free: '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M6 3.5v15.2l4.1-3.9 2.7 5.7 2.4-1.1-2.7-5.6h5.7z" fill="currentColor"/></svg>'
 };
-function openBarOpts(btn) {
+function barSubList() {
   const t = BT(), toLeft = barSide() === 'right';
-  pickOpen(btn || $('barEdit'), [
+  return [
     { html: BIC.box + (toLeft ? BIC.left : BIC.right), title: toLeft ? t.left : t.right, on: () => dockTo(toLeft ? 'left' : 'right') },
     { html: BIC.box + BIC.bottom, title: t.bottom, on: () => dockTo('bottom') },
     { html: BIC.free, title: t.free, on: moveStart }
-  ], 'cust');
+  ];
 }
+function openBarOpts(btn) { pickOpen(btn || $('barEdit'), barSubList(), 'cust'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { pickClose(); moveEnd(false); } });
 
 window.openStar = openStar; window.openProf = openProf; window.openPlus = openPlus; window.openLang = openLang; window.closeLang = closeLang; window.openBarOpts = openBarOpts; window.closeBarOpts = closeLang;
@@ -1747,8 +1788,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
   const gget = () => { try { const o = JSON.parse(localStorage.getItem(GK) || 'null'); if (o && (o.s === 'l' || o.s === 'r') && isFinite(o.y)) return o; } catch (e) {} return null; };
   const gplace = o => {
     o = o || gget() || { s: 'r', y: innerHeight - 190 };
-    const y = Math.max(10, Math.min(innerHeight - BOT() - GH, o.y));
-    g.style.top = y + 'px'; g.style.bottom = 'auto';
+    const k = thK(), y = Math.max(10, Math.min(innerHeight - BOT() - GH * k, o.y));
+    g.style.top = y / k + 'px'; g.style.bottom = 'auto';
     if (o.s === 'l') { g.style.left = '10px'; g.style.right = 'auto'; } else { g.style.right = '10px'; g.style.left = 'auto'; }
     return { s: o.s, y };
   };
@@ -1791,7 +1832,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
     lp = setTimeout(() => { if (!down) return; drag = { dx: sx - r.left, dy: sy - r.top, prev: gplace(gget() || { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top }) }; dragMoved = true; g.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch (x) {} try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} }, 380);
   });
   g.addEventListener('pointermove', e => {
-    if (drag) { g.style.left = Math.max(4, Math.min(innerWidth - GW - 4, e.clientX - drag.dx)) + 'px'; g.style.right = 'auto'; g.style.top = Math.max(4, Math.min(innerHeight - GH - 4, e.clientY - drag.dy)) + 'px'; return; }
+    if (drag) { const k = thK(); g.style.left = Math.max(4, Math.min(innerWidth - GW * k - 4, e.clientX - drag.dx)) / k + 'px'; g.style.right = 'auto'; g.style.top = Math.max(4, Math.min(innerHeight - GH * k - 4, e.clientY - drag.dy)) / k + 'px'; return; }
     if (down && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(lp);
     if (!down || swiped || !hid) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { swiped = true; showBar(); } });
   ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; clearTimeout(lp); endGhostDrag(); }));
@@ -1915,7 +1956,8 @@ function tourTips(key, side) {
   }
   if (key === 'prof') return [t3('Your profile: your info, and you can change your picture', 'ملفك الشخصي: بياناتك، ويمكنك تغيير صورتك', 'ملفك الشخصي: بياناتك، وتقدر تغيّر صورتك'), t3('Log out of your account', 'تسجيل الخروج من حسابك', 'اطلع من حسابك')];
   if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Send a request to your trainer: session time, payments or anything else', 'أرسل طلبًا إلى المدرب: موعد الجلسة أو المدفوعات أو غير ذلك', 'ابعت طلب للمدرب: معاد السيشن أو الفلوس أو أي حاجة تانية')];
-  if (key === 'star') { const wide = innerWidth > 700; return [t3('Customize: move the bar to the left, right, bottom or anywhere you like', 'تخصيص: انقل الشريط لليسار أو اليمين أو الأسفل أو أي مكان تريده', 'تخصيص: انقل الشريط شمال أو يمين أو تحت أو أي مكان تحبه'), wide ? t3('Phone view: shows the site the way it looks on a phone', 'شكل التليفون: يعرض الموقع كما يظهر على الهاتف', 'شكل التليفون: بيعرض الموقع زي ما بيبان على التليفون') : t3('Desktop view: shows the full desktop layout', 'شكل الديسكتوب: يعرض التصميم الكامل للكمبيوتر', 'شكل الديسكتوب: بيعرض التصميم الكامل بتاع الكمبيوتر')]; }
+  if (key === 'star') return [t3('Customize: move the bar to the left, right, bottom or anywhere you like', 'تخصيص: انقل الشريط لليسار أو اليمين أو الأسفل أو أي مكان تريده', 'تخصيص: انقل الشريط شمال أو يمين أو تحت أو أي مكان تحبه'), t3('View: phone / desktop view, text and icon size, and brightness', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخطوط، والسطوع', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخط، والسطوع')];
+  if (key === 'view') { const wide = innerWidth > 700; return [wide ? t3('Phone view: shows the site the way it looks on a phone', 'شكل التليفون: يعرض الموقع كما يظهر على الهاتف', 'شكل التليفون: بيعرض الموقع زي ما بيبان على التليفون') : t3('Desktop view: shows the full desktop layout (the bar stays big)', 'شكل الديسكتوب: يعرض التصميم الكامل للكمبيوتر (ويبقى الشريط كبيرًا)', 'شكل الديسكتوب: بيعرض التصميم الكامل بتاع الكمبيوتر (والشريط بيفضل كبير)'), t3('Text & icon size: make everything bigger or smaller and watch it live', 'حجم الأيقونات والخطوط: كبّر كل شيء أو صغّره وشاهد النتيجة مباشرة', 'حجم الأيقونات والخط: كبّر أو صغّر كل حاجة وشوف النتيجة على طول'), t3('Brightness of this app only (not your phone)', 'سطوع هذا التطبيق فقط (وليس هاتفك)', 'سطوع التطبيق ده بس (مش سطوع تليفونك)')]; }
   if (key === 'cust') return [side === 'right' ? t3('Move the bar to the left side', 'نقل الشريط إلى اليسار', 'انقل الشريط للشمال') : t3('Move the bar to the right side', 'نقل الشريط إلى اليمين', 'انقل الشريط لليمين'), t3('Move the bar to the bottom', 'نقل الشريط إلى الأسفل', 'نزّل الشريط تحت'), t3('Free move: drag the bar anywhere, let go to pin it', 'تحريك حر: اسحب الشريط إلى أي مكان ثم اتركه ليتثبت', 'تحريك حر: اسحب الشريط لأي مكان وسيبه يتثبت')];
   return null;
 }
@@ -1939,7 +1981,7 @@ function tourStop() {
 }
 /* every tip sits right beside its own button, joined by a plain line (no arrow head). Tips appear one after another and ALL stay until the trainee
    taps an empty part of the screen (back next time) or taps "Got it" (never again). */
-function tourStart(key, pts, side, stage) {
+function tourStart(key, pts, side, avoid) {
   tourStop();
   if (!tourWanted(key) || !pts || !pts.length) return;
   const tips = tourTips(key, side); if (!tips || !tips.length) return;
@@ -1952,9 +1994,9 @@ function tourStart(key, pts, side, stage) {
   const T = TOUR = { root, t: null, dead: false, onDown: null };
   T.onDown = e => { if (e.target.closest && e.target.closest('.tok')) return; tourStop(); };
   document.addEventListener('pointerdown', T.onDown, true);
-  const vw = innerWidth, vh = innerHeight, W = Math.min(210, vw - 24), R = 23, GAP = 16, barR = $('mobileFloatingBar').getBoundingClientRect();
+  const K = thK(), vw = innerWidth, vh = innerHeight, W = Math.min(210 * K, vw - 24), R = 23 * K, GAP = 16 * K, barR = $('mobileFloatingBar').getBoundingClientRect();
   const order = (side === 'bottom' || side === 'top') ? ['left', 'right', 'up', 'down'] : ['up', 'down', 'left', 'right'];
-  const circles = pts.map(c => [c[0], c[1], R + 4]).concat(stage ? [[stage[0], stage[1], 32]] : []), placed = [];
+  const circles = pts.map(c => [c[0], c[1], R + 4 * K]).concat(avoid || []), placed = [];
   const hitCircle = (l, t, h, c) => { const nx = Math.min(l + W, Math.max(l, c[0])), ny = Math.min(t + h, Math.max(t, c[1])); return Math.hypot(nx - c[0], ny - c[1]) < c[2]; };
   const hitBar = (l, t, h) => l < barR.right + 6 && l + W > barR.left - 6 && t < barR.bottom + 6 && t + h > barR.top - 6;
   const hitPlaced = (l, t, h) => placed.some(p => l < p.r + 6 && l + W > p.l - 6 && t < p.b + 6 && t + h > p.t - 6);
@@ -1975,15 +2017,15 @@ function tourStart(key, pts, side, stage) {
   function line(box, h, x, y) {
     const ax = Math.min(box.l + W, Math.max(box.l, x)), ay = Math.min(box.t + h, Math.max(box.t, y)), dx = x - ax, dy = y - ay, len = Math.hypot(dx, dy);
     if (len < R + 4) return null;
-    return `M${ax},${ay} L${x - dx / len * (R + 2)},${y - dy / len * (R + 2)}`;
+    return `M${ax / K},${ay / K} L${(x - dx / len * (R + 2)) / K},${(y - dy / len * (R + 2)) / K}`;
   }
   function show(i, last) {
     if (T.dead) return;
-    const bub = document.createElement('div'); bub.className = 'tbub'; bub.style.width = W + 'px';
+    const bub = document.createElement('div'); bub.className = 'tbub'; bub.style.width = W / K + 'px';
     bub.innerHTML = `<div class="tt" dir="auto">${esc(tips[i])}</div>` + (last ? `<button type="button" class="tok">${esc(X.ok)}</button>` : '');
     root.appendChild(bub);
-    const h = bub.offsetHeight, box = spot(i, h); placed.push({ l: box.l, t: box.t, r: box.l + W, b: box.t + h });
-    bub.style.left = box.l + 'px'; bub.style.top = box.t + 'px'; void bub.offsetWidth; bub.style.opacity = 1;
+    const h = bub.getBoundingClientRect().height, box = spot(i, h); placed.push({ l: box.l, t: box.t, r: box.l + W, b: box.t + h });
+    bub.style.left = box.l / K + 'px'; bub.style.top = box.t / K + 'px'; void bub.offsetWidth; bub.style.opacity = 1;
     const d = line(box, h, pts[i][0], pts[i][1]);
     if (d) { const p = document.createElementNS(NS, 'path'); p.setAttribute('pathLength', '1'); p.setAttribute('d', d); svg.appendChild(p); void p.getBoundingClientRect(); p.classList.add('go'); }
     if (last) bub.querySelector('.tok').onclick = e => { e.stopPropagation(); const o = tourGet(); o[key] = o[key] || {}; o[key].done = 1; tourSet(o); tourStop(); };
@@ -1992,3 +2034,67 @@ function tourStart(key, pts, side, stage) {
   const next = () => { if (T.dead) return; show(i, i === n - 1); i++; if (i < n) T.t = setTimeout(next, 1100); };
   T.t = setTimeout(next, 900);
 }
+
+/* ===== View options: text & icon size + brightness of THIS app (not the phone's). Live preview, saved on this device. ===== */
+const UI_KEY = 'thabit_ui', UI_DEF = { zoom: 1, bri: 1 };
+const UIT = {
+  en: { zoom: 'Text & icon size', bri: 'Brightness', save: 'Save', discard: 'Discard', def: 'Back to default', saved: 'Saved ✓', reset: 'Back to default ✓' },
+  ar: { zoom: 'حجم الأيقونات والخطوط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'تم الحفظ ✓', reset: 'تمت العودة للافتراضي ✓' },
+  eg: { zoom: 'حجم الأيقونات والخط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'اتحفظ ✓', reset: 'رجعنا للافتراضي ✓' }
+};
+const uiGet = () => { try { const o = JSON.parse(localStorage.getItem(UI_KEY) || 'null') || {}; return { zoom: isFinite(o.zoom) ? +o.zoom : 1, bri: isFinite(o.bri) ? +o.bri : 1 }; } catch (e) { return Object.assign({}, UI_DEF); } };
+function uiApply(o) {
+  document.documentElement.style.setProperty('--ui-zoom', o.zoom);
+  let v = $('thBri'); if (!v) { v = document.createElement('div'); v.id = 'thBri'; document.body.appendChild(v); }
+  if (o.bri < 1) { v.style.background = '#000'; v.style.mixBlendMode = 'normal'; v.style.opacity = String(Math.min(.8, 1 - o.bri)); }
+  else if (o.bri > 1) { v.style.background = '#fff'; v.style.mixBlendMode = 'soft-light'; v.style.opacity = String(Math.min(1, (o.bri - 1) * 1.6)); }
+  else v.style.opacity = '0';
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+.wrap{zoom:var(--ui-zoom,1)}
+#thBri{position:fixed;inset:0;z-index:10050;pointer-events:none;opacity:0}
+html[data-dv] #mobileFloatingBar,html[data-dv] #thGhost,html[data-dv] #langPop,html[data-dv] #thAdj,html[data-dv] .tour{zoom:var(--bk)}
+html[data-dv] #mobileFloatingBar{max-width:calc((100vw - 28px)/var(--bk))!important}
+.lgi.sel{border-color:#34d399}
+.lgi.out{animation:lgOut .2s cubic-bezier(.4,0,1,1) forwards!important;animation-delay:0s!important;pointer-events:none}
+html.adj-on #langPop,html.adj-on #mobileFloatingBar,html.adj-on #thGhost,html.adj-on #dock .aswrap{visibility:hidden!important;pointer-events:none}
+#thAdj{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);z-index:10060;width:min(92vw,400px);box-sizing:border-box;padding:14px 16px;border-radius:20px;background:rgba(15,23,42,.94);color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 40px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font:600 .85rem Inter,Cairo,sans-serif}
+body.light-theme #thAdj{background:rgba(255,255,255,.95);color:#0f172a;border-color:rgba(15,23,42,.18)}
+#thAdj[hidden]{display:none}
+#thAdj .adjt{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+#thAdj .adjv{color:#34d399;font-weight:800}
+#thAdj input[type=range]{width:100%;margin:6px 0 2px;touch-action:pan-x;accent-color:#34d399;height:28px}
+#thAdj .adjb{display:flex;gap:8px;margin-top:12px;animation:lgpIn .3s ease-out both}
+#thAdj .adjb[hidden]{display:none}
+#thAdj .adjb button{flex:1;padding:9px 6px;border-radius:12px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
+#thAdj .adjb button[data-a=save]{background:#34d399;border-color:#34d399;color:#04231a}`; document.head.appendChild(st); })();
+let ADJ = null;
+function startAdjust(kind) {
+  const U = UIT[lang] || UIT.en; tourStop();
+  let p = $('thAdj');
+  if (!p) {
+    p = document.createElement('div'); p.id = 'thAdj'; p.hidden = true;
+    p.innerHTML = '<div class="adjt"><span class="adjl"></span><span class="adjv"></span></div><input type="range" class="adjr"><div class="adjb" hidden><button type="button" data-a="discard"></button><button type="button" data-a="def"></button><button type="button" data-a="save"></button></div>';
+    document.body.appendChild(p);
+    const r = p.querySelector('.adjr'), show = () => { if (ADJ) p.querySelector('.adjb').hidden = false; };
+    r.addEventListener('input', () => { if (!ADJ) return; ADJ.cur[ADJ.kind] = +r.value; uiApply(ADJ.cur); p.querySelector('.adjv').textContent = Math.round(r.value * 100) + '%'; });
+    r.addEventListener('change', show); r.addEventListener('pointerup', show); r.addEventListener('touchend', show);
+    p.querySelectorAll('.adjb button').forEach(b => b.onclick = e => { e.stopPropagation(); endAdjust(b.dataset.a); });
+  }
+  ADJ = { kind, base: uiGet(), cur: uiGet() };
+  const r = p.querySelector('.adjr'), cfg = kind === 'zoom' ? { min: .8, max: 1.4 } : { min: .6, max: 1.4 };
+  r.min = cfg.min; r.max = cfg.max; r.step = .05; r.value = ADJ.cur[kind];
+  p.querySelector('.adjl').textContent = U[kind]; p.querySelector('.adjv').textContent = Math.round(ADJ.cur[kind] * 100) + '%';
+  const bb = p.querySelector('.adjb'); bb.hidden = true;
+  p.querySelector('[data-a=discard]').textContent = U.discard; p.querySelector('[data-a=def]').textContent = U.def; p.querySelector('[data-a=save]').textContent = U.save;
+  p.hidden = false; document.documentElement.classList.add('adj-on');   // menu + bar vanish, the dashboard is all you see
+}
+function endAdjust(mode) {
+  if (!ADJ) return; const a = ADJ, U = UIT[lang] || UIT.en; ADJ = null;
+  if (mode === 'save') { try { localStorage.setItem(UI_KEY, JSON.stringify(a.cur)); } catch (e) {} uiApply(a.cur); itToast(U.saved); }
+  else if (mode === 'def') { try { localStorage.removeItem(UI_KEY); } catch (e) {} uiApply(UI_DEF); itToast(U.reset); }
+  else uiApply(a.base);
+  $('thAdj').hidden = true; document.documentElement.classList.remove('adj-on');   // back to the menu exactly where we left it
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ADJ) { e.stopImmediatePropagation(); endAdjust('discard'); } }, true);
+uiApply(uiGet());
