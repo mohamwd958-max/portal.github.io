@@ -12,9 +12,11 @@
     });
   }
 
+  var SHOW_BANNER = !!(document.currentScript && document.currentScript.hasAttribute('data-banner'));
+
   // 2) Install banner
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (isStandalone) return;
+  if (isStandalone || !SHOW_BANNER) return;
 
   var DISMISS_KEY = 'thabitInstallDismissedAt';
   var DISMISS_DAYS = 7;
@@ -113,4 +115,54 @@
   if (isIOS && isSafari) {
     window.addEventListener('load', function () { setTimeout(function () { show('ios'); }, 2500); });
   }
+
+  // 3) Exit guard (installed app only): the first back swipe asks, the second one (within 3 s) leaves the app
+  (function () {
+    var standaloneNow = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!standaloneNow || window.top !== window) return;
+
+    var MSG = {
+      en: 'Are you sure you want to get out? Swipe back again to exit.',
+      ar: 'هل أنت متأكد أنك تريد الخروج؟ اسحب مرة أخرى للخروج.',
+      eg: 'متأكد إنك عايز تخرج؟ اسحب مرة كمان عشان تخرج.'
+    };
+    var armed = false, timer = null, toast = null;
+
+    function lang() {
+      var l = 'en';
+      try { l = localStorage.getItem('thabit_lang') || 'en'; } catch (e) {}
+      return MSG[l] ? l : 'en';
+    }
+    function hide() {
+      armed = false;
+      clearTimeout(timer);
+      if (toast) { toast.remove(); toast = null; }
+    }
+    function show() {
+      hide();
+      toast = document.createElement('div');
+      toast.setAttribute('role', 'status');
+      toast.dir = lang() === 'en' ? 'ltr' : 'rtl';
+      toast.textContent = MSG[lang()];
+      toast.style.cssText = 'position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translateX(-50%);' +
+        'z-index:2147483000;max-width:calc(100vw - 32px);padding:11px 18px;border-radius:14px;background:#111;color:#fff;' +
+        'font:600 14px/1.5 Cairo,system-ui,sans-serif;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.45);' +
+        'border:1px solid rgba(255,255,255,.25)';
+      document.body.appendChild(toast);
+      armed = true;
+      timer = setTimeout(hide, 3000);
+    }
+    function arm() { try { history.pushState({ thabitGuard: 1 }, '', location.href); } catch (e) {} }
+
+    function init() {
+      arm();
+      window.addEventListener('popstate', function () {
+        if (document.querySelector('.mt')) return;   // maintenance screen has its own back handling
+        if (armed) { hide(); history.back(); return; }   // second swipe: really leave
+        arm();                                           // first swipe: stay and ask
+        show();
+      });
+    }
+    if (document.body) init(); else document.addEventListener('DOMContentLoaded', init);
+  })();
 })();
