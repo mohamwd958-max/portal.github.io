@@ -5,6 +5,14 @@ try {
     }
 } catch (e) {}
 
+/* Signed-in trainee: leave the portal at once (replace = Back never returns here). Logout is the only thing that clears the token. */
+try {
+    if (localStorage.getItem('thabit_trainee_token') && !sessionStorage.getItem('thabit_no_autologin')) {
+        document.documentElement.style.visibility = 'hidden';
+        location.replace('dashboard.html');
+    }
+} catch (e) {}
+
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdTjCpH7KYgNX0jV_rOmupRF2kaR1CH6RtH0wTkOccqmyuIB4zsmUD0GqKPrxaiBqd-A/exec";
 
 const PAGE_I18N = {
@@ -251,7 +259,7 @@ function saveStaffSession(j, role) {
 async function goIfExists(url) {
     try {
         const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-        if (r.ok) { window.location.href = url; return true; }
+        if (r.ok) { window.location.replace(url); return true; }
         console.error('[Thabit] Auto-redirect skipped, page not found (' + r.status + '): ' + new URL(url, location.href).href);
     } catch (e) {
         console.error('[Thabit] Auto-redirect skipped, request failed for ' + url, e);
@@ -302,7 +310,7 @@ async function handleLogin() {
                 if (role) {
                     saveStaffSession(res.session, role);
                     say(t.welcome.replace('{name}', u.split('@')[0]), 'ok');
-                    setTimeout(() => { window.location.href = ROLE_ROUTES[role]; }, 800);
+                    setTimeout(() => { window.location.replace(ROLE_ROUTES[role]); }, 800);
                     return;
                 }
                 // مسجّل في Auth لكن مش أدمن ولا ترينر -> ارفض
@@ -325,7 +333,7 @@ async function handleLogin() {
             say(t.welcome.replace('{name}', data.profile.trainee), 'ok');
             localStorage.setItem('thabit_trainee_token', data.token);
             localStorage.setItem('currentTrainee', JSON.stringify(data.profile));
-            setTimeout(() => { window.location.href = ROLE_ROUTES.trainee; }, 1000);
+            setTimeout(() => { window.location.replace(ROLE_ROUTES.trainee); }, 1000);
         } else {
             let msg = t.errWrong;
             if (data && data.message === 'too_many_attempts') msg = 'Too many attempts. Try again in 15 minutes.';
