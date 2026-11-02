@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thabit - Offline</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fff;color:#111;font-family:system-ui,-apple-system,"Segoe UI",Cairo,sans-serif;text-align:center;padding:24px}
+  img{width:96px;height:96px}
+  button{margin-top:8px;padding:12px 28px;border:0;border-radius:12px;background:#000;color:#fff;font-size:16px;cursor:pointer}
+  @media (prefers-color-scheme: dark){body{background:#000;color:#eee}img{filter:invert(1)}button{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+  <img src="icons/icon-192.png" alt="Thabit">
+  <h2>لا يوجد اتصال بالإنترنت</h2>
+  <p>You're offline. Check your connection and try again.<br>اتأكد من النت وجرب تاني.</p>
+  <button onclick="location.reload()">Retry / إعادة المحاولة</button>
+</body>
+</html>
