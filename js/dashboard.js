@@ -1485,8 +1485,8 @@ function openStar(btn) {
 function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
-    { html: ASSIST_SVG_SM, title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
-    { html: '<i class="fa-solid fa-paper-plane"></i>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
+    { html: '<span class="plA">' + ASSIST_SVG_SM + '</span>', title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
+    { html: '<span class="plS"><i class="fa-solid fa-paper-plane"></i></span>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
   ]);
 }
 function openLang(btn) {
@@ -2208,7 +2208,7 @@ function thRangeUI() {
 /* pressed: the button grows and flips its colours, the page is blurred, the other options spiral out around it as round buttons */
 function thRangeOpen(btn) {
   thRangeClose(true);
-  const t = T[lang] || T.en, r = btn.getBoundingClientRect(), W = document.documentElement.clientWidth, H = innerHeight, S = 58, R = 106;
+  const t = T[lang] || T.en, r = btn.getBoundingClientRect(), W = document.documentElement.clientWidth, H = innerHeight, S = 54, R = 98;
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2, toLeft = cx > W / 2, others = thOpts().filter(k => k !== range), step = 38;
   const ov = document.createElement('div'); ov.id = 'thRov';
   ov.innerHTML = `<button type="button" class="thrb pressed${range === 'lmonth' ? ' lm' : ''}" style="left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px"><span>${esc(t[range] || '')}</span></button>`
@@ -2245,7 +2245,7 @@ function thSections() {
   const mk = id => { const e = document.createElement('section'); e.className = 'thsec'; e.id = id; return e; };
   const s1 = mk('thS1'), s2 = mk('thS2'), s3 = mk('thS3');
   wrap.insertBefore(s1, top); s1.appendChild(top); s1.appendChild(ov);
-  const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+  const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><g class="pq"><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2" fill="none" stroke="#fbbf24" stroke-width="1.6"/><path d="M17.25 15.6v3.8M15.35 17.5h3.8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g></svg>'; ar.setAttribute('aria-label', (thRX[lang] || thRX.en).more);
   ar.addEventListener('click', () => thDetOpen()); s1.appendChild(ar);
   wrap.appendChild(s2); s2.appendChild(lists);
   const l2 = document.createElement('div'); l2.className = 'grid'; l2.id = 'lists2'; s3.appendChild(l2); wrap.appendChild(s3);
@@ -2286,7 +2286,7 @@ thSections();
 (function () { const st = document.createElement('style'); st.textContent = `
 /* --- the time button --- */
 #rng{display:flex;align-items:center}
-#rng .thrb,#thRov .thrb{box-sizing:border-box;width:58px;height:58px;padding:4px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#rng .thrb,#thRov .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #rng .thrb span,#thRov .thrb span,#thRov .thro span{display:block;max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
 #rng .thrb:active{transform:scale(.93)}
 body.light-theme #rng .thrb,body.light-theme #thRov .thrb{background:#fff;color:#000;border-color:#000;box-shadow:0 6px 18px rgba(15,23,42,.22)}
@@ -2297,23 +2297,25 @@ body.light-theme #thRov{background:rgba(255,255,255,.35)}
 #thRov .thrb.pressed{position:fixed;z-index:3001;background:#fff;color:#000;border-color:#fff;box-shadow:0 16px 44px rgba(0,0,0,.55)}
 body.light-theme #thRov .thrb.pressed{background:#000;color:#fff;border-color:#000}
 #thRov .thrb.pressed.lm{background:#fb923c;color:#1a0f00;border-color:#fb923c}
-#thRov .thrb.pressed.big{transform:scale(1.22)}
-#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:58px;height:58px;padding:4px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#thRov .thrb.pressed.big{transform:scale(1.25)}
+#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #thRov .thro:active{transform:scale(.92)}
 body.light-theme #thRov .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 #thRov .thro.lm{color:#fb923c;border-color:#fb923c}
 /* --- sections: one at a time --- */
 html{scroll-snap-type:y mandatory}
 .wrap{padding:0!important}
-.thsec{box-sizing:border-box;position:relative;min-height:100vh;min-height:calc(100vh / var(--ui-zoom,1));min-height:calc(100svh / var(--ui-zoom,1));padding:90px 16px 110px;display:flex;flex-direction:column;justify-content:flex-start;scroll-snap-align:start;scroll-snap-stop:always}
+.thsec{box-sizing:border-box;position:relative;min-height:100vh;min-height:calc(100vh / var(--ui-zoom,1));min-height:calc(100svh / var(--ui-zoom,1));padding:90px 30px 110px;display:flex;flex-direction:column;justify-content:flex-start;scroll-snap-align:start;scroll-snap-stop:always}
 @media(min-width:601px){.thsec{padding-bottom:70px}}
-@media(max-width:600px){.thsec{padding:64px 10px 110px}}
+@media(max-width:600px){.thsec{padding:64px 22px 110px}}
 .thsec>.top{order:-3}.thsec>#overall{order:-2}
 #thS1>#overall{margin-bottom:0!important}
+#thS1>.top{margin:2px 0 6px!important;display:grid!important;grid-template-columns:1fr auto;column-gap:10px;row-gap:0;align-items:end}
+#thS1>.top h1{grid-column:1;grid-row:1}#thS1>.top #rng{grid-column:2;grid-row:1/span 2;align-self:end}#thS1 #rngNote{grid-column:1;grid-row:2;margin:0}
 #thS1 #overall svg.c2{max-height:min(40vh,380px)}   /* on a big screen the chart stays small enough that the arrow below it is always on screen */
 #thHint{position:fixed;z-index:30;inset:0;pointer-events:none}
 #thHint[hidden]{display:none!important}
-#thHint .thdots{position:absolute;inset-inline-end:5px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
+#thHint .thdots{position:absolute;inset-inline-end:7px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
 #thHint .thdots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.25;transition:height .25s,opacity .25s,background .25s}
 #thHint .thdots i.on{height:18px;border-radius:3px;opacity:.85}
 #thHint{color:#94a3b8}body.light-theme #thHint{color:#475569}
@@ -2324,12 +2326,13 @@ body.light-theme #thHint .thnx{background:rgba(255,255,255,.7);color:#0f172a;bor
 @media(max-width:600px){#thHint .thnx{bottom:84px}}
 html[data-bar="bottom"] #thHint .thnx{bottom:84px}
 @keyframes thBob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
-@media(prefers-reduced-motion:reduce){#thHint .thnx{animation:none}.tharr i{animation:none!important}}
+@media(prefers-reduced-motion:reduce){#thHint .thnx{animation:none}.tharr .pq{animation:none!important}}
 /* --- the little arrow under Overall progress --- */
-.tharr{align-self:center;margin:12px auto 0;width:44px;height:44px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .2s;-webkit-tap-highlight-color:transparent;order:5}
+.tharr{align-self:center;margin:12px auto 0;width:48px;height:48px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .2s;-webkit-tap-highlight-color:transparent;order:5}
 .tharr:hover{background:rgba(251,191,36,.18)}.tharr:active{transform:scale(.92)}
-.tharr i{font-size:.9rem;animation:thBobU 1.8s ease-in-out infinite}
-@keyframes thBobU{0%,100%{transform:translateY(2px)}50%{transform:translateY(-3px)}}
+.tharr svg{display:block;overflow:visible}
+.tharr .pq{transform-box:fill-box;transform-origin:center;animation:thPls 2s ease-in-out infinite}
+@keyframes thPls{0%,60%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.22) rotate(90deg)}}
 @keyframes tdIn{from{opacity:0}to{opacity:1}}
 /* --- details pop-up: a finger of space from the bottom and from both sides, tap anywhere outside to leave --- */
 #thDet{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:16px 16px calc(72px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -2352,7 +2355,19 @@ html #mobileFloatingBar #langBtn span{display:block;line-height:1;white-space:no
 html #mobileFloatingBar .circle-badge-btn i{font-size:15px!important;line-height:1}
 html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:22px!important;height:22px!important}
 html #mobileFloatingBar>.feed .fdp{width:22px!important;height:22px!important}
-html #mobileFloatingBar #barEdit{opacity:.85}`; document.head.appendChild(st); })();
+html #mobileFloatingBar #barEdit{opacity:.85}
+/* --- the + pop-out: coloured, bigger icons that move when it opens --- */
+.lgi .plA,.lgi .plS{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.lgi .plA{color:#34d399}
+.lgi .plA svg{width:30px;height:30px;overflow:visible;animation:plPop .6s cubic-bezier(.3,1.6,.5,1) .3s both}
+.lgi .plA svg g path{transform-box:fill-box;transform-origin:0 50%;animation:plWave 1.5s ease-in-out infinite both}
+.lgi .plA svg g path:nth-child(1){animation-delay:.35s}.lgi .plA svg g path:nth-child(2){animation-delay:.5s}.lgi .plA svg g path:nth-child(3){animation-delay:.65s}
+@keyframes plWave{0%,100%{opacity:.35;transform:scaleX(.55)}45%{opacity:1;transform:scaleX(1.15)}}
+@keyframes plPop{from{transform:scale(.6)}to{transform:scale(1)}}
+.lgi .plS{color:#38bdf8;font-size:22px;overflow:hidden;border-radius:50%}
+.lgi .plS i{display:block;animation:plFly .85s cubic-bezier(.2,.85,.25,1) .35s both}
+@keyframes plFly{0%{opacity:0;transform:translate(-21px,21px) scale(.35) rotate(-18deg)}55%{opacity:1;transform:translate(2px,-2px) scale(1.18) rotate(6deg)}100%{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.lgi .plA svg,.lgi .plA svg g path,.lgi .plS i{animation:none!important}}`; document.head.appendChild(st); })();
 
 
 /* ==========================================================
