@@ -39,28 +39,168 @@
   /* ---- intro: only where data-intro is set, and not for signed-in visitors ---- */
   var want = s && s.hasAttribute('data-intro') && !ls('thabit_trainee_token') && !(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches);
   if (!want) return;
-  var light = ls('thabit_theme') === 'light', c = light ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.95)';
+  /* Sequence: black screen -> logo fades in -> a quick gust of wind bends the tail while the colour turns to the rainbow
+     (it starts white/black by theme) -> the wind dies -> one soft glow -> the logo flies to its place at the top-left. */
+  var light = ls('thabit_theme') === 'light', c = light ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.95)', wc0 = light ? 'rgba(0,0,0,' : 'rgba(255,255,255,';
+  var SZ = Math.min(230, Math.round(Math.min(innerWidth, innerHeight) * .42)), dpr = Math.min(2, window.devicePixelRatio || 1);
+  var st2 = document.createElement('style');
+  st2.textContent = '.thb-ov .thb-big{background:none!important;-webkit-mask:none!important;mask:none!important;width:' + SZ + 'px!important;height:' + SZ + 'px!important;margin:' + (-SZ / 2) + 'px 0 0 ' + (-SZ / 2) + 'px!important}' +
+    '.thb-cv,.thb-wind{position:absolute;pointer-events:none}.thb-cv{left:50%;top:50%;transform:translate(-50%,-50%)}.thb-wind{left:0;top:0;width:100%;height:100%}';
+  document.head.appendChild(st2);
   var ov = document.createElement('div'); ov.className = 'thb-ov' + (light ? ' lt' : '');
   ov.innerHTML = '<div class="thb-bg"></div><div class="thb-halo"></div><div class="thb-big"></div>';
   document.body.insertBefore(ov, document.body.firstChild);
   brand.style.visibility = 'hidden';
-  var big = ov.querySelector('.thb-big'), halo = ov.querySelector('.thb-halo'), bg = ov.querySelector('.thb-bg'), done = false;
-  var end = function () { if (done) return; done = true; ov.remove(); brand.style.visibility = ''; };
-  var F = function (b, a, x, br) { return 'blur(' + b + 'px) drop-shadow(0 0 ' + a + 'px ' + c + ') drop-shadow(0 0 ' + x + 'px ' + c + ') brightness(' + br + ')'; };
-  var a1 = big.animate([
-    { offset: 0, opacity: 0, transform: 'scale(.93)', filter: F(18, 0, 0, 1), easing: 'cubic-bezier(.3,.6,.3,1)' },
-    { offset: .46, opacity: .92, transform: 'scale(1)', filter: F(0, 0, 0, 1), easing: 'cubic-bezier(.1,.9,.2,1)' },
-    { offset: .53, opacity: 1, transform: 'scale(1.035)', filter: F(0, 16, 48, 1.25), easing: 'ease-out' },
-    { offset: .75, opacity: 1, transform: 'scale(1)', filter: F(0, 6, 16, 1.05), easing: 'ease-in-out' },
-    { offset: 1, opacity: 1, transform: 'scale(1)', filter: F(0, 0, 0, 1) }], { duration: 2200, fill: 'both' });
-  halo.animate([{ offset: 0, opacity: 0, transform: 'scale(.5)' }, { offset: .5, opacity: 0, transform: 'scale(.5)' }, { offset: .56, opacity: 1, transform: 'scale(1)' }, { offset: .78, opacity: 0, transform: 'scale(1.5)' }, { offset: 1, opacity: 0 }], { duration: 2200, fill: 'both', easing: 'ease-out' });
-  a1.onfinish = function () {
-    if (done) return;
-    var r = mark.getBoundingClientRect(), b = big.getBoundingClientRect();
-    var dx = r.left + r.width / 2 - (b.left + b.width / 2), dy = r.top + r.height / 2 - (b.top + b.height / 2), k = r.width / b.width;
-    var a2 = big.animate([{ transform: 'none' }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + k + ')' }], { duration: 800, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'both' });
-    bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: 'ease-in-out', fill: 'both' });
-    a2.onfinish = end;
+  var big = ov.querySelector('.thb-big'), halo = ov.querySelector('.thb-halo'), bg = ov.querySelector('.thb-bg'), done = false, t0 = 0;
+  var PH = function (t) { return .25 * t / 1000 + .8 * Math.min(1, Math.max(0, (t - 1000) / 1500)); };   /* rainbow phase (tiles), flows faster during the gust */
+  var end = function () {
+    if (done) return; done = true; ov.remove(); st2.remove(); brand.style.visibility = '';
+    try { var an = mark.getAnimations && mark.getAnimations()[0]; if (an && t0) an.currentTime = (PH(performance.now() - t0) % 1) * 4000; } catch (e) {}   /* header rainbow continues from the same colours */
   };
-  ov.onclick = end; setTimeout(end, 6500);
+  ov.onclick = end; setTimeout(end, 7500);
+  var F = function (b, a, x, br) { return 'blur(' + b + 'px) drop-shadow(0 0 ' + a + 'px ' + c + ') drop-shadow(0 0 ' + x + 'px ' + c + ') brightness(' + br + ')'; };
+  var CSSZ = Math.round(SZ * 1.6), CW = Math.round(CSSZ * dpr);
+  var cv = document.createElement('canvas'); cv.className = 'thb-cv'; cv.width = cv.height = CW; cv.style.width = cv.style.height = CSSZ + 'px'; big.appendChild(cv);
+  var wcv = document.createElement('canvas'); wcv.className = 'thb-wind'; wcv.width = Math.round(innerWidth * dpr); wcv.height = Math.round(innerHeight * dpr); ov.insertBefore(wcv, big);
+  var nm = new Image();
+  nm.onerror = end;
+  nm.onload = function () { try { go(nm); } catch (e) { console.error('[thabit intro]', e); end(); } };
+  nm.src = MARK.slice(4, -1);
+
+  function go(img) {
+    var tc = document.createElement('canvas'); tc.width = tc.height = 480; var tx = tc.getContext('2d'); tx.drawImage(img, 0, 0);
+    var id = tx.getImageData(0, 0, 480, 480).data, A = new Uint8Array(480 * 480), q, x, y, i;
+    for (q = 0; q < A.length; q++) A[q] = id[q * 4 + 3];
+    var g = thRig(A), MG = 144;
+    var sc = document.createElement('canvas'); sc.width = sc.height = 480; var sx = sc.getContext('2d'), sd = sx.createImageData(480, 480);   /* the logo without the moving tail */
+    for (y = 0; y < 480; y++) for (x = 0; x < 480; x++) { i = y * 480 + x; sd.data[i * 4] = sd.data[i * 4 + 1] = sd.data[i * 4 + 2] = 255; sd.data[i * 4 + 3] = g.erase(x, y) ? 0 : A[i]; }
+    sx.putImageData(sd, 0, 0);
+    var pcv = document.createElement('canvas'); pcv.width = g.ow; pcv.height = g.oh; var px = pcv.getContext('2d'), pimg = new ImageData(g.out, g.ow, g.oh);
+    var mc = document.createElement('canvas'); mc.width = mc.height = 480 + 2 * MG; var mx = mc.getContext('2d');
+    var rb = document.createElement('canvas'); rb.width = rb.height = CW; var rx = rb.getContext('2d');
+    var cx = cv.getContext('2d'), wx = wcv.getContext('2d'), W = SZ * dpr, X0 = CW / 2 - W / 2, E = .45 * W;
+    var ez = function (v) { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+    var rnd = function (n) { var v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); }, R = [], k;
+    for (k = 0; k < 14; k++) R.push({ y: (rnd(k) - .5) * 1.9, l: .9 + rnd(k + 20) * 1.1, d: rnd(k + 40) * 420, u: 700 + rnd(k + 60) * 350, a: 5 + rnd(k + 80) * 9, f: .012 + rnd(k + 100) * .01, w: 1.2 + rnd(k + 120) * 1.2, p: rnd(k + 140) * 6.28 });
+    var drawWind = function (tw) {
+      wx.setTransform(dpr, 0, 0, dpr, 0, 0); wx.clearRect(0, 0, innerWidth, innerHeight); if (tw < 0 || tw > 1600) return;
+      var cx0 = innerWidth / 2, cy0 = innerHeight / 2; wx.lineCap = 'round';
+      R.forEach(function (r) {
+        var u = (tw - r.d) / r.u; if (u <= 0 || u >= 1) return;
+        var len = r.l * SZ, xs = cx0 + SZ * 1.6 + len, xe = cx0 - SZ * 1.6, hx = xs + (xe - xs) * (1 - Math.pow(1 - u, 1.6)), life = Math.pow(Math.sin(Math.PI * u), .8), n = 22, ppx = 0, ppy = 0, j;
+        wx.lineWidth = r.w;
+        for (j = 0; j <= n; j++) {
+          var xx = hx + len * j / n, yy = cy0 + r.y * SZ + (xx - cx0) * .16 + r.a * Math.sin(xx * r.f + r.p + u * 3);
+          if (j) { wx.strokeStyle = wc0 + (.5 * life * Math.sin(Math.PI * (j - .5) / n)) + ')'; wx.beginPath(); wx.moveTo(ppx, ppy); wx.lineTo(xx, yy); wx.stroke(); }
+          ppx = xx; ppy = yy;
+        }
+      });
+    };
+    var STOPS = ['#ff5d55', '#4c8dff', '#22d3a6', '#ffc247', '#ff5d55'];
+    var draw = function (t) {
+      var tw = t - 1000, env = 0, p = 0;
+      if (tw > 0 && tw < 1500) env = .8 * (tw < 350 ? ez(tw / 350) : tw < 900 ? 1 : 1 - ez((tw - 900) / 600));
+      if (tw > 200) p = ez((tw - 200) / 1200);
+      mx.clearRect(0, 0, mc.width, mc.height);
+      if (env > .001) { thStep(g, Math.max(0, tw) / 1000 * 1.7, env, -.5); px.putImageData(pimg, 0, 0); mx.drawImage(sc, MG, MG); mx.drawImage(pcv, MG + g.ox, MG + g.oy); }
+      else mx.drawImage(img, MG, MG);
+      cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'source-over'; cx.clearRect(0, 0, CW, CW);
+      cx.fillStyle = light ? '#000' : '#fff'; cx.fillRect(0, 0, CW, CW);
+      if (p > 0) {
+        var o = (PH(t) % 1) * 3 * W, m, gr; rx.globalCompositeOperation = 'source-over'; rx.clearRect(0, 0, CW, CW);
+        for (m = -1; m < 2; m++) { var xs0 = X0 - o + m * 3 * W; gr = rx.createLinearGradient(xs0, 0, xs0 + 3 * W, 0); STOPS.forEach(function (cl, n) { gr.addColorStop(n / 4, cl); }); rx.fillStyle = gr; rx.fillRect(xs0, 0, 3 * W, CW); }
+        if (p < 1) {   /* the colour spreads in the direction of the wind (right to left) */
+          var xf = X0 + W + E - p * (W + E); gr = rx.createLinearGradient(xf - E, 0, xf, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+          rx.globalCompositeOperation = 'destination-in'; rx.fillStyle = gr; rx.fillRect(0, 0, CW, CW);
+        }
+        cx.drawImage(rb, 0, 0);
+      }
+      cx.globalCompositeOperation = 'destination-in'; cx.drawImage(mc, 0, 0, CW, CW); cx.globalCompositeOperation = 'source-over';
+      drawWind(tw);
+    };
+    var glowed = false, loop = function () {
+      if (done) return; var t = performance.now() - t0; draw(t);
+      if (!glowed && t >= 2500) { glowed = true; glow(); }
+      requestAnimationFrame(loop);
+    };
+    var glow = function () {
+      big.animate([{ offset: 0, transform: 'scale(1)', filter: F(0, 0, 0, 1), easing: 'ease-out' }, { offset: .38, transform: 'scale(1.04)', filter: F(0, 18, 52, 1.3), easing: 'ease-in-out' }, { offset: 1, transform: 'scale(1)', filter: F(0, 0, 0, 1) }], { duration: 800 });
+      halo.animate([{ offset: 0, opacity: 0, transform: 'scale(.5)' }, { offset: .3, opacity: 1, transform: 'scale(1)' }, { offset: 1, opacity: 0, transform: 'scale(1.5)' }], { duration: 800, easing: 'ease-out' });
+      setTimeout(fly, 800);
+    };
+    var fly = function () {
+      if (done) return;
+      var r = mark.getBoundingClientRect(), b = big.getBoundingClientRect();
+      var dx = r.left + r.width / 2 - (b.left + b.width / 2), dy = r.top + r.height / 2 - (b.top + b.height / 2), kk = r.width / b.width;
+      var a2 = big.animate([{ transform: 'none' }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + kk + ')' }], { duration: 800, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'both' });
+      bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: 'ease-in-out', fill: 'both' });
+      a2.onfinish = end;
+    };
+    draw(0);
+    t0 = performance.now();
+    big.animate([{ opacity: 0, transform: 'scale(.93)', filter: F(18, 0, 0, 1) }, { opacity: 1, transform: 'scale(1)', filter: F(0, 0, 0, 1) }], { duration: 1000, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'both' });
+    requestAnimationFrame(loop);
+  }
+
+  /* ---- Thabit flame rig: the curl (tip -> stem, down to the T bar) bends like a tail in the wind ---- */
+  function thRig(A) {
+    var W = 480, sc = .7281, NB = 110, M = 130, X = function (x) { return (x - 18) / sc + 207; }, Y = function (y) { return (y - 30) / sc + 224; };
+    var dom = new Uint8Array(W * W), src = [], x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, i, x, y;
+    for (y = 0; y < W; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; if (A[i] <= 5) continue; var u = X(x), v = Y(y);
+      if (v >= 200 && v < 463 && u >= 380 && u <= 720 && !(v >= 452 && u >= 634)) {
+        dom[i] = 1; if (v >= 459 && u < 634) src.push(i);
+        if (A[i] > 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+    }
+    /* distance along the stroke from the T bar (Dijkstra, 8 neighbours) */
+    var d = new Float64Array(W * W).fill(1e9), hk = [], hv = [], pk = 0;
+    function push(k, v) { var j = hk.length, p; hk.push(k); hv.push(v); while (j > 0) { p = (j - 1) >> 1; if (hk[p] <= k) break; hk[j] = hk[p]; hv[j] = hv[p]; j = p; } hk[j] = k; hv[j] = v; }
+    function pop() { var v0 = hv[0], k, v, n, j = 0, c; pk = hk[0]; k = hk.pop(); v = hv.pop(); n = hk.length; if (n) { for (;;) { c = 2 * j + 1; if (c >= n) break; if (c + 1 < n && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[j] = hk[c]; hv[j] = hv[c]; j = c; } hk[j] = k; hv[j] = v; } return v0; }
+    src.forEach(function (s) { d[s] = 0; push(0, s); });
+    while (hk.length) {
+      var p = pop(), c0 = pk; if (c0 > d[p]) continue; var py = (p / W) | 0, px = p - py * W;
+      for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+        if (!dx && !dy) continue; var qx = px + dx, qy = py + dy; if (qx < 0 || qy < 0 || qx >= W || qy >= W) continue;
+        var q = qy * W + qx; if (!dom[q]) continue; var nc = c0 + (dx && dy ? 1.414 : 1); if (nc < d[q]) { d[q] = nc; push(nc, q); }
+      }
+    }
+    var dm = 0; for (i = 0; i < W * W; i++) if (dom[i] && d[i] < 1e8 && d[i] > dm) dm = d[i];
+    var L = []; for (i = 0; i < W * W; i++) if (dom[i] && d[i] < 1e8) L.push(i);
+    var N = L.length, PX = new Float32Array(N), PY = new Float32Array(N), PU = new Float32Array(N), PA = new Float32Array(N), PB = new Float32Array(N), AL = new Float32Array(N);
+    var sx = new Float32Array(NB), sy = new Float32Array(NB), sn = new Float32Array(NB), k;
+    for (k = 0; k < N; k++) { i = L[k]; PY[k] = (i / W) | 0; PX[k] = i - PY[k] * W; var uu = d[i] / dm * NB - .5; PU[k] = Math.max(0, Math.min(NB - 1.001, uu)); AL[k] = A[i];
+      var b = Math.max(0, Math.min(NB - 1, Math.round(uu))); sx[b] += PX[k]; sy[b] += PY[k]; sn[b]++; }
+    var cx = new Float32Array(NB), cy = new Float32Array(NB), th = new Float32Array(NB), Ls = new Float32Array(NB), Wt = new Float32Array(NB);
+    for (i = 0; i < NB; i++) { if (sn[i]) { cx[i] = sx[i] / sn[i]; cy[i] = sy[i] / sn[i]; } else { cx[i] = cx[i - 1]; cy[i] = cy[i - 1]; } }
+    for (var r = 0; r < 3; r++) { var ax = cx.slice(), ay = cy.slice(); for (i = 1; i < NB - 1; i++) { cx[i] = (ax[i - 1] + ax[i] * 2 + ax[i + 1]) / 4; cy[i] = (ay[i - 1] + ay[i] * 2 + ay[i + 1]) / 4; } }
+    for (i = 0; i < NB; i++) { var j = Math.min(i, NB - 2), ex = cx[j + 1] - cx[j], ey = cy[j + 1] - cy[j]; Ls[i] = Math.hypot(ex, ey); var a = Math.atan2(ey, ex);
+      if (i) { while (a - th[i - 1] > Math.PI) a -= 2 * Math.PI; while (a - th[i - 1] < -Math.PI) a += 2 * Math.PI; } th[i] = a; Wt[i] = Math.pow((i + .5) / NB, 1.7); }
+    for (k = 0; k < N; k++) { i = PU[k] | 0; var f = PU[k] - i, an = th[i] + (th[i + 1] - th[i]) * f, co = Math.cos(an), si = Math.sin(an),
+      ex2 = PX[k] - (cx[i] + (cx[i + 1] - cx[i]) * f), ey2 = PY[k] - (cy[i] + (cy[i + 1] - cy[i]) * f); PA[k] = ex2 * co + ey2 * si; PB[k] = -ex2 * si + ey2 * co; }
+    var ox = x0 - M, oy = y0 - M, ow = x1 - x0 + 1 + 2 * M, oh = y1 - y0 + 1 + 2 * M;
+    return { W: W, NB: NB, N: N, PX: PX, PY: PY, PU: PU, PA: PA, PB: PB, AL: AL, cx: cx, cy: cy, th: th, Ls: Ls, Wt: Wt, ox: ox, oy: oy, ow: ow, oh: oh,
+      Ag: new Float32Array(NB), Cn: new Float32Array(NB), Sn: new Float32Array(NB), qx: new Float32Array(NB), qy: new Float32Array(NB), AA: new Float32Array(ow * oh), WW: new Float32Array(ow * oh),
+      out: new Uint8ClampedArray(ow * oh * 4), erase: function (x, y) { var v = Y(y), u = X(x); return v >= 200 && v < 456 && u >= 380; } };
+  }
+  /* wind = overlapping waves with unrelated rhythms; env 0..1 = how hard it blows, bias = steady push direction */
+  function thWind(s, T) { return .5 * Math.sin(1.9 * T - 3.2 * s + .7) + .32 * Math.sin(3.1 * T - 5.4 * s + 2.1) + .22 * Math.sin(4.9 * T - 9.1 * s + 4) + .14 * Math.sin(7.7 * T - 13 * s + 1.3); }
+  function thStep(g, T, env, bias) {
+    var NB = g.NB, OW = g.ow, OH = g.oh, Cn = g.Cn, Sn = g.Sn, qx = g.qx, qy = g.qy, i, k, w, a, l;
+    var amp = 1.1 * env, unc = .2 * env * (Math.sin(1.1 * T + .4) + .6 * Math.sin(1.9 * T + 2) + .4 * Math.sin(3.3 * T + 5)), str = .08 * env * (Math.sin(1.3 * T + 1) + .5 * Math.sin(2.7 * T));
+    qx[0] = g.cx[0]; qy[0] = g.cy[0];
+    for (i = 0; i < NB; i++) { w = g.Wt[i]; a = g.th[i] + w * (amp * thWind((i + .5) / NB, T) + bias * env) - unc * w * (g.th[i] - g.th[0]);
+      g.Ag[i] = a; Cn[i] = Math.cos(a); Sn[i] = Math.sin(a); if (i < NB - 1) { l = g.Ls[i] * (1 + str * w); qx[i + 1] = qx[i] + l * Cn[i]; qy[i + 1] = qy[i] + l * Sn[i]; } }
+    g.AA.fill(0); g.WW.fill(0);
+    for (k = 0; k < g.N; k++) {
+      i = g.PU[k] | 0; var f = g.PU[k] - i, an = g.Ag[i] + (g.Ag[i + 1] - g.Ag[i]) * f, c = Math.cos(an), s = Math.sin(an),
+        X = qx[i] + (qx[i + 1] - qx[i]) * f + g.PA[k] * c - g.PB[k] * s - g.ox, Y = qy[i] + (qy[i + 1] - qy[i]) * f + g.PA[k] * s + g.PB[k] * c - g.oy,
+        xi = Math.floor(X), yi = Math.floor(Y), fx = X - xi, fy = Y - yi, al = g.AL[k];
+      if (xi < 0 || yi < 0 || xi >= OW - 1 || yi >= OH - 1) continue; var j = yi * OW + xi;
+      w = (1 - fx) * (1 - fy); g.AA[j] += al * w; g.WW[j] += w; w = fx * (1 - fy); g.AA[j + 1] += al * w; g.WW[j + 1] += w;
+      w = (1 - fx) * fy; g.AA[j + OW] += al * w; g.WW[j + OW] += w; w = fx * fy; g.AA[j + OW + 1] += al * w; g.WW[j + OW + 1] += w;
+    }
+    for (var q = 0, o = 0, n = OW * OH; q < n; q++, o += 4) { var ww = g.WW[q]; g.out[o] = g.out[o + 1] = g.out[o + 2] = 255; g.out[o + 3] = ww > 0 ? Math.min(255, g.AA[q] / Math.max(1, ww)) : 0; }
+  }
+
 })();
