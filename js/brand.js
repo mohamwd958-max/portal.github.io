@@ -124,8 +124,7 @@
       requestAnimationFrame(loop);
     };
     var glow = function () {
-      big.animate([{ offset: 0, transform: 'scale(1)', filter: F(0, 0, 0, 1), easing: 'ease-out' }, { offset: .38, transform: 'scale(1.04)', filter: F(0, 18, 52, 1.3), easing: 'ease-in-out' }, { offset: 1, transform: 'scale(1)', filter: F(0, 0, 0, 1) }], { duration: 800 });
-      halo.animate([{ offset: 0, opacity: 0, transform: 'scale(.5)' }, { offset: .3, opacity: 1, transform: 'scale(1)' }, { offset: 1, opacity: 0, transform: 'scale(1.5)' }], { duration: 800, easing: 'ease-out' });
+      big.animate([{ offset: 0, transform: 'scale(1)', easing: 'ease-out' }, { offset: .38, transform: 'scale(1.04)', easing: 'ease-in-out' }, { offset: 1, transform: 'scale(1)' }], { duration: 800 });   /* glow + halo removed on purpose */
       setTimeout(fly, 800);
     };
     var fly = function () {
