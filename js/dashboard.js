@@ -223,6 +223,7 @@ function rqFollowUI(reset) {
 
 function render() {
 
+  thAutoApply();   // Today only when a session was taken today; otherwise This week (until the trainee picks something himself)
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
   $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
@@ -230,7 +231,7 @@ function render() {
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
-  $('overall').innerHTML = overall(rows, S) + thDetBtn(); thDetRefresh();
+  $('overall').innerHTML = overall(rows, S); thDetRefresh();
   $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL'); thListsApply();
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
@@ -521,7 +522,7 @@ document.addEventListener('click', e => {
   const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
   tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
-  const w = $((d.closest('#thDet') ? 'pwhy_' : 'why_') + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
+  const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
   if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
 });
 
@@ -2170,12 +2171,12 @@ uiApply(uiGet());
 
 
 /* ==========================================================
-   Time filter + progress details
-   - ONE round button on the right edge of the screen (tap or long-press): its options (Today / This week / This month / Last month)
-     pop out to the left, everything behind is blurred (same pop-out system as the floating bar). Today is ALWAYS the default.
-   - Ranges are real calendar ranges on the Cairo clock: when a new month starts at 12:00 AM the old month is gone from "This month".
-     This week = the 7 days Saturday to Friday that today is in.
-   - "Progress details" pill under the overall chart opens the five score cards in a blurred pop-up (tap outside to close).
+   Time filter, page sections, progress details
+   - ONE round black/white button at the top corner of the page (before the Overall card). One tap: the other options orbit around it,
+     everything behind is blurred. Pick one and the button comes back with the new choice.
+   - Default: TODAY only when a session was really taken today; otherwise THIS WEEK. Then This month, and Last month (orange, the past).
+   - Ranges are real calendar ranges on the Cairo clock (new month at 12:00 AM). The week = the 7 days Saturday to Friday that today is in.
+   - The page is 3 sections, one at a time: 1 Overall progress (+ a small arrow that opens the score cards), 2 Tasks + Dandana, 3 Notes / TEFL / QOL.
    ========================================================== */
 function thWin() {
   if (range !== 'week' && range !== 'month' && range !== 'lmonth') return null;
@@ -2185,29 +2186,46 @@ function thWin() {
   return { s: ymdU(new Date(Date.UTC(y, m, d - (n.getUTCDay() + 1) % 7))), e: td };   // week starts on Saturday
 }
 const thRX = {
-  en: { det: 'Progress details', dett: 'Scores & details', short: { today: 'Today', week: 'Week', month: 'Month', lmonth: 'Last' }, aria: 'Time range' },
-  ar: { det: 'تفاصيل التقدم', dett: 'الأرقام والتفاصيل', short: { today: 'اليوم', week: 'الأسبوع', month: 'الشهر', lmonth: 'الماضي' }, aria: 'الفترة الزمنية' },
-  eg: { det: 'تفاصيل التقدم', dett: 'الأرقام والتفاصيل', short: { today: 'النهاردة', week: 'الأسبوع', month: 'الشهر', lmonth: 'اللي فات' }, aria: 'الفترة الزمنية' }
+  en: { dett: 'Scores & details', aria: 'Time range', more: 'Progress details' },
+  ar: { dett: 'الأرقام والتفاصيل', aria: 'الفترة الزمنية', more: 'تفاصيل التقدم' },
+  eg: { dett: 'الأرقام والتفاصيل', aria: 'الفترة الزمنية', more: 'تفاصيل التقدم' }
 };
-thRX.en.pull = 'Pull for details'; thRX.ar.pull = 'اسحب للتفاصيل'; thRX.eg.pull = 'اسحب للتفاصيل';
-const thRO = [['today', 'fa-sun'], ['week', 'fa-calendar-week'], ['month', 'fa-calendar'], ['lmonth', 'fa-clock-rotate-left']];
-let thDay = '';
-const thRangeBtn = () => { const t = T[lang] || T.en, x = thRX[lang] || thRX.en;
-  return `<button type="button" class="thrc${range === 'lmonth' ? ' lm' : ''}" onclick="thRangeOpen(this)" aria-haspopup="true" aria-label="${esc(x.aria + ': ' + (t[range] || ''))}"><span>${esc(t[range] || '')}</span><i class="fa-solid fa-chevron-down"></i></button>`; };
-/* the button sits in the top corner of Overall progress; pressed = it grows, its colours flip, everything else is blurred and the options come out under it */
+let thDay = '', thManual = false;
+function thHas(k) { const keep = range; range = k; const ok = !!(D && D.rows.some(inRange)); range = keep; return ok; }
+function thOpts() { const o = []; if (hasToday()) o.push('today'); o.push('week', 'month'); if (thHas('lmonth')) o.push('lmonth'); return o; }
+function thAuto() { if (hasToday()) return 'today'; for (const k of ['week', 'month', 'lmonth']) if (thHas(k)) return k; return 'week'; }
+function thAutoApply() {
+  if (!D) return;
+  const td = itToday(); if (thDay && thDay !== td) thManual = false;   // a new day starts: back to the automatic choice
+  if (!thManual || !thOpts().includes(range)) { range = thAuto(); thManual = false; }
+}
+function thRangeUI() {
+  const r = $('rng'); if (!r) return; r.style.display = '';
+  const t = T[lang] || T.en, x = thRX[lang] || thRX.en;
+  r.innerHTML = `<button type="button" class="thrb${range === 'lmonth' ? ' lm' : ''}" aria-haspopup="true" aria-label="${esc(x.aria + ': ' + (t[range] || ''))}" onclick="thRangeOpen(this)"><span>${esc(t[range] || '')}</span></button>`;
+  thDay = itToday();
+}
+/* pressed: the button grows and flips its colours, the page is blurred, the other options spiral out around it as round buttons */
 function thRangeOpen(btn) {
   thRangeClose(true);
-  const t = T[lang] || T.en, r = btn.getBoundingClientRect(), W = document.documentElement.clientWidth, rtl = document.documentElement.dir === 'rtl', n = thRO.length, ST = 50;
-  const up = r.bottom + 10 + n * ST > innerHeight - 8 && r.top - 10 - n * ST > 8;
+  const t = T[lang] || T.en, r = btn.getBoundingClientRect(), W = document.documentElement.clientWidth, H = innerHeight, S = 58, R = 106;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, toLeft = cx > W / 2, others = thOpts().filter(k => k !== range), step = 38;
   const ov = document.createElement('div'); ov.id = 'thRov';
-  const side = rtl ? 'left:' + r.left + 'px' : 'right:' + (W - r.right) + 'px';
-  ov.innerHTML = `<button type="button" class="thrc pressed${range === 'lmonth' ? ' lm' : ''}" style="position:fixed;margin:0;inset-inline-end:auto;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px"><span>${esc(t[range] || '')}</span><i class="fa-solid fa-chevron-down"></i></button>`
-    + thRO.map((o, i) => `<button type="button" class="thrp${o[0] === range ? ' cur' : ''}${o[0] === 'lmonth' ? ' lm' : ''}" data-k="${o[0]}" style="${side};top:${up ? r.top - 10 - 42 - i * ST : r.bottom + 10 + i * ST}px;--i:${i};--oy:${up ? 10 : -10}px"><i class="fa-solid ${o[1]}"></i><span>${esc(t[o[0]])}</span></button>`).join('');
+  ov.innerHTML = `<button type="button" class="thrb pressed${range === 'lmonth' ? ' lm' : ''}" style="left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px"><span>${esc(t[range] || '')}</span></button>`
+    + others.map((k, i) => {
+      const a = (90 + (toLeft ? 1 : -1) * (i + 1) * step) * Math.PI / 180, x = Math.max(S / 2 + 8, Math.min(W - S / 2 - 8, cx + R * Math.cos(a))), y = Math.max(S / 2 + 8, Math.min(H - S / 2 - 8, cy + R * Math.sin(a)));
+      return `<button type="button" class="thro${k === 'lmonth' ? ' lm' : ''}" data-k="${k}" data-ax="${cx - x}" data-ay="${cy - y}" data-a="${(toLeft ? 1 : -1) * (i + 1) * step}" style="left:${x - S / 2}px;top:${y - S / 2}px"><span>${esc(t[k] || '')}</span></button>`;
+    }).join('');
   document.body.appendChild(ov); btn.style.visibility = 'hidden'; ov._btn = btn; document.documentElement.style.overflow = 'hidden';
-  requestAnimationFrame(() => { const c = ov.querySelector('.thrc'); if (c) c.classList.add('big'); });
+  requestAnimationFrame(() => { const c = ov.querySelector('.pressed'); if (c) c.classList.add('big'); });
+  ov.querySelectorAll('.thro').forEach((b, i) => {
+    const R0 = R, da = +b.dataset.a, pts = [];
+    for (let q = 0; q <= 8; q++) { const p = q / 8, ang = (90 + da * p) * Math.PI / 180, fa = (90 + da) * Math.PI / 180; pts.push({ transform: `translate(${R0 * p * Math.cos(ang) - R0 * Math.cos(fa)}px,${R0 * p * Math.sin(ang) - R0 * Math.sin(fa)}px) scale(${.3 + .7 * p})`, opacity: Math.min(1, p * 3) }); }
+    if (b.animate) b.animate(pts, { duration: 520, delay: i * 70, easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'backwards' });
+  });
   ov.addEventListener('click', e => {
-    const o = e.target.closest('.thrp');
-    if (o) { range = o.dataset.k; thRangeClose(true); render(); } else thRangeClose();
+    const o = e.target.closest('.thro');
+    if (o) { range = o.dataset.k; thManual = true; thRangeClose(true); render(); } else thRangeClose();
   });
 }
 function thRangeClose(now) {
@@ -2215,111 +2233,126 @@ function thRangeClose(now) {
   if (ov._btn) ov._btn.style.visibility = '';
   document.documentElement.style.overflow = '';
   if (now) { ov.remove(); return; }
-  ov.classList.add('out'); setTimeout(() => ov.remove(), 200);
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') thRangeClose(); });
-function thRangeUI() {
-  const r = $('rng'); if (r) r.style.display = 'none';
-  const old = $('thRb'); if (old) old.remove();
-  thDay = itToday(); thCordEnsure();
+  ov.classList.add('out'); setTimeout(() => ov.remove(), 180);
 }
 setInterval(() => { if (typeof D !== 'undefined' && D && thDay && itToday() !== thDay) render(); }, 30000);   // midnight: a new day / month starts by itself
 
-/* ===== the pull cord under Overall progress: pull it down = the lamp lights = the details open ===== */
-function thCordLit(on) { const c = $('thCord'); if (c) c.classList.toggle('lit', !!on); }
-function thCordEnsure() {
-  const ov = $('overall'); if (!ov) return;
-  if (getComputedStyle(ov).position === 'static') ov.style.position = 'relative';
-  let c = $('thCord');
-  if (!c) {
-    c = document.createElement('div'); c.id = 'thCord'; c.className = 'thcord';
-    c.innerHTML = '<div class="tcs"></div><div class="tcb" role="button" tabindex="0"><span class="tcr"></span></div><span class="tch"></span>';
-    ov.insertAdjacentElement('afterend', c); thCordBind(c);
-  } else if (c.previousElementSibling !== ov) ov.insertAdjacentElement('afterend', c);
-  const x = thRX[lang] || thRX.en; let used = false; try { used = !!localStorage.getItem('thabit_cord_used'); } catch (e) {}
-  c.classList.toggle('flat', thKpisShown());
-  c.querySelector('.tch').textContent = used ? '' : x.pull; c.querySelector('.tcb').setAttribute('aria-label', x.det);
-  const cs = getComputedStyle(ov), par = ov.parentElement ? getComputedStyle(ov.parentElement) : null;   // the cord hangs right from the card's bottom edge, whatever gap the page puts between its blocks
-  c.style.marginTop = -((par ? parseFloat(par.rowGap) || 0 : 0) + (parseFloat(cs.marginBottom) || 0)) + 'px';
+/* ===== the three sections ===== */
+function thSections() {
+  const wrap = document.querySelector('.wrap'); if (!wrap || wrap.dataset.ths) return;
+  const top = wrap.querySelector('.top'), ov = $('overall'), lists = $('lists'), kacc = $('kpiAcc');
+  if (!top || !ov || !lists) return; wrap.dataset.ths = '1';
+  const mk = id => { const e = document.createElement('section'); e.className = 'thsec'; e.id = id; return e; };
+  const s1 = mk('thS1'), s2 = mk('thS2'), s3 = mk('thS3');
+  wrap.insertBefore(s1, top); s1.appendChild(top); s1.appendChild(ov);
+  const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+  ar.addEventListener('click', () => thDetOpen()); s1.appendChild(ar);
+  wrap.appendChild(s2); s2.appendChild(lists);
+  const l2 = document.createElement('div'); l2.className = 'grid'; l2.id = 'lists2'; s3.appendChild(l2); wrap.appendChild(s3);
+  const det = document.createElement('div'); det.id = 'thDet';
+  det.innerHTML = '<div class="tdb"><button type="button" class="tdx" aria-label="Close">×</button><div class="tdh"></div></div>';
+  document.body.appendChild(det);
+  if (kacc) det.querySelector('.tdb').appendChild(kacc);   // the real score cards live in the pop-up, so everything inside keeps working
+  det.querySelector('.tdx').addEventListener('click', thDetClose);
+  det.addEventListener('click', e => { if (!e.target.closest('.tdb')) thDetClose(); });
+  const h = document.createElement('div'); h.id = 'thHint'; h.innerHTML = '<div class="thdots"></div><button type="button" class="thnx" aria-label="Next"><i class="fa-solid fa-chevron-down"></i></button>';
+  document.body.appendChild(h);
+  h.querySelector('.thnx').addEventListener('click', () => { const sc = thSecs(), i = thCur(); sc[i >= sc.length - 1 ? 0 : i + 1].scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  window.addEventListener('scroll', thHintRefresh, { passive: true }); window.addEventListener('resize', thHintRefresh);
+  thHintRefresh();
 }
-/* the five score cards are visible on their own (computer / wide screen): no cord needed */
-function thKpisShown() {
-  const k = $('kpis'); if (!k) return false;
-  const r = k.getBoundingClientRect(), cs = getComputedStyle(k), a = k.closest('.acc');
-  if (!(r.width > 0 && r.height > 0) || cs.display === 'none' || cs.visibility === 'hidden') return false;
-  return !a || a.classList.contains('open') || innerWidth > 700;
-}
-window.addEventListener('resize', () => { clearTimeout(thKpisShown.t); thKpisShown.t = setTimeout(() => { try { thCordEnsure(); } catch (e) {} }, 150); });
-function thCordBind(c) {
-  const b = c.querySelector('.tcb'); let st = null, raf = 0;
-  const set = v => c.style.setProperty('--pl', v + 'px');
-  const spring = x0 => { cancelAnimationFrame(raf); let x = x0, v = 0; const step = () => { v += -0.2 * x; v *= 0.78; x += v; set(x); if (Math.abs(x) > .3 || Math.abs(v) > .3) raf = requestAnimationFrame(step); else set(0); }; raf = requestAnimationFrame(step); };
-  const fire = () => { try { localStorage.setItem('thabit_cord_used', '1'); } catch (e) {} const h = c.querySelector('.tch'); if (h) h.textContent = ''; thCordLit(true); thDetOpen(); };
-  b.addEventListener('pointerdown', e => { e.preventDefault(); cancelAnimationFrame(raf); st = { y: e.clientY, d: 0 }; try { b.setPointerCapture(e.pointerId); } catch (x) {} });
-  b.addEventListener('pointermove', e => { if (!st) return; st.d = Math.max(0, Math.min(36, e.clientY - st.y)); set(st.d); });
-  const up = e => { if (!st) return; const d = st.d; st = null; const go = e.type === 'pointerup' && (d >= 18 || d < 4); spring(d < 4 ? 26 : d); if (go) fire(); };
-  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
-  b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); spring(26); fire(); } });
+const thSecs = () => [...document.querySelectorAll('.thsec')].filter(e => !e.hidden);
+function thCur() { const sc = thSecs(); let b = 0, bd = 1e9; sc.forEach((e, i) => { const d = Math.abs(e.getBoundingClientRect().top); if (d < bd) { bd = d; b = i; } }); return b; }
+function thHintRefresh() {
+  const h = $('thHint'); if (!h) return; const sc = thSecs(), i = thCur();
+  h.hidden = sc.length < 2;
+  h.querySelector('.thdots').innerHTML = sc.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('');
+  h.querySelector('.thnx').classList.toggle('up', i >= sc.length - 1);
+  if (i > 0 && !VIEW && !window._thLH) { window._thLH = 1; let seen = false; try { seen = !!localStorage.getItem('thabit_lists_hint'); } catch (e) {} if (!seen) setTimeout(() => { try { localStorage.setItem('thabit_lists_hint', '1'); } catch (e) {} itToast(thLX[lang] || thLX.en); }, 1200); }   // the drag tip shows once, when the cards come into view
 }
 
-const thDetBtn = () => thRangeBtn();   // (the details are opened by the pull cord now)
+/* ===== details pop-up (the five score cards) ===== */
 function thDetFill() {
   const el = $('thDet'); if (!el || !D) return;
-  const t = T[lang] || T.en, x = thRX[lang] || thRX.en, rows = CUR, all = D.rows;
-  el.querySelector('.tdb').innerHTML = `<button type="button" class="tdx" aria-label="Close" onclick="thDetClose()">×</button><div class="tdh"><b>${x.dett}</b><span>${esc((t[range] || '') + ' · ' + rows.length + ' ' + t.sessions + ' · ' + fmtDur(rows.reduce((a, r) => a + mins(r), 0)))}</span></div>`
-    + `<div class="tdg">${MET.map(k => kpi(k, rows, all, SER)).join('').replace(/id="why_/g, 'id="pwhy_')}</div>`;
+  const t = T[lang] || T.en, x = thRX[lang] || thRX.en, rows = CUR;
+  el.querySelector('.tdh').innerHTML = `<b>${x.dett}</b><span>${esc((t[range] || '') + ' · ' + rows.length + ' ' + t.sessions + ' · ' + fmtDur(rows.reduce((a, r) => a + mins(r), 0)))}</span>`;
 }
-function thDetOpen() {
-  let el = $('thDet');
-  if (!el) { el = document.createElement('div'); el.id = 'thDet'; el.innerHTML = '<div class="tdb"></div>'; document.body.appendChild(el); el.addEventListener('click', e => { if (!e.target.closest('.tdb')) thDetClose(); }); }
-  thDetFill(); el.classList.add('open'); thCordLit(true); document.documentElement.style.overflow = 'hidden';
-}
-function thDetClose() { const el = $('thDet'); if (el) el.classList.remove('open'); thCordLit(false); document.documentElement.style.overflow = ''; const tp = $('barTip'); if (tp) tp.classList.remove('show'); }
+function thDetOpen() { const el = $('thDet'); if (!el) return; thRangeClose(true); thDetFill(); el.classList.add('open'); document.documentElement.style.overflow = 'hidden'; }
+function thDetClose() { const el = $('thDet'); if (el) el.classList.remove('open'); document.documentElement.style.overflow = ''; const tp = $('barTip'); if (tp) tp.classList.remove('show'); }
 function thDetRefresh() { const el = $('thDet'); if (el && el.classList.contains('open')) thDetFill(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') thDetClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { thDetClose(); thRangeClose(); } });
+thSections();
 
 (function () { const st = document.createElement('style'); st.textContent = `
-.thrc{position:absolute;top:12px;inset-inline-end:12px;z-index:3;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 13px;border-radius:999px;border:1px solid rgba(255,255,255,.45);background:#000;color:#fff;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .28s cubic-bezier(.2,.9,.3,1.3),background .22s,color .22s,border-color .22s,box-shadow .28s}
-.thrc i{font-size:.62rem;transition:transform .28s}
-.thrc:active{transform:scale(.95)}
-body.light-theme .thrc{background:#fff;color:#000;border-color:rgba(0,0,0,.4)}
-.thrc.lm{color:#fb923c;border-color:rgba(251,146,60,.8)}
-.thrc.pressed{background:#fff;color:#000;border-color:#fff;z-index:3001;box-shadow:0 14px 40px rgba(0,0,0,.55)}
-body.light-theme .thrc.pressed{background:#000;color:#fff;border-color:#000}
-.thrc.pressed.lm{background:#fb923c;color:#1a0f00;border-color:#fb923c}
-.thrc.pressed.big{transform:scale(1.14)}.thrc.pressed.big i{transform:rotate(180deg)}
+/* --- the time button --- */
+#rng{display:flex;align-items:center}
+#rng .thrb,#thRov .thrb{box-sizing:border-box;width:58px;height:58px;padding:4px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#rng .thrb span,#thRov .thrb span,#thRov .thro span{display:block;max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
+#rng .thrb:active{transform:scale(.93)}
+body.light-theme #rng .thrb,body.light-theme #thRov .thrb{background:#fff;color:#000;border-color:#000;box-shadow:0 6px 18px rgba(15,23,42,.22)}
+#rng .thrb.lm,#thRov .thrb.lm{color:#fb923c;border-color:#fb923c}
 #thRov{position:fixed;inset:0;z-index:3000;background:rgba(2,6,23,.4);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);animation:tdIn .2s ease-out}
+body.light-theme #thRov{background:rgba(255,255,255,.35)}
 #thRov.out{opacity:0;transition:opacity .18s}
-#thRov .thrp{position:fixed;z-index:3001;display:flex;align-items:center;gap:10px;height:42px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,.45);background:#000;color:#fff;font:inherit;font-size:.86rem;font-weight:700;white-space:nowrap;cursor:pointer;opacity:0;animation:thrIn .3s cubic-bezier(.2,.9,.3,1.2) forwards;animation-delay:calc(var(--i) * 55ms + 70ms);-webkit-tap-highlight-color:transparent}
-#thRov .thrp i{font-size:.8rem;opacity:.85}
-#thRov .thrp:active{transform:scale(.96)}
-#thRov .thrp.cur{background:#fff;color:#000;border-color:#fff}
-body.light-theme #thRov .thrp{background:#fff;color:#000;border-color:rgba(0,0,0,.4)}
-body.light-theme #thRov .thrp.cur{background:#000;color:#fff;border-color:#000}
-#thRov .thrp.lm{color:#fb923c;border-color:rgba(251,146,60,.8)}
-#thRov .thrp.lm.cur{background:#fb923c;color:#1a0f00;border-color:#fb923c}
-@keyframes thrIn{from{opacity:0;transform:translateY(var(--oy)) scale(.85)}to{opacity:1;transform:none}}
-.thcord{position:relative;z-index:2;grid-column:1/-1;height:var(--thgap);display:flex;justify-content:center;pointer-events:none;--pl:0px;color:#94a3b8}
-body.light-theme .thcord{color:#64748b}
-.thcord .tcs{position:absolute;top:0;left:50%;width:2px;margin-left:-1px;height:calc(30px + var(--pl));background:linear-gradient(180deg,transparent 0,currentColor 14px);border-radius:2px;transition:color .3s}
-.thcord .tcb{position:absolute;left:50%;top:calc(22px + var(--pl));width:48px;height:44px;margin-left:-24px;display:flex;align-items:flex-start;justify-content:center;cursor:grab;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none}
-.thcord .tcb:active{cursor:grabbing}
-.thcord .tcr{width:18px;height:18px;margin-top:2px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,currentColor 72%);box-shadow:0 3px 8px rgba(0,0,0,.4);transition:box-shadow .3s,background .3s}
-.thcord .tcb:focus-visible .tcr{outline:2px solid #fbbf24;outline-offset:3px}
-.thcord.lit .tcr{background:radial-gradient(circle at 35% 30%,#fff7d6,#fbbf24 65%);box-shadow:0 0 16px 5px rgba(251,191,36,.7)}
-.thcord.lit .tcs{color:#fbbf24}
-.thcord .tch{position:absolute;top:calc(26px + var(--pl));left:calc(50% + 26px);font-size:.68rem;opacity:.6;white-space:nowrap;pointer-events:none}
-@media(prefers-reduced-motion:reduce){#thRov .thrp{animation:none;opacity:1}}
-#thDet{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-#thDet.open{display:flex;animation:tdIn .25s ease-out}
+#thRov .thrb.pressed{position:fixed;z-index:3001;background:#fff;color:#000;border-color:#fff;box-shadow:0 16px 44px rgba(0,0,0,.55)}
+body.light-theme #thRov .thrb.pressed{background:#000;color:#fff;border-color:#000}
+#thRov .thrb.pressed.lm{background:#fb923c;color:#1a0f00;border-color:#fb923c}
+#thRov .thrb.pressed.big{transform:scale(1.22)}
+#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:58px;height:58px;padding:4px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#thRov .thro:active{transform:scale(.92)}
+body.light-theme #thRov .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
+#thRov .thro.lm{color:#fb923c;border-color:#fb923c}
+/* --- sections: one at a time --- */
+html{scroll-snap-type:y mandatory}
+.wrap{padding:0!important}
+.thsec{box-sizing:border-box;position:relative;min-height:100vh;min-height:calc(100vh / var(--ui-zoom,1));min-height:calc(100svh / var(--ui-zoom,1));padding:90px 16px 110px;display:flex;flex-direction:column;justify-content:flex-start;scroll-snap-align:start;scroll-snap-stop:always}
+@media(min-width:601px){.thsec{padding-bottom:70px}}
+@media(max-width:600px){.thsec{padding:64px 10px 110px}}
+.thsec>.top{order:-3}.thsec>#overall{order:-2}
+#thS1>#overall{margin-bottom:0!important}
+#thS1 #overall svg.c2{max-height:min(40vh,380px)}   /* on a big screen the chart stays small enough that the arrow below it is always on screen */
+#thHint{position:fixed;z-index:30;inset:0;pointer-events:none}
+#thHint[hidden]{display:none!important}
+#thHint .thdots{position:absolute;inset-inline-end:5px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
+#thHint .thdots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.25;transition:height .25s,opacity .25s,background .25s}
+#thHint .thdots i.on{height:18px;border-radius:3px;opacity:.85}
+#thHint{color:#94a3b8}body.light-theme #thHint{color:#475569}
+#thHint .thnx{position:absolute;left:50%;bottom:22px;margin-left:-19px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(15,23,42,.45);color:#e2e8f0;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;font-size:.85rem;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);-webkit-tap-highlight-color:transparent;animation:thBob 1.8s ease-in-out infinite}
+body.light-theme #thHint .thnx{background:rgba(255,255,255,.7);color:#0f172a;border-color:rgba(15,23,42,.25)}
+#thHint .thnx i{transition:transform .35s}
+#thHint .thnx.up{animation:none}#thHint .thnx.up i{transform:rotate(180deg)}
+@media(max-width:600px){#thHint .thnx{bottom:84px}}
+html[data-bar="bottom"] #thHint .thnx{bottom:84px}
+@keyframes thBob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@media(prefers-reduced-motion:reduce){#thHint .thnx{animation:none}.tharr i{animation:none!important}}
+/* --- the little arrow under Overall progress --- */
+.tharr{align-self:center;margin:12px auto 0;width:44px;height:44px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .2s;-webkit-tap-highlight-color:transparent;order:5}
+.tharr:hover{background:rgba(251,191,36,.18)}.tharr:active{transform:scale(.92)}
+.tharr i{font-size:.9rem;animation:thBobU 1.8s ease-in-out infinite}
+@keyframes thBobU{0%,100%{transform:translateY(2px)}50%{transform:translateY(-3px)}}
 @keyframes tdIn{from{opacity:0}to{opacity:1}}
-#thDet .tdb{position:relative;width:min(1000px,100%);max-height:88vh;overflow:auto;border-radius:22px;padding:18px 16px 16px;background:rgba(15,23,42,.94);color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);overscroll-behavior:contain}
+/* --- details pop-up: a finger of space from the bottom and from both sides, tap anywhere outside to leave --- */
+#thDet{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:16px 16px calc(72px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+body.light-theme #thDet{background:rgba(255,255,255,.4)}
+#thDet.open{display:flex;animation:tdIn .25s ease-out}
+#thDet .tdb{position:relative;box-sizing:border-box;zoom:var(--ui-zoom,1);width:min(1000px,100%);max-height:100%;overflow:auto;border-radius:24px;padding:18px 14px 14px;background:rgba(15,23,42,.94);color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);overscroll-behavior:contain;animation:thPop .32s cubic-bezier(.2,.9,.3,1.15)}
 body.light-theme #thDet .tdb{background:rgba(255,255,255,.97);color:#0f172a}
-#thDet .tdh{display:flex;flex-direction:column;gap:2px;margin:0 34px 12px;text-align:center}
+@keyframes thPop{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+#thDet .tdh{display:flex;flex-direction:column;gap:2px;margin:0 36px 12px;text-align:center}
 #thDet .tdh span{font-size:.78rem;opacity:.7}
 #thDet .tdx{position:absolute;top:8px;inset-inline-end:10px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
-#thDet .tdg{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
-#barTip{z-index:100000}`; document.head.appendChild(st); })();
+#thDet #kpiAcc>.acch{display:none!important}
+#thDet #kpiAcc>.accb{display:block!important}
+#thDet .grid{margin-bottom:0}
+#barTip{z-index:100000}
+/* --- floating bar: every button the same circle, every drawing the same size --- */
+html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed{box-sizing:border-box!important;width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;padding:0!important;border-radius:50%!important}
+html #mobileFloatingBar #langBtn{font-size:11px!important;font-weight:800!important;line-height:1!important;letter-spacing:0!important;white-space:nowrap}
+html #mobileFloatingBar #langBtn span{display:block;line-height:1;white-space:nowrap}
+html #mobileFloatingBar .circle-badge-btn i{font-size:15px!important;line-height:1}
+html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:22px!important;height:22px!important}
+html #mobileFloatingBar>.feed .fdp{width:22px!important;height:22px!important}
+html #mobileFloatingBar #barEdit{opacity:.85}`; document.head.appendChild(st); })();
 
 
 /* ==========================================================
@@ -2333,21 +2366,24 @@ const thLX = {
   eg: 'نصيحة: دوس دوسة طويلة على أي كارت واسحبه للمكان اللي عايزه'
 };
 const thCardKey = el => el.id === 'taskCard' ? 'tasks' : el.id === 'dandanaCard' ? 'dandana' : ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
+const THL_KEYS = ['notes', 'tefl', 'qol'];
 function thListsApply() {
-  const L = $('lists'); if (!L) return;
-  let ord = []; try { ord = JSON.parse(localStorage.getItem('thabit_lists_order') || '[]') || []; } catch (e) {}
-  if (ord.length) {
-    const kids = [...L.children], nat = new Map(kids.map((k, i) => [k, i])), at = k => { const i = ord.indexOf(thCardKey(k)); return i < 0 ? 100 + nat.get(k) : i; };
-    kids.slice().sort((a, b) => at(a) - at(b)).forEach(k => L.appendChild(k));
-  }
-  const flex = /grid|flex/.test(getComputedStyle(L).display);
-  L.style.columnGap = 'var(--thgap)'; L.style.rowGap = flex ? 'var(--thgap)' : '';
-  [...L.children].forEach(k => { k.style.marginBottom = flex ? '' : 'var(--thgap)'; });
-  thListsBind();
-  if (!VIEW && !window._thLH) { window._thLH = 1; let seen = false; try { seen = !!localStorage.getItem('thabit_lists_hint'); } catch (e) {} if (!seen) setTimeout(() => { try { localStorage.setItem('thabit_lists_hint', '1'); } catch (e) {} itToast(thLX[lang] || thLX.en); }, 3500); }
+  const L = $('lists'), L2 = $('lists2'); if (!L) return;
+  if (L2) { L2.innerHTML = ''; [...L.children].filter(k => THL_KEYS.includes(thCardKey(k))).forEach(k => L2.appendChild(k)); }   // section 2 = tasks + dandana, section 3 = notes / TEFL / QOL
+  [L, L2].forEach(x => {
+    if (!x) return;
+    let ord = []; try { ord = JSON.parse(localStorage.getItem(x.id === 'lists2' ? 'thabit_lists2_order' : 'thabit_lists_order') || '[]') || []; } catch (e) {}
+    if (ord.length) {
+      const kids = [...x.children], nat = new Map(kids.map((k, i) => [k, i])), at = k => { const i = ord.indexOf(thCardKey(k)); return i < 0 ? 100 + nat.get(k) : i; };
+      kids.slice().sort((a, b) => at(a) - at(b)).forEach(k => x.appendChild(k));
+    }
+    thListsBind(x);
+  });
+  const s2 = $('thS2'), s3 = $('thS3'); if (s2) s2.hidden = !L.children.length; if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
+  thHintRefresh();
 }
-function thListsBind() {
-  const L = $('lists'); if (!L || L.dataset.thb || VIEW) return; L.dataset.thb = '1';
+function thListsBind(L) {
+  if (!L || L.dataset.thb || VIEW) return; L.dataset.thb = '1';
   let dr = null, timer = null, px = 0, py = 0, swallow = 0, raf = 0, lx = 0, ly = 0, lastSwap = 0;
   const kids = () => [...L.children];
   const cardOf = t => { let e = t; while (e && e.parentElement !== L) e = e.parentElement; return e && e.parentElement === L ? e : null; };
@@ -2370,7 +2406,7 @@ function thListsBind() {
   const begin = it => {
     timer = null; const r = it.getBoundingClientRect();
     dr = { it, ox: px - r.left, oy: py - r.top }; lx = px; ly = py;
-    it.classList.add('thlift'); L.classList.add('thdrag');
+    it.classList.add('thlift'); L.classList.add('thdrag'); document.documentElement.style.scrollSnapType = 'none';
     try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
     try { getSelection().removeAllRanges(); } catch (e) {}
     place(px, py); raf = requestAnimationFrame(tick);
@@ -2379,8 +2415,8 @@ function thListsBind() {
     clearTimeout(timer); timer = null; if (!dr) return;
     const it = dr.it; dr = null; cancelAnimationFrame(raf);
     it.style.transition = 'transform .2s'; it.style.transform = '';
-    setTimeout(() => { it.style.transition = ''; it.classList.remove('thlift'); L.classList.remove('thdrag'); }, 230);
-    try { localStorage.setItem('thabit_lists_order', JSON.stringify(kids().map(thCardKey))); } catch (e) {}
+    setTimeout(() => { it.style.transition = ''; it.classList.remove('thlift'); L.classList.remove('thdrag'); document.documentElement.style.scrollSnapType = ''; }, 230);
+    try { localStorage.setItem(L.id === 'lists2' ? 'thabit_lists2_order' : 'thabit_lists_order', JSON.stringify(kids().map(thCardKey))); } catch (e) {}
     swallow = Date.now() + 400;
   };
   L.addEventListener('pointerdown', e => {
@@ -2399,8 +2435,9 @@ function thListsBind() {
   L.addEventListener('click', e => { if (Date.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
-:root{--thgap:72px}   /* ONE number: the space under Overall progress (where the cord hangs) AND between every two cards. Change it here. */
-#lists>*{-webkit-touch-callout:none}
-#lists.thdrag,#lists.thdrag *{-webkit-user-select:none;user-select:none}
-#lists>.thlift{position:relative;z-index:60;cursor:grabbing;box-shadow:0 22px 50px rgba(0,0,0,.5)!important;will-change:transform}
-.thcord.flat .tcs,.thcord.flat .tcb,.thcord.flat .tch{display:none}`; document.head.appendChild(st); })();
+:root{--thgap:14px}
+#lists>*,#lists2>*{-webkit-touch-callout:none}
+#lists.thdrag,#lists.thdrag *,#lists2.thdrag,#lists2.thdrag *{-webkit-user-select:none;user-select:none}
+#lists>.thlift,#lists2>.thlift{position:relative;z-index:60;cursor:grabbing;box-shadow:0 22px 50px rgba(0,0,0,.5)!important;will-change:transform}
+#lists2{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+@media(max-width:600px){#lists2{grid-template-columns:1fr 1fr}#lists2>:first-child{grid-column:1/-1}}`; document.head.appendChild(st); })();
