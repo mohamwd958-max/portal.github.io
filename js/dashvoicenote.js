@@ -100,13 +100,17 @@
   };
 
   /* play this exact recording with the same mini player the words list uses */
+  /* open the SAME smart widget (dashboardsmartwidget.js) but feed it the trainer's recording instead of the words_table one */
+  VN.force = null;
+  const _wpResolve = wpResolve;
+  wpResolve = function (text) {
+    if (VN.force && VN.force.word === text) { const u = VN.force.url; VN.force = null; return Promise.resolve([u]); }
+    return _wpResolve.apply(this, arguments);
+  };
   function play(n) {
-    wpClose();
-    WP.word = n.word; WP.urls = [n.audio_url]; WP.i = 0;
-    const el = document.createElement('div'); el.id = 'wp'; el.className = 'wp';
-    el.innerHTML = `<div class="wpw" dir="auto">${esc(n.word)}</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause"><i class="fa-solid fa-play"></i></button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span></div><div class="wpm" dir="auto" hidden></div>`;
-    document.body.appendChild(el);
-    wpLoad(true);
+    VN.force = { word: n.word, url: n.audio_url };
+    setTimeout(() => { VN.force = null; }, 4000);
+    window.wpOpen(n.word);
   }
   /* window capture = runs before every other click handler on the page (so the general word player never fires on these words) */
   window.addEventListener('click', e => {
