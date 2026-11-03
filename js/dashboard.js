@@ -75,6 +75,7 @@ function spark(vals) {
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
+const hasV = x => x != null && x !== '' && Number.isFinite(Number(x));   // a value counts only if it was really entered (empty / missing = not counted, never zero)
 const MD = [], TK = [], mk = (title, text, ear) => MD.push([title, text, ear || '']) - 1;
 /* Ear toggle per container (Notes / TEFL / QOL): QOL is on by default, the others off. Saved on this device. */
 const EAR_DEF = { qol: 1, tefl: 0, notes: 0 };
@@ -94,7 +95,7 @@ document.addEventListener('click', e => {
 }, true);
 let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
-  if (k === 'avg') { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
+  if (k === 'avg') { const v = MET.map(m => r[m]).filter(hasV).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
   return r[k] == null ? null : Number(r[k]);
 }
 const DAYS = { week: 7, month: 30, year: 365 };
@@ -115,10 +116,12 @@ function series(rows) {
   if (!monthly) for (let i = 0; i < days; i++) { const d = new Date(st); d.setDate(d.getDate() + i); const k = ymd(d); idx[k] = bk.length; bk.push({ label: k.slice(5), rows: [] }); }
   else { const d = new Date(st.getFullYear(), st.getMonth(), 1); while (d <= en) { const k = ymd(d).slice(0, 7); idx[k] = bk.length; bk.push({ label: k.slice(2), rows: [] }); d.setMonth(d.getMonth() + 1); } }
   rows.forEach(r => { const i = idx[monthly ? r.supply_date.slice(0, 7) : r.supply_date]; if (i != null) bk[i].rows.push(r); });
-  const cum = {};
-  MET.forEach(k => { let s = 0; cum[k] = bk.map(b => { b.rows.forEach(r => s += Number(r[k]) || 0); return s; }); });
-  cum.avg = bk.map((_, i) => +(MET.reduce((a, k) => a + cum[k][i], 0) / MET.length).toFixed(1));
-  return { bk, cum, max: 10 * days };
+  const live = bk.filter(b => b.rows.some(r => MET.some(m => hasV(r[m]))));   // a day with no entries did not happen: it is dropped from the chart
+  const dayVal = (b, k) => { const v = b.rows.map(r => r[k]).filter(hasV).map(Number); return v.length ? v.reduce((a, c) => a + c, 0) / v.length : null; };
+  const cum = {};   // cum[k][i] = the value of that day (0-10), null when that metric was not entered that day
+  MET.forEach(k => { cum[k] = live.map(b => { const v = dayVal(b, k); return v == null ? null : +v.toFixed(2); }); });
+  cum.avg = live.map((_, i) => { const v = MET.map(k => cum[k][i]).filter(x => x != null); return v.length ? +(v.reduce((a, c) => a + c, 0) / v.length).toFixed(2) : null; });
+  return { bk: live, cum, max: 10 };
 }
 function smooth(p) {
   const n = p.length; if (n < 2) return '';
@@ -139,8 +142,8 @@ function chart(S, keys, o) {
   S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
   keys.forEach(k => {
     const li = keys.indexOf(k);
-    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
-    if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
+    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean))}"/>`;
+    if (k !== 'avg') S.bk.forEach((b, i) => { if (S.cum[k][i] != null) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
       s += `<circle class="dot ${k}" style="--d:${(n < 2 ? 0 : i / (n - 1)).toFixed(3)};--li:${li}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
   return s + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
@@ -155,12 +158,13 @@ function kpi(key, rows, all, S) {
   return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 1.6, r: 2.6, hit: 15, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
 }
 function overall(rows, S) {
-  const t = T[lang], ra = r => { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };
-  const vals = rows.map(ra).filter(v => v != null);
-  if (!vals.length) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
-  const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
-  return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
+  const t = T[lang];
+  /* per metric: the average of the values that were entered; then the average of those metric averages. Nothing entered = nothing counted. */
+  const avgM = rs => { const per = MET.map(k => { const v = rs.map(r => r[k]).filter(hasV).map(Number); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }).filter(x => x != null); return per.length ? per.reduce((a, b) => a + b, 0) / per.length : null; };
+  const c0 = avgM(rows);
+  if (c0 == null) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
+  const cur = +c0.toFixed(1), first = rows[0].supply_date, b0 = avgM(D.rows.filter(r => r.supply_date < first));   // change = this period vs everything before it
+  return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${b0 == null ? '' : delta(+(cur - b0).toFixed(1))}` +
     chart(S, ['avg'], { W: 700, H: 300, L: 40, f: 13, w: 3, r: 3.4, hit: 20, lab: 10, grad: true });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
@@ -232,7 +236,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL'); thListsApply();
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL'); thListsApply();
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -521,12 +525,11 @@ document.addEventListener('click', e => {
   if (!d) { tip.classList.remove('show'); return; }
   const sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
   if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
-  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
-  const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
-  tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
+  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows.slice().reverse().find(x => hasV(x[k])) || b.rows[b.rows.length - 1];
+  tip.textContent = `${b.label} · ${T[lang][k]} ${v}`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
   const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
-  if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
+  if (w) w.innerHTML = `${b.label} · ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
 });
 
 /* phone accordions: tap header to open, tap anywhere else to close */
@@ -2289,7 +2292,7 @@ thSections();
 (function () { const st = document.createElement('style'); st.textContent = `
 /* --- the time button --- */
 #rng{display:flex;align-items:center}
-#rng .thrb,#thRov .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#rng .thrb,#thRov .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:1px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #rng .thrb span,#thRov .thrb span,#thRov .thro span{display:block;max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
 #rng .thrb:active{transform:scale(.93)}
 body.light-theme #rng .thrb,body.light-theme #thRov .thrb{background:#fff;color:#000;border-color:#000;box-shadow:0 6px 18px rgba(15,23,42,.22)}
@@ -2301,7 +2304,7 @@ body.light-theme #thRov{background:rgba(255,255,255,.35)}
 body.light-theme #thRov .thrb.pressed{background:#000;color:#fff;border-color:#000}
 #thRov .thrb.pressed.lm{background:#fb923c;color:#1a0f00;border-color:#fb923c}
 #thRov .thrb.pressed.big{transform:scale(1.25)}
-#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:1px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #thRov .thro:active{transform:scale(.92)}
 body.light-theme #thRov .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 #thRov .thro.lm{color:#fb923c;border-color:#fb923c}
