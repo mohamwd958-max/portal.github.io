@@ -20,9 +20,10 @@
     const first = a => (Array.isArray(a) ? a : []).find(x => x && x.trainee_id != null);
     let id = p.id != null ? p.id : p.trainee_id;
     if (id == null) { const f = first(D && D.rows) || first(D && D.items) || first(D && D.notes); if (f) id = f.trainee_id; }
-    if (id == null) { console.warn('[voice notes] could not find the trainee id. profile keys:', Object.keys(p)); return null; }
+    const flt = id != null ? `trainee_id=eq.${encodeURIComponent(id)}` : (p.trainee ? `trainee_name=eq.${encodeURIComponent(String(p.trainee).trim())}` : null);
+    if (!flt) { console.warn('[voice notes] no trainee id or name. profile keys:', Object.keys(p)); return null; }
     try {
-      const r = await fetch(`${SB}/rest/v1/voice_notes?select=id,scope,word,occ,audio_url,duration&trainee_id=eq.${encodeURIComponent(id)}&status=eq.active`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+      const r = await fetch(`${SB}/rest/v1/voice_notes?select=id,scope,word,occ,audio_url,duration&${flt}&status=eq.active`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
       if (!r.ok) { console.warn('[voice notes] read failed', r.status, await r.text().catch(() => '')); return null; }
       const j = await r.json(); return Array.isArray(j) ? j : null;
     } catch (e) { return null; }
