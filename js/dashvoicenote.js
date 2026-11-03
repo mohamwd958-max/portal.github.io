@@ -9,16 +9,21 @@
 
   const st = document.createElement('style');
   st.textContent = `
-.vnw{color:#34d399!important;border-bottom:1px dotted currentColor;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.vnw{font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.vnw.vo{color:rgb(31,182,255)!important;text-shadow:0 0 8px rgba(31,182,255,.65)}
+.vnw.vq{color:rgb(224,38,138)!important;text-shadow:0 0 8px rgba(224,38,138,.6)}
 .vnw .vx,.vnw .rt-link{color:inherit!important;text-shadow:none!important;pointer-events:none!important}`;
   document.head.appendChild(st);
 
   async function fetchVN() {
-    const p = D && D.profile, id = p && (p.id != null ? p.id : p.trainee_id);
-    if (id == null) { console.warn('[voice notes] profile has no id'); return null; }
+    const p = (D && D.profile) || {};
+    const first = a => (Array.isArray(a) ? a : []).find(x => x && x.trainee_id != null);
+    let id = p.id != null ? p.id : p.trainee_id;
+    if (id == null) { const f = first(D && D.rows) || first(D && D.items) || first(D && D.notes); if (f) id = f.trainee_id; }
+    if (id == null) { console.warn('[voice notes] could not find the trainee id. profile keys:', Object.keys(p)); return null; }
     try {
       const r = await fetch(`${SB}/rest/v1/voice_notes?select=id,scope,word,occ,audio_url,duration&trainee_id=eq.${encodeURIComponent(id)}&status=eq.active`, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
-      if (!r.ok) return null;
+      if (!r.ok) { console.warn('[voice notes] read failed', r.status, await r.text().catch(() => '')); return null; }
       const j = await r.json(); return Array.isArray(j) ? j : null;
     } catch (e) { return null; }
   }
@@ -51,7 +56,7 @@
         let mid = a > 0 ? g.n.splitText(a) : g.n;
         if (b - a < mid.nodeValue.length) mid.splitText(b - a);
         const sp = document.createElement('span');
-        sp.className = 'vnw'; sp.setAttribute('data-vn', r.id); sp.setAttribute('role', 'button'); sp.setAttribute('tabindex', '0');
+        sp.className = 'vnw ' + (/\|qol$/.test(scope) ? 'vq' : 'vo'); sp.setAttribute('data-vn', r.id); sp.setAttribute('role', 'button'); sp.setAttribute('tabindex', '0');
         mid.parentNode.insertBefore(sp, mid); sp.appendChild(mid);
       });
     });
