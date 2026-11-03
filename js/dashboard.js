@@ -2462,3 +2462,6 @@ function thListsBind(L) {
 #lists>.thlift,#lists2>.thlift{position:relative;z-index:60;cursor:grabbing;box-shadow:0 22px 50px rgba(0,0,0,.5)!important;will-change:transform}
 #lists2{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 @media(max-width:600px){#lists2{grid-template-columns:1fr 1fr}#lists2>:first-child{grid-column:1/-1}}`; document.head.appendChild(st); })();
+
+
+dashboard_voicenote_part1.js
