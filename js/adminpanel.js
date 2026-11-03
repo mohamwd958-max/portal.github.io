@@ -3434,3 +3434,5 @@ function genInstallBtn() {
   let tries = 0; const iv = setInterval(() => { if (genInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
   const prevOpenMain = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain.apply(this, arguments); genInstallBtn(); return r; };
 }
+
+adminvoicenote.js
