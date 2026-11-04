@@ -1,0 +1,49 @@
+:root,:root[data-theme="dark"],:root[data-theme="light"]{--bg:#000;--fg:#f5f5f5;--mut:#9aa0a6;--acc:#fbbf24;--blue:#60a5fa;--card:#0d0d10;--line:#2a2a30;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{min-height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Cairo,system-ui,sans-serif}
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;max-width:520px;margin:0 auto;text-align:center;box-sizing:border-box}
+.step{width:100%;animation:in .6s ease both}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+h1{font-size:28px;font-weight:900;margin:0 0 6px}
+h2{font-size:24px;font-weight:900;margin:6px 0}
+p{color:var(--mut);line-height:1.9;margin:8px 0;font-size:16px}
+.art{min-height:190px;display:flex;align-items:center;justify-content:center;margin:8px 0}
+.btn{background:var(--acc);color:#000;border:0;border-radius:12px;padding:13px 34px;font:700 16px Cairo,sans-serif;cursor:pointer;margin-top:18px}
+.btn.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
+.btn:active{transform:scale(.97)}
+.langs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.dots{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.dots i.on{background:var(--acc)}
+.chips{display:flex;gap:6px;justify-content:center;margin:10px 0;direction:ltr}
+.chips b{font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--line);color:var(--mut);font-weight:700}
+.chips b.a{background:var(--acc);color:#000;border-color:var(--acc)}
+.chips b.s{background:var(--blue);color:#000;border-color:var(--blue)}
+ul.ex{list-style:none;padding:0;margin:8px 0;text-align:start}
+ul.ex li{padding:10px 14px;border:1px dashed var(--line);border-radius:10px;margin:6px 0;color:var(--fg);font-size:15px}
+.note{font-size:12px;color:var(--mut);margin-top:14px}
+a.lnk{display:inline-block;margin-top:10px;color:var(--acc);font-weight:700;text-decoration:none;border-bottom:1px solid var(--acc)}
+.rcpt{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px 16px;margin:14px 0;text-align:start;font-size:14px;line-height:2;color:var(--mut)}
+.rcpt b{color:var(--fg)}
+/* animations */
+svg text{font-family:Cairo,sans-serif}
+.hand{transform-origin:60px 60px;animation:sweep 1.8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sweep{from{transform:rotate(calc(var(--a) - 720deg))}to{transform:rotate(var(--a))}}
+.blink{animation:bl 1.2s infinite}@keyframes bl{50%{opacity:.2}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pu 1.4s ease-out infinite}
+@keyframes pu{from{transform:scale(.8);opacity:1}to{transform:scale(1.5);opacity:0}}
+.type{transform-box:fill-box;transform-origin:left center;animation:ty 2.4s steps(14) infinite}
+@keyframes ty{0%{transform:scaleX(0)}70%,100%{transform:scaleX(1)}}
+.fl{animation:fl 2.4s ease-in-out infinite;opacity:0}
+@keyframes fl{0%{opacity:0;transform:translateY(8px)}30%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+.beam{transform-origin:100px 40px;animation:sw 3s ease-in-out infinite alternate}
+@keyframes sw{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+.dayc{opacity:0;animation:in .4s ease forwards}
+.money{position:relative;width:170px;height:170px}
+.money svg{position:absolute;inset:0}
+.ring{stroke-dasharray:289;stroke-dashoffset:289;animation:dr 1.8s ease forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.amt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:34px;direction:ltr}
+.amt small{font-size:12px;color:var(--mut);font-weight:700}
+.coin{position:absolute;top:-10px;color:var(--acc);font-weight:900;animation:dp 2.4s ease-in infinite;opacity:0}
+@keyframes dp{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(120px);opacity:0}}
