@@ -3227,14 +3227,26 @@ function genCopy(t) {
 }
 function genCopyOld(t, done) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e) { } a.remove(); }
 async function genCall(payload) {
-  let r;
-  try { r = await fetch(`${SUPABASE_URL}/functions/v1/student-accounts`, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(payload) }); }
-  catch (e) { throw new Error('مش قادر أوصل للفانكشن student-accounts. غالباً: (1) لسه ما اتعملتش Deploy، أو (2) اسمها في Supabase مش student-accounts بالظبط. افتح Supabase ← Edge Functions وتأكد إنها ظاهرة وحالتها Active.'); }
-  const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
-  if (r.status === 404) throw new Error('الفانكشن student-accounts لسه مش متعملة Deploy (شوف GENERATOR_SETUP.md)');
-  if (r.status === 401) { if (window.SB_ACCESS_TOKEN) onSessionExpired(); throw new Error('انتهت الجلسة، سجّل دخول تاني'); }
-  if (!r.ok) { const e = new Error(j.error || j.message || t); e.code = j.code; throw e; }
-  return j;
+  /* No Edge Function anymore: everything goes through admin-only SQL functions / the trainee_credentials table.
+     Passwords are never stored in readable form; the new password is shown once, in the browser. */
+  if (payload.action === 'list') {
+    const rows = await (await sbFetch('trainee_credentials?select=who,username,trainee_id,updated_at&role=eq.trainee&order=updated_at.desc')).json();
+    return { items: (Array.isArray(rows) ? rows : []).map(r => ({ email: r.username, username: r.username, trainee_id: r.trainee_id, trainee_name: r.who, updated_at: r.updated_at })) };
+  }
+  if (payload.action === 'create') {
+    const u = String(payload.username || '').toLowerCase().trim();
+    let j;
+    try {
+      j = await (await sbFetch('rpc/admin_set_trainee_password', { method: 'POST', body: JSON.stringify({
+        p_username: u.includes('@') ? u : u + GEN_DOMAIN, p_trainee_id: payload.trainee_id, p_who: payload.trainee_name || '', p_overwrite: !!payload.overwrite }) })).json();
+    } catch (e) {
+      if (/not_allowed/.test(e.message)) throw new Error('مش مصرّح لك (لازم تكون داخل بحساب الأدمن)');
+      throw e;
+    }
+    if (j && j.exists) { const e = new Error('الحساب موجود'); e.code = 'exists'; throw e; }
+    return j;
+  }
+  throw new Error('العملية دي مش مدعومة');
 }
 async function genRender() {
   const w = WSE.gen; if (!w) return;
@@ -3254,7 +3266,7 @@ function genNewPaint() {
   const host = $id('genBody'); if (!host) return;
   host.innerHTML = `<div id="genRows"></div>
     <div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="ds-b ghost" id="genAdd"><i class="fa-solid fa-plus"></i> شخص تاني</button></div>
-    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الباسورد بيتولّد عشوائي (12 حرف وأرقام من غير حروف متشابهة)، والحساب بيتعمل على Supabase مفعّل، وبنجرّب الدخول بيه قبل ما نظهره. لو اليوزر موجود قبل كده هيسألك قبل ما يغيّر باسورده.</div>`;
+    <div class="text-[10px] text-slate-500" style="margin-top:10px;line-height:1.7">الباسورد بيتولّد عشوائي (12 حرف وأرقام من غير حروف متشابهة) وبيتخزّن مشفّر، وبيظهر مرة واحدة بس. انسخه وابعته للشخص. لو اليوزر موجود قبل كده هيسألك قبل ما يغيّر باسورده.</div>`;
   $id('genAdd').onclick = () => genAddRow($id('genRows'));
   genAddRow($id('genRows'));
 }
@@ -3291,7 +3303,7 @@ function genAddRow(host) {
     go.disabled = true;
     try {
       if (!r) { out.innerHTML = '<span class="text-amber-400 text-xs">جاري عمل البروفايل...</span>'; made = r = await genMakeProfile(name, email); }
-      out.innerHTML = '<span class="text-amber-400 text-xs">جاري إنشاء الحساب والتأكد إن الدخول شغّال...</span>';
+      out.innerHTML = '<span class="text-amber-400 text-xs">جاري إنشاء الباسورد...</span>';
       const base = { action: 'create', username, trainee_id: String(r.id), trainee_name: name };
       let res;
       try { res = await genCall(base); }
@@ -3305,7 +3317,7 @@ function genAddRow(host) {
       out.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr">
           <code style="font-size:13px;color:#e2e8f0">${esc(res.email)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.email)}">نسخ</button>
           <code style="font-size:15px;color:#34d399;letter-spacing:.5px">${esc(res.password)}</code><button type="button" class="ds-b ghost" data-c="${esc(res.password)}">نسخ</button></div>
-        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ اتجرّب الدخول بيه وشغّال${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''}</div>
+        <div class="text-[10px]" style="color:#34d399;margin-top:4px">✓ تمّ${res.updated ? ' · (الحساب كان موجود واتغيّر باسورده)' : ''} · الباسورد مش متخزّن، انسخه دلوقتي</div>
         ${wasNew ? `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتعمل بروفايل جديد "${esc(name)}" وعليه علامة «جديد» في الداشبورد. افتحه وكمّل الصورة والأرقام.</div>` : `<div class="text-[10px]" style="color:#60a5fa;margin-top:4px">اتربط الحساب بالبروفايل "${esc(name)}".</div>`}
         ${warn ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">${esc(warn)}</div>` : ''}
         ${res.saved === false ? `<div class="text-[10px]" style="color:#fbbf24;margin-top:4px">الباسورد ما اتحفظش في الداتابيز (${esc(res.saveError || '')}). انسخه دلوقتي!</div>` : ''}`;
@@ -3372,6 +3384,7 @@ async function genHistPaint() {
         <div class="text-[10px] text-slate-500" style="margin-top:4px">الحساب مش بيتغيّر. بنجرّب الدخول بالباسورد ده الأول، ولو صح بيتحفظ هنا.</div></div></div>
     <input id="genQ" placeholder="ابحث بالاسم أو اليوزر..." class="${INPUT_CLS}" style="width:100%;font-size:13px;padding:6px 10px;margin-bottom:8px">
     <div id="genHist" class="p5-g"></div>`;
+  $id('genExBtn').parentNode.style.display = 'none';
   $id('genExBtn').onclick = () => { const e = $id('genEx'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
   $id('genExUn').oninput = () => { const u = $id('genExUn'), v = genUserLive(u.value); if (v !== u.value) u.value = v; };
   $id('genExGo').onclick = async () => {
@@ -3406,10 +3419,9 @@ function genHistList() {
         <div style="min-width:0"><b dir="auto" style="font-size:13px">${esc((pr && pr.trainee) || c.trainee_name || '(من غير بروفايل)')}</b>
           <div class="text-[10px] text-slate-400" dir="auto">${esc([st, phone, pr && pr.subscription].filter(Boolean).join(' · '))}</div></div></div>
       <div class="p5-r"><span>اليوزر</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code>${esc(c.email)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="email">نسخ</button></span></div>
-      <div class="p5-r"><span>الباسورد</span><span dir="ltr" style="display:inline-flex;gap:6px;align-items:center"><code style="color:#34d399">${esc(c.password)}</code><button type="button" class="ds-b ghost" style="padding:1px 6px;font-size:10px" data-i="${i}" data-k="password">نسخ</button></span></div>
-      <div class="text-[10px] text-slate-500" style="margin-top:4px">اتعمل: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div>
+      <div class="text-[10px] text-slate-500" style="margin-top:4px">آخر تغيير: ${esc(String(c.updated_at || c.created_at || '').slice(0, 10))}</div>
       <button type="button" class="ds-b amber" style="margin-top:8px" data-n="${i}"><i class="fa-solid fa-rotate"></i> New password</button></div>`;
-  }).join('') || '<div class="tha-note">مفيش باسوردات متسجّلة لسه.</div>';
+  }).join('') || '<div class="tha-note">مفيش حسابات لسه.</div>';
   g.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => genCopy(items[+b.dataset.i][b.dataset.k]); });
   g.querySelectorAll('[data-n]').forEach(b => {
     b.onclick = async () => {
