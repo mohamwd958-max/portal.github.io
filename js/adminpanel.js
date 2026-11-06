@@ -3447,4 +3447,186 @@ function genInstallBtn() {
   const prevOpenMain = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain.apply(this, arguments); genInstallBtn(); return r; };
 }
 
-adminvoicenote.js
+/* ==========================================================
+   Patch 7 (end of adminpanel.js, after everything else)
+   - trainee cards are clean: avatar + name + key info only (no buttons, no checkbox)
+   - tap a card        -> that trainee's options open inside the card:
+                          Profile, Dashboard, DS, Announcements (notify / start update / end update / Updates)
+   - long-press a card -> selection mode (right-click or Ctrl+click on desktop); tap more cards to add / remove
+   - while something is selected the bulk bar shows on top (the same options, for everyone selected)
+     and the per-card options are hidden, so each option lives in ONE place at a time
+   - "تحديد الكل" asks which status groups to select (Active / Pending / Paused / Past / Terminated / custom)
+   ========================================================== */
+(function () {
+  if (document.getElementById('p7Css')) return;
+  const s = document.createElement('style'); s.id = 'p7Css';
+  s.textContent = `
+.mp-card{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;flex-wrap:wrap;transition:border-color .15s,background .15s}
+.mp-card.mp-sel{border-color:#f59e0b;background:rgba(245,158,11,.14);box-shadow:0 0 0 1px #f59e0b inset}
+.mp-card.mp-open{border-color:rgba(245,158,11,.55)}
+.mp-opts{flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;margin-top:2px;border-top:1px solid #1e293b;cursor:default}
+#mpBar.p7-bar{position:sticky;top:0;z-index:6;padding:8px;border:1px solid rgba(245,158,11,.45);border-radius:12px;background:#0f172a}`;
+  document.head.appendChild(s);
+})();
+
+mpState.open = null;
+
+const mpFiltered = () => mpState.list.filter(r => !mpState.q || `${r.trainee || ''} ${mpVal(r, 'preferred name') || ''}`.toLowerCase().includes(mpState.q));
+
+function mpGroupList(rows) {
+  const groups = MP_GROUPS.map(x => [x[0], x[1]]), custom = new Map();
+  rows.forEach(r => { const i = mpStatusInfo(r); if (i.key.startsWith('x:') && !custom.has(i.key)) custom.set(i.key, i.label); });
+  [...custom.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([k, l]) => groups.push([k, l]));
+  return groups;
+}
+
+/* ---------- clean card ---------- */
+mpCardHtml = function (r, today) {
+  const id = String(r.id), q = esc(id), paid = isPaid(r), late = !paid && r.due_date && r.due_date < today, st = mpStatus(r);
+  const ini = esc(String(r.trainee || '?').trim().charAt(0).toUpperCase());
+  const on = mpState.sel.has(id), open = !mpState.sel.size && mpState.open === id;
+  return `<div class="mp-card${on ? ' mp-sel' : ''}${open ? ' mp-open' : ''}${st === 'past' || st === 'terminated' || st === 'paused' ? ' mp-dim' : ''}" data-id="${q}">
+      <div class="mp-av">${r.most_recent_picture_url ? `<img src="${esc(r.most_recent_picture_url)}" alt="" draggable="false" onerror="this.remove()">` : ini}</div>
+      <div class="mp-nm"><b dir="auto">${esc(r.trainee || '')}</b>${r.needs_setup === true ? '<span class="ds-tag" style="background:#2563eb;color:#fff;margin-inline-start:6px">جديد</span>' : ''}
+        <small dir="auto">${esc([mpVal(r, 'preferred name'), r.subscription].filter(Boolean).join(' · '))}</small>
+        <small class="${late ? 'mp-late' : ''}">${r.due_date ? 'Due ' + esc(r.due_date) + (late ? ' (متأخر)' : '') : ''}</small>
+        ${payTag(r, paid)}</div>
+      ${open ? `<div class="mp-opts">
+        <button type="button" class="ds-b amber" onclick="mpOpen('${q}')"><i class="fa-solid fa-id-card"></i> Profile</button>
+        <button type="button" class="ds-b green" onclick="openStudentDashboard('${q}')"><i class="fa-solid fa-eye"></i> Dashboard</button>
+        <button type="button" class="ds-cur" title="Daily Supply" onclick="openStudentSupply('${q}')"><i class="ds-caret"></i>DS</button>
+        <button type="button" class="ds-b blue" onclick="anMenu(this,'${q}')"><i class="fa-solid fa-bullhorn"></i> Announcements ▾</button></div>` : ''}</div>`;
+};
+
+mpPaintList = function () {
+  const g = document.getElementById('mpGrid'); if (!g) return;
+  const sc = g.closest('.ws-bd'), top = sc ? sc.scrollTop : 0;
+  const today = dsToday(), cnt = ocGet(), rows = mpFiltered();
+  const byOpens = (a, b) => ((b.needs_setup === true) - (a.needs_setup === true)) || (cnt[String(b.id)] || 0) - (cnt[String(a.id)] || 0) || String(a.trainee || '').localeCompare(String(b.trainee || ''));
+  let html = '', first = true;
+  mpGroupList(rows).forEach(([k, label]) => {
+    const part = rows.filter(r => mpStatus(r) === k).sort(byOpens);
+    if (!part.length) return;
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:${first ? '0' : '12px'} 0 2px;color:#94a3b8;font-size:11px;font-weight:800"><span style="flex:1;height:1px;background:#334155"></span><span dir="auto">${esc(label)} · ${part.length}</span><span style="flex:1;height:1px;background:#334155"></span></div>`;
+    html += part.map(r => mpCardHtml(r, today)).join('');
+    first = false;
+  });
+  const sample = mpState.list[0];
+  if (sample && !mpCol(sample, 'status_as_of_today')) html = `<div class="tha-note" style="grid-column:1/-1;color:#fb7185">مفيش عمود للستاتس في جدول basic_info، فالكل بيظهر Active. الأعمدة الموجودة: ${esc(Object.keys(sample).join(', '))}</div>` + html;
+  g.innerHTML = html || '<div class="tha-note">مفيش نتائج.</div>';
+  if (sc) sc.scrollTop = top;
+  mpPaintBar();
+};
+
+/* ---------- bulk bar: only while something is selected ---------- */
+mpPaintBar = function () {
+  const b = document.getElementById('mpBar'); if (!b) return;
+  const n = mpState.sel.size;
+  b.classList.add('p7-bar');
+  if (!n) { b.style.display = 'none'; b.innerHTML = ''; return; }
+  b.style.display = 'flex';
+  const btn = (cls, fn, ic, txt) => `<button type="button" class="ds-b ${cls}" onclick="${fn}">${ic ? `<i class="fa-solid ${ic}"></i> ` : ''}${txt}</button>`;
+  b.innerHTML = `<span class="text-xs" style="color:#fbbf24;font-weight:800">${n} محدد</span>`
+    + btn('ghost', 'mpSelectAll()', 'fa-square-check', 'تحديد الكل')
+    + btn('ghost', 'mpClearSel()', 'fa-xmark', 'إلغاء')
+    + '<span class="ws-sep"></span>'
+    + '<button type="button" class="ds-b blue" onclick="anMenu(this,\'sel\')"><i class="fa-solid fa-bullhorn"></i> Announcements ▾</button>'
+    + btn('blue', 'openBulkTask()', 'fa-list-check', 'Task')
+    + btn('amber', 'openMonthly()', 'fa-calendar-check', 'Monthly obligations')
+    + '<span class="ws-sep"></span>'
+    + btn('green', 'payMarkSel(true)', 'fa-circle-check', 'دفع')
+    + btn('ghost', 'payMarkSel(false)', '', 'لم يدفع');
+};
+
+window.mpToggleSel = function (id) {
+  id = String(id);
+  if (mpState.sel.has(id)) mpState.sel.delete(id); else { mpState.sel.add(id); mpState.open = null; }
+  mpPaintList();
+};
+window.mpClearSel = function () { mpState.sel.clear(); mpPaintList(); };
+
+/* "تحديد الكل": choose which status groups to select */
+window.mpSelectAll = function () {
+  const rows = mpFiltered();
+  const groups = mpGroupList(rows).map(([k, l]) => [k, l, rows.filter(r => mpStatus(r) === k)]).filter(x => x[2].length);
+  if (!groups.length) { showToast('مفيش طلاب نحددهم', true, true); return; }
+  const ov = document.createElement('div'); ov.className = 'ds-ov';
+  ov.innerHTML = `<div class="ds-box" style="max-width:420px;margin-top:10vh">
+      <b style="color:#fbbf24;font-size:14px;display:block;margin-bottom:10px">تحديد الكل · اختار الفئات</b>
+      <div style="display:flex;flex-direction:column;gap:8px">${groups.map(([k, l, list]) => `<label class="ds-slot" style="cursor:pointer"><input type="checkbox" data-k="${esc(k)}" style="accent-color:#f59e0b;width:18px;height:18px"><span dir="auto" style="flex:1">${esc(l)}</span><span class="ds-tag">${list.length}</span></label>`).join('')}</div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="ds-b green" data-ok>تحديد</button><button type="button" class="ds-b ghost" data-no>إلغاء</button></div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  ov.querySelector('[data-no]').onclick = close;
+  ov.querySelector('[data-ok]').onclick = () => {
+    const keys = new Set([...ov.querySelectorAll('input[data-k]:checked')].map(i => i.dataset.k));
+    if (!keys.size) { showToast('علّم فئة واحدة على الأقل', true, true); return; }
+    groups.forEach(([k, , list]) => { if (keys.has(k)) list.forEach(r => mpState.sel.add(String(r.id))); });
+    mpState.open = null; close(); mpPaintList();
+  };
+};
+
+/* ---------- Announcements menu (one trainee or everyone selected) ---------- */
+window.anClose = function () { const m = document.getElementById('anMenu'); if (m) m.remove(); };
+window.anMenu = function (btn, who) {
+  anClose();
+  const m = document.createElement('div'); m.id = 'anMenu';
+  m.style.cssText = 'position:fixed;z-index:2147483150;min-width:210px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(245,158,11,.5);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .8rem Cairo,sans-serif;color:#f1f5f9';
+  const it = (a, ic, t, c) => `<div data-a="${a}" style="padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;gap:8px;align-items:center;${c || ''}" onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''"><i class="fa-solid ${ic}" style="width:16px;text-align:center"></i>${t}</div>`;
+  m.innerHTML = it('notify', 'fa-bell', 'إشعار') + it('start', 'fa-screwdriver-wrench', 'تحديث', 'color:#fbbf24') + it('end', 'fa-circle-check', 'إنهاء التحديث') + it('updates', 'fa-arrows-rotate', 'Updates');
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  m.style.left = Math.max(6, Math.min(r.left, innerWidth - mr.width - 6)) + 'px';
+  m.style.top = (r.bottom + 6 + mr.height > innerHeight - 6 ? Math.max(6, r.top - mr.height - 6) : r.bottom + 6) + 'px';
+  m.addEventListener('click', e => { const f = e.target.closest('[data-a]'); if (!f) return; anClose(); anDo(f.dataset.a, who); });
+  setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { anClose(); document.removeEventListener('pointerdown', off, true); } }, true), 0);
+};
+function anDo(act, who) {
+  const ids = who === 'sel' ? [...mpState.sel].map(String) : [String(who)];
+  if (!ids.length) return;
+  if (act === 'notify') return openNotify(ids);
+  if (act === 'start' || act === 'end') {
+    const fn = act === 'start' ? window.mtSend : window.mtEnd;
+    if (typeof fn !== 'function') { showToast('ملف adminpanelmaint.js مش متحمّل', true); return; }
+    return fn(ids);
+  }
+  showToast('Updates: لسه مفيش وظيفة متوصّلة بيه', true, true);
+}
+
+/* ---------- tap / long-press on cards ---------- */
+if (!window.__p7Ev) {
+  window.__p7Ev = 1;
+  let timer = null, sx = 0, sy = 0, fired = false;
+  const cardOf = e => { const t = e.target; if (!t || !t.closest || t.closest('button,a,input,select,.mp-opts')) return null; return t.closest('.mp-card[data-id]'); };
+  document.addEventListener('pointerdown', e => {
+    fired = false; clearTimeout(timer); timer = null;
+    if (e.button > 0) return;
+    const c = cardOf(e); if (!c) return;
+    sx = e.clientX; sy = e.clientY;
+    timer = setTimeout(() => {
+      timer = null; fired = true;
+      const id = c.dataset.id;
+      if (!mpState.sel.has(id)) { mpState.sel.add(id); mpState.open = null; }
+      try { navigator.vibrate && navigator.vibrate(15); } catch (_) { }
+      mpPaintList();
+    }, 450);
+  }, true);
+  document.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(timer); timer = null; } }, true);
+  ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => { clearTimeout(timer); timer = null; }, true));
+  document.addEventListener('click', e => {
+    const c = cardOf(e); if (!c) return;
+    if (fired) { fired = false; return; }
+    const id = c.dataset.id;
+    if (e.ctrlKey || e.metaKey || mpState.sel.size) { mpToggleSel(id); return; }
+    mpState.open = mpState.open === id ? null : id;
+    mpPaintList();
+  });
+  document.addEventListener('contextmenu', e => {
+    const c = e.target && e.target.closest && e.target.closest('.mp-card[data-id]'); if (!c) return;
+    e.preventDefault(); clearTimeout(timer); timer = null;
+    const id = c.dataset.id;
+    if (!mpState.sel.has(id)) { mpState.sel.add(id); mpState.open = null; mpPaintList(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && mpState.sel.size && !document.querySelector('.ds-ov')) mpClearSel(); });
+}
