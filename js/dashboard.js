@@ -632,10 +632,56 @@ function dndState() {
   return { r, items: String(r.dandana).split(/[\/\n]+/).map(x => x.trim()).filter(Boolean) };
 }
 const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
+/* ===== Session time shown in the trainee's own country time =====
+   The admin always writes the session time in Cairo time. The trainee's basic_info.location decides which clock he sees
+   (case-insensitive, Arabic or English, spelling does not have to be exact). No match / empty = Cairo.
+   Summer / winter time is read from the real time-zone rules for that exact date, nothing to maintain. */
+const TZ_CAIRO = 'Africa/Cairo';
+const TZ_LIST = [
+  { rx: /مصر|egypt|cairo|القاهر|الاسكندر|اسكندر|alexandria|giza|الجيز/, tz: TZ_CAIRO, n: { en: 'Cairo time', ar: 'بتوقيت القاهرة', eg: 'بتوقيت القاهرة' } },
+  { rx: /سعود|saudi|\bksa\b|riyadh|رياض|jeddah|جده|mecca|makkah|مكه|medina|madinah|المدينه المنوره|dammam|دمام|khobar|الخبر|tabuk|تبوك|abha|ابها/, tz: 'Asia/Riyadh', n: { en: 'Mecca time', ar: 'بتوقيت مكة المكرمة', eg: 'بتوقيت مكة المكرمة' } },
+  { rx: /امارات|emirates|\buae\b|dubai|دبي|abu ?dhabi|ابو ?ظبي|sharjah|شارقه|ajman|عجمان/, tz: 'Asia/Dubai', n: { en: 'UAE time', ar: 'بتوقيت الإمارات', eg: 'بتوقيت الإمارات' } },
+  { rx: /كويت|kuwait/, tz: 'Asia/Kuwait', n: { en: 'Kuwait time', ar: 'بتوقيت الكويت', eg: 'بتوقيت الكويت' } },
+  { rx: /قطر|qatar|doha|الدوحه/, tz: 'Asia/Qatar', n: { en: 'Qatar time', ar: 'بتوقيت قطر', eg: 'بتوقيت قطر' } },
+  { rx: /بحرين|bahrain|manama|المنامه/, tz: 'Asia/Bahrain', n: { en: 'Bahrain time', ar: 'بتوقيت البحرين', eg: 'بتوقيت البحرين' } },
+  { rx: /\boman\b|muscat|مسقط|سلطنه عمان/, tz: 'Asia/Muscat', n: { en: 'Oman time', ar: 'بتوقيت عُمان', eg: 'بتوقيت عُمان' } },
+  { rx: /اردن|jordan|amman/, tz: 'Asia/Amman', n: { en: 'Jordan time', ar: 'بتوقيت الأردن', eg: 'بتوقيت الأردن' } },
+  { rx: /عراق|iraq|baghdad|بغداد/, tz: 'Asia/Baghdad', n: { en: 'Iraq time', ar: 'بتوقيت العراق', eg: 'بتوقيت العراق' } },
+  { rx: /ليبيا|libya|tripoli|طرابلس/, tz: 'Africa/Tripoli', n: { en: 'Libya time', ar: 'بتوقيت ليبيا', eg: 'بتوقيت ليبيا' } },
+  { rx: /تركيا|turkey|turkiye|istanbul|اسطنبول/, tz: 'Europe/Istanbul', n: { en: 'Turkey time', ar: 'بتوقيت تركيا', eg: 'بتوقيت تركيا' } },
+  { rx: /بريطانيا|انجلترا|\buk\b|united kingdom|england|britain|london|لندن/, tz: 'Europe/London', n: { en: 'UK time', ar: 'بتوقيت بريطانيا', eg: 'بتوقيت بريطانيا' } },
+  { rx: /المانيا|germany|berlin|برلين/, tz: 'Europe/Berlin', n: { en: 'Germany time', ar: 'بتوقيت ألمانيا', eg: 'بتوقيت ألمانيا' } }
+];
+const TZ_DST = { en: ['summer time', 'winter time'], ar: ['توقيت صيفي', 'توقيت شتوي'], eg: ['توقيت صيفي', 'توقيت شتوي'] };
+const tzNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[ً-ٟـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
+function traineeZone() {
+  const p = (D && D.profile) || {}, x = tzNorm(p.location);
+  return (x && TZ_LIST.find(z => z.rx.test(x))) || TZ_LIST[0];
+}
+const TZ_FMT = {};
+function zoneWall(ms, tz) {   // real instant -> that zone's wall clock, encoded like cairoNow() (UTC fields = wall fields)
+  const f = TZ_FMT[tz] || (TZ_FMT[tz] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' })), g = {};
+  f.formatToParts(new Date(ms)).forEach(x => g[x.type] = +x.value);
+  return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
+}
+const zoneOff = (ms, tz) => zoneWall(ms, tz) - Math.floor(ms / 1000) * 1000;
+function localSession(nxtWall) {   // nxtWall = the session start as a Cairo wall-clock timestamp -> {h, m, label, days}
+  const z = traineeZone(), lang3 = TZ_LIST.length && (z.n[lang] ? lang : 'en');
+  let T = nxtWall - zoneOff(nxtWall - 72e5, TZ_CAIRO); T = nxtWall - zoneOff(T, TZ_CAIRO);   // the real instant of that Cairo time
+  const w = new Date(zoneWall(T, z.tz)), y = new Date(T).getUTCFullYear();
+  const oj = zoneOff(Date.UTC(y, 0, 15), z.tz), ol = zoneOff(Date.UTC(y, 6, 15), z.tz), o = zoneOff(T, z.tz);
+  let label = z.n[lang3];
+  if (oj !== ol) label += ` (${TZ_DST[lang3][o === Math.max(oj, ol) ? 0 : 1]})`;
+  const nowL = zoneWall(Date.now(), z.tz);
+  return { h: w.getUTCHours(), m: w.getUTCMinutes(), label, days: Math.round((Math.floor(w.getTime() / 864e5) - Math.floor(nowL / 864e5))) };
+}
+const fmtHM = (h, m) => `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 function nextCard(s) {
-  const t = TX(), when = s.n === 1 ? t.tom(fmtT(s.sc)) : t.inD(s.n, fmtT(s.sc));
-  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
-  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
+  let tm = fmtT(s.sc), lbl = '', n = s.n;
+  try { if (s.nxt) { const L = localSession(s.nxt); tm = fmtHM(L.h, L.m); lbl = L.label; if (L.days >= 1) n = L.days; } } catch (e) { console.warn('[next session tz]', e); }
+  const t = TX(), when = n === 1 ? t.tom(tm) : t.inD(n, tm), zl = lbl ? `<div class="sm" dir="auto">${esc(lbl)}</div>` : '';
+  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div><div class="sm" dir="auto">${esc(tm)}${lbl ? ' · ' + esc(lbl) : ''}</div>` };
+  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>${zl}` };
 }
 const dndSeenKey = 'thabit_dnd_seen';
 const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
