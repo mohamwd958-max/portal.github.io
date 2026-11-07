@@ -513,7 +513,12 @@ window.addEventListener('resize', fitTk);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 (function () { const st = document.createElement('style'); st.textContent = `
 .tk2.one{grid-template-columns:1fr!important}
-.tkl{overscroll-behavior:contain}
+.tkl{overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+.tkl::-webkit-scrollbar{display:none;width:0;height:0}
+.lst{scrollbar-width:none;-ms-overflow-style:none}.lst::-webkit-scrollbar{display:none;width:0;height:0}
+/* same look as the Notes / TEFL / QOL cells */
+.tkl>.it,.tkl>.ssi{box-sizing:border-box;margin:0 0 8px;padding:10px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}
+.tkl>.it>.dt{text-align:center;font-weight:700;margin-bottom:6px}
 #taskCard .itc,#dandanaCard .itc{zoom:.8}`; document.head.appendChild(st); })();
 /* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
 function openLogItem(id) {
@@ -1125,6 +1130,7 @@ window.openAssistant = e => Panels.open('assistant', e);
 
 /* ===== Mini scrollbar for cards that scroll inside the dashboard (arrow / tiny thumb / arrow) ===== */
 function initMiniBars() {
+  return;   /* mini scrollbar removed: lists scroll by touch / wheel, no bar */
   const arrow = d => `<button type="button" class="mbb" data-d="${d}" aria-label="${d < 0 ? 'Up' : 'Down'}"><svg width="10" height="10" viewBox="0 0 10 10"><path d="${d < 0 ? 'M1.5 6.5L5 3l3.5 3.5' : 'M1.5 3.5L5 7l3.5-3.5'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
   document.querySelectorAll('.lst').forEach(el => {
     if (el.dataset.mb || el.closest('.earc')) return;
