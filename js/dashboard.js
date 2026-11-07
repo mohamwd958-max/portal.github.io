@@ -559,6 +559,11 @@ window.addEventListener('resize', fitTk);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 (function () { const st = document.createElement('style'); st.textContent = `
 .tk2.one{grid-template-columns:1fr!important}
+/* ===== Facebook-style bottom tab bar: fixed, full width, icons evenly spaced, no dividers ===== */
+html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;margin:0 auto!important;transform:none!important;width:min(100%,520px)!important;max-width:none!important;height:calc(54px + env(safe-area-inset-bottom,0px))!important;min-height:0!important;box-sizing:border-box!important;padding:0 8px env(safe-area-inset-bottom,0px)!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;align-items:center!important;gap:0!important;border-radius:16px 16px 0 0!important;border-bottom-width:0!important}
+@media(max-width:600px){html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{width:100%!important;border-radius:0!important;border-left-width:0!important;border-right-width:0!important}}
+html #mobileFloatingBar .bar-divider{display:none!important}
+html #thHint .thnx,html[data-bar="bottom"] #thHint .thnx{bottom:calc(66px + env(safe-area-inset-bottom,0px))!important}
 /* each of the 3 sections sits in the vertical middle of the screen */
 html .thsec{justify-content:center!important}
 .tkl{overflow:hidden;cursor:pointer}
@@ -1596,6 +1601,7 @@ function placeSet(p) { try { localStorage.setItem(BAR_KEY, JSON.stringify(p)); }
 /* p = {dock, pos}: dock = left | right | bottom, pos = where the bar's centre sits along that edge (0..1). No saved place = the stylesheet's own default. */
 function applyPlace(p) {
   const bar = barEl(), root = document.documentElement;
+  root.setAttribute('data-bar', 'bottom'); bar.style.removeProperty('--bp'); return;   /* fixed bottom tab bar: no side placement */
   if (bar.classList.contains('moving') && !p) return;
   p = p || placeGet();
   if (!p) { root.removeAttribute('data-bar'); bar.style.removeProperty('--bp'); return; }
@@ -1769,13 +1775,7 @@ function viewSubList() {
     { html: '<i class="fa-solid fa-sun"></i>', title: U.bri, keep: 1, on: () => startAdjust('bri') }
   ];
 }
-function openStar(btn) {
-  const ar = lang !== 'en';
-  pickOpen(btn || $('barEdit'), [
-    { html: '<i class="fa-solid fa-pen"></i>', title: ar ? 'تخصيص' : 'Customize', sub: () => ({ key: 'cust', list: barSubList() }) },
-    { html: '<i class="fa-solid fa-eye"></i>', title: ar ? 'العرض' : 'View', sub: () => ({ key: 'view', list: viewSubList() }) }
-  ]);
-}
+function openStar(btn) { pickOpen(btn || $('barEdit'), viewSubList(), 'view'); }
 function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
@@ -2268,75 +2268,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); }
 })();
 
 
-/* ===== Ghost: hides / shows the side bar. Sits low on the right, away from the phone's back / home gestures and the feed button ===== */
-(function () {
-  const bar = $('mobileFloatingBar'); if (!bar) return;
-  const st = document.createElement('style');
-  st.textContent = '#thGhost{position:fixed;left:auto;right:10px;top:60%;width:24px;height:27px;padding:0;border:0;background:none;z-index:65;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));animation:ghFloat 3.2s ease-in-out infinite;transition:filter .3s}#thGhost svg{display:block;width:100%;height:100%}@keyframes ghFloat{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){#thGhost{animation:none}}';
-  document.head.appendChild(st);
-  const g = document.createElement('button'); g.type = 'button'; g.id = 'thGhost'; g.setAttribute('aria-label', 'Toggle menu');
-  g.innerHTML = '<svg viewBox="0 0 32 36" aria-hidden="true"><defs><filter id="thEyeGlow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M16 2C8.5 2 4 8 4 16v16l4.4-3.4L12 32l4-3.4 4 3.4 3.6-3.4L28 32V16C28 8 23.5 2 16 2z" fill="#fff" stroke="rgba(0,0,0,.28)" stroke-width="1"/><ellipse cx="12" cy="15" rx="2.1" ry="3" fill="#111"/><ellipse cx="20" cy="15" rx="2.1" ry="3" fill="#111"/></svg>';
-  document.body.appendChild(g);
-  /* position: left or right edge only, any height except the bottom strip (phone gestures live there). Long-press + drag to move. */
-  const GK = 'thabit_ghost_pos', GH = 27, GW = 24;
-  /* lowest the ghost may sit = the same bottom line the bar uses (16px + the phone's safe area), so it never goes below the bar */
-  const BOT = () => { const p = document.createElement('div'); p.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none'; document.body.appendChild(p); const h = p.offsetHeight; p.remove(); return 16 + h; };
-  const GM = { en: "The ghost can't go lower than the bar.", ar: 'لا يمكن إنزال الشبح أسفل من مستوى الشريط.', eg: 'ما ينفعش تنزّل الشبح أنزل من مستوى الشريط.' };
-  const gget = () => { try { const o = JSON.parse(localStorage.getItem(GK) || 'null'); if (o && (o.s === 'l' || o.s === 'r') && isFinite(o.y)) return o; } catch (e) {} return null; };
-  const gplace = o => {
-    o = o || gget() || { s: 'r', y: innerHeight - 190 };
-    const k = thK(), y = Math.max(10, Math.min(innerHeight - BOT() - GH * k, o.y));
-    g.style.top = y / k + 'px'; g.style.bottom = 'auto';
-    if (o.s === 'l') { g.style.left = '10px'; g.style.right = 'auto'; } else { g.style.right = '10px'; g.style.left = 'auto'; }
-    return { s: o.s, y };
-  };
-  gplace(); window.addEventListener('resize', () => gplace());
-  let lp = null, drag = null, dragMoved = false;
-  function endGhostDrag() {
-    const d = drag; drag = null; g.classList.remove('drag'); if (!d) return;
-    const r = g.getBoundingClientRect();
-    if (r.bottom > innerHeight - BOT() + 2) { itToast(GM[lang] || GM.en); gplace(d.prev); return; }
-    const o = { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top };
-    try { localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
-    gplace(o);
-  }
-  let anim = null, hid = false;
-  const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const save = () => { try { localStorage.setItem('thabit_bar_hid', hid ? '1' : '0'); } catch (e) {} };
-  const mid = r => [r.left + r.width / 2, r.top + r.height / 2];
-  const rootEl = document.documentElement;
-  function hideBar(now) {
-    if (hid) return; hid = true; save(); rootEl.classList.add('bar-hid'); if (typeof closeLang === 'function') closeLang();
-    if (anim) { anim.cancel(); anim = null; }
-    const fin = () => { if (hid) { bar.hidden = true; g.classList.add('on'); } };   // only now do the ghost's eyes light up
-    if (now || reduce() || !bar.animate) { fin(); return; }
-    anim = bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' });
-    anim.onfinish = () => { fin(); if (anim) { anim.cancel(); anim = null; } };
-  }
-  function showBar() {
-    if (!hid) return; hid = false; save(); g.classList.remove('on'); rootEl.classList.remove('bar-hid');
-    if (anim) { anim.cancel(); anim = null; }
-    bar.hidden = false;
-    if (reduce() || !bar.animate) return;
-    anim = bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, easing: 'ease-out' });
-    anim.onfinish = () => { anim = null; };
-  }
-  /* a tap toggles; while the bar is hidden, the first drag that starts on the ghost brings it straight back */
-  let sx = 0, sy = 0, down = false, swiped = false;
-  g.addEventListener('pointerdown', e => {
-    sx = e.clientX; sy = e.clientY; down = true; swiped = false; dragMoved = false; clearTimeout(lp);
-    const r = g.getBoundingClientRect();
-    lp = setTimeout(() => { if (!down) return; drag = { dx: sx - r.left, dy: sy - r.top, prev: gplace(gget() || { s: (r.left + r.width / 2) < innerWidth / 2 ? 'l' : 'r', y: r.top }) }; dragMoved = true; g.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch (x) {} try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} }, 380);
-  });
-  g.addEventListener('pointermove', e => {
-    if (drag) { const k = thK(); g.style.left = Math.max(4, Math.min(innerWidth - GW * k - 4, e.clientX - drag.dx)) / k + 'px'; g.style.right = 'auto'; g.style.top = Math.max(4, Math.min(innerHeight - GH * k - 4, e.clientY - drag.dy)) / k + 'px'; return; }
-    if (down && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(lp);
-    if (!down || swiped || !hid) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { swiped = true; showBar(); } });
-  ['pointerup', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => { down = false; clearTimeout(lp); endGhostDrag(); }));
-  g.addEventListener('click', e => { e.stopPropagation(); if (dragMoved) { dragMoved = false; return; } if (swiped) { swiped = false; return; } hid ? showBar() : hideBar(); });
-  try { if (localStorage.getItem('thabit_bar_hid') === '1') hideBar(true); } catch (e) {}
-})();
-
 /* ===== Pop-out buttons: the pressed button stays visible (above the blur); labels flip to the roomy side so nothing is cut at the screen edge ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
 /* focus mode: the page + the rest of the bar sit under the blur; only the pressed button (a copy) flies out above it */
@@ -2420,15 +2351,6 @@ function dkDrag() {
 }
 window.addEventListener('resize', () => document.querySelectorAll('#dock .aswrap.dkw').forEach(w => { const o = dkAll()[w.dataset.id]; if (o && typeof o.b === 'number') w.style.bottom = Math.max(8, Math.min(innerHeight - w.offsetHeight - 8, o.b)) + 'px'; }));
 
-
-/* ===== Ghost: eyes light up in the Feed colours while the bar is tucked inside it ===== */
-(function () { const st = document.createElement('style'); st.textContent = `
-#thGhost.drag{animation:none!important;transform:scale(1.18);filter:drop-shadow(0 8px 16px rgba(0,0,0,.55))!important}
-#thGhost.on{animation:ghFloat 3.2s ease-in-out infinite}
-#thGhost.on ellipse{animation:ghEye 2.4s linear infinite;filter:url(#thEyeGlow)}
-@keyframes ghEye{0%,100%{fill:#ff5d55}25%{fill:#4c8dff}50%{fill:#22d3a6}75%{fill:#ffc247}}
-@keyframes ghGlow{0%,100%{filter:drop-shadow(0 0 8px #ff5d55)}25%{filter:drop-shadow(0 0 8px #4c8dff)}50%{filter:drop-shadow(0 0 8px #22d3a6)}75%{filter:drop-shadow(0 0 8px #ffc247)}}
-@media(prefers-reduced-motion:reduce){#thGhost.on,#thGhost.on ellipse{animation:none}#thGhost.on ellipse{fill:#22d3a6}}`; document.head.appendChild(st); })();
 
 /* ===== First-time tour for the bar buttons: a hand-drawn green arrow points at each option, one by one ===== */
 const TOUR_KEY = 'thabit_tour', TOUR_DAYS = 4;
