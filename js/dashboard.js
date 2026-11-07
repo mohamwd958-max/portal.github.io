@@ -691,12 +691,13 @@ function localSession(nxtWall) {   // nxtWall = the session start as a Cairo wal
 const fmtHM = (h, m) => `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 /* small hand-drawn clock for the Next-session card: the hands point to the session time */
 function clockSvg(h, m) {
-  const ha = ((h % 12) + m / 60) * 30, ma = m * 6, tk = Array.from({ length: 12 }, (_, i) => { const a = i * 30 * Math.PI / 180, r1 = i % 3 ? 20.5 : 18.5, r2 = 23; return `<line x1="${(28 + r1 * Math.sin(a)).toFixed(2)}" y1="${(28 - r1 * Math.cos(a)).toFixed(2)}" x2="${(28 + r2 * Math.sin(a)).toFixed(2)}" y2="${(28 - r2 * Math.cos(a)).toFixed(2)}" stroke="currentColor" stroke-opacity="${i % 3 ? .35 : .8}" stroke-width="${i % 3 ? 1 : 1.6}" stroke-linecap="round"/>`; }).join('');
-  return `<svg class="nxclk" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><defs><linearGradient id="nxcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>`
-    + `<circle cx="28" cy="28" r="26" fill="rgba(148,163,184,.1)" stroke="url(#nxcg)" stroke-width="2.4"/>${tk}`
-    + `<line x1="28" y1="28" x2="28" y2="15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" transform="rotate(${ha.toFixed(1)} 28 28)"/>`
-    + `<line x1="28" y1="28" x2="28" y2="10.5" stroke="#fbbf24" stroke-width="1.9" stroke-linecap="round" transform="rotate(${ma} 28 28)"/>`
-    + `<circle cx="28" cy="28" r="2.6" fill="#34d399"/></svg>`;
+  const ha = ((h % 12) + m / 60) * 30, ma = m * 6;
+  return `<svg class="nxclk" viewBox="0 0 56 56" width="52" height="52" aria-hidden="true">`
+    + `<circle cx="28" cy="28" r="25" fill="none" stroke="#fbbf24" stroke-width="3"/>`
+    + `<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".75"><path d="M28 7.5v3.2M28 45.3v3.2M7.5 28h3.2M45.3 28h3.2"/></g>`
+    + `<g class="hh" style="--a:${ha.toFixed(1)}deg"><line x1="28" y1="28" x2="28" y2="16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></g>`
+    + `<g class="hh" style="--a:${ma}deg"><line x1="28" y1="28" x2="28" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>`
+    + `<circle cx="28" cy="28" r="2.4" fill="currentColor"/></svg>`;
 }
 function nextCard(s) {
   let tm = fmtT(s.sc), lbl = '', n = s.n, ch = s.sc.h, cm = s.sc.m;
@@ -839,11 +840,10 @@ function thn_noteCardN(n) {
 .pc .nxc{flex:none;display:flex;align-items:center;justify-content:center}
 .pc .nxtx{flex:1;min-width:0}
 .pc .nxtx h3{margin-top:0}
-.nxclk{display:block;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35));animation:nxFloat 4s ease-in-out infinite}
-.nxclk circle:last-child{animation:nxBeat 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-@keyframes nxFloat{50%{transform:translateY(-2px)}}
-@keyframes nxBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
-@media(prefers-reduced-motion:reduce){.nxclk,.nxclk circle:last-child{animation:none}}
+.nxclk{display:block}
+.nxclk .hh{transform-box:view-box;transform-origin:28px 28px;transform:rotate(var(--a,0deg));animation:nxSpin 1.2s cubic-bezier(.3,.7,.25,1) 1}
+@keyframes nxSpin{from{transform:rotate(calc(var(--a,0deg) - 360deg))}}
+@media(prefers-reduced-motion:reduce){.nxclk .hh{animation:none}}
 .pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
 /* feed look: frosted-glass cards, like phone notifications */
 #pop .pcs{gap:10px}
