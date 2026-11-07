@@ -460,10 +460,23 @@ function tasksCard() {
     + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
 }
 function openLog() {
-  const t = TKT[lang] || TKT.en, t2 = itT(), fin = (D.items || []).filter(x => x.kind === 'task' && ['done', 'closed'].includes(itState(x).k)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
+  const t = TKT[lang] || TKT.en, t2 = itT(), fin = (D.items || []).filter(x => (x.kind === 'task' || x.kind === 'dandana') && ['done', 'closed'].includes(itState(x).k)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
   $('logT').textContent = t.logT;
-  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${itState(x).k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${itState(x).k === 'done' ? t2.done : t2.missed}</span>${itState(x).k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`).join('') : `<div class="sm">${t.none}</div>`;
+  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi" role="button" tabindex="0" style="cursor:pointer" onclick="openLogItem(${x.id})" onkeydown="if(event.key==='Enter')openLogItem(${x.id})"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${itState(x).k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${itState(x).k === 'done' ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${itState(x).k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`).join('') : `<div class="sm">${t.none}</div>`;
   $('logm').classList.add('open');
+}
+/* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
+function openLogItem(id) {
+  const x = (D.items || []).find(i => i.id === id); if (!x) return;
+  const t2 = itT(), s = itState(x), p = x.plan, n = p ? p.n_eff : x.repeats, d = (x.checks || []).length;
+  const ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
+  const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);
+  $('mdl').dataset.ear = ''; $('mT').textContent = x.title || '';
+  $('mB').innerHTML = `<div class="sm" style="margin-bottom:8px">${esc(x.date)}${x.badge ? ' · <span dir="auto">' + esc(x.badge) + '</span>' : ''}</div>`
+    + (ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : '')
+    + appExtra(x, ap.app, atts, endAt)
+    + `<div class="sss" style="margin-top:10px"><span style="${s.k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${s.k === 'done' ? t2.done : t2.missed}</span><span>${d}/${n}</span>${s.k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div>`;
+  $('mdl').classList.add('open');
 }
 function closeLog() { $('logm').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLog(); });
