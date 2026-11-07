@@ -236,10 +236,9 @@ function render() {
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
-  const IF = [['status_as_of_today','Status'],['current_plan','Current plan'],['days_a_week','Days / week'],['session_time','Session time'],['place','Place'],['subscription','Subscription'],['due_date','Due date'],
-    ['joining_date','Joined'],['first_session','First session'],['birth_date','Birth date'],['education_on_joining','Education on joining'],['schooling','Schooling'],['location','Location'],['residence_mostly','Residence'],
-    ['first_thabit_scoring','First Thabit scoring'],['first_approved_english_test','First English test'],['first_psychological_approved_test','First psychological test'],['preferred_phone','Phone'],['preferred_email','Email']];
-  $('info').innerHTML = line('Group', L && L.group_name) + IF.map(f => line(f[1], p[f[0]])).join('');
+  const IF = [['status_as_of_today','Status'],['days_a_week','Days / week'],['session_time','Session time'],['subscription','Subscription']];
+  $('info').innerHTML = IF.map(f => line(f[1], p[f[0]]) + (f[0] === 'session_time' ? line(lang === 'en' ? 'Time zone' : 'التوقيت', tzNowLabel()) : '')).join('');
+  infoFold();
   $('rqList').innerHTML = (D.requests || []).map(r => `<div class="row"><span>${esc(r.message)}<br><span class="sm">${esc(r.type)} · ${esc(r.status)}</span></span><b>${esc(r.admin_reply || '')}</b></div>`).join('');
   renderSessions(rows);
   watchTodo();
@@ -688,6 +687,18 @@ function localSession(nxtWall) {   // nxtWall = the session start as a Cairo wal
   const nowL = zoneWall(Date.now(), z.tz);
   return { h: w.getUTCHours(), m: w.getUTCMinutes(), label, days: Math.round((Math.floor(w.getTime() / 864e5) - Math.floor(nowL / 864e5))) };
 }
+function tzNowLabel() {   // the trainee's own time zone, with summer / winter time where that country has it
+  const z = traineeZone(), l = z.n[lang] ? lang : 'en', now = Date.now(), y = new Date(now).getUTCFullYear();
+  const oj = zoneOff(Date.UTC(y, 0, 15), z.tz), ol = zoneOff(Date.UTC(y, 6, 15), z.tz), o = zoneOff(now, z.tz);
+  return z.n[l] + (oj !== ol ? ` (${TZ_DST[l][o === Math.max(oj, ol) ? 0 : 1]})` : '');
+}
+/* "My info" card is folded: tap its title to open / close (state is kept while the page re-renders) */
+function infoFold() {
+  const h = $('tInfo'), b = $('info'); if (!h || !b) return;
+  if (!h.dataset.fold) { h.dataset.fold = '1'; b.hidden = true; h.setAttribute('role', 'button'); h.tabIndex = 0;
+    const tg = () => { b.hidden = !b.hidden; h.classList.toggle('open', !b.hidden); };
+    h.addEventListener('click', tg); h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }); }
+}
 const fmtHM = (h, m) => `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 /* small hand-drawn clock for the Next-session card: the hands point to the session time */
 function clockSvg(h, m) {
@@ -837,6 +848,11 @@ function thn_noteCardN(n) {
   return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
+.thabit-card #tInfo{cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin:0;-webkit-user-select:none;user-select:none}
+#tInfo::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;opacity:.7;flex:none}
+#tInfo.open::after{transform:rotate(-135deg)}
+#info{margin-top:10px}
+.lgi .pfi{font-size:23px;line-height:1}
 .pc .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
 .pc .nxc{flex:none;display:flex;align-items:center;justify-content:center}
 .pc .nxtx{flex:1;min-width:0}
@@ -1617,8 +1633,8 @@ const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="2
 function openProf(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('profBtn'), [
-    { html: '<i class="fa-solid fa-user"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
-    { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+    { html: '<i class="fa-solid fa-user pfi"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+    { html: '<i class="fa-solid fa-right-from-bracket pfi" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
   ]);
 }
 function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
