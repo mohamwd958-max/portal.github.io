@@ -239,7 +239,7 @@ function render() {
   renderSessions(rows);
   watchTodo();
   renderAvatar();
-  requestAnimationFrame(fitCaps);
+  requestAnimationFrame(() => { fitCaps(); fitTk(); });
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 /* ===== Scratches: screenshots / drawings from the trainer's board (Board system), shown in the Notes section =====
@@ -474,31 +474,47 @@ function itemRow(it) {
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
     + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + `</div>`
-    + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
+    + `</div>`;
 }
 const TKT = {
   en: { tasks: 'Tasks', urgent: 'Urgent', prev: 'Previous', log: 'Log', logT: 'Done tasks', none: 'Nothing here' },
   ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
   eg: { tasks: 'التاسكس', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
 };
+const tkLogCell = x => {
+  const t2 = itT(), k = itState(x).k, ok = k === 'done';
+  return `<div class="ssi" role="button" tabindex="0" style="cursor:pointer" onclick="openLogItem(${x.id})" onkeydown="if(event.key==='Enter')openLogItem(${x.id})"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${ok ? 'color:#34d399' : 'color:#fb7185'}">${ok ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`;
+};
 function tasksCard() {
   const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
-  if (!its.length) return '';
+  const fin = (D.items || []).filter(x => (x.kind === 'task' || x.kind === 'dandana') && !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
+  if (!its.length && !fin.length) return '';
   const today = itToday(), pend = its.filter(itShown);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
-  const sec = (cls, title, list) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${list.length || ''}</b></div>${list.length ? group(list) : `<div class="sm">${t.none}</div>`}</div>`;
-  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
-    + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
+  const sec = (cls, title, n, cells) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
+  const c1 = urg.length ? sec('urg', t.urgent, urg.length, group(urg)) : '';
+  const c2 = (prv.length || fin.length) ? sec('prv', t.prev, prv.length + fin.length, (prv.length ? group(prv) : '') + fin.map(tkLogCell).join('')) : '';
+  if (!c1 && !c2) return '';
+  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
-function openLog() {
-  const t = TKT[lang] || TKT.en, t2 = itT(), fin = (D.items || []).filter(x => (x.kind === 'task' || x.kind === 'dandana') && ['done', 'closed'].includes(itState(x).k)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
-  $('logT').textContent = t.logT;
-  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi" role="button" tabindex="0" style="cursor:pointer" onclick="openLogItem(${x.id})" onkeydown="if(event.key==='Enter')openLogItem(${x.id})"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${itState(x).k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${itState(x).k === 'done' ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${itState(x).k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`).join('') : `<div class="sm">${t.none}</div>`;
-  $('logm').classList.add('open');
+/* each list shows one cell and a quarter of the next one, so you know there is more below; scroll to see it */
+function fitTk() {
+  document.querySelectorAll('#taskCard .tkl').forEach(l => {
+    const c = [...l.children]; l.style.maxHeight = ''; l.style.overflowY = '';
+    if (c.length < 2 || !c[0].offsetHeight) return;
+    l.style.overflowY = 'auto';
+    l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
+  });
 }
+window.addEventListener('resize', fitTk);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
+(function () { const st = document.createElement('style'); st.textContent = `
+.tk2.one{grid-template-columns:1fr!important}
+.tkl{overscroll-behavior:contain}
+#taskCard .itc,#dandanaCard .itc{zoom:.8}`; document.head.appendChild(st); })();
 /* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
 function openLogItem(id) {
   const x = (D.items || []).find(i => i.id === id); if (!x) return;
@@ -512,8 +528,6 @@ function openLogItem(id) {
     + `<div class="sss" style="margin-top:10px"><span style="${s.k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${s.k === 'done' ? t2.done : t2.missed}</span><span>${d}/${n}</span>${s.k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div>`;
   $('mdl').classList.add('open');
 }
-function closeLog() { $('logm').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLog(); });
 function itemsCard(kind) {
   const t = itT(), its = (D.items || []).filter(x => x.kind === kind);
   if (!its.length) return '';
@@ -544,7 +558,7 @@ function todoCard(all) {
   const t = T[lang], done = new Set((D.done || []).map(d => d.supply_date + '#' + d.task_no));
   const days = all.slice().reverse().map(r => ({ date: r.supply_date, tasks: parseTasks(r) })).filter(d => d.tasks.length);
   if (!days.length && (D.items || []).some(i => i.kind === 'task')) return '';
-  const task = (k, dn) => { const i = TK.push(k) - 1; return `<div class="tk${dn ? ' dn' : ''}"><input type="checkbox" ${dn ? 'checked' : ''} onchange="toggleTask(${i},this.checked)"><div class="tkb" dir="auto">${k.type || k.det ? `<div><b>${esc(k.type)}</b> <span class="sm">${esc(k.det)}</span></div>` : ''}<div>${esc(k.text)}</div></div><button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`; };
+  const task = (k, dn) => { const i = TK.push(k) - 1; return `<div class="tk${dn ? ' dn' : ''}"><input type="checkbox" ${dn ? 'checked' : ''} onchange="toggleTask(${i},this.checked)"><div class="tkb" dir="auto">${k.type || k.det ? `<div><b>${esc(k.type)}</b> <span class="sm">${esc(k.det)}</span></div>` : ''}<div>${esc(k.text)}</div></div></div>`; };
   const split = f => days.map(d => ({ date: d.date, tasks: d.tasks.filter(k => done.has(k.date + '#' + k.no) === f) })).filter(d => d.tasks.length);
   const blk = (d, f) => `<div class="it"><div class="dt">${d.date}</div>${d.tasks.map(k => task(k, f)).join('')}</div>`;
   const pend = split(false), fin = split(true);
