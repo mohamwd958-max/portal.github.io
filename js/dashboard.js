@@ -537,6 +537,10 @@ const TPK = {
         wb: 'مش مُفضّل تراجع في التلات ساعات اللي قبل سيشنك الجاية.', wa: 'مش مُفضّل تذاكر في الساعة اللي بعد آخر سيشن.' }
 };
 let TEDIT = null, TP = null;
+Object.assign(TPK.en, { gap: 'Two checks of the same task can not be at the same time. The gap between them must be at least 30 minutes.', after: 'Put it 30 min after the previous', before: 'Put it 30 min before the next' });
+Object.assign(TPK.ar, { gap: 'لا يمكن أن تكون مرتان من نفس المهمة في نفس الوقت. يجب أن يكون الفاصل بينهما 30 دقيقة على الأقل.', after: 'ضعها بعد السابقة بنصف ساعة', before: 'ضعها قبل التالية بنصف ساعة' });
+Object.assign(TPK.eg, { gap: 'ما ينفعش مرتين من نفس التاسك يبقوا في نفس الوقت. لازم يبقى بينهم نص ساعة على الأقل.', after: 'حطها بعد اللي قبلها بنص ساعة', before: 'حطها قبل اللي بعدها بنص ساعة' });
+const TK_GAP = 30 * 6e4;
 const tkIso = ms => new Date(ms).toISOString().slice(0, 16);
 function tkEditable(it) {   // indexes of the dots that can still be moved
   const p = it.plan; if (!p || (it.kind !== 'task' && it.kind !== 'dandana') || !Array.isArray(p.opens)) return [];
@@ -593,7 +597,23 @@ function tkPick(id, j) {
   o.addEventListener('click', e => { if (e.target === o) tkClose(); });
 }
 function tkTry(ms) {
-  const w = tkWarn(ms), T = TPK[lang] || TPK.en; if (!w) { tkSend(ms); return; }
+  const T = TPK[lang] || TPK.en, b0 = document.querySelector('#tpk .tpb');
+  /* the one hard rule: at least 30 minutes between the checks of the same task */
+  const it = TP && (D.items || []).find(x => x.id === TP.id), p = it && it.plan;
+  if (p && b0) {
+    const d = (it.checks || []).length, j = TP.j, prev = j > d ? p.opens[j - 1] : null, next = j + 1 < p.n_eff ? p.opens[j + 1] : null;
+    let sug = null, key = '';
+    if (prev != null && ms < prev + TK_GAP) { sug = prev + TK_GAP; key = 'after'; }
+    else if (next != null && ms > next - TK_GAP) { sug = next - TK_GAP; key = 'before'; }
+    if (key) {
+      const okSug = sug >= TP.min && sug <= TP.max && (prev == null || sug >= prev + TK_GAP) && (next == null || sug <= next - TK_GAP);
+      b0.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(T.gap)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button>${okSug ? `<button type="button" class="tps">${T[key]}</button>` : ''}</div>`;
+      b0.querySelector('.tpc').onclick = () => { const id = TP.id, jj = TP.j; tkPick(id, jj); };
+      const sb = b0.querySelector('.tps'); if (sb) sb.onclick = () => tkTry(sug);
+      return;
+    }
+  }
+  const w = tkWarn(ms); if (!w) { tkSend(ms); return; }
   const b = document.querySelector('#tpk .tpb'); if (!b) { tkSend(ms); return; }
   b.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
   b.querySelector('.tps').onclick = () => tkSend(ms);
