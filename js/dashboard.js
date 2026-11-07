@@ -689,12 +689,22 @@ function localSession(nxtWall) {   // nxtWall = the session start as a Cairo wal
   return { h: w.getUTCHours(), m: w.getUTCMinutes(), label, days: Math.round((Math.floor(w.getTime() / 864e5) - Math.floor(nowL / 864e5))) };
 }
 const fmtHM = (h, m) => `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+/* small hand-drawn clock for the Next-session card: the hands point to the session time */
+function clockSvg(h, m) {
+  const ha = ((h % 12) + m / 60) * 30, ma = m * 6, tk = Array.from({ length: 12 }, (_, i) => { const a = i * 30 * Math.PI / 180, r1 = i % 3 ? 20.5 : 18.5, r2 = 23; return `<line x1="${(28 + r1 * Math.sin(a)).toFixed(2)}" y1="${(28 - r1 * Math.cos(a)).toFixed(2)}" x2="${(28 + r2 * Math.sin(a)).toFixed(2)}" y2="${(28 - r2 * Math.cos(a)).toFixed(2)}" stroke="currentColor" stroke-opacity="${i % 3 ? .35 : .8}" stroke-width="${i % 3 ? 1 : 1.6}" stroke-linecap="round"/>`; }).join('');
+  return `<svg class="nxclk" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><defs><linearGradient id="nxcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>`
+    + `<circle cx="28" cy="28" r="26" fill="rgba(148,163,184,.1)" stroke="url(#nxcg)" stroke-width="2.4"/>${tk}`
+    + `<line x1="28" y1="28" x2="28" y2="15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" transform="rotate(${ha.toFixed(1)} 28 28)"/>`
+    + `<line x1="28" y1="28" x2="28" y2="10.5" stroke="#fbbf24" stroke-width="1.9" stroke-linecap="round" transform="rotate(${ma} 28 28)"/>`
+    + `<circle cx="28" cy="28" r="2.6" fill="#34d399"/></svg>`;
+}
 function nextCard(s) {
-  let tm = fmtT(s.sc), lbl = '', n = s.n;
-  try { if (s.nxt) { const L = localSession(s.nxt); tm = fmtHM(L.h, L.m); lbl = L.label; if (L.days >= 1) n = L.days; } } catch (e) { console.warn('[next session tz]', e); }
+  let tm = fmtT(s.sc), lbl = '', n = s.n, ch = s.sc.h, cm = s.sc.m;
+  try { if (s.nxt) { const L = localSession(s.nxt); tm = fmtHM(L.h, L.m); lbl = L.label; ch = L.h; cm = L.m; if (L.days >= 1) n = L.days; } } catch (e) { console.warn('[next session tz]', e); }
+  const wrapClk = inner => `<div class="nxrow"><div class="nxc">${clockSvg(ch, cm)}</div><div class="nxtx" dir="${lang === 'en' ? 'ltr' : 'rtl'}">${inner}</div></div>`;
   const t = TX(), when = n === 1 ? t.tom(tm) : t.inD(n, tm), zl = lbl ? `<div class="sm" dir="auto">${esc(lbl)}</div>` : '';
-  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div><div class="sm" dir="auto">${esc(tm)}${lbl ? ' · ' + esc(lbl) : ''}</div>` };
-  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>${zl}` };
+  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: wrapClk(`<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div><div class="sm" dir="auto">${esc(tm)}${lbl ? ' · ' + esc(lbl) : ''}</div>`) };
+  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: wrapClk(`<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>${zl}`) };
 }
 const dndSeenKey = 'thabit_dnd_seen';
 const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
@@ -785,7 +795,7 @@ const THN_ICON = { money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell', updat
 function noteCat(n) {
   const m = (n && n.meta) || {}, c = String(m.category || m.cat || '').toLowerCase(), k = String((n && n.kind) || '').toLowerCase();
   if (THN_ICON[c]) return c;
-  if (/pay|bill|money|financ|fee|subscri/.test(k)) return 'money';
+  if (/pay|bill|money|financ|fee|subscri|discount|promo|offer|coupon|voucher|refund|invoice|price|cost|wallet|cash|credit|debt|balance|due|salary|scholar/.test(k) || /خصم|تخفيض|فلوس|دفع|سداد|مدفوع|مصاريف|مصروف|اشتراك|فاتور|مبلغ|رسوم|استرداد|مستحق|منح|عرض خاص|discount|payment|refund|invoice|\bfee|\begp\b/i.test(String((n && n.title) || ''))) return 'money';
   if (k === 'request_reply') return 'reply';
   if (/policy|restrict/.test(k)) return 'alert';
   if (/update/.test(k)) return 'update';
@@ -825,6 +835,15 @@ function thn_noteCardN(n) {
   return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
+.pc .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
+.pc .nxc{flex:none;display:flex;align-items:center;justify-content:center}
+.pc .nxtx{flex:1;min-width:0}
+.pc .nxtx h3{margin-top:0}
+.nxclk{display:block;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35));animation:nxFloat 4s ease-in-out infinite}
+.nxclk circle:last-child{animation:nxBeat 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes nxFloat{50%{transform:translateY(-2px)}}
+@keyframes nxBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
+@media(prefers-reduced-motion:reduce){.nxclk,.nxclk circle:last-child{animation:none}}
 .pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
 /* feed look: frosted-glass cards, like phone notifications */
 #pop .pcs{gap:10px}
