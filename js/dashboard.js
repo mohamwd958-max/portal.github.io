@@ -26,7 +26,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -408,10 +408,11 @@ function fmtOpenS(ms) {   // short label for the timeline: day letter + time, so
   const d = new Date(ms), h = d.getUTCHours(), en = lang === 'en', L = (DLET[lang] || DLET.ar)[d.getUTCDay()];
   return `<b>${L}</b> ${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')}${en ? (h < 12 ? ' AM' : ' PM') : (h < 12 ? ' ص' : ' م')}`;
 }
-const tlHtml = (p, d, s) => {
+const tlHtml = (p, d, s, da) => {
+  da = da || ((j, c) => `class="${c}"`);
   const o = p && p.opens; if (!o || o.length < 2) return '';
-  const a = o[0], span = o[o.length - 1] - a; if (!(span > 0)) return '';
-  return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpenS(t)}</span></div>`).join('')}</div>`;
+  const a = Math.min(...o), span = Math.max(...o) - a; if (!(span > 0)) return '';
+  return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i ${da(j, j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : ''))}></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpenS(t)}</span></div>`).join('')}</div>`;
 };
 
 /* ===== Applications (Monthly obligations) = ordinary tasks whose body ends with
@@ -472,15 +473,19 @@ function itemRow(it) {
   const head = it.kind === 'dandana'
     ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
     : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
-  const dots = Array.from({ length: n }, (_, j) => `<i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i>`).join('<b></b>');
+  const eds = VIEW ? [] : tkEditable(it), editing = TEDIT === it.id && eds.length > 0;
+  const da = (j, c) => (editing && eds.includes(j)) ? `class="${c} ed" onclick="event.stopPropagation();tkPick(${it.id},${j})"` : `class="${c}"`;
+  const dots = Array.from({ length: n }, (_, j) => `<i ${da(j, j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : ''))}></i>`).join('<b></b>');
+  const TP_ = TPK[lang] || TPK.en;
+  const pickBtn = eds.length ? `<button type="button" class="tpkb${editing ? ' on' : ''}" onclick="event.stopPropagation();tkEditToggle(${it.id})"><i class="fa-regular fa-clock"></i> ${editing ? TP_.done : TP_.choose}</button>` : '';
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
     + `<div class="itb2"><div class="ith">${head}</div>${ap.text ? `<div class="itd rich">${rich(ap.text)}</div>` : ''}${appExtra(it, ap.app, atts, endAt)}`
-    + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
+    + (tlHtml(p, d, s, da) ? `<div class="itl2">${tlHtml(p, d, s, da)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
-    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + `</div>`
+    + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + pickBtn + `</div>`
     + `</div>`;
 }
 const TKT = {
@@ -519,6 +524,107 @@ function tasksCard() {
   if (!c1 && !c2) return '';
   return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
+
+/* ===== "Choose your time": the student moves the check time of a dot that has not come yet =====
+   Rules: never into the past, never after the deadline, only dots not checked yet. Nothing is forced:
+   close to a session (3h before the next one / 1h after the last one) he only gets a recommendation once. */
+const TPK = {
+  en: { choose: 'Choose your time', done: 'Done', pick: 'Pick a time', now: 'Do it now', save: 'Save', cancel: 'Cancel', saved: 'Time saved ✓', fail: 'Could not save, try again', gone: 'This time has already passed', rec: 'Recommendation', sure: 'I am sure, continue', change: 'Change time',
+        wb: 'Reviewing within 3 hours before your next session is not recommended.', wa: 'Reviewing within an hour after your last session is not recommended.' },
+  ar: { choose: 'اختر وقتك', done: 'تم', pick: 'اختر وقتاً', now: 'افعلها الآن', save: 'حفظ', cancel: 'إلغاء', saved: 'تم حفظ الوقت ✓', fail: 'تعذر الحفظ، حاول مرة أخرى', gone: 'هذا الوقت مرّ بالفعل', rec: 'توصية', sure: 'أنا متأكد، تابع', change: 'تغيير الوقت',
+        wb: 'لا يُنصح بالمراجعة خلال الثلاث ساعات التي تسبق جلستك القادمة.', wa: 'لا يُنصح بالمذاكرة خلال الساعة التي تلي آخر جلسة.' },
+  eg: { choose: 'اختار وقتك', done: 'تم', pick: 'اختار وقت', now: 'اعملها دلوقتي', save: 'حفظ', cancel: 'إلغاء', saved: 'الوقت اتحفظ ✓', fail: 'معرفناش نحفظ، جرب تاني', gone: 'الوقت ده عدّى خلاص', rec: 'نصيحة', sure: 'متأكد، كمّل', change: 'غيّر الوقت',
+        wb: 'مش مُفضّل تراجع في التلات ساعات اللي قبل سيشنك الجاية.', wa: 'مش مُفضّل تذاكر في الساعة اللي بعد آخر سيشن.' }
+};
+let TEDIT = null, TP = null;
+const tkIso = ms => new Date(ms).toISOString().slice(0, 16);
+function tkEditable(it) {   // indexes of the dots that can still be moved
+  const p = it.plan; if (!p || (it.kind !== 'task' && it.kind !== 'dandana') || !Array.isArray(p.opens)) return [];
+  const k = itState(it).k; if (k !== 'lock' && k !== 'open') return [];
+  const now = cairoNow(), out = [];
+  for (let j = (it.checks || []).length; j < p.n_eff; j++) if (p.opens[j] > now) out.push(j);
+  return out;
+}
+function tkEditToggle(id) { TEDIT = TEDIT === id ? null : id; render(); }
+const fetchTimes = () => rpc('trainee_item_times', { p_token: tok() }).then(o => o && typeof o === 'object' && !Array.isArray(o) && !o.message && !o.code ? o : {}).catch(() => ({}));
+function mergeTimes() {   // the student's own choices sit on top of the planned times
+  const ov = (D && D.times) || {};
+  ((D && D.items) || []).forEach(it => {
+    const p = it.plan; if (!p || !Array.isArray(p.opens)) return;
+    if (!p.opens0) p.opens0 = p.opens.slice();
+    const o = ov[it.id];
+    p.opens = p.opens0.map((x, j) => o && o[j] != null && Number.isFinite(+o[j]) ? +o[j] : x);
+  });
+}
+function tkWarn(ms) {
+  const T = TPK[lang] || TPK.en, sc = schedule();
+  if (sc) { const nx = nextAfter(sc, ms - 1); if (nx && nx >= ms && nx - ms < 3 * 36e5) return T.wb; }
+  const rows = (D && D.rows) || [], L = rows[rows.length - 1];
+  if (L && L.end_time) {
+    const e0 = hm(L.end_time), s0 = hm(L.start_time); let e = Date.parse(L.supply_date + 'T00:00:00Z') + e0 * 6e4;
+    if (s0 != null && e0 < s0) e += 864e5;
+    if (ms >= e && ms - e < 36e5) return T.wa;
+  }
+  return '';
+}
+function tkClose() { const o = $('tpk'); if (o) o.remove(); TP = null; }
+function tkPick(id, j) {
+  const it = (D.items || []).find(x => x.id === id); if (!it || !it.plan) return;
+  const T = TPK[lang] || TPK.en;
+  if (!tkEditable(it).includes(j)) { itToast(T.gone); render(); return; }
+  const now = Math.floor(cairoNow() / 6e4) * 6e4, max = Math.floor((it.plan.deadline - 6e4) / 6e4) * 6e4;
+  if (!(max > now)) { itToast(T.gone); return; }
+  const cur = Math.min(max, Math.max(now, Math.floor(it.plan.opens[j] / 6e4) * 6e4));
+  TP = { id, j, min: now, max, ms: cur };
+  tkClose(); TP = { id, j, min: now, max, ms: cur };
+  const o = document.createElement('div'); o.id = 'tpk'; o.className = 'tpk';
+  o.innerHTML = `<div class="tpb" dir="auto"><div class="tpt">${esc(it.title || '')} · ${j + 1}/${it.plan.n_eff}</div><div class="tpl" id="tpl"></div>`
+    + `<input type="range" id="tpr" min="0" max="${(max - now) / 6e4}" step="1" value="${(cur - now) / 6e4}" dir="ltr">`
+    + `<input type="datetime-local" id="tpd" min="${tkIso(now)}" max="${tkIso(max)}" value="${tkIso(cur)}" dir="ltr">`
+    + `<div class="tpbs"><button type="button" class="tpnow">${T.now}</button><button type="button" class="tps">${T.save}</button><button type="button" class="tpc">${T.cancel}</button></div></div>`;
+  document.body.appendChild(o);
+  const lab = () => { $('tpl').textContent = fmtDT(TP.ms); }, set = ms => { TP.ms = Math.min(TP.max, Math.max(TP.min, Math.round(ms / 6e4) * 6e4)); $('tpr').value = (TP.ms - TP.min) / 6e4; $('tpd').value = tkIso(TP.ms); lab(); };
+  lab();
+  $('tpr').oninput = e => set(TP.min + (+e.target.value) * 6e4);
+  $('tpd').onchange = e => { const v = Date.parse(e.target.value + ':00Z'); set(Number.isFinite(v) ? v : TP.ms); };
+  o.querySelector('.tpnow').onclick = () => tkTry(Math.floor(cairoNow() / 6e4) * 6e4);
+  o.querySelector('.tps').onclick = () => tkTry(TP.ms);
+  o.querySelector('.tpc').onclick = tkClose;
+  o.addEventListener('click', e => { if (e.target === o) tkClose(); });
+}
+function tkTry(ms) {
+  const w = tkWarn(ms), T = TPK[lang] || TPK.en; if (!w) { tkSend(ms); return; }
+  const b = document.querySelector('#tpk .tpb'); if (!b) { tkSend(ms); return; }
+  b.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
+  b.querySelector('.tps').onclick = () => tkSend(ms);
+  b.querySelector('.tpc').onclick = () => { const id = TP.id, j = TP.j; tkPick(id, j); };
+}
+async function tkSend(ms) {
+  const T = TPK[lang] || TPK.en, id = TP && TP.id, j = TP && TP.j; tkClose(); if (id == null) return;
+  const ok = await rpc('trainee_set_item_time', { p_token: tok(), p_item_id: id, p_idx: j, p_open_ms: ms }).catch(() => null);
+  if (ok === true) { D.times = await fetchTimes(); mergeTimes(); render(); itToast(T.saved); } else itToast(T.fail);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('tpk')) tkClose(); });
+(function () { const st = document.createElement('style'); st.textContent = `
+.tpkb{margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid rgba(52,211,153,.55);background:rgba(52,211,153,.12);color:#34d399;font:700 .74rem Inter,Cairo,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tpkb.on{background:#34d399;color:#04231a}
+body.light-theme .tpkb:not(.on){color:#047857}
+.ittp i.ed,.itl i.ed{background:#34d399!important;box-shadow:0 0 0 4px rgba(52,211,153,.3);cursor:pointer;animation:tpPulse 1.6s ease-in-out infinite}
+.itl i.ed{position:relative}
+.ittp i.ed::after,.itl i.ed::after{content:"";position:absolute;inset:-12px}
+@keyframes tpPulse{50%{box-shadow:0 0 0 8px rgba(52,211,153,.1)}}
+.tpk{position:fixed;inset:0;z-index:10070;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.tpb{box-sizing:border-box;width:min(92vw,380px);padding:16px;border-radius:20px;background:rgba(15,23,42,.96);color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 18px 50px rgba(0,0,0,.55);font:600 .85rem Inter,Cairo,sans-serif}
+body.light-theme .tpb{background:rgba(255,255,255,.97);color:#0f172a;border-color:rgba(15,23,42,.18)}
+.tpt{font-weight:800;margin-bottom:8px;overflow-wrap:anywhere}
+.tpl{margin:6px 0 10px;color:#34d399;font-weight:800;line-height:1.6}
+body.light-theme .tpl{color:#047857}
+.tpb input[type=range]{width:100%;accent-color:#34d399;height:28px;touch-action:pan-x}
+.tpb input[type=datetime-local]{width:100%;box-sizing:border-box;margin-top:6px;padding:8px 10px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:inherit;font:inherit}
+.tpbs{display:flex;gap:8px;margin-top:14px}
+.tpbs button{flex:1;padding:9px 6px;border-radius:12px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
+.tpbs .tps{background:#34d399;border-color:#34d399;color:#04231a}
+.tpbs .tpnow{border-color:rgba(251,191,36,.6);color:#fbbf24;background:rgba(251,191,36,.12)}`; document.head.appendChild(st); })();
 const DNX = { en: { cur: 'Current' }, ar: { cur: 'الحالية' }, eg: { cur: 'الحالية' } };
 function dandanaCard() {
   const t = TKT[lang] || TKT.en, t2 = itT(), its = (D.items || []).filter(x => x.kind === 'dandana');
@@ -543,7 +649,7 @@ function tkRefill() {   // after a check / re-render, keep the open container po
 /* a tap anywhere on a container (except the check circle / links) opens the whole list */
 document.addEventListener('click', e => {
   const c = e.target.closest && e.target.closest('#taskCard .tkc, #dandanaCard .tkc'); if (!c) return;
-  if (e.target.closest('button,a')) return;
+  if (e.target.closest('button,a,.ed')) return;
   openTkModal(c.dataset.k);
 });
 /* each list shows one cell and a quarter of the next one, so you know there is more below; scroll to see it */
@@ -610,7 +716,7 @@ function itToast(m) { const e = document.createElement('div'); e.className = 'it
 async function checkItem(id) {
   const t = itT(), r = await rpc('trainee_check_item', { p_token: tok(), p_item_id: id }).catch(() => null);
   const f = await rpc('trainee_items', { p_token: tok() }).catch(() => null);
-  if (f && Array.isArray(f.items)) D.items = f.items;
+  if (f && Array.isArray(f.items)) { D.items = f.items; mergeTimes(); }
   render();
   itToast(r && r.ok ? t.saved : (r && t[r.reason]) || t.fail);
 }
@@ -679,7 +785,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -740,8 +846,13 @@ document.addEventListener('click', e => {
 const DAYRX = [/sun|اح?د|(^|[\s,\/])حد/i, /mon|اتنين|[إا]ثنين/i, /tue|تلات|ثلاث/i, /wed|[اأ]ربع/i, /thu|خميس/i, /fri|جمع/i, /sat|سبت/i];
 const TX = () => lang === 'en' ? { nxt: 'Next session', startsIn: 'Your session starts in', rip: 'Rest in peace', dnd: 'Dandana', tom: tm => `Your session is tomorrow at ${tm}`, inD: (n, tm) => `Your session is in ${n} days at ${tm}` }
   : { nxt: 'الجلسة الجاية', startsIn: 'جلستك هتبدأ بعد', rip: 'ريست إن بيس', dnd: 'دندنة', tom: tm => `جلستك بكرة الساعة ${tm}`, inD: (n, tm) => n === 2 ? `جلستك بعد يومين الساعة ${tm}` : `جلستك بعد ${n} أيام الساعة ${tm}` };
+let USER_TZ = 'Africa/Cairo';
+function tzFromProfile(p) {
+  const x = String((p && (p.location || p.residence_mostly)) || '').toLowerCase();
+  return /سعود|ksa|saudi|riyadh|الرياض|jeddah|جدة|مكة|makkah|mecca|medina|المدينة|dammam|الدمام|khobar|الخبر/.test(x) ? 'Asia/Riyadh' : 'Africa/Cairo';
+}
 function cairoNow() {
-  const g = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+  const g = {}; new Intl.DateTimeFormat('en-GB', { timeZone: USER_TZ, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
   return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
 }
 function schedule() {
