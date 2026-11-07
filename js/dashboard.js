@@ -769,9 +769,9 @@ function billLeft() {   // days until the next 7th
 /* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
    Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
 const thn_NCX = {
-  en: { money: 'Payment', system: 'System', note: 'Notification', update: 'Update', alert: 'Important', reply: 'Reply', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
-  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
-  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
+  en: { money: 'Finance', system: 'Dashboard', note: 'Notification', update: 'Update', alert: 'Important', reply: 'Reply', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
+  ar: { money: 'مالي', system: 'لوحة البيانات', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
+  eg: { money: 'مالي', system: 'لوحة البيانات', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
 };
 const thn_NCT = () => thn_NCX[lang] || thn_NCX.en;
 const thn_ACKK = 'thabit_ack', thn_OPNK = 'thabit_nopen'; let thn_ACKS = {};
@@ -810,6 +810,7 @@ function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
       + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
 function thn_toggleNf(pc) {
+  if (!pc.classList.contains('open')) document.querySelectorAll('#pop .pc.nf.open:not(.acked)').forEach(o => { if (o !== pc) { o.classList.remove('open'); const b = o.querySelector('.nfb'); if (b) b.hidden = true; } });   // one at a time: opening a notification folds the others
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
   if (on) thn_openedSet(pc.dataset.cid.slice(2));
 }
