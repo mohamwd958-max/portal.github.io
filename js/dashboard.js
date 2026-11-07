@@ -232,7 +232,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL'); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -246,6 +246,45 @@ function render() {
   requestAnimationFrame(fitCaps);
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
+/* ===== Scratches: screenshots / drawings from the trainer's board (Board system), shown in the Notes section =====
+   Data: D.scratches = [{ id, image_url, title?, created_at | date }]  (newest first is fine, it is sorted here).
+   Not connected yet: set SCR_RPC to the RPC name (it gets { p_token }) once the Board system is linked, or put `scratches` inside the trainee_dashboard result. */
+const SCR_RPC = null;
+const SCRX = {
+  en: { t: 'Scratches', none: 'No scratches yet', prev: 'Previous', next: 'Next', zoom: 'Tap the picture to zoom' },
+  ar: { t: 'خربشات', none: 'لا توجد خربشات بعد', prev: 'السابق', next: 'التالي', zoom: 'اضغط على الصورة للتكبير' },
+  eg: { t: 'خربشات', none: 'لسه مفيش خربشات', prev: 'السابق', next: 'التالي', zoom: 'دوس على الصورة عشان تكبّرها' }
+};
+const SCRT = () => SCRX[lang] || SCRX.en;
+const fetchScratches = () => SCR_RPC ? rpc(SCR_RPC, { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []) : Promise.resolve([]);
+const scrOk = u => /^(https?:\/\/|data:image\/)/i.test(String(u || ''));
+function scrList() {
+  return ((D && D.scratches) || []).map(x => ({ url: x.image_url || x.url || x.image || x.src || '', title: x.title || '', date: String(x.date || x.created_at || '').slice(0, 10) }))
+    .filter(x => scrOk(x.url)).sort((a, b) => b.date.localeCompare(a.date));
+}
+let SCR_I = 0;
+function scratchCard() {
+  const t = SCRT(), l = scrList(), shown = l.slice(0, 4);
+  const th = shown.map((x, i) => `<button type="button" class="scrt" onclick="openScratch(${i})" aria-label="${esc(x.title || x.date || t.t)}"><img src="${esc(x.url)}" alt="" loading="lazy">${i === 3 && l.length > 4 ? `<span class="scrm">+${l.length - 3}</span>` : ''}</button>`).join('');
+  return `<div class="thabit-card dcard" id="scratchCard"><h4>${t.t}</h4>${l.length ? `<div class="scrg">${th}</div>` : `<div class="sm">${t.none}</div>`}</div>`;
+}
+function openScratch(i) {
+  const l = scrList(); if (!l.length) return; SCR_I = (i + l.length) % l.length;
+  const x = l[SCR_I], t = SCRT();
+  $('mdl').dataset.ear = ''; $('mdl').classList.add('scr'); $('mT').textContent = (x.title || t.t) + (x.date ? ' · ' + x.date : '');
+  $('mB').innerHTML = `<div class="scrv"><img class="scrimg" src="${esc(x.url)}" alt="" onclick="this.parentNode.classList.toggle('scrz')"></div><div class="scrn"><button type="button" class="btn2" onclick="openScratch(${SCR_I + 1})">${t.prev}</button><span class="sm">${SCR_I + 1} / ${l.length}</span><button type="button" class="btn2" onclick="openScratch(${SCR_I - 1})">${t.next}</button></div><div class="sm" style="text-align:center;margin-top:6px">${t.zoom}</div>`;
+  $('mdl').classList.add('open');
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+.scrg{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:6px}
+.scrt{position:relative;aspect-ratio:1;padding:0;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;background:rgba(148,163,184,.1);cursor:pointer}
+.scrt img{width:100%;height:100%;object-fit:cover;display:block}
+.scrm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.6);color:#fff;font-weight:800;font-size:1rem}
+#mdl.scr .mbox{max-width:min(96vw,1100px)}
+.scrv{overflow:auto;max-height:68vh;border-radius:12px;background:rgba(148,163,184,.08);text-align:center}
+.scrimg{max-width:100%;height:auto;display:inline-block;cursor:zoom-in}
+.scrv.scrz .scrimg{max-width:none;cursor:zoom-out}
+.scrn{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}.scrn .btn2{padding:7px 14px;font-size:.78rem}`; document.head.appendChild(st); })();
 const cap = (rows, key, title) => {
   const list = rows.slice().reverse().filter(r => r[key]).map(r => ({ date: r.supply_date, text: String(r[key]) }));
   const mi = MD.push([title, '', key, list]) - 1;
@@ -530,7 +569,7 @@ function openModal(i, focus) {
   const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
   box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
 }
-function closeModal() { $('mdl').classList.remove('open'); }
+function closeModal() { $('mdl').classList.remove('open', 'scr'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
@@ -560,7 +599,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -2554,7 +2593,7 @@ const thLX = {
   eg: 'نصيحة: دوس دوسة طويلة على أي كارت واسحبه للمكان اللي عايزه'
 };
 const thCardKey = el => el.id === 'taskCard' ? 'tasks' : el.id === 'dandanaCard' ? 'dandana' : ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
-const THL_KEYS = ['notes', 'tefl', 'qol'];
+const THL_KEYS = ['notes', 'tefl', 'qol', 'scratchCard'];
 function thListsApply() {
   const L = $('lists'), L2 = $('lists2'); if (!L) return;
   if (L2) { L2.innerHTML = ''; [...L.children].filter(k => THL_KEYS.includes(thCardKey(k))).forEach(k => L2.appendChild(k)); }   // section 2 = tasks + dandana, section 3 = notes / TEFL / QOL
