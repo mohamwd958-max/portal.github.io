@@ -8,7 +8,7 @@ const T = {
   ar: { hi: 'أهلاً ', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
-T.eg = Object.assign({}, T.ar, { hi: 'أهلاً ', last: 'آخر جلسة ليك' });
+T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
 T.en.lmonth = 'Last month'; T.ar.lmonth = 'الشهر الماضي'; T.eg.lmonth = 'الشهر اللي فات';
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
@@ -26,7 +26,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -207,15 +207,18 @@ const RQT = {
         durs: [['today', 'النهاردة بس'], ['2-3d', 'يومين تلاتة'], ['1w', 'حوالي أسبوع'], ['2w', 'حوالي أسبوعين'], ['1m', 'حوالي شهر'], ['1m+', 'أكتر من شهر']] }
 };
 const rqT = () => RQT[lang] || RQT.en;
-function rqLabels() { rqUI(); }
+function rqLabels() {
+  const t = rqT();
+  $('rqLWhat').textContent = t.what; $('rqWhat').placeholder = t.whatPh; $('rqLMsg').textContent = t.msg;
+  rqFollowUI(false);
+}
 function rqFollowUI(reset) {
-  const t = rqT(), ty = $('rqType').value, c = $('rqFollow'), old = $('rqFollowVal'), changed = reset || c.dataset.type !== ty, keep = !reset && old && c.dataset.type === ty ? old.value : '';
+  const t = rqT(), ty = $('rqType').value, c = $('rqFollow'), old = $('rqFollowVal'), keep = !reset && old && c.dataset.type === ty ? old.value : '';
   c.dataset.type = ty;
-  const star = ' <b class="rqreq">*</b>';
+  const star = ' <b style="color:#f87171">*</b>';
   if (ty === 'financial') c.innerHTML = `<label class="rql">${t.fin}${star}</label><input type="date" id="rqFollowVal" min="${ymd(new Date())}" value="${keep}">`;
-  else if (ty === 'session') c.innerHTML = `<label class="rql">${t.ses}${star}</label><div class="rqdur">${t.durs.map(d => `<button type="button" class="rqdc${d[0] === keep ? ' on' : ''}" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><input type="hidden" id="rqFollowVal" value="${keep}">`;
+  else if (ty === 'session') c.innerHTML = `<label class="rql">${t.ses}${star}</label><select id="rqFollowVal"><option value="">—</option>${t.durs.map(d => `<option value="${d[0]}"${d[0] === keep ? ' selected' : ''}>${d[1]}</option>`).join('')}</select>`;
   else c.innerHTML = '';
-  if (changed && c.innerHTML) { c.classList.remove('rqfi'); void c.offsetWidth; c.classList.add('rqfi'); }
 }
 
 function render() {
@@ -229,58 +232,21 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
-  { const e = $('tInfo'); if (e) e.textContent = t.info; }
-  rqUI();
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL'); thListsApply();
+  ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
+  $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
-  const IF = [['status_as_of_today','Status'],['days_a_week','Days / week'],['session_time','Session time'],['subscription','Subscription']];
-  $('info').innerHTML = IF.map(f => line(f[1], p[f[0]]) + (f[0] === 'session_time' ? line(lang === 'en' ? 'Time zone' : 'التوقيت', tzNowLabel()) : '')).join('');
-  infoFold();
+  const IF = [['status_as_of_today','Status'],['current_plan','Current plan'],['days_a_week','Days / week'],['session_time','Session time'],['place','Place'],['subscription','Subscription'],['due_date','Due date'],
+    ['joining_date','Joined'],['first_session','First session'],['birth_date','Birth date'],['education_on_joining','Education on joining'],['schooling','Schooling'],['location','Location'],['residence_mostly','Residence'],
+    ['first_thabit_scoring','First Thabit scoring'],['first_approved_english_test','First English test'],['first_psychological_approved_test','First psychological test'],['preferred_phone','Phone'],['preferred_email','Email']];
+  $('info').innerHTML = line('Group', L && L.group_name) + IF.map(f => line(f[1], p[f[0]])).join('');
+  $('rqList').innerHTML = (D.requests || []).map(r => `<div class="row"><span>${esc(r.message)}<br><span class="sm">${esc(r.type)} · ${esc(r.status)}</span></span><b>${esc(r.admin_reply || '')}</b></div>`).join('');
   renderSessions(rows);
   watchTodo();
   renderAvatar();
-  requestAnimationFrame(fitCaps);
+  requestAnimationFrame(() => { fitCaps(); fitTk(); });
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
-/* ===== Scratches: screenshots / drawings from the trainer's board (Board system), shown in the Notes section =====
-   Data: D.scratches = [{ id, image_url, title?, created_at | date }]  (newest first is fine, it is sorted here).
-   Not connected yet: set SCR_RPC to the RPC name (it gets { p_token }) once the Board system is linked, or put `scratches` inside the trainee_dashboard result. */
-const SCR_RPC = null;
-const SCRX = {
-  en: { t: 'Scratches', none: 'No scratches yet', prev: 'Previous', next: 'Next', zoom: 'Tap the picture to zoom' },
-  ar: { t: 'خربشات', none: 'لا توجد خربشات بعد', prev: 'السابق', next: 'التالي', zoom: 'اضغط على الصورة للتكبير' },
-  eg: { t: 'خربشات', none: 'لسه مفيش خربشات', prev: 'السابق', next: 'التالي', zoom: 'دوس على الصورة عشان تكبّرها' }
-};
-const SCRT = () => SCRX[lang] || SCRX.en;
-const fetchScratches = () => SCR_RPC ? rpc(SCR_RPC, { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []) : Promise.resolve([]);
-const scrOk = u => /^(https?:\/\/|data:image\/)/i.test(String(u || ''));
-function scrList() {
-  return ((D && D.scratches) || []).map(x => ({ url: x.image_url || x.url || x.image || x.src || '', title: x.title || '', date: String(x.date || x.created_at || '').slice(0, 10) }))
-    .filter(x => scrOk(x.url)).sort((a, b) => b.date.localeCompare(a.date));
-}
-let SCR_I = 0;
-function scratchCard() {
-  const t = SCRT(), l = scrList(), shown = l.slice(0, 4);
-  const th = shown.map((x, i) => `<button type="button" class="scrt" onclick="openScratch(${i})" aria-label="${esc(x.title || x.date || t.t)}"><img src="${esc(x.url)}" alt="" loading="lazy">${i === 3 && l.length > 4 ? `<span class="scrm">+${l.length - 3}</span>` : ''}</button>`).join('');
-  return `<div class="thabit-card dcard" id="scratchCard"><h4>${t.t}</h4>${l.length ? `<div class="scrg">${th}</div>` : `<div class="sm">${t.none}</div>`}</div>`;
-}
-function openScratch(i) {
-  const l = scrList(); if (!l.length) return; SCR_I = (i + l.length) % l.length;
-  const x = l[SCR_I], t = SCRT();
-  $('mdl').dataset.ear = ''; $('mdl').classList.add('scr'); $('mT').textContent = (x.title || t.t) + (x.date ? ' · ' + x.date : '');
-  $('mB').innerHTML = `<div class="scrv"><img class="scrimg" src="${esc(x.url)}" alt="" onclick="this.parentNode.classList.toggle('scrz')"></div><div class="scrn"><button type="button" class="btn2" onclick="openScratch(${SCR_I + 1})">${t.prev}</button><span class="sm">${SCR_I + 1} / ${l.length}</span><button type="button" class="btn2" onclick="openScratch(${SCR_I - 1})">${t.next}</button></div><div class="sm" style="text-align:center;margin-top:6px">${t.zoom}</div>`;
-  $('mdl').classList.add('open');
-}
-(function () { const st = document.createElement('style'); st.textContent = `
-.scrg{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:6px}
-.scrt{position:relative;aspect-ratio:1;padding:0;border:1px solid var(--border-color);border-radius:12px;overflow:hidden;background:rgba(148,163,184,.1);cursor:pointer}
-.scrt img{width:100%;height:100%;object-fit:cover;display:block}
-.scrm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.6);color:#fff;font-weight:800;font-size:1rem}
-#mdl.scr .mbox{max-width:min(96vw,1100px)}
-.scrv{overflow:auto;max-height:68vh;border-radius:12px;background:rgba(148,163,184,.08);text-align:center}
-.scrimg{max-width:100%;height:auto;display:inline-block;cursor:zoom-in}
-.scrv.scrz .scrimg{max-width:none;cursor:zoom-out}
-.scrn{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}.scrn .btn2{padding:7px 14px;font-size:.78rem}`; document.head.appendChild(st); })();
 const cap = (rows, key, title) => {
   const list = rows.slice().reverse().filter(r => r[key]).map(r => ({ date: r.supply_date, text: String(r[key]) }));
   const mi = MD.push([title, '', key, list]) - 1;
@@ -474,46 +440,51 @@ function itemRow(it) {
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
     + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + `</div>`
-    + `<button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`;
+    + `</div>`;
 }
 const TKT = {
   en: { tasks: 'Tasks', urgent: 'Urgent', prev: 'Previous', log: 'Log', logT: 'Done tasks', none: 'Nothing here' },
   ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
   eg: { tasks: 'التاسكس', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
 };
+const tkLogCell = x => {
+  const t2 = itT(), ok = itState(x).k === 'done', ap = appSplit(x.body), n = x.plan ? x.plan.n_eff : x.repeats;
+  return `<details class="ssi tkold"><summary><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${n}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="color:${ok ? '#34d399' : '#fb7185'}">${ok ? t2.done : t2.missed}</span></div></summary>`
+    + `<div class="ssdet">${ok ? '' : `<div class="row"><b dir="auto">${esc(closedText(x))}</b></div>`}${ap.text ? `<div class="itd rich">${rich(ap.text)}</div>` : ''}</div></details>`;
+};
 function tasksCard() {
   const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
   if (!its.length) return '';
-  const today = itToday(), pend = its.filter(itShown);
+  const today = itToday(), pend = its.filter(itShown), fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
   const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
     return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
-  const sec = (cls, title, list) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${list.length || ''}</b></div>${list.length ? group(list) : `<div class="sm">${t.none}</div>`}</div>`;
-  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4><button type="button" class="logb" onclick="openLog()"><i class="fa-solid fa-clock-rotate-left"></i> ${t.log}</button></div>`
-    + `<div class="tk2">${sec('urg', t.urgent, urg)}${sec('prv', t.prev, prv)}</div></div>`;
+  const sec = (cls, title, n, cells) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
+  const c1 = urg.length ? sec('urg', t.urgent, urg.length, group(urg)) : '';
+  const c2 = (prv.length || fin.length) ? sec('prv', t.prev, prv.length + fin.length, (prv.length ? group(prv) : '') + fin.map(tkLogCell).join('')) : '';
+  if (!c1 && !c2) return '';
+  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
-function openLog() {
-  const t = TKT[lang] || TKT.en, t2 = itT(), fin = (D.items || []).filter(x => (x.kind === 'task' || x.kind === 'dandana') && ['done', 'closed'].includes(itState(x).k)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
-  $('logT').textContent = t.logT;
-  $('logList').innerHTML = fin.length ? fin.map(x => `<div class="ssi" role="button" tabindex="0" style="cursor:pointer" onclick="openLogItem(${x.id})" onkeydown="if(event.key==='Enter')openLogItem(${x.id})"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${itState(x).k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${itState(x).k === 'done' ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${itState(x).k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`).join('') : `<div class="sm">${t.none}</div>`;
-  $('logm').classList.add('open');
+/* each list shows one cell and a quarter of the next one, so you know there is more below; scroll to see it */
+function fitTk() {
+  document.querySelectorAll('#taskCard .tkl').forEach(l => {
+    const c = [...l.children]; l.style.maxHeight = ''; l.style.overflowY = '';
+    if (c.length < 2 || !c[0].offsetHeight) return;
+    l.style.overflowY = 'auto';
+    l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
+  });
 }
-/* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
-function openLogItem(id) {
-  const x = (D.items || []).find(i => i.id === id); if (!x) return;
-  const t2 = itT(), s = itState(x), p = x.plan, n = p ? p.n_eff : x.repeats, d = (x.checks || []).length;
-  const ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
-  const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);
-  $('mdl').dataset.ear = ''; $('mT').textContent = x.title || '';
-  $('mB').innerHTML = `<div class="sm" style="margin-bottom:8px">${esc(x.date)}${x.badge ? ' · <span dir="auto">' + esc(x.badge) + '</span>' : ''}</div>`
-    + (ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : '')
-    + appExtra(x, ap.app, atts, endAt)
-    + `<div class="sss" style="margin-top:10px"><span style="${s.k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${s.k === 'done' ? t2.done : t2.missed}</span><span>${d}/${n}</span>${s.k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div>`;
-  $('mdl').classList.add('open');
-}
-function closeLog() { $('logm').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLog(); });
+window.addEventListener('resize', fitTk);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
+document.addEventListener('toggle', e => {   // a cell opened: give the list room to show its details
+  const l = e.target.closest && e.target.closest('.tkl'); if (!l) return;
+  if (l.querySelector('details[open]')) { l.style.maxHeight = 'min(60vh,420px)'; l.style.overflowY = 'auto'; } else fitTk();
+}, true);
+(function () { const st = document.createElement('style'); st.textContent = `
+.tk2.one{grid-template-columns:1fr!important}
+.tkl{overscroll-behavior:contain}
+#taskCard .itc,#dandanaCard .itc{zoom:.8}`; document.head.appendChild(st); })();
 function itemsCard(kind) {
   const t = itT(), its = (D.items || []).filter(x => x.kind === kind);
   if (!its.length) return '';
@@ -544,7 +515,7 @@ function todoCard(all) {
   const t = T[lang], done = new Set((D.done || []).map(d => d.supply_date + '#' + d.task_no));
   const days = all.slice().reverse().map(r => ({ date: r.supply_date, tasks: parseTasks(r) })).filter(d => d.tasks.length);
   if (!days.length && (D.items || []).some(i => i.kind === 'task')) return '';
-  const task = (k, dn) => { const i = TK.push(k) - 1; return `<div class="tk${dn ? ' dn' : ''}"><input type="checkbox" ${dn ? 'checked' : ''} onchange="toggleTask(${i},this.checked)"><div class="tkb" dir="auto">${k.type || k.det ? `<div><b>${esc(k.type)}</b> <span class="sm">${esc(k.det)}</span></div>` : ''}<div>${esc(k.text)}</div></div><button type="button" class="hnd${HAND_NEW ? ' wv' : ''}" onclick="raiseHand(${i})" aria-label="Help">!</button></div>`; };
+  const task = (k, dn) => { const i = TK.push(k) - 1; return `<div class="tk${dn ? ' dn' : ''}"><input type="checkbox" ${dn ? 'checked' : ''} onchange="toggleTask(${i},this.checked)"><div class="tkb" dir="auto">${k.type || k.det ? `<div><b>${esc(k.type)}</b> <span class="sm">${esc(k.det)}</span></div>` : ''}<div>${esc(k.text)}</div></div></div>`; };
   const split = f => days.map(d => ({ date: d.date, tasks: d.tasks.filter(k => done.has(k.date + '#' + k.no) === f) })).filter(d => d.tasks.length);
   const blk = (d, f) => `<div class="it"><div class="dt">${d.date}</div>${d.tasks.map(k => task(k, f)).join('')}</div>`;
   const pend = split(false), fin = split(true);
@@ -565,7 +536,7 @@ function openModal(i, focus) {
   const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
   box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
 }
-function closeModal() { $('mdl').classList.remove('open', 'scr'); }
+function closeModal() { $('mdl').classList.remove('open'); }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
@@ -595,35 +566,22 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
 
 async function sendReq() {
-  const t = rqT(), x = RQX[lang] || RQX.en, ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '', btn = $('rqBtn');
-  const err = (m, el) => { const e = $('rqErr'); e.textContent = m; e.hidden = false; const sh = $('rqsheet'); sh.classList.remove('shk'); void sh.offsetWidth; sh.classList.add('shk'); if (el && el.focus) try { el.focus(); } catch (z) {} };
-  $('rqErr').hidden = true;
-  if (!what) return err(t.needWhat, $('rqWhat'));
-  if (!det) return err(t.needMsg, $('rqMsg'));
-  if (ty !== 'other' && !fv) return err(t.need, $('rqFollowVal'));
+  const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
+  if (!what) { alert(t.needWhat); $('rqWhat').focus(); return; }
+  if (!det) { alert(t.needMsg); $('rqMsg').focus(); return; }
+  if (ty !== 'other' && !fv) { alert(t.need); $('rqFollowVal').focus(); return; }
   let tail = '';
   if (ty === 'financial') tail = `\n\n[PAYMENT DATE] ${fv}`;
-  if (ty === 'session') { const d = RQT.en.durs.find(z => z[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
+  if (ty === 'session') { const d = RQT.en.durs.find(x => x[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
   const msg = `[REQUEST] ${what}\n[DETAILS] ${det}${tail}`.slice(0, 2000);
-  btn.disabled = true; btn.classList.add('busy'); btn.querySelector('span').textContent = x.sending;
-  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg }).catch(() => null);
-  if (ok === true) {
-    rpc('trainee_submit_report', { p_token: tok(), p_type: ty, p_title: what.slice(0, 140), p_details: det.slice(0, 1500), p_follow: fv || null }).catch(() => null);   // also saved, field by field, in the trainee_reports table (silent: the old request above keeps working either way)
-    btn.classList.remove('busy'); btn.classList.add('ok'); btn.querySelector('i').className = 'fa-solid fa-check'; btn.querySelector('span').textContent = x.sent;
-    setTimeout(() => {
-      $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); closeRq();
-      btn.disabled = false; btn.classList.remove('ok'); btn.querySelector('i').className = 'fa-solid fa-paper-plane'; btn.querySelector('span').textContent = x.send;
-    }, 1100);
-    rqRefresh();
-  } else {
-    btn.disabled = false; btn.classList.remove('busy'); btn.querySelector('span').textContent = x.send; err(x.fail);
-  }
+  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg });
+  if (ok === true) { $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); load(); }
 }
 window.addEventListener('DOMContentLoaded', () => {
   try { if (localStorage.getItem('thabit_theme') === 'light') { $('bodyRoot').classList.add('light-theme'); $('themeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {}
@@ -692,79 +650,10 @@ function dndState() {
   return { r, items: String(r.dandana).split(/[\/\n]+/).map(x => x.trim()).filter(Boolean) };
 }
 const fmtT = sc => `${(sc.h % 12) || 12}:${String(sc.m).padStart(2, '0')} ${sc.h < 12 ? 'AM' : 'PM'}`;
-/* ===== Session time shown in the trainee's own country time =====
-   The admin always writes the session time in Cairo time. The trainee's basic_info.location decides which clock he sees
-   (case-insensitive, Arabic or English, spelling does not have to be exact). No match / empty = Cairo.
-   Summer / winter time is read from the real time-zone rules for that exact date, nothing to maintain. */
-const TZ_CAIRO = 'Africa/Cairo';
-const TZ_LIST = [
-  { rx: /مصر|egypt|cairo|القاهر|الاسكندر|اسكندر|alexandria|giza|الجيز/, tz: TZ_CAIRO, n: { en: 'Cairo time', ar: 'بتوقيت القاهرة', eg: 'بتوقيت القاهرة' } },
-  { rx: /سعود|saudi|\bksa\b|riyadh|رياض|jeddah|جده|mecca|makkah|مكه|medina|madinah|المدينه المنوره|dammam|دمام|khobar|الخبر|tabuk|تبوك|abha|ابها/, tz: 'Asia/Riyadh', n: { en: 'Mecca time', ar: 'بتوقيت مكة المكرمة', eg: 'بتوقيت مكة المكرمة' } },
-  { rx: /امارات|emirates|\buae\b|dubai|دبي|abu ?dhabi|ابو ?ظبي|sharjah|شارقه|ajman|عجمان/, tz: 'Asia/Dubai', n: { en: 'UAE time', ar: 'بتوقيت الإمارات', eg: 'بتوقيت الإمارات' } },
-  { rx: /كويت|kuwait/, tz: 'Asia/Kuwait', n: { en: 'Kuwait time', ar: 'بتوقيت الكويت', eg: 'بتوقيت الكويت' } },
-  { rx: /قطر|qatar|doha|الدوحه/, tz: 'Asia/Qatar', n: { en: 'Qatar time', ar: 'بتوقيت قطر', eg: 'بتوقيت قطر' } },
-  { rx: /بحرين|bahrain|manama|المنامه/, tz: 'Asia/Bahrain', n: { en: 'Bahrain time', ar: 'بتوقيت البحرين', eg: 'بتوقيت البحرين' } },
-  { rx: /\boman\b|muscat|مسقط|سلطنه عمان/, tz: 'Asia/Muscat', n: { en: 'Oman time', ar: 'بتوقيت عُمان', eg: 'بتوقيت عُمان' } },
-  { rx: /اردن|jordan|amman/, tz: 'Asia/Amman', n: { en: 'Jordan time', ar: 'بتوقيت الأردن', eg: 'بتوقيت الأردن' } },
-  { rx: /عراق|iraq|baghdad|بغداد/, tz: 'Asia/Baghdad', n: { en: 'Iraq time', ar: 'بتوقيت العراق', eg: 'بتوقيت العراق' } },
-  { rx: /ليبيا|libya|tripoli|طرابلس/, tz: 'Africa/Tripoli', n: { en: 'Libya time', ar: 'بتوقيت ليبيا', eg: 'بتوقيت ليبيا' } },
-  { rx: /تركيا|turkey|turkiye|istanbul|اسطنبول/, tz: 'Europe/Istanbul', n: { en: 'Turkey time', ar: 'بتوقيت تركيا', eg: 'بتوقيت تركيا' } },
-  { rx: /بريطانيا|انجلترا|\buk\b|united kingdom|england|britain|london|لندن/, tz: 'Europe/London', n: { en: 'UK time', ar: 'بتوقيت بريطانيا', eg: 'بتوقيت بريطانيا' } },
-  { rx: /المانيا|germany|berlin|برلين/, tz: 'Europe/Berlin', n: { en: 'Germany time', ar: 'بتوقيت ألمانيا', eg: 'بتوقيت ألمانيا' } }
-];
-const TZ_DST = { en: ['summer time', 'winter time'], ar: ['توقيت صيفي', 'توقيت شتوي'], eg: ['توقيت صيفي', 'توقيت شتوي'] };
-const tzNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[ً-ٟـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
-function traineeZone() {
-  const p = (D && D.profile) || {}, x = tzNorm(p.location);
-  return (x && TZ_LIST.find(z => z.rx.test(x))) || TZ_LIST[0];
-}
-const TZ_FMT = {};
-function zoneWall(ms, tz) {   // real instant -> that zone's wall clock, encoded like cairoNow() (UTC fields = wall fields)
-  const f = TZ_FMT[tz] || (TZ_FMT[tz] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' })), g = {};
-  f.formatToParts(new Date(ms)).forEach(x => g[x.type] = +x.value);
-  return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
-}
-const zoneOff = (ms, tz) => zoneWall(ms, tz) - Math.floor(ms / 1000) * 1000;
-function localSession(nxtWall) {   // nxtWall = the session start as a Cairo wall-clock timestamp -> {h, m, label, days}
-  const z = traineeZone(), lang3 = TZ_LIST.length && (z.n[lang] ? lang : 'en');
-  let T = nxtWall - zoneOff(nxtWall - 72e5, TZ_CAIRO); T = nxtWall - zoneOff(T, TZ_CAIRO);   // the real instant of that Cairo time
-  const w = new Date(zoneWall(T, z.tz)), y = new Date(T).getUTCFullYear();
-  const oj = zoneOff(Date.UTC(y, 0, 15), z.tz), ol = zoneOff(Date.UTC(y, 6, 15), z.tz), o = zoneOff(T, z.tz);
-  let label = z.n[lang3];
-  if (oj !== ol) label += ` (${TZ_DST[lang3][o === Math.max(oj, ol) ? 0 : 1]})`;
-  const nowL = zoneWall(Date.now(), z.tz);
-  return { h: w.getUTCHours(), m: w.getUTCMinutes(), label, days: Math.round((Math.floor(w.getTime() / 864e5) - Math.floor(nowL / 864e5))) };
-}
-function tzNowLabel() {   // the trainee's own time zone, with summer / winter time where that country has it
-  const z = traineeZone(), l = z.n[lang] ? lang : 'en', now = Date.now(), y = new Date(now).getUTCFullYear();
-  const oj = zoneOff(Date.UTC(y, 0, 15), z.tz), ol = zoneOff(Date.UTC(y, 6, 15), z.tz), o = zoneOff(now, z.tz);
-  return z.n[l] + (oj !== ol ? ` (${TZ_DST[l][o === Math.max(oj, ol) ? 0 : 1]})` : '');
-}
-/* "My info" card is folded: tap its title to open / close (state is kept while the page re-renders) */
-function infoFold() {
-  const h = $('tInfo'), b = $('info'); if (!h || !b) return;
-  if (!h.dataset.fold) { h.dataset.fold = '1'; b.hidden = true; h.setAttribute('role', 'button'); h.tabIndex = 0;
-    const tg = () => { b.hidden = !b.hidden; h.classList.toggle('open', !b.hidden); };
-    h.addEventListener('click', tg); h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }); }
-}
-const fmtHM = (h, m) => `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-/* small hand-drawn clock for the Next-session card: the hands point to the session time */
-function clockSvg(h, m) {
-  const ha = ((h % 12) + m / 60) * 30, ma = m * 6;
-  return `<svg class="nxclk" viewBox="0 0 56 56" width="52" height="52" aria-hidden="true">`
-    + `<circle cx="28" cy="28" r="25" fill="none" stroke="#fbbf24" stroke-width="3"/>`
-    + `<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".75"><path d="M28 7.5v3.2M28 45.3v3.2M7.5 28h3.2M45.3 28h3.2"/></g>`
-    + `<g class="hh" style="--a:${ha.toFixed(1)}deg"><line x1="28" y1="28" x2="28" y2="16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></g>`
-    + `<g class="hh" style="--a:${ma}deg"><line x1="28" y1="28" x2="28" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g>`
-    + `<circle cx="28" cy="28" r="2.4" fill="currentColor"/></svg>`;
-}
 function nextCard(s) {
-  let tm = fmtT(s.sc), lbl = '', n = s.n, ch = s.sc.h, cm = s.sc.m;
-  try { if (s.nxt) { const L = localSession(s.nxt); tm = fmtHM(L.h, L.m); lbl = L.label; ch = L.h; cm = L.m; if (L.days >= 1) n = L.days; } } catch (e) { console.warn('[next session tz]', e); }
-  const wrapClk = inner => `<div class="nxrow"><div class="nxc">${clockSvg(ch, cm)}</div><div class="nxtx" dir="${lang === 'en' ? 'ltr' : 'rtl'}">${inner}</div></div>`;
-  const t = TX(), when = n === 1 ? t.tom(tm) : t.inD(n, tm), zl = lbl ? `<div class="sm" dir="auto">${esc(lbl)}</div>` : '';
-  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: wrapClk(`<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div><div class="sm" dir="auto">${esc(tm)}${lbl ? ' · ' + esc(lbl) : ''}</div>`) };
-  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: wrapClk(`<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>${zl}`) };
+  const t = TX(), when = s.n === 1 ? t.tom(fmtT(s.sc)) : t.inD(s.n, fmtT(s.sc));
+  if (s.st === 'count') return { id: 'nxt', noX: true, isNew: false, html: `<h3>${t.nxt}</h3><div>${t.startsIn}</div><div class="cdn cd" data-t="${s.nxt}">--:--:--</div>` };
+  return { id: 'nxt', noX: true, isNew: false, cls: s.st === 'off' ? 'rest' : '', html: `<h3>${t.nxt}</h3>${s.st === 'off' ? `<div class="cdn">${t.rip}</div>` : ''}<div>${when}</div>` };
 }
 const dndSeenKey = 'thabit_dnd_seen';
 const dndNew = d => { try { return localStorage.getItem(dndSeenKey) !== d.r.supply_date; } catch (e) { return false; } };
@@ -828,9 +717,9 @@ function billLeft() {   // days until the next 7th
 /* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
    Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
 const thn_NCX = {
-  en: { money: 'Finance', system: 'Dashboard', note: 'Notification', update: 'Update', alert: 'Important', reply: 'Reply', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
-  ar: { money: 'مالي', system: 'لوحة البيانات', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
-  eg: { money: 'مالي', system: 'لوحة البيانات', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
+  en: { money: 'Payment', system: 'System', note: 'Notification', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
+  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
+  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
 };
 const thn_NCT = () => thn_NCX[lang] || thn_NCX.en;
 const thn_ACKK = 'thabit_ack', thn_OPNK = 'thabit_nopen'; let thn_ACKS = {};
@@ -849,27 +738,13 @@ function noteText(n) {
   if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
   return { h: esc(n.title || t.msg), b: rich(n.body || '') };
 }
-/* one icon per notification category: general = bell, financial = wallet, system = gear, app update = arrow, policy / restriction = warning, reply to a request = chat bubble.
-   Category comes from notification.meta.category (money | system | update | alert | reply | note) or, if absent, from its kind. */
-const THN_ICON = { money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell', update: 'fa-circle-arrow-up', alert: 'fa-triangle-exclamation', reply: 'fa-comment-dots' };
-function noteCat(n) {
-  const m = (n && n.meta) || {}, c = String(m.category || m.cat || '').toLowerCase(), k = String((n && n.kind) || '').toLowerCase();
-  if (THN_ICON[c]) return c;
-  if (/pay|bill|money|financ|fee|subscri|discount|promo|offer|coupon|voucher|refund|invoice|price|cost|wallet|cash|credit|debt|balance|due|salary|scholar/.test(k) || /خصم|تخفيض|فلوس|دفع|سداد|مدفوع|مصاريف|مصروف|اشتراك|فاتور|مبلغ|رسوم|استرداد|مستحق|منح|عرض خاص|discount|payment|refund|invoice|\bfee|\begp\b/i.test(String((n && n.title) || ''))) return 'money';
-  if (k === 'request_reply') return 'reply';
-  if (/policy|restrict/.test(k)) return 'alert';
-  if (/update/.test(k)) return 'update';
-  if (/system|maint/.test(k)) return 'system';
-  return 'note';
-}
 function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
   const c = thn_NCT();
   return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
-    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ THN_ICON[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ ({ money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell' })[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
 function thn_toggleNf(pc) {
-  if (!pc.classList.contains('open')) document.querySelectorAll('#pop .pc.nf.open:not(.acked)').forEach(o => { if (o !== pc) { o.classList.remove('open'); const b = o.querySelector('.nfb'); if (b) b.hidden = true; } });   // one at a time: opening a notification folds the others
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
   if (on) thn_openedSet(pc.dataset.cid.slice(2));
 }
@@ -893,22 +768,9 @@ function thn_noteList() {
 function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt);
+  return thn_nCard(thn_nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
-.thabit-card #tInfo{cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin:0;-webkit-user-select:none;user-select:none}
-#tInfo::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;opacity:.7;flex:none}
-#tInfo.open::after{transform:rotate(-135deg)}
-#info{margin-top:10px}
-.lgi .pfi{font-size:23px;line-height:1}
-.pc .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
-.pc .nxc{flex:none;display:flex;align-items:center;justify-content:center}
-.pc .nxtx{flex:1;min-width:0}
-.pc .nxtx h3{margin-top:0}
-.nxclk{display:block}
-.nxclk .hh{transform-box:view-box;transform-origin:28px 28px;transform:rotate(var(--a,0deg));animation:nxSpin 1.2s cubic-bezier(.3,.7,.25,1) 1}
-@keyframes nxSpin{from{transform:rotate(calc(var(--a,0deg) - 360deg))}}
-@media(prefers-reduced-motion:reduce){.nxclk .hh{animation:none}}
 .pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
 /* feed look: frosted-glass cards, like phone notifications */
 #pop .pcs{gap:10px}
@@ -918,11 +780,7 @@ body.light-theme #pop .pc{background:rgba(255,255,255,.6)!important;border-color
 .pc.nf .nfh{display:flex;align-items:center;gap:11px;cursor:pointer}
 .pc.nf .nfi{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;background:linear-gradient(145deg,#94a3b8,#64748b);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .pc.nf .nfi.money{background:linear-gradient(145deg,#fbbf24,#f59e0b)}
-.pc.nf .nfi.system{background:linear-gradient(145deg,#94a3b8,#475569)}
-.pc.nf .nfi.update{background:linear-gradient(145deg,#a78bfa,#7c3aed)}
-.pc.nf .nfi.alert{background:linear-gradient(145deg,#fb7185,#e11d48)}
-.pc.nf .nfi.reply{background:linear-gradient(145deg,#34d399,#059669)}
-.pc.nf .nfi.note{background:linear-gradient(145deg,#60a5fa,#3b82f6)}
+.pc.nf .nfi.system{background:linear-gradient(145deg,#60a5fa,#3b82f6)}
 .pc.nf .nfm{flex:1;min-width:0}
 .pc.nf .nfc{font-weight:700;font-size:.9rem;line-height:1.2}
 .pc.nf .nft2{font-size:.74rem;opacity:.6;margin-top:1px}
@@ -1681,8 +1539,8 @@ const ASSIST_SVG_SM = '<svg class="asv" viewBox="0 0 32 32" width="22" height="2
 function openProf(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('profBtn'), [
-    { html: '<i class="fa-solid fa-user pfi"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
-    { html: '<i class="fa-solid fa-right-from-bracket pfi" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+    { html: '<i class="fa-solid fa-user"></i>', title: ar ? 'ملفي' : 'Profile', label: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+    { html: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', label: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
   ]);
 }
 function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
@@ -1705,7 +1563,7 @@ function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
     { html: '<span class="plA">' + ASSIST_SVG_SM + '</span>', title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
-    { html: '<span class="plS"><i class="fa-solid fa-paper-plane"></i></span>', title: ar ? 'الطلبات' : 'Requests', label: ar ? 'الطلبات' : 'Requests', on: () => openRq() }
+    { html: '<span class="plS"><i class="fa-solid fa-paper-plane"></i></span>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
   ]);
 }
 function openLang(btn) {
@@ -2046,142 +1904,9 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 })();
 
 /* ===== Send-request popup (opened from the + button) ===== */
-/* ===== Requests: hub (New request / Past requests) -> pop-ups. Nothing is open by default. =====
-   History source: RQ_SRC = 'dashboard' reads D.requests (the old requests table, where the admin panel replies today);
-   switch to 'reports' to read the new trainee_reports table once the admin panel replies there. */
-const RQ_SRC = 'dashboard';
-const RQX = {
-  en: { title: 'Requests', newB: 'Send a new request', oldB: 'Past requests', newT: 'New request', oldT: 'Past requests', detPh: 'Tell us more…',
-        types: { session: 'Session time', financial: 'Financial', other: 'Other' }, send: 'Send', sending: 'Sending…', sent: 'Sent ✓', fail: 'Could not send, try again',
-        empty: 'No requests yet', reply: 'Answer', noReply: 'No answer yet', pay: 'Payment date', dur: 'Expected duration',
-        st: { open: 'Open', closed: 'Closed', resolved: 'Resolved', rejected: 'Rejected', accepted: 'Accepted' } },
-  ar: { title: 'الطلبات', newB: 'إرسال طلب جديد', oldB: 'الطلبات القديمة', newT: 'طلب جديد', oldT: 'الطلبات القديمة', detPh: 'اكتب التفاصيل هنا…',
-        types: { session: 'موعد الجلسة', financial: 'مالي', other: 'أخرى' }, send: 'إرسال', sending: 'جاري الإرسال…', sent: 'تم الإرسال ✓', fail: 'تعذر الإرسال، حاول مرة أخرى',
-        empty: 'لا توجد طلبات بعد', reply: 'الرد', noReply: 'لا يوجد رد بعد', pay: 'تاريخ الدفع', dur: 'المدة المتوقعة',
-        st: { open: 'مفتوح', closed: 'مغلق', resolved: 'تم الحل', rejected: 'مرفوض', accepted: 'مقبول' } },
-  eg: { title: 'الطلبات', newB: 'ابعت طلب جديد', oldB: 'الطلبات القديمة', newT: 'طلب جديد', oldT: 'الطلبات القديمة', detPh: 'اكتب التفاصيل هنا…',
-        types: { session: 'معاد السيشن', financial: 'مالي', other: 'حاجة تانية' }, send: 'ابعت', sending: 'بيتبعت…', sent: 'اتبعت ✓', fail: 'معرفناش نبعت، جرب تاني',
-        empty: 'لسه مفيش طلبات', reply: 'الرد', noReply: 'لسه مفيش رد', pay: 'تاريخ الدفع', dur: 'المدة المتوقعة',
-        st: { open: 'مفتوح', closed: 'مقفول', resolved: 'اتحل', rejected: 'مرفوض', accepted: 'مقبول' } }
-};
-const RQ_ST = { open: ['open', 'opened', 'new', 'pending', 'seen', 'in_progress', 'in progress', 'waiting'], closed: ['closed', 'close'], resolved: ['resolved', 'solved', 'done', 'completed'], rejected: ['rejected', 'declined', 'denied'], accepted: ['accepted', 'agreed', 'agree', 'approved'] };
-const rqStatus = v => { const x = String(v == null ? '' : v).trim().toLowerCase(); for (const k in RQ_ST) if (RQ_ST[k].includes(x)) return k; return 'open'; };
-const rqDate = v => { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return String(v).slice(0, 10); try { return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return String(v).slice(0, 10); } };
-function rqItems() {
-  const x = RQX[lang] || RQX.en, raw = RQ_SRC === 'reports' ? ((D && D.reports) || []) : ((D && D.requests) || []);
-  const out = raw.map(r => {
-    const m = String(r.message || ''), g = k => { const mm = m.match(new RegExp('\\[' + k + '\\]\\s*([\\s\\S]*?)(?=\\n\\[[A-Z ]+\\]|$)')); return mm ? mm[1].trim() : ''; };
-    let title = r.title || g('REQUEST') || m.split('\n')[0] || '', details = r.details || g('DETAILS'), follow = '';
-    const pay = r.payment_date || g('PAYMENT DATE'), dur = r.expected_duration ? ((RQT[lang] || RQT.en).durs.find(z => z[0] === r.expected_duration) || [0, r.expected_duration])[1] : g('EXPECTED DURATION');
-    if (pay) follow = x.pay + ': ' + pay; else if (dur) follow = x.dur + ': ' + dur;
-    const reply = String(r.admin_reply || '').trim();
-    return { date: r.created_at || r.sent_at || r.inserted_at || r.date || '', type: r.type || r.report_type || '', title, details, follow, st: rqStatus(r.status), reply, rdate: reply ? (r.replied_at || r.reply_date || r.updated_at || '') : '' };
-  });
-  if (out.every(r => !r.date)) out.reverse(); else out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return out;
-}
-function rqHistFill() {
-  const x = RQX[lang] || RQX.en, items = rqItems(), b = $('rqoList'); if (!b) return;
-  b.innerHTML = items.length ? items.map(r => `<div class="rqh"><div class="rqhh"><span class="rqd">${esc(rqDate(r.date))}</span><span class="rqp ${r.st}">${esc(x.st[r.st])}</span></div>`
-    + (r.type ? `<span class="rqty">${esc(x.types[r.type] || r.type)}</span>` : '')
-    + `<div class="rqt" dir="auto">${esc(r.title)}</div>` + (r.details ? `<div class="rqmm" dir="auto">${esc(r.details)}</div>` : '') + (r.follow ? `<div class="sm" dir="auto">${esc(r.follow)}</div>` : '')
-    + `<div class="rqa${r.reply ? '' : ' no'}"><div class="rqal">${esc(x.reply)}${r.reply && r.rdate ? ' · ' + esc(rqDate(r.rdate)) : ''}</div><div dir="auto">${r.reply ? esc(r.reply) : esc(x.noReply)}</div></div></div>`).join('')
-    : `<div class="sm" style="text-align:center;padding:22px 0">${esc(x.empty)}</div>`;
-}
-async function rqRefresh() {
-  try {
-    if (RQ_SRC === 'reports') { const a = await rpc('trainee_reports', { p_token: tok() }).catch(() => null); if (Array.isArray(a)) D.reports = a; }
-    else { const d = await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null); if (d && Array.isArray(d.requests)) D.requests = d.requests; }
-  } catch (e) {}
-  rqUI();
-}
-function rqUI() {
-  const x = RQX[lang] || RQX.en, t = rqT(), S = (id, v, prop) => { const e = $(id); if (e) e[prop || 'textContent'] = v; };
-  S('rqmT', x.title); S('rqBNew', x.newB); S('rqBOld', x.oldB); S('rqnT', x.newT); S('rqoT', x.oldT);
-  S('rqLWhat', t.what); S('rqWhat', t.whatPh, 'placeholder'); S('rqLMsg', t.msg); S('rqMsg', x.detPh, 'placeholder');
-  const sb = $('rqBtn'); if (sb && !sb.disabled && !sb.classList.contains('ok')) sb.querySelector('span').textContent = x.send;
-  document.querySelectorAll('#rqTypes .rqch').forEach(b => { b.querySelector('span').textContent = x.types[b.dataset.t]; });
-  const n = rqItems().filter(r => r.st === 'open').length, c = $('rqBCnt'); if (c) { c.textContent = n; c.hidden = !n; }
-  const f = $('rqFollow'); if (f && f.dataset.lang !== lang) { f.dataset.lang = lang; rqFollowUI(false); }   // only a language change rebuilds the follow-up question (never while the student is typing)
-  if ($('rqo') && $('rqo').classList.contains('open')) rqHistFill();
-}
-function rqBuild() {
-  const m = $('rqm'); if (!m || m.dataset.nb) return; m.dataset.nb = '1';
-  m.innerHTML = `<div class="ssbox rqs"><div class="ssh"><b id="rqmT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div><div class="rqhb">`
-    + `<button type="button" class="rqbig" onclick="openRqNew()"><i class="fa-solid fa-paper-plane"></i><span id="rqBNew"></span></button>`
-    + `<button type="button" class="rqbig alt" onclick="openRqHist()"><i class="fa-solid fa-clock-rotate-left"></i><span id="rqBOld"></span><em id="rqBCnt" hidden></em></button></div></div>`;
-  const n = document.createElement('div'); n.className = 'ssm rqov'; n.id = 'rqn'; n.onclick = e => { if (e.target === n) closeRq(); };
-  n.innerHTML = `<div class="ssbox rqs" id="rqsheet"><div class="ssh"><button type="button" class="rqback" onclick="rqBack()" aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button><b id="rqnT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div>`
-    + `<div id="rqTypes" class="rqtypes"><button type="button" class="rqch on" data-t="session"><i class="fa-regular fa-calendar"></i><span></span></button><button type="button" class="rqch" data-t="financial"><i class="fa-solid fa-wallet"></i><span></span></button><button type="button" class="rqch" data-t="other"><i class="fa-solid fa-ellipsis"></i><span></span></button></div>`
-    + `<input type="hidden" id="rqType" value="session"><label class="rql" id="rqLWhat"></label><input type="text" id="rqWhat" maxlength="140" autocomplete="off"><label class="rql" id="rqLMsg"></label><textarea id="rqMsg" rows="4" maxlength="1500"></textarea>`
-    + `<div id="rqFollow"></div><div id="rqErr" class="rqerr" hidden></div><button type="button" class="rqsend" id="rqBtn" onclick="sendReq()"><i class="fa-solid fa-paper-plane"></i><span></span></button></div>`;
-  const o = document.createElement('div'); o.className = 'ssm rqov'; o.id = 'rqo'; o.onclick = e => { if (e.target === o) closeRq(); };
-  o.innerHTML = `<div class="ssbox rqs"><div class="ssh"><button type="button" class="rqback" onclick="rqBack()" aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button><b id="rqoT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div><div class="sslist" id="rqoList"></div></div>`;
-  m.after(n); n.after(o);
-  n.addEventListener('click', e => {
-    const c = e.target.closest && e.target.closest('.rqch'), d = e.target.closest && e.target.closest('.rqdc');
-    if (c) { $('rqType').value = c.dataset.t; n.querySelectorAll('.rqch').forEach(b => b.classList.toggle('on', b === c)); $('rqErr').hidden = true; rqFollowUI(true); }
-    if (d) { $('rqFollowVal').value = d.dataset.v; n.querySelectorAll('.rqdc').forEach(b => b.classList.toggle('on', b === d)); $('rqErr').hidden = true; }
-  });
-  rqUI(); rqFollowUI(true);
-}
-(function () { const st = document.createElement('style'); st.textContent = `
-#rqm .ssbox,.rqov .ssbox{width:min(440px,100%)}
-.rqs{animation:rqIn .35s cubic-bezier(.16,1,.3,1);overflow:auto}
-@keyframes rqIn{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:none}}
-.rqs .ssh b{flex:1;text-align:start}
-.rqs .ssh{gap:8px}
-.rqback{flex:none}html[dir=rtl] .rqback i{transform:scaleX(-1)}
-.rqhb{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-.rqbig{display:flex;align-items:center;gap:12px;width:100%;padding:16px 18px;border-radius:18px;border:0;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111;font:800 .95rem Inter,Cairo,sans-serif;cursor:pointer;text-align:start;box-shadow:0 8px 22px rgba(245,158,11,.25);transition:transform .15s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
-.rqbig i{font-size:1.15rem;flex:none}.rqbig span{flex:1}
-.rqbig:active{transform:scale(.97)}
-.rqbig.alt{background:rgba(148,163,184,.12);color:inherit;border:1px solid rgba(148,163,184,.4);box-shadow:none}
-.rqbig em{font-style:normal;min-width:22px;padding:1px 8px;border-radius:999px;background:#fbbf24;color:#111;font-size:.75rem;font-weight:800;text-align:center}
-.rqtypes{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
-.rqch{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.1);color:inherit;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .15s}
-.rqch:active{transform:scale(.95)}
-.rqch.on{background:#fbbf24;border-color:#fbbf24;color:#111}
-#rqn .rql{display:block;margin:12px 2px 6px;font-size:.74rem;font-weight:700;letter-spacing:.3px;opacity:.8}
-.rqreq{color:#f87171}
-#rqn input[type=text],#rqn input[type=date],#rqn textarea{display:block;width:100%;box-sizing:border-box;margin:0;padding:12px 14px;border-radius:14px;border:1px solid var(--th-input-border,rgba(148,163,184,.4));background:var(--th-input-bg,rgba(148,163,184,.1));color:var(--text-color,inherit);font:500 .9rem Inter,Cairo,sans-serif;outline:0;transition:border-color .2s,box-shadow .2s;resize:vertical}
-#rqn input:focus,#rqn textarea:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.2)}
-body.light-theme #rqn input[type=text],body.light-theme #rqn input[type=date],body.light-theme #rqn textarea{background:#fff;color:#0f172a}
-#rqn ::placeholder{opacity:.45}
-.rqdur{display:flex;gap:7px;flex-wrap:wrap}
-.rqdc{padding:7px 12px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.1);color:inherit;font:600 .76rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .2s,color .2s}
-.rqdc.on{background:rgba(251,191,36,.2);border-color:#fbbf24;color:#fbbf24}
-body.light-theme .rqdc.on{color:#92400e}
-.rqfi{animation:rqFade .3s ease-out}
-@keyframes rqFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.rqerr{margin-top:12px;padding:8px 12px;border-radius:12px;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#fb7185;font-size:.8rem;font-weight:600}
-.rqs.shk{animation:rqShk .4s}
-@keyframes rqShk{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
-.rqsend{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:16px;padding:14px;border-radius:16px;border:0;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111;font:800 .95rem Inter,Cairo,sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(245,158,11,.28);transition:transform .15s,background .3s,box-shadow .2s}
-.rqsend:active{transform:scale(.97)}
-.rqsend.busy{opacity:.75;cursor:wait}.rqsend.busy i{animation:rqFly 1s ease-in-out infinite}
-.rqsend.ok{background:linear-gradient(135deg,#34d399,#10b981);color:#04231a;box-shadow:0 8px 22px rgba(16,185,129,.3)}
-@keyframes rqFly{50%{transform:translate(4px,-4px) rotate(-12deg)}}
-.rqh{padding:12px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
-.rqhh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
-.rqd{font-size:.74rem;opacity:.7;font-weight:600}
-.rqp{font-size:.7rem;font-weight:800;padding:2px 10px;border-radius:999px;border:1px solid currentColor}
-.rqp.open{color:#fbbf24}.rqp.closed{color:#94a3b8}.rqp.resolved{color:#34d399}.rqp.rejected{color:#fb7185}.rqp.accepted{color:#38bdf8}
-body.light-theme .rqp.open{color:#b45309}body.light-theme .rqp.resolved{color:#047857}body.light-theme .rqp.accepted{color:#0369a1}
-.rqty{display:inline-block;margin-bottom:4px;font-size:.68rem;font-weight:700;padding:1px 9px;border-radius:999px;background:rgba(148,163,184,.2)}
-.rqt{font-weight:700;font-size:.92rem;overflow-wrap:anywhere}
-.rqmm{margin-top:3px;font-size:.84rem;opacity:.85;overflow-wrap:anywhere;white-space:pre-wrap}
-.rqa{margin-top:10px;padding:9px 12px;border-radius:12px;background:rgba(52,211,153,.1);border-inline-start:3px solid #34d399;font-size:.85rem;overflow-wrap:anywhere}
-.rqa.no{background:rgba(148,163,184,.08);border-inline-start-color:rgba(148,163,184,.4);opacity:.7}
-.rqal{font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.75;margin-bottom:2px}
-@media(prefers-reduced-motion:reduce){.rqs,.rqfi,.rqs.shk,.rqsend.busy i{animation:none}}`; document.head.appendChild(st); })();
-function openRq() { rqBuild(); closeRq(); rqUI(); const m = $('rqm'); if (m) m.classList.add('open'); }
-function closeRq() { ['rqm', 'rqn', 'rqo'].forEach(id => { const e = $(id); if (e) e.classList.remove('open'); }); }
-function openRqNew() { closeRq(); rqUI(); $('rqErr').hidden = true; $('rqn').classList.add('open'); }
-function openRqHist() { closeRq(); rqHistFill(); $('rqo').classList.add('open'); rqRefresh(); }
-function rqBack() { openRq(); }
-window.openRq = openRq; window.closeRq = closeRq; window.openRqNew = openRqNew; window.openRqHist = openRqHist; window.rqBack = rqBack;
-rqBuild();
+function openRq() { const m = $('rqm'); if (!m) return; const t = $('tReq'); if (t) $('rqmT').textContent = t.textContent; m.classList.add('open'); }
+function closeRq() { const m = $('rqm'); if (m) m.classList.remove('open'); }
+window.openRq = openRq; window.closeRq = closeRq;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); });
 
 /* ===== Touch = scroll. A finger that moves is a scroll, never a click: only a real tap or a long press (finger stays still) can act ===== */
@@ -2377,7 +2102,7 @@ function tourTips(key, side) {
     return ['en', 'ar', 'eg'].filter(x => x !== lang).map(x => L[x]);
   }
   if (key === 'prof') return [t3('Your profile: your info, and you can change your picture', 'ملفك الشخصي: بياناتك، ويمكنك تغيير صورتك', 'ملفك الشخصي: بياناتك، وتقدر تغيّر صورتك'), t3('Log out of your account', 'تسجيل الخروج من حسابك', 'اطلع من حسابك')];
-  if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Requests: send a new request to your trainer, or see your past requests and the answers', 'الطلبات: أرسل طلبًا جديدًا إلى المدرب، أو شاهد طلباتك القديمة وردودها', 'الطلبات: ابعت طلب جديد للمدرب، أو شوف طلباتك القديمة وردودها')];
+  if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Send a request to your trainer: session time, payments or anything else', 'أرسل طلبًا إلى المدرب: موعد الجلسة أو المدفوعات أو غير ذلك', 'ابعت طلب للمدرب: معاد السيشن أو الفلوس أو أي حاجة تانية')];
   if (key === 'star') return [t3('Customize: move the bar to the left, right, bottom or anywhere you like', 'تخصيص: انقل الشريط لليسار أو اليمين أو الأسفل أو أي مكان تريده', 'تخصيص: انقل الشريط شمال أو يمين أو تحت أو أي مكان تحبه'), t3('View: phone / desktop view, text and icon size, and brightness', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخطوط، والسطوع', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخط، والسطوع')];
   if (key === 'view') { const wide = innerWidth > 700; return [wide ? t3('Phone view: shows the site the way it looks on a phone', 'شكل التليفون: يعرض الموقع كما يظهر على الهاتف', 'شكل التليفون: بيعرض الموقع زي ما بيبان على التليفون') : t3('Desktop view: shows the full desktop layout (the bar stays big)', 'شكل الديسكتوب: يعرض التصميم الكامل للكمبيوتر (ويبقى الشريط كبيرًا)', 'شكل الديسكتوب: بيعرض التصميم الكامل بتاع الكمبيوتر (والشريط بيفضل كبير)'), t3('Text & icon size: make everything bigger or smaller and watch it live', 'حجم الأيقونات والخطوط: كبّر كل شيء أو صغّره وشاهد النتيجة مباشرة', 'حجم الأيقونات والخط: كبّر أو صغّر كل حاجة وشوف النتيجة على طول'), t3('Brightness of this app only (not your phone)', 'سطوع هذا التطبيق فقط (وليس هاتفك)', 'سطوع التطبيق ده بس (مش سطوع تليفونك)')]; }
   if (key === 'cust') return [side === 'right' ? t3('Move the bar to the left side', 'نقل الشريط إلى اليسار', 'انقل الشريط للشمال') : t3('Move the bar to the right side', 'نقل الشريط إلى اليمين', 'انقل الشريط لليمين'), t3('Move the bar to the bottom', 'نقل الشريط إلى الأسفل', 'نزّل الشريط تحت'), t3('Free move: drag the bar anywhere, let go to pin it', 'تحريك حر: اسحب الشريط إلى أي مكان ثم اتركه ليتثبت', 'تحريك حر: اسحب الشريط لأي مكان وسيبه يتثبت')];
@@ -2596,12 +2321,10 @@ function thSections() {
   if (!top || !ov || !lists) return; wrap.dataset.ths = '1';
   const mk = id => { const e = document.createElement('section'); e.className = 'thsec'; e.id = id; return e; };
   const s1 = mk('thS1'), s2 = mk('thS2'), s3 = mk('thS3');
-  /* page order: 1 = greeting + Tasks / Dandana, 2 = chart (with its time filter), 3 = Notes / TEFL / QOL */
-  const rr = document.createElement('div'); rr.id = 'thRngRow'; const rg = $('rng'), rn = $('rngNote'); if (rg) rr.appendChild(rg); if (rn) rr.appendChild(rn);
-  wrap.insertBefore(s2, top); s2.appendChild(top); s2.appendChild(lists);
-  wrap.appendChild(s1); s1.appendChild(rr); s1.appendChild(ov);
+  wrap.insertBefore(s1, top); s1.appendChild(top); s1.appendChild(ov);
   const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><g class="pq"><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2" fill="none" stroke="#fbbf24" stroke-width="1.6"/><path d="M17.25 15.6v3.8M15.35 17.5h3.8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g></svg>'; ar.setAttribute('aria-label', (thRX[lang] || thRX.en).more);
   ar.addEventListener('click', () => thDetOpen()); s1.appendChild(ar);
+  wrap.appendChild(s2); s2.appendChild(lists);
   const l2 = document.createElement('div'); l2.className = 'grid'; l2.id = 'lists2'; s3.appendChild(l2); wrap.appendChild(s3);
   const det = document.createElement('div'); det.id = 'thDet';
   det.innerHTML = '<div class="tdb"><button type="button" class="tdx" aria-label="Close">×</button><div class="tdh"></div></div>';
@@ -2664,8 +2387,8 @@ html{scroll-snap-type:y mandatory}
 @media(max-width:600px){.thsec{padding:64px 22px 110px}}
 .thsec>.top{order:-3}.thsec>#overall{order:-2}
 #thS1>#overall{margin-bottom:0!important}
-#thRngRow{order:-3;display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center;margin:2px 0 6px}
-#thRngRow #rng{grid-column:2;grid-row:1}#thRngRow #rngNote{grid-column:1;grid-row:1;margin:0}
+#thS1>.top{margin:2px 0 6px!important;display:grid!important;grid-template-columns:1fr auto;column-gap:10px;row-gap:0;align-items:end}
+#thS1>.top h1{grid-column:1;grid-row:1}#thS1>.top #rng{grid-column:2;grid-row:1/span 2;align-self:end}#thS1 #rngNote{grid-column:1;grid-row:2;margin:0}
 #thS1 #overall svg.c2{max-height:min(40vh,380px)}   /* on a big screen the chart stays small enough that the arrow below it is always on screen */
 #thHint{position:fixed;z-index:30;inset:0;pointer-events:none}
 #thHint[hidden]{display:none!important}
@@ -2735,7 +2458,7 @@ const thLX = {
   eg: 'نصيحة: دوس دوسة طويلة على أي كارت واسحبه للمكان اللي عايزه'
 };
 const thCardKey = el => el.id === 'taskCard' ? 'tasks' : el.id === 'dandanaCard' ? 'dandana' : ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
-const THL_KEYS = ['notes', 'tefl', 'qol', 'scratchCard'];
+const THL_KEYS = ['notes', 'tefl', 'qol'];
 function thListsApply() {
   const L = $('lists'), L2 = $('lists2'); if (!L) return;
   if (L2) { L2.innerHTML = ''; [...L.children].filter(k => THL_KEYS.includes(thCardKey(k))).forEach(k => L2.appendChild(k)); }   // section 2 = tasks + dandana, section 3 = notes / TEFL / QOL
@@ -2748,9 +2471,7 @@ function thListsApply() {
     }
     thListsBind(x);
   });
-  const s2 = $('thS2'), s3 = $('thS3'); { const tp = document.querySelector('.top'), s1 = $('thS1'), empty = !L.children.length;   // greeting lives with the Tasks section; if that one is empty it moves to the chart section so it never disappears
-    if (tp && s1 && s2) { if (empty) { if (tp.parentNode !== s1) s1.insertBefore(tp, s1.firstChild); } else if (tp.parentNode !== s2) s2.insertBefore(tp, s2.firstChild); }
-    if (s2) s2.hidden = empty; } if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
+  const s2 = $('thS2'), s3 = $('thS3'); if (s2) s2.hidden = !L.children.length; if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
   thHintRefresh();
 }
 function thListsBind(L) {
