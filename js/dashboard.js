@@ -207,18 +207,15 @@ const RQT = {
         durs: [['today', 'النهاردة بس'], ['2-3d', 'يومين تلاتة'], ['1w', 'حوالي أسبوع'], ['2w', 'حوالي أسبوعين'], ['1m', 'حوالي شهر'], ['1m+', 'أكتر من شهر']] }
 };
 const rqT = () => RQT[lang] || RQT.en;
-function rqLabels() {
-  const t = rqT();
-  $('rqLWhat').textContent = t.what; $('rqWhat').placeholder = t.whatPh; $('rqLMsg').textContent = t.msg;
-  rqFollowUI(false);
-}
+function rqLabels() { rqUI(); }
 function rqFollowUI(reset) {
-  const t = rqT(), ty = $('rqType').value, c = $('rqFollow'), old = $('rqFollowVal'), keep = !reset && old && c.dataset.type === ty ? old.value : '';
+  const t = rqT(), ty = $('rqType').value, c = $('rqFollow'), old = $('rqFollowVal'), changed = reset || c.dataset.type !== ty, keep = !reset && old && c.dataset.type === ty ? old.value : '';
   c.dataset.type = ty;
-  const star = ' <b style="color:#f87171">*</b>';
+  const star = ' <b class="rqreq">*</b>';
   if (ty === 'financial') c.innerHTML = `<label class="rql">${t.fin}${star}</label><input type="date" id="rqFollowVal" min="${ymd(new Date())}" value="${keep}">`;
-  else if (ty === 'session') c.innerHTML = `<label class="rql">${t.ses}${star}</label><select id="rqFollowVal"><option value="">—</option>${t.durs.map(d => `<option value="${d[0]}"${d[0] === keep ? ' selected' : ''}>${d[1]}</option>`).join('')}</select>`;
+  else if (ty === 'session') c.innerHTML = `<label class="rql">${t.ses}${star}</label><div class="rqdur">${t.durs.map(d => `<button type="button" class="rqdc${d[0] === keep ? ' on' : ''}" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><input type="hidden" id="rqFollowVal" value="${keep}">`;
   else c.innerHTML = '';
+  if (changed && c.innerHTML) { c.classList.remove('rqfi'); void c.offsetWidth; c.classList.add('rqfi'); }
 }
 
 function render() {
@@ -233,13 +230,12 @@ function render() {
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
   $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
-  ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
-  $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
+  { const e = $('tInfo'); if (e) e.textContent = t.info; }
+  rqUI();
   const L = all[all.length - 1], line = sessLine;
   const IF = [['status_as_of_today','Status'],['days_a_week','Days / week'],['session_time','Session time'],['subscription','Subscription']];
   $('info').innerHTML = IF.map(f => line(f[1], p[f[0]]) + (f[0] === 'session_time' ? line(lang === 'en' ? 'Time zone' : 'التوقيت', tzNowLabel()) : '')).join('');
   infoFold();
-  $('rqList').innerHTML = (D.requests || []).map(r => `<div class="row"><span>${esc(r.message)}<br><span class="sm">${esc(r.type)} · ${esc(r.status)}</span></span><b>${esc(r.admin_reply || '')}</b></div>`).join('');
   renderSessions(rows);
   watchTodo();
   renderAvatar();
@@ -605,17 +601,29 @@ async function load() {
 
 
 async function sendReq() {
-  const t = rqT(), ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '';
-  if (!what) { alert(t.needWhat); $('rqWhat').focus(); return; }
-  if (!det) { alert(t.needMsg); $('rqMsg').focus(); return; }
-  if (ty !== 'other' && !fv) { alert(t.need); $('rqFollowVal').focus(); return; }
+  const t = rqT(), x = RQX[lang] || RQX.en, ty = $('rqType').value, what = $('rqWhat').value.trim(), det = $('rqMsg').value.trim(), fv = $('rqFollowVal') ? $('rqFollowVal').value : '', btn = $('rqBtn');
+  const err = (m, el) => { const e = $('rqErr'); e.textContent = m; e.hidden = false; const sh = $('rqsheet'); sh.classList.remove('shk'); void sh.offsetWidth; sh.classList.add('shk'); if (el && el.focus) try { el.focus(); } catch (z) {} };
+  $('rqErr').hidden = true;
+  if (!what) return err(t.needWhat, $('rqWhat'));
+  if (!det) return err(t.needMsg, $('rqMsg'));
+  if (ty !== 'other' && !fv) return err(t.need, $('rqFollowVal'));
   let tail = '';
   if (ty === 'financial') tail = `\n\n[PAYMENT DATE] ${fv}`;
-  if (ty === 'session') { const d = RQT.en.durs.find(x => x[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
+  if (ty === 'session') { const d = RQT.en.durs.find(z => z[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
   const msg = `[REQUEST] ${what}\n[DETAILS] ${det}${tail}`.slice(0, 2000);
-  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg });
-  if (ok === true) { rpc('trainee_submit_report', { p_token: tok(), p_type: ty, p_title: what.slice(0, 140), p_details: det.slice(0, 1500), p_follow: fv || null }).catch(() => null);   // also saved, field by field, in the trainee_reports table (silent: the old request above keeps working either way)
-    $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); load(); }
+  btn.disabled = true; btn.classList.add('busy'); btn.querySelector('span').textContent = x.sending;
+  const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg }).catch(() => null);
+  if (ok === true) {
+    rpc('trainee_submit_report', { p_token: tok(), p_type: ty, p_title: what.slice(0, 140), p_details: det.slice(0, 1500), p_follow: fv || null }).catch(() => null);   // also saved, field by field, in the trainee_reports table (silent: the old request above keeps working either way)
+    btn.classList.remove('busy'); btn.classList.add('ok'); btn.querySelector('i').className = 'fa-solid fa-check'; btn.querySelector('span').textContent = x.sent;
+    setTimeout(() => {
+      $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); closeRq();
+      btn.disabled = false; btn.classList.remove('ok'); btn.querySelector('i').className = 'fa-solid fa-paper-plane'; btn.querySelector('span').textContent = x.send;
+    }, 1100);
+    rqRefresh();
+  } else {
+    btn.disabled = false; btn.classList.remove('busy'); btn.querySelector('span').textContent = x.send; err(x.fail);
+  }
 }
 window.addEventListener('DOMContentLoaded', () => {
   try { if (localStorage.getItem('thabit_theme') === 'light') { $('bodyRoot').classList.add('light-theme'); $('themeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {}
@@ -1697,7 +1705,7 @@ function openPlus(btn) {
   const ar = lang !== 'en';
   pickOpen(btn || $('plusBtn'), [
     { html: '<span class="plA">' + ASSIST_SVG_SM + '</span>', title: ar ? 'المساعد' : 'Assistant', label: ar ? 'المساعد' : 'Assistant', on: () => Panels.open('assistant') },
-    { html: '<span class="plS"><i class="fa-solid fa-paper-plane"></i></span>', title: ar ? 'إرسال طلب' : 'Send request', label: ar ? 'إرسال طلب' : 'Send request', on: () => openRq() }
+    { html: '<span class="plS"><i class="fa-solid fa-paper-plane"></i></span>', title: ar ? 'الطلبات' : 'Requests', label: ar ? 'الطلبات' : 'Requests', on: () => openRq() }
   ]);
 }
 function openLang(btn) {
@@ -2038,9 +2046,142 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
 })();
 
 /* ===== Send-request popup (opened from the + button) ===== */
-function openRq() { const m = $('rqm'); if (!m) return; const t = $('tReq'); if (t) $('rqmT').textContent = t.textContent; m.classList.add('open'); }
-function closeRq() { const m = $('rqm'); if (m) m.classList.remove('open'); }
-window.openRq = openRq; window.closeRq = closeRq;
+/* ===== Requests: hub (New request / Past requests) -> pop-ups. Nothing is open by default. =====
+   History source: RQ_SRC = 'dashboard' reads D.requests (the old requests table, where the admin panel replies today);
+   switch to 'reports' to read the new trainee_reports table once the admin panel replies there. */
+const RQ_SRC = 'dashboard';
+const RQX = {
+  en: { title: 'Requests', newB: 'Send a new request', oldB: 'Past requests', newT: 'New request', oldT: 'Past requests', detPh: 'Tell us more…',
+        types: { session: 'Session time', financial: 'Financial', other: 'Other' }, send: 'Send', sending: 'Sending…', sent: 'Sent ✓', fail: 'Could not send, try again',
+        empty: 'No requests yet', reply: 'Answer', noReply: 'No answer yet', pay: 'Payment date', dur: 'Expected duration',
+        st: { open: 'Open', closed: 'Closed', resolved: 'Resolved', rejected: 'Rejected', accepted: 'Accepted' } },
+  ar: { title: 'الطلبات', newB: 'إرسال طلب جديد', oldB: 'الطلبات القديمة', newT: 'طلب جديد', oldT: 'الطلبات القديمة', detPh: 'اكتب التفاصيل هنا…',
+        types: { session: 'موعد الجلسة', financial: 'مالي', other: 'أخرى' }, send: 'إرسال', sending: 'جاري الإرسال…', sent: 'تم الإرسال ✓', fail: 'تعذر الإرسال، حاول مرة أخرى',
+        empty: 'لا توجد طلبات بعد', reply: 'الرد', noReply: 'لا يوجد رد بعد', pay: 'تاريخ الدفع', dur: 'المدة المتوقعة',
+        st: { open: 'مفتوح', closed: 'مغلق', resolved: 'تم الحل', rejected: 'مرفوض', accepted: 'مقبول' } },
+  eg: { title: 'الطلبات', newB: 'ابعت طلب جديد', oldB: 'الطلبات القديمة', newT: 'طلب جديد', oldT: 'الطلبات القديمة', detPh: 'اكتب التفاصيل هنا…',
+        types: { session: 'معاد السيشن', financial: 'مالي', other: 'حاجة تانية' }, send: 'ابعت', sending: 'بيتبعت…', sent: 'اتبعت ✓', fail: 'معرفناش نبعت، جرب تاني',
+        empty: 'لسه مفيش طلبات', reply: 'الرد', noReply: 'لسه مفيش رد', pay: 'تاريخ الدفع', dur: 'المدة المتوقعة',
+        st: { open: 'مفتوح', closed: 'مقفول', resolved: 'اتحل', rejected: 'مرفوض', accepted: 'مقبول' } }
+};
+const RQ_ST = { open: ['open', 'opened', 'new', 'pending', 'seen', 'in_progress', 'in progress', 'waiting'], closed: ['closed', 'close'], resolved: ['resolved', 'solved', 'done', 'completed'], rejected: ['rejected', 'declined', 'denied'], accepted: ['accepted', 'agreed', 'agree', 'approved'] };
+const rqStatus = v => { const x = String(v == null ? '' : v).trim().toLowerCase(); for (const k in RQ_ST) if (RQ_ST[k].includes(x)) return k; return 'open'; };
+const rqDate = v => { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return String(v).slice(0, 10); try { return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return String(v).slice(0, 10); } };
+function rqItems() {
+  const x = RQX[lang] || RQX.en, raw = RQ_SRC === 'reports' ? ((D && D.reports) || []) : ((D && D.requests) || []);
+  const out = raw.map(r => {
+    const m = String(r.message || ''), g = k => { const mm = m.match(new RegExp('\\[' + k + '\\]\\s*([\\s\\S]*?)(?=\\n\\[[A-Z ]+\\]|$)')); return mm ? mm[1].trim() : ''; };
+    let title = r.title || g('REQUEST') || m.split('\n')[0] || '', details = r.details || g('DETAILS'), follow = '';
+    const pay = r.payment_date || g('PAYMENT DATE'), dur = r.expected_duration ? ((RQT[lang] || RQT.en).durs.find(z => z[0] === r.expected_duration) || [0, r.expected_duration])[1] : g('EXPECTED DURATION');
+    if (pay) follow = x.pay + ': ' + pay; else if (dur) follow = x.dur + ': ' + dur;
+    const reply = String(r.admin_reply || '').trim();
+    return { date: r.created_at || r.sent_at || r.inserted_at || r.date || '', type: r.type || r.report_type || '', title, details, follow, st: rqStatus(r.status), reply, rdate: reply ? (r.replied_at || r.reply_date || r.updated_at || '') : '' };
+  });
+  if (out.every(r => !r.date)) out.reverse(); else out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return out;
+}
+function rqHistFill() {
+  const x = RQX[lang] || RQX.en, items = rqItems(), b = $('rqoList'); if (!b) return;
+  b.innerHTML = items.length ? items.map(r => `<div class="rqh"><div class="rqhh"><span class="rqd">${esc(rqDate(r.date))}</span><span class="rqp ${r.st}">${esc(x.st[r.st])}</span></div>`
+    + (r.type ? `<span class="rqty">${esc(x.types[r.type] || r.type)}</span>` : '')
+    + `<div class="rqt" dir="auto">${esc(r.title)}</div>` + (r.details ? `<div class="rqmm" dir="auto">${esc(r.details)}</div>` : '') + (r.follow ? `<div class="sm" dir="auto">${esc(r.follow)}</div>` : '')
+    + `<div class="rqa${r.reply ? '' : ' no'}"><div class="rqal">${esc(x.reply)}${r.reply && r.rdate ? ' · ' + esc(rqDate(r.rdate)) : ''}</div><div dir="auto">${r.reply ? esc(r.reply) : esc(x.noReply)}</div></div></div>`).join('')
+    : `<div class="sm" style="text-align:center;padding:22px 0">${esc(x.empty)}</div>`;
+}
+async function rqRefresh() {
+  try {
+    if (RQ_SRC === 'reports') { const a = await rpc('trainee_reports', { p_token: tok() }).catch(() => null); if (Array.isArray(a)) D.reports = a; }
+    else { const d = await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null); if (d && Array.isArray(d.requests)) D.requests = d.requests; }
+  } catch (e) {}
+  rqUI();
+}
+function rqUI() {
+  const x = RQX[lang] || RQX.en, t = rqT(), S = (id, v, prop) => { const e = $(id); if (e) e[prop || 'textContent'] = v; };
+  S('rqmT', x.title); S('rqBNew', x.newB); S('rqBOld', x.oldB); S('rqnT', x.newT); S('rqoT', x.oldT);
+  S('rqLWhat', t.what); S('rqWhat', t.whatPh, 'placeholder'); S('rqLMsg', t.msg); S('rqMsg', x.detPh, 'placeholder');
+  const sb = $('rqBtn'); if (sb && !sb.disabled && !sb.classList.contains('ok')) sb.querySelector('span').textContent = x.send;
+  document.querySelectorAll('#rqTypes .rqch').forEach(b => { b.querySelector('span').textContent = x.types[b.dataset.t]; });
+  const n = rqItems().filter(r => r.st === 'open').length, c = $('rqBCnt'); if (c) { c.textContent = n; c.hidden = !n; }
+  const f = $('rqFollow'); if (f && f.dataset.lang !== lang) { f.dataset.lang = lang; rqFollowUI(false); }   // only a language change rebuilds the follow-up question (never while the student is typing)
+  if ($('rqo') && $('rqo').classList.contains('open')) rqHistFill();
+}
+function rqBuild() {
+  const m = $('rqm'); if (!m || m.dataset.nb) return; m.dataset.nb = '1';
+  m.innerHTML = `<div class="ssbox rqs"><div class="ssh"><b id="rqmT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div><div class="rqhb">`
+    + `<button type="button" class="rqbig" onclick="openRqNew()"><i class="fa-solid fa-paper-plane"></i><span id="rqBNew"></span></button>`
+    + `<button type="button" class="rqbig alt" onclick="openRqHist()"><i class="fa-solid fa-clock-rotate-left"></i><span id="rqBOld"></span><em id="rqBCnt" hidden></em></button></div></div>`;
+  const n = document.createElement('div'); n.className = 'ssm rqov'; n.id = 'rqn'; n.onclick = e => { if (e.target === n) closeRq(); };
+  n.innerHTML = `<div class="ssbox rqs" id="rqsheet"><div class="ssh"><button type="button" class="rqback" onclick="rqBack()" aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button><b id="rqnT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div>`
+    + `<div id="rqTypes" class="rqtypes"><button type="button" class="rqch on" data-t="session"><i class="fa-regular fa-calendar"></i><span></span></button><button type="button" class="rqch" data-t="financial"><i class="fa-solid fa-wallet"></i><span></span></button><button type="button" class="rqch" data-t="other"><i class="fa-solid fa-ellipsis"></i><span></span></button></div>`
+    + `<input type="hidden" id="rqType" value="session"><label class="rql" id="rqLWhat"></label><input type="text" id="rqWhat" maxlength="140" autocomplete="off"><label class="rql" id="rqLMsg"></label><textarea id="rqMsg" rows="4" maxlength="1500"></textarea>`
+    + `<div id="rqFollow"></div><div id="rqErr" class="rqerr" hidden></div><button type="button" class="rqsend" id="rqBtn" onclick="sendReq()"><i class="fa-solid fa-paper-plane"></i><span></span></button></div>`;
+  const o = document.createElement('div'); o.className = 'ssm rqov'; o.id = 'rqo'; o.onclick = e => { if (e.target === o) closeRq(); };
+  o.innerHTML = `<div class="ssbox rqs"><div class="ssh"><button type="button" class="rqback" onclick="rqBack()" aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button><b id="rqoT"></b><button type="button" onclick="closeRq()" aria-label="Close">&times;</button></div><div class="sslist" id="rqoList"></div></div>`;
+  m.after(n); n.after(o);
+  n.addEventListener('click', e => {
+    const c = e.target.closest && e.target.closest('.rqch'), d = e.target.closest && e.target.closest('.rqdc');
+    if (c) { $('rqType').value = c.dataset.t; n.querySelectorAll('.rqch').forEach(b => b.classList.toggle('on', b === c)); $('rqErr').hidden = true; rqFollowUI(true); }
+    if (d) { $('rqFollowVal').value = d.dataset.v; n.querySelectorAll('.rqdc').forEach(b => b.classList.toggle('on', b === d)); $('rqErr').hidden = true; }
+  });
+  rqUI(); rqFollowUI(true);
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+#rqm .ssbox,.rqov .ssbox{width:min(440px,100%)}
+.rqs{animation:rqIn .35s cubic-bezier(.16,1,.3,1);overflow:auto}
+@keyframes rqIn{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:none}}
+.rqs .ssh b{flex:1;text-align:start}
+.rqs .ssh{gap:8px}
+.rqback{flex:none}html[dir=rtl] .rqback i{transform:scaleX(-1)}
+.rqhb{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.rqbig{display:flex;align-items:center;gap:12px;width:100%;padding:16px 18px;border-radius:18px;border:0;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111;font:800 .95rem Inter,Cairo,sans-serif;cursor:pointer;text-align:start;box-shadow:0 8px 22px rgba(245,158,11,.25);transition:transform .15s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.rqbig i{font-size:1.15rem;flex:none}.rqbig span{flex:1}
+.rqbig:active{transform:scale(.97)}
+.rqbig.alt{background:rgba(148,163,184,.12);color:inherit;border:1px solid rgba(148,163,184,.4);box-shadow:none}
+.rqbig em{font-style:normal;min-width:22px;padding:1px 8px;border-radius:999px;background:#fbbf24;color:#111;font-size:.75rem;font-weight:800;text-align:center}
+.rqtypes{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
+.rqch{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.1);color:inherit;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .15s}
+.rqch:active{transform:scale(.95)}
+.rqch.on{background:#fbbf24;border-color:#fbbf24;color:#111}
+#rqn .rql{display:block;margin:12px 2px 6px;font-size:.74rem;font-weight:700;letter-spacing:.3px;opacity:.8}
+.rqreq{color:#f87171}
+#rqn input[type=text],#rqn input[type=date],#rqn textarea{display:block;width:100%;box-sizing:border-box;margin:0;padding:12px 14px;border-radius:14px;border:1px solid var(--th-input-border,rgba(148,163,184,.4));background:var(--th-input-bg,rgba(148,163,184,.1));color:var(--text-color,inherit);font:500 .9rem Inter,Cairo,sans-serif;outline:0;transition:border-color .2s,box-shadow .2s;resize:vertical}
+#rqn input:focus,#rqn textarea:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.2)}
+body.light-theme #rqn input[type=text],body.light-theme #rqn input[type=date],body.light-theme #rqn textarea{background:#fff;color:#0f172a}
+#rqn ::placeholder{opacity:.45}
+.rqdur{display:flex;gap:7px;flex-wrap:wrap}
+.rqdc{padding:7px 12px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.1);color:inherit;font:600 .76rem Inter,Cairo,sans-serif;cursor:pointer;transition:background .2s,color .2s}
+.rqdc.on{background:rgba(251,191,36,.2);border-color:#fbbf24;color:#fbbf24}
+body.light-theme .rqdc.on{color:#92400e}
+.rqfi{animation:rqFade .3s ease-out}
+@keyframes rqFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.rqerr{margin-top:12px;padding:8px 12px;border-radius:12px;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#fb7185;font-size:.8rem;font-weight:600}
+.rqs.shk{animation:rqShk .4s}
+@keyframes rqShk{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.rqsend{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:16px;padding:14px;border-radius:16px;border:0;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111;font:800 .95rem Inter,Cairo,sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(245,158,11,.28);transition:transform .15s,background .3s,box-shadow .2s}
+.rqsend:active{transform:scale(.97)}
+.rqsend.busy{opacity:.75;cursor:wait}.rqsend.busy i{animation:rqFly 1s ease-in-out infinite}
+.rqsend.ok{background:linear-gradient(135deg,#34d399,#10b981);color:#04231a;box-shadow:0 8px 22px rgba(16,185,129,.3)}
+@keyframes rqFly{50%{transform:translate(4px,-4px) rotate(-12deg)}}
+.rqh{padding:12px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
+.rqhh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.rqd{font-size:.74rem;opacity:.7;font-weight:600}
+.rqp{font-size:.7rem;font-weight:800;padding:2px 10px;border-radius:999px;border:1px solid currentColor}
+.rqp.open{color:#fbbf24}.rqp.closed{color:#94a3b8}.rqp.resolved{color:#34d399}.rqp.rejected{color:#fb7185}.rqp.accepted{color:#38bdf8}
+body.light-theme .rqp.open{color:#b45309}body.light-theme .rqp.resolved{color:#047857}body.light-theme .rqp.accepted{color:#0369a1}
+.rqty{display:inline-block;margin-bottom:4px;font-size:.68rem;font-weight:700;padding:1px 9px;border-radius:999px;background:rgba(148,163,184,.2)}
+.rqt{font-weight:700;font-size:.92rem;overflow-wrap:anywhere}
+.rqmm{margin-top:3px;font-size:.84rem;opacity:.85;overflow-wrap:anywhere;white-space:pre-wrap}
+.rqa{margin-top:10px;padding:9px 12px;border-radius:12px;background:rgba(52,211,153,.1);border-inline-start:3px solid #34d399;font-size:.85rem;overflow-wrap:anywhere}
+.rqa.no{background:rgba(148,163,184,.08);border-inline-start-color:rgba(148,163,184,.4);opacity:.7}
+.rqal{font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.75;margin-bottom:2px}
+@media(prefers-reduced-motion:reduce){.rqs,.rqfi,.rqs.shk,.rqsend.busy i{animation:none}}`; document.head.appendChild(st); })();
+function openRq() { rqBuild(); closeRq(); rqUI(); const m = $('rqm'); if (m) m.classList.add('open'); }
+function closeRq() { ['rqm', 'rqn', 'rqo'].forEach(id => { const e = $(id); if (e) e.classList.remove('open'); }); }
+function openRqNew() { closeRq(); rqUI(); $('rqErr').hidden = true; $('rqn').classList.add('open'); }
+function openRqHist() { closeRq(); rqHistFill(); $('rqo').classList.add('open'); rqRefresh(); }
+function rqBack() { openRq(); }
+window.openRq = openRq; window.closeRq = closeRq; window.openRqNew = openRqNew; window.openRqHist = openRqHist; window.rqBack = rqBack;
+rqBuild();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRq(); });
 
 /* ===== Touch = scroll. A finger that moves is a scroll, never a click: only a real tap or a long press (finger stays still) can act ===== */
@@ -2236,7 +2377,7 @@ function tourTips(key, side) {
     return ['en', 'ar', 'eg'].filter(x => x !== lang).map(x => L[x]);
   }
   if (key === 'prof') return [t3('Your profile: your info, and you can change your picture', 'ملفك الشخصي: بياناتك، ويمكنك تغيير صورتك', 'ملفك الشخصي: بياناتك، وتقدر تغيّر صورتك'), t3('Log out of your account', 'تسجيل الخروج من حسابك', 'اطلع من حسابك')];
-  if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Send a request to your trainer: session time, payments or anything else', 'أرسل طلبًا إلى المدرب: موعد الجلسة أو المدفوعات أو غير ذلك', 'ابعت طلب للمدرب: معاد السيشن أو الفلوس أو أي حاجة تانية')];
+  if (key === 'plus') return [t3('The Assistant: listen to words and send what you are missing', 'المساعد: استمع إلى الكلمات وأرسل ما ينقصك', 'المساعد: تسمع منه الكلمات وتبعتله اللي ناقصك'), t3('Requests: send a new request to your trainer, or see your past requests and the answers', 'الطلبات: أرسل طلبًا جديدًا إلى المدرب، أو شاهد طلباتك القديمة وردودها', 'الطلبات: ابعت طلب جديد للمدرب، أو شوف طلباتك القديمة وردودها')];
   if (key === 'star') return [t3('Customize: move the bar to the left, right, bottom or anywhere you like', 'تخصيص: انقل الشريط لليسار أو اليمين أو الأسفل أو أي مكان تريده', 'تخصيص: انقل الشريط شمال أو يمين أو تحت أو أي مكان تحبه'), t3('View: phone / desktop view, text and icon size, and brightness', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخطوط، والسطوع', 'العرض: شكل التليفون أو الديسكتوب، وحجم الأيقونات والخط، والسطوع')];
   if (key === 'view') { const wide = innerWidth > 700; return [wide ? t3('Phone view: shows the site the way it looks on a phone', 'شكل التليفون: يعرض الموقع كما يظهر على الهاتف', 'شكل التليفون: بيعرض الموقع زي ما بيبان على التليفون') : t3('Desktop view: shows the full desktop layout (the bar stays big)', 'شكل الديسكتوب: يعرض التصميم الكامل للكمبيوتر (ويبقى الشريط كبيرًا)', 'شكل الديسكتوب: بيعرض التصميم الكامل بتاع الكمبيوتر (والشريط بيفضل كبير)'), t3('Text & icon size: make everything bigger or smaller and watch it live', 'حجم الأيقونات والخطوط: كبّر كل شيء أو صغّره وشاهد النتيجة مباشرة', 'حجم الأيقونات والخط: كبّر أو صغّر كل حاجة وشوف النتيجة على طول'), t3('Brightness of this app only (not your phone)', 'سطوع هذا التطبيق فقط (وليس هاتفك)', 'سطوع التطبيق ده بس (مش سطوع تليفونك)')]; }
   if (key === 'cust') return [side === 'right' ? t3('Move the bar to the left side', 'نقل الشريط إلى اليسار', 'انقل الشريط للشمال') : t3('Move the bar to the right side', 'نقل الشريط إلى اليمين', 'انقل الشريط لليمين'), t3('Move the bar to the bottom', 'نقل الشريط إلى الأسفل', 'نزّل الشريط تحت'), t3('Free move: drag the bar anywhere, let go to pin it', 'تحريك حر: اسحب الشريط إلى أي مكان ثم اتركه ليتثبت', 'تحريك حر: اسحب الشريط لأي مكان وسيبه يتثبت')];
