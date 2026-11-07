@@ -3495,7 +3495,11 @@ mpCardHtml = function (r, today) {
         <button type="button" class="ds-b amber" onclick="mpOpen('${q}')"><i class="fa-solid fa-id-card"></i> Profile</button>
         <button type="button" class="ds-b green" onclick="openStudentDashboard('${q}')"><i class="fa-solid fa-eye"></i> Dashboard</button>
         <button type="button" class="ds-cur" title="Daily Supply" onclick="openStudentSupply('${q}')"><i class="ds-caret"></i>DS</button>
-        <button type="button" class="ds-b blue" onclick="anMenu(this,'${q}')"><i class="fa-solid fa-bullhorn"></i> Announcements ▾</button></div>` : ''}</div>`;
+        <button type="button" class="ds-b blue" onclick="anMenu(this,'${q}')"><i class="fa-solid fa-bullhorn"></i> Announcements ▾</button>
+        <button type="button" class="ds-b blue" onclick="openBulkTask(['${q}'])"><i class="fa-solid fa-list-check"></i> Task</button>
+        <button type="button" class="ds-b amber" onclick="openMonthly(['${q}'])"><i class="fa-solid fa-calendar-check"></i> Monthly obligations</button>
+        <button type="button" class="ds-b green" onclick="payMarkSel(true,['${q}'])"><i class="fa-solid fa-circle-check"></i> دفع</button>
+        <button type="button" class="ds-b ghost" onclick="payMarkSel(false,['${q}'])">لم يدفع</button></div>` : ''}</div>`;
 };
 
 mpPaintList = function () {
@@ -3630,3 +3634,199 @@ if (!window.__p7Ev) {
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && mpState.sel.size && !document.querySelector('.ds-ov')) mpClearSel(); });
 }
+
+/* ==========================================================
+   Patch 8 (end of adminpanel.js, after patch 7)
+   - Task / Monthly obligations / paid buttons also sit on the single-trainee card
+     (same buttons and same functions as the bulk bar; they just take the card's id)
+   - Monthly obligations = APPLICATIONS. Each application (up to 10) has:
+       Header, Body (select words -> real link), Attachments (links now; photo / video later), days it stays open
+     Every application becomes a high-priority TASK for each trainee (first free slot 1-10 of today),
+     open from the moment you press send until the deadline you chose.
+     Attachments + start time ride inside the task body after a hidden "@@app@@{json}" marker (no SQL change).
+   ========================================================== */
+(function () {
+  if (document.getElementById('p8Css')) return;
+  const s = document.createElement('style'); s.id = 'p8Css';
+  s.textContent = `
+.mo-app{border:1px solid #334155;border-radius:14px;padding:12px;background:#0b1220;margin-bottom:12px}
+.mo-ah{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#fbbf24;font-weight:800;font-size:13px}
+.mo-ta{width:100%;box-sizing:border-box;min-height:120px;padding:10px;border-radius:10px;border:1px solid #334155;background:#020617;color:#f1f5f9;font:inherit;font-size:13px;line-height:1.7;resize:vertical}
+.mo-att{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.mo-ac{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 10px;border-radius:999px;border:1px solid rgba(125,211,252,.5);background:rgba(125,211,252,.1);color:#7dd3fc;font-size:12px;font-weight:700}
+.mo-ac span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.mo-ac button{border:0;background:none;color:inherit;cursor:pointer;padding:0 2px}
+.mo-end{font-size:11px;color:#94a3b8;margin-top:6px}`;
+  document.head.appendChild(s);
+})();
+
+/* ---- single-card buttons: run the bulk functions for just that trainee ---- */
+(function () {
+  const withIds = (fn, ids, args) => {
+    const keep = [...mpState.sel];
+    mpState.sel.clear(); ids.forEach(i => mpState.sel.add(String(i)));
+    try { return fn.apply(null, args || []); }
+    finally { mpState.sel.clear(); keep.forEach(i => mpState.sel.add(i)); }
+  };
+  const _tk = window.openBulkTask, _pay = window.payMarkSel;
+  window.openBulkTask = function (ids) { return ids && ids.length ? withIds(_tk, ids) : _tk(); };
+  window.payMarkSel = function (paid, ids) { return ids && ids.length ? withIds(_pay, ids, [paid]) : _pay(paid); };
+})();
+
+/* ---- Monthly obligations (applications) ---- */
+const MO_MAX = 10, APP_MARK = '@@app@@';
+const MO_FIRST_BODY = `1. اختبار الإنجليزي [EF SET](https://www.efset.org/)
+2. اختبار الشخصية [16 Personalities بالعربي](https://www.16personalities.com/ar)
+
+لازم تخلّص الاتنين قبل الديدلاين، وابعت لي النتيجة أول ما تخلّص.`;
+let moApps = [];
+const moNew = days => ({ title: '', body: '', days: days || 3, atts: [], _sel: [0, 0] });
+const moNormUrl = v => {
+  v = String(v || '').trim(); if (!v || /\s/.test(v)) return '';
+  if (!/^https?:\/\//i.test(v)) { if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(v)) v = 'https://' + v; else return ''; }
+  v = v.replace(/\(/g, '%28').replace(/\)/g, '%29');
+  try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') ? u.href : ''; } catch (e) { return ''; }
+};
+function moEndTxt(a) {
+  const d = parseFloat(a.days);
+  if (!(d >= 0.5 && d <= 30)) return 'اكتب عدد أيام من 0.5 لـ 30.';
+  const E = fxNow() + d * 864e5;
+  return `بتتحسب من لحظة الإرسال · هتنتهي يوم ${fxWd(E)} ${fxWall(E).slice(0, 10)} الساعة ${fxClock(E)}`;
+}
+const moAttHtml = i => `<span class="ds-lbl" style="margin:0"><i class="fa-solid fa-paperclip"></i> Attachments</span>`
+  + moApps[i].atts.map((x, j) => `<span class="mo-ac" title="${esc(x.u)}"><i class="fa-solid fa-link"></i><span dir="auto">${esc(x.d)}</span><button type="button" onclick="moAttDel(${i},${j})" aria-label="حذف">✕</button></span>`).join('')
+  + `<button type="button" class="ds-b ghost" onclick="moAttMenu(this,${i})">+ مرفق</button>`;
+function moRender() {
+  const box = $id('moApps'); if (!box) return;
+  box.innerHTML = moApps.map((a, i) => `<div class="mo-app">
+      <div class="mo-ah"><i class="fa-solid fa-file-lines"></i> Application ${i + 1}<span style="flex:1"></span>${moApps.length > 1 ? `<button type="button" class="ds-b ghost" onclick="moDel(${i})" title="حذف التطبيق"><i class="fa-solid fa-trash"></i></button>` : ''}</div>
+      <span class="ds-lbl">العنوان (Header)</span>
+      <input id="moT_${i}" class="ds-in" dir="auto" maxlength="120" placeholder="مثال: Application ${i + 1} · English Test" value="${esc(a.title)}" oninput="moSet(${i},'title',this.value)">
+      <span class="ds-lbl" style="margin-top:8px">المحتوى (Body)</span>
+      <textarea id="moB_${i}" class="mo-ta" dir="auto" spellcheck="true" placeholder="اكتب المطلوب هنا…" oninput="moSet(${i},'body',this.value)" onselect="moSel(${i})" onkeyup="moSel(${i})" onmouseup="moSel(${i})" ontouchend="moSel(${i})" onblur="moSel(${i})">${esc(a.body)}</textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+        <button type="button" class="ds-b blue" onmousedown="event.preventDefault()" onclick="moMkLink(${i})"><i class="fa-solid fa-link"></i> حوّل المحدد للينك</button>
+        <span style="font-size:10px;color:#64748b">ظلّل كلمة أو جملة من النص واضغط الزرار وحط الرابط. بتظهر كده [الكلام](الرابط) وللطالب بتبقى لينك حقيقي.</span></div>
+      <div class="mo-att" id="moAtt_${i}">${moAttHtml(i)}</div>
+      <div style="margin-top:10px"><span class="ds-lbl">تفضل مفتوحة كام يوم؟</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="moD_${i}" type="number" min="0.5" max="30" step="0.5" inputmode="decimal" class="ds-in" style="max-width:110px" value="${esc(a.days)}" oninput="moSet(${i},'days',this.value)"><span style="font-size:12px;color:#94a3b8">يوم</span>
+          ${moApps.length > 1 ? `<button type="button" class="ds-b ghost" onclick="moApplyDays(${i})">طبّق المدة دي على الباقي</button>` : ''}</div>
+        <div class="mo-end" id="moE_${i}">${esc(moEndTxt(a))}</div></div></div>`).join('');
+  const b = $id('moSend'); if (b && moCur) b.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ابعت ${moApps.length === 1 ? 'التطبيق' : moApps.length + ' تطبيقات'} لـ ${moCur.st.length}`;
+  const add = $id('moAddBtn'); if (add) add.style.display = moApps.length >= MO_MAX ? 'none' : '';
+}
+window.moSet = function (i, k, v) { moApps[i][k] = v; if (k === 'days') { const e = $id('moE_' + i); if (e) e.textContent = moEndTxt(moApps[i]); } };
+window.moSel = function (i) { const t = $id('moB_' + i); if (t && moApps[i]) moApps[i]._sel = [t.selectionStart, t.selectionEnd]; };
+window.moAdd = function () {
+  if (moApps.length >= MO_MAX) { showToast('الحد الأقصى ' + MO_MAX + ' تطبيقات', true, true); return; }
+  const last = moApps[moApps.length - 1];
+  moApps.push(moNew(last ? last.days : 3)); moRender();   /* the new one starts with the previous duration */
+  setTimeout(() => { const t = $id('moT_' + (moApps.length - 1)); if (t) { t.focus(); try { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } } }, 30);
+};
+window.moDel = function (i) { if (moApps.length < 2) return; moApps.splice(i, 1); moRender(); };
+window.moApplyDays = function (i) { const d = moApps[i].days; moApps.forEach(a => { a.days = d; }); moRender(); showToast('اتطبقت المدة على كل التطبيقات ✓'); };
+
+/* small popup: link (+ optional description) */
+function moLinkPop(o) {
+  const ov = document.createElement('div'); ov.className = 'ds-ov';
+  ov.innerHTML = `<div class="ds-box" style="max-width:440px;margin-top:12vh">
+      <b style="color:#fbbf24;font-size:14px;display:block;margin-bottom:10px" dir="auto">${esc(o.title)}</b>
+      ${o.desc ? `<span class="ds-lbl">وصف اللينك (اللي هيظهر للطالب)</span><input class="ds-in" data-d dir="auto" maxlength="120" placeholder="مثال: اختبار الإنجليزي EF SET">` : ''}
+      <span class="ds-lbl" style="margin-top:8px">اللينك</span><input class="ds-in" data-u dir="ltr" inputmode="url" placeholder="https://" value="https://">
+      <div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="ds-b green" data-ok>تم ✓</button><button type="button" class="ds-b ghost" data-no>إلغاء</button></div></div>`;
+  document.body.appendChild(ov);
+  const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  const close = () => { document.removeEventListener('keydown', onKey, true); ov.remove(); };
+  document.addEventListener('keydown', onKey, true);
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  ov.querySelector('[data-no]').onclick = close;
+  const dEl = ov.querySelector('[data-d]'), uEl = ov.querySelector('[data-u]');
+  const ok = () => {
+    const d = dEl ? dEl.value.trim() : '';
+    if (dEl && !d) { showToast('اكتب وصف اللينك', true, true); return; }
+    const u = moNormUrl(uEl.value);
+    if (!u) { showToast('اللينك مش صحيح، لازم يبدأ بـ https://', true, true); return; }
+    close(); o.cb(u, d);
+  };
+  ov.querySelector('[data-ok]').onclick = ok;
+  ov.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ok(); } });
+  setTimeout(() => { const f = dEl || uEl; f.focus(); if (!dEl) uEl.setSelectionRange(uEl.value.length, uEl.value.length); }, 30);
+}
+window.moMkLink = function (i) {
+  const a = moApps[i], s = a._sel[0], e = a._sel[1], txt = String(a.body).slice(s, e);
+  if (!txt.trim()) { showToast('ظلّل الكلام اللي عايزه يبقى لينك الأول', true, true); return; }
+  if (/[\[\]\n]/.test(txt)) { showToast('ظلّل جزء من سطر واحد من غير أقواس', true, true); return; }
+  moLinkPop({ title: 'لينك للكلام: «' + txt + '»', cb: u => { a.body = a.body.slice(0, s) + '[' + txt + '](' + u + ')' + a.body.slice(e); a._sel = [0, 0]; moRender(); } });
+};
+
+/* Attachments: "+ مرفق" -> menu (link now, photo / video later) */
+window.moAttMenu = function (btn, i) {
+  if (window.anClose) anClose();
+  const m = document.createElement('div'); m.id = 'anMenu';
+  m.style.cssText = 'position:fixed;z-index:2147483150;min-width:210px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(245,158,11,.5);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .8rem Cairo,sans-serif;color:#f1f5f9';
+  const it = (a, ic, t, off) => `<div ${off ? '' : `data-a="${a}"`} style="padding:8px 10px;border-radius:8px;display:flex;gap:8px;align-items:center;${off ? 'opacity:.4;cursor:not-allowed' : 'cursor:pointer'}"${off ? '' : ` onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''"`}><i class="fa-solid ${ic}" style="width:16px;text-align:center"></i>${t}${off ? ' <small style="margin-inline-start:auto;font-weight:600">قريبًا</small>' : ''}</div>`;
+  m.innerHTML = it('link', 'fa-link', 'Link · لينك') + it('', 'fa-image', 'Photo · صورة', 1) + it('', 'fa-video', 'Video · فيديو', 1);
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  m.style.left = Math.max(6, Math.min(r.left, innerWidth - mr.width - 6)) + 'px';
+  m.style.top = (r.bottom + 6 + mr.height > innerHeight - 6 ? Math.max(6, r.top - mr.height - 6) : r.bottom + 6) + 'px';
+  m.addEventListener('click', e => {
+    if (!e.target.closest('[data-a="link"]')) return;
+    if (window.anClose) anClose();
+    moLinkPop({ title: 'إضافة لينك · Application ' + (i + 1), desc: true, cb: (u, d) => { moApps[i].atts.push({ d, u }); const el = $id('moAtt_' + i); if (el) el.innerHTML = moAttHtml(i); } });
+  });
+  setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { if (window.anClose) anClose(); document.removeEventListener('pointerdown', off, true); } }, true), 0);
+};
+window.moAttDel = function (i, j) { moApps[i].atts.splice(j, 1); const el = $id('moAtt_' + i); if (el) el.innerHTML = moAttHtml(i); };
+
+window.openMonthly = function (ids) {
+  const st = wsPicked(ids && ids.length ? ids : [...mpState.sel]); if (!st.length) return;
+  const w = wsEnsure('mo');
+  wsTitle('mo', 'Monthly obligations · ' + st.length + (st.length === 1 ? ' طالب' : ' طلاب'));
+  moApps = [Object.assign(moNew(3), { title: 'Application 1 · English Test', body: MO_FIRST_BODY })];
+  w.body.innerHTML = `${wsChips(st)}
+    <div class="ds-form">
+      <div class="ds-tag" style="align-self:flex-start;background:#be123c;color:#fff">HIGH PRIORITY · بينزل في التاسكس</div>
+      <div id="moApps"></div>
+      <div><button type="button" class="ds-b blue" id="moAddBtn" onclick="moAdd()"><i class="fa-solid fa-plus"></i> تطبيق جديد</button></div>
+      <div><button type="button" class="ds-b amber" id="moSend" onclick="moSend()"></button></div>
+      <div style="font-size:10px;color:#64748b">كل تطبيق بيتحط في أول خانة فاضية (1–10) في التاسكس عند كل طالب النهارده، وبيفضل مفتوح من لحظة الإرسال لحد الديدلاين اللي حددته، وبعدها بيتقفل.</div>
+    </div>`;
+  moCur = { ids: st.map(s => String(s.id)), st };
+  openWin('mo'); moRender();
+};
+window.moSend = async function () {
+  const c = moCur; if (!c) return;
+  for (let i = 0; i < moApps.length; i++) {
+    const a = moApps[i], d = parseFloat(a.days), n = 'Application ' + (i + 1) + ': ';
+    if (!String(a.title).trim()) { showToast(n + 'اكتب العنوان', true, true); return; }
+    if (!String(a.body).trim()) { showToast(n + 'اكتب المحتوى', true, true); return; }
+    if (!(d >= 0.5 && d <= 30)) { showToast(n + 'المدة لازم تكون من 0.5 لـ 30 يوم', true, true); return; }
+  }
+  const A = fxNow(), endOf = a => A + parseFloat(a.days) * 864e5;
+  const sum = moApps.map(a => '• ' + a.title.trim() + ' · لحد ' + fxWd(endOf(a)) + ' ' + fxWall(endOf(a)).slice(0, 10) + ' ' + fxClock(endOf(a))).join('\n');
+  if (!confirm('تبعت ' + moApps.length + ' تطبيق لـ ' + c.st.length + ' طالب؟\n\n' + sum)) return;
+  const btn = $id('moSend'); btn.disabled = true;
+  try {
+    const today = dsToday();
+    const have = await fetchAllRows(`supply_items?select=trainee_id,item_no&kind=eq.task&supply_date=eq.${today}&trainee_id=in.(${c.ids.map(enc).join(',')})`);
+    const used = {}; have.forEach(r => { (used[String(r.trainee_id)] = used[String(r.trainee_id)] || new Set()).add(r.item_no); });
+    const rows = [], skipped = [], now = new Date().toISOString();
+    c.st.forEach(s => {
+      const u = used[String(s.id)] = used[String(s.id)] || new Set(); let no = 1, miss = 0;
+      moApps.forEach(a => {
+        while (no <= 10 && u.has(no)) no++;
+        if (no > 10) { miss++; return; }
+        const R = parseFloat(a.days) * 24;
+        const meta = APP_MARK + JSON.stringify({ s: A, e: endOf(a), l: a.atts.map(x => ({ d: x.d, u: x.u })) });
+        rows.push({ trainee_id: s.id, supply_date: today, kind: 'task', item_no: no, title: a.title.trim(), badge: null, body: a.body.trim() + '\n\n' + meta, priority: 'high', repeats: 1, range_hours: R, as_of: fxWall(A), opens_at: fxOpens(A, R, fxEven(1)).map(fxWall), updated_at: now });
+        u.add(no);
+      });
+      if (miss) skipped.push((s.trainee || '') + ' (' + miss + ')');
+    });
+    if (rows.length) await sbFetch('supply_items', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+    showToast(`اتبعتت ${rows.length} تاسك (تطبيقات) ✓` + (skipped.length ? ` · الخانات ممتلئة عند: ${skipped.join('، ')}` : ''), skipped.length > 0, true);
+  } catch (e) { showToast('فشل الإرسال: ' + e.message, true); }
+  btn.disabled = false;
+};
