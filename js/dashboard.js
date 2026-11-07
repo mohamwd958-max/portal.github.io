@@ -48,7 +48,7 @@ async function logout() {
   if (VIEW) { try { parent.postMessage({ thabitView: 'close' }, '*'); } catch (e) {} return; }
   const t = tok(); try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('currentTrainee'); localStorage.removeItem('thabit_intro_tok'); } catch (e) {}
   if (t) { try { await rpc('trainee_logout', { p_token: t }); } catch (e) {} }
-  location.replace(PORTAL);
+  location.href = PORTAL;
 }
 
 
@@ -75,7 +75,6 @@ function spark(vals) {
   return `<svg class="ch" viewBox="0 0 300 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
-const hasV = x => x != null && x !== '' && Number.isFinite(Number(x));   // a value counts only if it was really entered (empty / missing = not counted, never zero)
 const MD = [], TK = [], mk = (title, text, ear) => MD.push([title, text, ear || '']) - 1;
 /* Ear toggle per container (Notes / TEFL / QOL): QOL is on by default, the others off. Saved on this device. */
 const EAR_DEF = { qol: 1, tefl: 0, notes: 0 };
@@ -95,7 +94,7 @@ document.addEventListener('click', e => {
 }, true);
 let HAND_NEW = true, DTL_OPEN = false; try { HAND_NEW = !localStorage.getItem('thabit_hand_seen'); } catch (e) {}
 function val(r, k) {
-  if (k === 'avg') { const v = MET.map(m => r[m]).filter(hasV).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
+  if (k === 'avg') { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; }
   return r[k] == null ? null : Number(r[k]);
 }
 const DAYS = { week: 7, month: 30, year: 365 };
@@ -116,12 +115,10 @@ function series(rows) {
   if (!monthly) for (let i = 0; i < days; i++) { const d = new Date(st); d.setDate(d.getDate() + i); const k = ymd(d); idx[k] = bk.length; bk.push({ label: k.slice(5), rows: [] }); }
   else { const d = new Date(st.getFullYear(), st.getMonth(), 1); while (d <= en) { const k = ymd(d).slice(0, 7); idx[k] = bk.length; bk.push({ label: k.slice(2), rows: [] }); d.setMonth(d.getMonth() + 1); } }
   rows.forEach(r => { const i = idx[monthly ? r.supply_date.slice(0, 7) : r.supply_date]; if (i != null) bk[i].rows.push(r); });
-  const live = bk.filter(b => b.rows.some(r => MET.some(m => hasV(r[m]))));   // a day with no entries did not happen: it is dropped from the chart
-  const dayVal = (b, k) => { const v = b.rows.map(r => r[k]).filter(hasV).map(Number); return v.length ? v.reduce((a, c) => a + c, 0) / v.length : null; };
-  const cum = {};   // cum[k][i] = the value of that day (0-10), null when that metric was not entered that day
-  MET.forEach(k => { cum[k] = live.map(b => { const v = dayVal(b, k); return v == null ? null : +v.toFixed(2); }); });
-  cum.avg = live.map((_, i) => { const v = MET.map(k => cum[k][i]).filter(x => x != null); return v.length ? +(v.reduce((a, c) => a + c, 0) / v.length).toFixed(2) : null; });
-  return { bk: live, cum, max: 10 };
+  const cum = {};
+  MET.forEach(k => { let s = 0; cum[k] = bk.map(b => { b.rows.forEach(r => s += Number(r[k]) || 0); return s; }); });
+  cum.avg = bk.map((_, i) => +(MET.reduce((a, k) => a + cum[k][i], 0) / MET.length).toFixed(1));
+  return { bk, cum, max: 10 * days };
 }
 function smooth(p) {
   const n = p.length; if (n < 2) return '';
@@ -142,8 +139,8 @@ function chart(S, keys, o) {
   S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
   keys.forEach(k => {
     const li = keys.indexOf(k);
-    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean))}"/>`;
-    if (k !== 'avg') S.bk.forEach((b, i) => { if (S.cum[k][i] != null) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
+    s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
+    if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
       s += `<circle class="dot ${k}" style="--d:${(n < 2 ? 0 : i / (n - 1)).toFixed(3)};--li:${li}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
   return s + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
@@ -158,13 +155,12 @@ function kpi(key, rows, all, S) {
   return h + `<div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(2))}${chart(S, [key], { W: 300, H: 150, L: 30, f: 9, w: 1.6, r: 2.6, hit: 15, lab: 5 })}<div class="sm" id="why_${key}">${t.tap}</div></div>`;
 }
 function overall(rows, S) {
-  const t = T[lang];
-  /* per metric: the average of the values that were entered; then the average of those metric averages. Nothing entered = nothing counted. */
-  const avgM = rs => { const per = MET.map(k => { const v = rs.map(r => r[k]).filter(hasV).map(Number); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }).filter(x => x != null); return per.length ? per.reduce((a, b) => a + b, 0) / per.length : null; };
-  const c0 = avgM(rows);
-  if (c0 == null) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
-  const cur = +c0.toFixed(1), first = rows[0].supply_date, b0 = avgM(D.rows.filter(r => r.supply_date < first));   // change = this period vs everything before it
-  return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${b0 == null ? '' : delta(+(cur - b0).toFixed(1))}` +
+  const t = T[lang], ra = r => { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };
+  const vals = rows.map(ra).filter(v => v != null);
+  if (!vals.length) return `<h4>${t.overall}</h4><div class="sm">${t.none}</div>`;
+  const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
+  const col = { performance: '#ef4444', attitude: '#3b82f6', soft_skills: '#10b981', compliance: '#f97316', attendance: '#06b6d4', avg: 'var(--avg)' };
+  return `<h4>${t.overall}</h4><div class="big">${cur} <span class="sm">/ 10</span></div>${delta(+(cur - base).toFixed(1))}` +
     chart(S, ['avg'], { W: 700, H: 300, L: 40, f: 13, w: 3, r: 3.4, hit: 20, lab: 10, grad: true });
 }
 const listCard = (title, rows, fn) => { const it = rows.slice().reverse().map(fn).filter(Boolean).join('');
@@ -236,7 +232,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL'); thListsApply();
+  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(rows, 'notes', t.notes) + cap(rows, 'tefl', 'TEFL') + cap(rows, 'qol', 'QOL'); thListsApply();
   ['Info', 'Req'].forEach(k => $('t' + k).textContent = t[k.toLowerCase()]);
   $('rqBtn').textContent = t.send; $('rqMsg').placeholder = t.ph; rqLabels();
   const L = all[all.length - 1], line = sessLine;
@@ -283,7 +279,14 @@ document.addEventListener('click', e => {
   setTimeout(() => b.classList.remove('shk', 'cls'), 1100);
 }, true);
 /* ===== Rich notes: 1. / a. = related ideas, "-" = separate points, blank line = new capsule ===== */
-const escv = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
+const escv0 = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
+/* [text](https://link) = a real link the student can tap, inside any rich text */
+const LNK_RE = /\[([^\]\n]{1,200})\]\((https?:\/\/[^\s)]{3,2000})\)/g;
+const escv = s => {
+  s = String(s == null ? '' : s); let out = '', last = 0, m; LNK_RE.lastIndex = 0;
+  while ((m = LNK_RE.exec(s))) { out += escv0(s.slice(last, m.index)) + `<a class="alk" href="${esc(m[2])}" target="_blank" rel="noopener noreferrer">${esc(m[1])}</a>`; last = m.index + m[0].length; }
+  return out + escv0(s.slice(last));
+};
 function rich(txt) {
   return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
     const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
@@ -314,6 +317,9 @@ ITT.eg.why_range = 'المدة المحددة خلصت';
 ITT.en.hol_m = 'Monthly break: sessions are paused until the 1st of next month. Enjoy!';
 ITT.ar.hol_m = 'إجازة آخر الشهر: الجلسات متوقفة حتى أول الشهر الجديد. استمتع!';
 ITT.eg.hol_m = 'إجازة آخر الشهر: السيشنز واقفة لحد أول الشهر الجاي. انبسط!';
+Object.assign(ITT.en, { att: 'Attachments', att1: 'Attachment', openlk: 'Open link', starts: 'Starts', dl: 'Your deadline', fin_before: 'Finish these before the deadline.' });
+Object.assign(ITT.ar, { att: 'المرفقات', att1: 'مرفق', openlk: 'فتح الرابط', starts: 'البداية', dl: 'الموعد النهائي', fin_before: 'يجب إنهاء المطلوب قبل الموعد النهائي.' });
+Object.assign(ITT.eg, { att: 'المرفقات', att1: 'مرفق', openlk: 'افتح اللينك', starts: 'بدأت', dl: 'الديدلاين بتاعك', fin_before: 'المفروض تخلّص الحاجات دي قبله.' });
 const itT = () => ITT[lang] || ITT.en;
 const DTL2 = {};
 const itToday = () => new Date(cairoNow()).toISOString().slice(0, 10);
@@ -368,9 +374,58 @@ const tlHtml = (p, d, s) => {
   return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpen(t)}</span></div>`).join('')}</div>`;
 };
 
+/* ===== Applications (Monthly obligations) = ordinary tasks whose body ends with
+   @@app@@{"s":startMs,"e":endMs,"l":[{"d":"description","u":"https://link"}]}
+   The marker is hidden here; its links become the Attachments cards under the text. ===== */
+const APP_MARK = '@@app@@', ATTMAP = {};
+function appSplit(body) {
+  const s = String(body == null ? '' : body), i = s.lastIndexOf(APP_MARK);
+  if (i < 0) return { text: s, app: null };
+  let j = null; try { j = JSON.parse(s.slice(i + APP_MARK.length)); } catch (e) { }
+  return { text: s.slice(0, i).trim(), app: j && typeof j === 'object' ? j : null };
+}
+const attOk = u => /^https?:\/\//i.test(String(u || ''));
+function fmtDT(ms) {
+  const d = new Date(ms), h = d.getUTCHours(), tm = `${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) + ' · ' + tm;
+}
+function appExtra(it, app, atts, endAt) {
+  if (!app) return '';
+  const t = itT(); ATTMAP[it.id] = atts;
+  const cards = atts.length ? `<div class="atw"><div class="ath"><i class="fa-solid fa-paperclip"></i> ${t.att}</div><div class="atl">${atts.map((a, j) => `<button type="button" class="atc" onclick="openAtt(${it.id},${j})"><i class="fa-solid fa-link"></i><span dir="auto">${esc(a.d || a.u)}</span></button>`).join('')}</div></div>` : '';
+  const st = +app.s || (it.plan && it.plan.opens && it.plan.opens[0]) || 0, en = +endAt || +app.e || 0;
+  const when = (st || en) ? `<div class="apd">${st ? `<div><i class="fa-regular fa-calendar-plus"></i> ${t.starts}: <b>${esc(fmtDT(st))}</b></div>` : ''}${en ? `<div><i class="fa-regular fa-flag"></i> ${t.dl}: <b>${esc(fmtDT(en))}</b></div>` : ''}<div class="sm">${t.fin_before}</div></div>` : '';
+  return cards + when;
+}
+/* tap an attachment card: its description + the link in a small card; tapping the link opens the real site */
+function openAtt(id, j) {
+  const a = (ATTMAP[id] || [])[j]; if (!a) return; const t = itT();
+  let host = a.u; try { const u = new URL(a.u); host = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : ''); } catch (e) { }
+  $('mdl').dataset.ear = ''; $('mT').textContent = t.att1;
+  $('mB').innerHTML = `<div class="atd"><div class="atdd" dir="auto">${esc(a.d || '')}</div><a class="atlk" href="${esc(a.u)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i><span dir="ltr">${esc(host)}</span><small>${t.openlk}</small></a></div>`;
+  $('mdl').classList.add('open');
+}
+(function () { const s = document.createElement('style'); s.textContent = `
+a.alk{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px;font-weight:700;cursor:pointer;pointer-events:auto!important}
+body.light-theme a.alk{color:#0369a1}
+.atw{margin-top:10px}.ath{font-size:.72rem;font-weight:800;letter-spacing:.4px;opacity:.7;margin-bottom:6px}.ath i{margin-inline-end:4px}
+.atl{display:flex;flex-wrap:wrap;gap:8px}
+.atc{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:8px 12px;border-radius:12px;border:1px solid rgba(125,211,252,.45);background:rgba(125,211,252,.08);color:inherit;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer;text-align:start}
+.atc i{color:#7dd3fc;flex:none}.atc span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atc:active{transform:scale(.98)}
+.apd{margin-top:10px;padding:8px 12px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);font-size:.78rem;line-height:1.9}
+.apd i{margin-inline-end:6px;color:#fbbf24}
+.atd{display:flex;flex-direction:column;gap:12px}
+.atdd{font-size:.95rem;line-height:1.8;overflow-wrap:anywhere}
+.atlk{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid rgba(125,211,252,.55);background:rgba(125,211,252,.1);color:#7dd3fc;text-decoration:none;font-weight:800;overflow:hidden}
+.atlk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atlk small{opacity:.75;font-weight:600}
+body.light-theme .atlk,body.light-theme .atc i{color:#0369a1}`; document.head.appendChild(s); })();
+
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
-  const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, it.body].filter(Boolean).join(' - ') }) - 1;
+  const ap = appSplit(it.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
+  const i = TK.push({ date: it.date, no: (it.kind === 'dandana' ? 100 : 0) + it.no, text: [it.title, it.badge, ap.text.replace(/\[([^\]\n]+)\]\(https?:\/\/[^\s)]+\)/g, '$1')].filter(Boolean).join(' - ') }) - 1;
   const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
   const hi = it.priority === 'high' ? '<span class="hi">HIGH</span>' : '';
   const head = it.kind === 'dandana'
@@ -380,7 +435,7 @@ function itemRow(it) {
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
-    + `<div class="itb2"><div class="ith">${head}</div>${it.body ? `<div class="itd rich">${rich(it.body)}</div>` : ''}`
+    + `<div class="itb2"><div class="ith">${head}</div>${ap.text ? `<div class="itd rich">${rich(ap.text)}</div>` : ''}${appExtra(it, ap.app, atts, endAt)}`
     + (tlHtml(p, d, s) ? `<div class="itl2">${tlHtml(p, d, s)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
@@ -486,15 +541,12 @@ function watchTodo() {
 
 async function load() {
   if (window.__mtGate && await window.__mtGate) return;   // maintenance ON: the dashboard never loads
-  const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => ({ __net: true })) : null;
-  if (d && d.__net) {   // no connection: keep the login, never sign the trainee out because of a bad network
-    $('hello').innerHTML = `<a href="" onclick="location.reload();return false" style="color:#fbbf24">${lang === 'en' ? 'No connection. Tap to retry' : 'لا يوجد اتصال. اضغط لإعادة المحاولة'} &#8635;</a>`;
-    return; }
+  const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
   if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
     $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
     console.warn('Thabit dashboard: no valid session', d);
-    if (location.protocol !== 'file:') setTimeout(() => { location.replace(PORTAL); }, 2500);
+    if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
   d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); D = d; range = 'today'; D.done = await fetchDone(); D.notes = await fetchNotes(); D.bill = await fetchBill(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
@@ -525,11 +577,12 @@ document.addEventListener('click', e => {
   if (!d) { tip.classList.remove('show'); return; }
   const sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
   if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
-  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows.slice().reverse().find(x => hasV(x[k])) || b.rows[b.rows.length - 1];
-  tip.textContent = `${b.label} · ${T[lang][k]} ${v}`;
+  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
+  const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
+  tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
   const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
-  if (w) w.innerHTML = `${b.label} · ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
+  if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
 });
 
 /* phone accordions: tap header to open, tap anywhere else to close */
@@ -688,10 +741,10 @@ function billCard(s) {
     + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '');
   return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
 }
-/* the trainer's notifications: not read, not "Understood" on this device, and sent TODAY (Cairo time): they disappear after 11:59 PM */
+/* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
 function thn_noteList() {
-  const today = cairoDay(new Date().toISOString());
-  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && cairoDay(n.created_at) === today)
+  const now = Date.now();
+  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
     .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
 function thn_noteCardN(n) {
@@ -2292,7 +2345,7 @@ thSections();
 (function () { const st = document.createElement('style'); st.textContent = `
 /* --- the time button --- */
 #rng{display:flex;align-items:center}
-#rng .thrb,#thRov .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:1px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#rng .thrb,#thRov .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #rng .thrb span,#thRov .thrb span,#thRov .thro span{display:block;max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
 #rng .thrb:active{transform:scale(.93)}
 body.light-theme #rng .thrb,body.light-theme #thRov .thrb{background:#fff;color:#000;border-color:#000;box-shadow:0 6px 18px rgba(15,23,42,.22)}
@@ -2304,7 +2357,7 @@ body.light-theme #thRov{background:rgba(255,255,255,.35)}
 body.light-theme #thRov .thrb.pressed{background:#000;color:#fff;border-color:#000}
 #thRov .thrb.pressed.lm{background:#fb923c;color:#1a0f00;border-color:#fb923c}
 #thRov .thrb.pressed.big{transform:scale(1.25)}
-#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:1px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#thRov .thro{position:fixed;z-index:3001;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #thRov .thro:active{transform:scale(.92)}
 body.light-theme #thRov .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 #thRov .thro.lm{color:#fb923c;border-color:#fb923c}
@@ -2462,6 +2515,5 @@ function thListsBind(L) {
 #lists>.thlift,#lists2>.thlift{position:relative;z-index:60;cursor:grabbing;box-shadow:0 22px 50px rgba(0,0,0,.5)!important;will-change:transform}
 #lists2{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 @media(max-width:600px){#lists2{grid-template-columns:1fr 1fr}#lists2>:first-child{grid-column:1/-1}}`; document.head.appendChild(st); })();
-
 
 dashvoicenote.js
