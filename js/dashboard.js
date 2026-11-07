@@ -8,7 +8,7 @@ const T = {
   ar: { hi: 'أهلاً ', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', all: 'منذ البداية', last: 'آخر جلسة', info: 'بياناتي', req: 'إرسال طلب', hist: 'الجلسات', send: 'إرسال', sessions: 'الجلسات',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', tefl: 'TEFL', qol: 'QOL', none: 'لا توجد بيانات بعد', ph: 'اكتب طلبك...', overall: 'التقدم العام', avg: 'المتوسط', tap: 'اضغط على نقطة لمعرفة السبب', revision: 'المراجعة', compliance: 'الالتزام', attendance: 'الحضور', metrics: 'الأرقام والتفاصيل', todo: 'المهام', donet: 'المهام المنتهية', alldone: 'خلصت كل المهام ✓', handtip: 'مش فاهم تاسك؟ اضغط على ! اللي جنبها وقولي.', handq: 'إيه اللي مش واضح في التاسك دي؟', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', year: 'سنة', duration: 'وقت البرنامج', subs: 'الجلسات والعناوين', notes: 'ملاحظات' },
 };
-T.eg = Object.assign({}, T.ar, { hi: 'أهلاً يا ', last: 'آخر جلسة ليك' });
+T.eg = Object.assign({}, T.ar, { hi: 'أهلاً ', last: 'آخر جلسة ليك' });
 T.en.lmonth = 'Last month'; T.ar.lmonth = 'الشهر الماضي'; T.eg.lmonth = 'الشهر اللي فات';
 let D = null, range = 'week', lang = 'en', CUR = [], SER = null;
 const $ = id => document.getElementById(id);
@@ -2349,10 +2349,12 @@ function thSections() {
   if (!top || !ov || !lists) return; wrap.dataset.ths = '1';
   const mk = id => { const e = document.createElement('section'); e.className = 'thsec'; e.id = id; return e; };
   const s1 = mk('thS1'), s2 = mk('thS2'), s3 = mk('thS3');
-  wrap.insertBefore(s1, top); s1.appendChild(top); s1.appendChild(ov);
+  /* page order: 1 = greeting + Tasks / Dandana, 2 = chart (with its time filter), 3 = Notes / TEFL / QOL */
+  const rr = document.createElement('div'); rr.id = 'thRngRow'; const rg = $('rng'), rn = $('rngNote'); if (rg) rr.appendChild(rg); if (rn) rr.appendChild(rn);
+  wrap.insertBefore(s2, top); s2.appendChild(top); s2.appendChild(lists);
+  wrap.appendChild(s1); s1.appendChild(rr); s1.appendChild(ov);
   const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><g class="pq"><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2" fill="none" stroke="#fbbf24" stroke-width="1.6"/><path d="M17.25 15.6v3.8M15.35 17.5h3.8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g></svg>'; ar.setAttribute('aria-label', (thRX[lang] || thRX.en).more);
   ar.addEventListener('click', () => thDetOpen()); s1.appendChild(ar);
-  wrap.appendChild(s2); s2.appendChild(lists);
   const l2 = document.createElement('div'); l2.className = 'grid'; l2.id = 'lists2'; s3.appendChild(l2); wrap.appendChild(s3);
   const det = document.createElement('div'); det.id = 'thDet';
   det.innerHTML = '<div class="tdb"><button type="button" class="tdx" aria-label="Close">×</button><div class="tdh"></div></div>';
@@ -2415,8 +2417,8 @@ html{scroll-snap-type:y mandatory}
 @media(max-width:600px){.thsec{padding:64px 22px 110px}}
 .thsec>.top{order:-3}.thsec>#overall{order:-2}
 #thS1>#overall{margin-bottom:0!important}
-#thS1>.top{margin:2px 0 6px!important;display:grid!important;grid-template-columns:1fr auto;column-gap:10px;row-gap:0;align-items:end}
-#thS1>.top h1{grid-column:1;grid-row:1}#thS1>.top #rng{grid-column:2;grid-row:1/span 2;align-self:end}#thS1 #rngNote{grid-column:1;grid-row:2;margin:0}
+#thRngRow{order:-3;display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center;margin:2px 0 6px}
+#thRngRow #rng{grid-column:2;grid-row:1}#thRngRow #rngNote{grid-column:1;grid-row:1;margin:0}
 #thS1 #overall svg.c2{max-height:min(40vh,380px)}   /* on a big screen the chart stays small enough that the arrow below it is always on screen */
 #thHint{position:fixed;z-index:30;inset:0;pointer-events:none}
 #thHint[hidden]{display:none!important}
@@ -2499,7 +2501,9 @@ function thListsApply() {
     }
     thListsBind(x);
   });
-  const s2 = $('thS2'), s3 = $('thS3'); if (s2) s2.hidden = !L.children.length; if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
+  const s2 = $('thS2'), s3 = $('thS3'); { const tp = document.querySelector('.top'), s1 = $('thS1'), empty = !L.children.length;   // greeting lives with the Tasks section; if that one is empty it moves to the chart section so it never disappears
+    if (tp && s1 && s2) { if (empty) { if (tp.parentNode !== s1) s1.insertBefore(tp, s1.firstChild); } else if (tp.parentNode !== s2) s2.insertBefore(tp, s2.firstChild); }
+    if (s2) s2.hidden = empty; } if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
   thHintRefresh();
 }
 function thListsBind(L) {
