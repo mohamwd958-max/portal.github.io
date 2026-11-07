@@ -1909,9 +1909,9 @@ window.mpSelectAll = function () {
 
 /* ---- feed preview for ONE trainee (next session + dandana, same logic the trainee sees) ---- */
 const NT_DAYRX = [/sun|اح?د|(^|[\s,\/])حد/i, /mon|اتنين|[إا]ثنين/i, /tue|تلات|ثلاث/i, /wed|[اأ]ربع/i, /thu|خميس/i, /fri|جمع/i, /sat|سبت/i];
-function ntCairoNow() {
+function ntCairoNow(tz) {
     const g = {};
-    new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz || 'Africa/Cairo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
     return Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second);
 }
 function ntNextSession(p, rows) {
@@ -1923,7 +1923,7 @@ function ntNextSession(p, rows) {
     if (mt) { h = +mt[1]; m = +(mt[2] || 0); const x = (mt[3] || '').toLowerCase(); if ((x === 'pm' || x === 'م') && h < 12) h += 12; else if ((x === 'am' || x === 'ص') && h === 12) h = 0; else if (!x && h >= 1 && h <= 8) h += 12; if (h > 23) h = null; }
     if (h == null) { const L = rows.find(r => r.start_time); if (L) { h = +L.start_time.slice(0, 2); m = +L.start_time.slice(3, 5); } }
     if (h == null || !days.length) return null;
-    const now = ntCairoNow(), d0 = new Date(now); d0.setUTCHours(0, 0, 0, 0);
+    const now = ntCairoNow(p.session_tz), d0 = new Date(now); d0.setUTCHours(0, 0, 0, 0);
     for (let i = 0; i < 15; i++) {
         const d = new Date(d0.getTime() + i * 864e5); if (!days.includes(d.getUTCDay())) continue;
         const t = d.getTime() + (h * 60 + m) * 6e4; if (t > now) return { t, now, h, m };
@@ -2874,7 +2874,7 @@ async function paySet(items, paid) {
     const ids = rows.map(r => String(r.id));
     const have = await fetchAllRows(`notifications?select=trainee_id&kind=eq.message&meta->>thanks_month=eq.${month}&trainee_id=in.(${ids.map(enc).join(',')})`);
     const got = new Set(have.map(r => String(r.trainee_id)));
-    const out = rows.filter(r => !got.has(String(r.id))).map(r => ({ trainee_id: r.id, kind: 'message', title: 'شكرًا لك', body: PAY_THANKS, meta: { thanks_month: month } }));
+    const out = rows.filter(r => !got.has(String(r.id))).map(r => ({ trainee_id: r.id, kind: 'message', title: 'شكرًا لك', body: PAY_THANKS, meta: { thanks_month: month, category: 'financial' } }));
     if (out.length) await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(out) });
     sent = out.length;
   } catch (e) { showToast('اتسجّل الدفع، بس رسالة الشكر ما اتبعتتش: ' + e.message, true, true); return; }
@@ -3839,7 +3839,7 @@ window.moSend = async function () {
 };
 
 /* ==========================================================
-   Patch 7: "Actions" menu in the Profile > Payment box
+   Patch 9: "Actions" menu (Discount) in the Profile > Payment box
    - Discount > Once      : amount -> applies to this month's due (or next month if already paid / nothing due)
    - Discount > Frequent  : amount + pick months (this year + next year)
    - Penalty              : empty for now
@@ -4001,7 +4001,7 @@ window.p7Ok = async function () {
       const body = type === 'once'
         ? `تم تسجيل خصم ${payFmt(amt)}${pct != null ? ' (' + payFmt(pct) + '%)' : ''} على مستحقات شهر ${p7Name(months[0])}.`
         : `تم تسجيل خصم شهري ${payFmt(amt)}${pct != null ? ' (' + payFmt(pct) + '%)' : ''} على الشهور: ${months.map(p7Name).join('، ')}.`;
-      await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ trainee_id: r.id, kind: 'message', title: 'خصم', body, meta: { discount: true } }]) });
+      await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ trainee_id: r.id, kind: 'message', title: 'خصم', body, meta: { discount: true, category: 'financial' } }]) });
     } catch (e) { showToast('الخصم اتسجّل، بس الإشعار ما اتبعتش: ' + e.message, true, true); return; }
   }
   showToast(`اتسجّل الخصم ✓ · ${months.length === 1 ? p7Name(months[0]) : months.length + ' شهور'}${pct != null ? ' · ' + payFmt(pct) + '%' : ''}`);
@@ -4012,3 +4012,358 @@ window.p7Del = async function (id, did) {
   try { await p7Save(r, payDiscList(r).filter(d => String(d.id) !== String(did))); showToast('اتمسح الخصم ✓'); }
   catch (e) { showToast('فشل: ' + e.message, true); }
 };
+
+
+/* ==========================================================
+   Patch 10: Contact Center + notification categories + session time-zone widget
+   - Contact Center replaces the Reports button. Two tabs, ONE shared filter (time + search):
+       Outbound = everything you sent to trainees (notifications), grouped by day, edit / delete
+                  extra filter: category (Financial / System / General)
+       Inbound  = the reports trainees sent you (who, which day), delete
+   - when you send a notification you pick its category (kept in notifications.meta.category, no SQL)
+   - Profile > Session time: time-zone widget (Cairo / Makkah), saved in basic_info.session_tz (09_contact_center.sql)
+   ========================================================== */
+(function () {
+  if (document.getElementById('ccCss')) return;
+  const s = document.createElement('style'); s.id = 'ccCss';
+  s.textContent = `
+.cc-tabs{display:flex;gap:8px;margin-bottom:10px}
+.cc-tab{flex:1;padding:9px 12px;border-radius:12px;border:1px solid #334155;color:#cbd5e1;font-weight:800;font-size:13px;background:#0b1220;display:flex;justify-content:center;gap:8px;align-items:center}
+.cc-tab.on{background:#f59e0b;border-color:#f59e0b;color:#0f172a}
+.cc-tab small{font-size:10px;padding:1px 7px;border-radius:999px;background:rgba(148,163,184,.25)}.cc-tab.on small{background:rgba(15,23,42,.25)}
+.cc-fl{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:8px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.cc-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cc-chip{padding:3px 11px;border-radius:999px;border:1px solid #475569;color:#cbd5e1;font-size:11px;font-weight:700}
+.cc-chip.on{background:#f59e0b;border-color:#f59e0b;color:#0f172a}
+.cc-in{background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:4px 8px;font-size:12px}
+.cc-day{display:flex;align-items:center;gap:8px;margin:14px 0 6px;color:#fbbf24;font-size:12px;font-weight:800}
+.cc-day:before,.cc-day:after{content:"";flex:1;height:1px;background:#334155}
+.cc-card{border:1px solid #1e293b;border-radius:12px;background:#0b1220;padding:10px;margin-bottom:8px;text-align:start}
+.cc-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:#94a3b8;margin-bottom:6px}
+.cc-cat{border:1px solid;border-radius:999px;padding:1px 9px;font-weight:800;font-size:10px}
+.cc-body{white-space:pre-wrap;font-size:13px;color:#e2e8f0;margin-top:4px;line-height:1.7}
+.cc-to{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:8px;font-size:11px;color:#94a3b8}
+.cc-av{width:30px;height:30px;border-radius:50%;background:#1e293b;color:#fbbf24;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}
+.tz-w{margin-top:8px;border:1px solid #334155;border-radius:14px;padding:8px;background:linear-gradient(135deg,#0f172a,#111c34)}
+.tz-seg{display:flex;gap:6px}
+.tz-o{flex:1;padding:6px 4px;border-radius:10px;border:1px solid #334155;color:#cbd5e1;font-size:11px;font-weight:800;background:#0b1220;white-space:nowrap}
+.tz-o.on{background:linear-gradient(135deg,#f59e0b,#fbbf24);border-color:#f59e0b;color:#0f172a}
+.tz-o.soon{border-style:dashed;opacity:.45;cursor:not-allowed}
+.tz-card{margin-top:8px;padding:8px 10px;border-radius:10px;background:rgba(15,23,42,.7);border:1px solid #1e293b;line-height:1.7}
+.tz-main{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:#f1f5f9}
+.tz-tag{font-size:10px;font-weight:800;padding:1px 8px;border-radius:999px}
+.tz-sub{font-size:11px;color:#94a3b8}
+.tz-live{font-size:13px;font-weight:800;color:#34d399;margin-top:2px}
+.tz-note{font-size:10px;color:#64748b;margin-top:2px}`;
+  document.head.appendChild(s);
+})();
+
+/* ---------- categories ---------- */
+const CC_CATS = { financial: { t: 'Financial · مالي', c: '#10b981' }, system: { t: 'System · سيستم', c: '#3b82f6' }, general: { t: 'General · عام', c: '#94a3b8' } };
+function ccCatOf(n) {   /* explicit category first; older notifications are sorted automatically */
+  const m = (n && n.meta) || {};
+  if (m.category && CC_CATS[m.category]) return m.category;
+  if (m.thanks_month || m.discount) return 'financial';
+  if (n && n.kind === 'word_ready') return 'system';
+  if (m.maintenance || m.update) return 'system';
+  return 'general';
+}
+const ccChipStyle = (col, on) => `border:1px solid ${col};border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;background:${on ? col : 'transparent'};color:${on ? '#0f172a' : col}`;
+function ccCatChips(id, val) {
+  return `<div id="${id}" data-v="${esc(val)}" style="display:flex;gap:6px;flex-wrap:wrap">${Object.entries(CC_CATS).map(([k, c]) => `<button type="button" data-v="${k}" onclick="ccCatPick('${id}','${k}')" style="${ccChipStyle(c.c, k === val)}">${esc(c.t)}</button>`).join('')}</div>`;
+}
+window.ccCatPick = function (id, v) {
+  const el = $id(id); if (!el || !CC_CATS[v]) return; el.dataset.v = v;
+  el.querySelectorAll('button').forEach(b => b.setAttribute('style', ccChipStyle(CC_CATS[b.dataset.v].c, b.dataset.v === v)));
+};
+const ccCatVal = id => { const el = $id(id); return el && CC_CATS[el.dataset.v] ? el.dataset.v : 'general'; };
+
+/* the category picker inside the Notification window */
+{
+  const prevOpenNotify = openNotify;
+  openNotify = async function () {
+    const r = await prevOpenNotify.apply(this, arguments);
+    const t = $id('ntTitle');
+    if (t && !$id('ntCat')) {
+      const lbl = t.previousElementSibling;
+      const html = `<span class="ds-lbl">النوع · Category</span>${ccCatChips('ntCat', 'general')}<div style="height:8px"></div>`;
+      if (lbl) lbl.insertAdjacentHTML('beforebegin', html); else t.insertAdjacentHTML('beforebegin', html);
+    }
+    return r;
+  };
+  const prevNtEdit = window.ntEdit;
+  window.ntEdit = function (id) {
+    prevNtEdit.apply(this, arguments);
+    const n = (window.ntRows || {})[id]; if (n) ccCatPick('ntCat', ccCatOf(n));
+  };
+}
+window.ntSend = async function () {
+  const c = ntCur; if (!c) return;
+  const body = $id('ntBody').value.trim(), title = $id('ntTitle').value.trim(), cat = ccCatVal('ntCat');
+  if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
+  const btn = $id('ntSend'); btn.disabled = true;
+  try {
+    if (c.editId) {
+      const old = (window.ntRows || {})[c.editId] || {};
+      await sbFetch(`notifications?id=eq.${enc(c.editId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title: title || null, body, meta: Object.assign({}, old.meta || {}, { category: cat }) }) });
+      showToast('اتعدّل الإشعار ✓'); ntEditDone();
+    } else {
+      await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body, meta: { category: cat } }))) });
+      showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+    }
+    $id('ntBody').value = ''; $id('ntTitle').value = ''; dsRefreshPf('ntBody'); ccCatPick('ntCat', 'general');
+    const pf = $id('ntBody_pf'); if (pf) { pf.textContent = PF_EMPTY; pf.classList.add('empty'); }
+    ntLoadSent();
+  } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 02_notifications.sql لو لسه)', true); }
+  btn.disabled = false;
+};
+
+/* ---------- Contact Center ---------- */
+WSD.cc = { t: 'Contact Center', i: 'fa-headset', w: 2 };
+WS_REFRESH.cc = 1;
+{
+  const prevLoadCC = wsLoad;
+  wsLoad = function (k) { if (k === 'cc') return ccRender(); return prevLoadCC(k); };
+  const prevShowCC = showAdminView;
+  showAdminView = function (v) { if (v === 'reports') { openWin('cc'); ccTab('in'); return; } return prevShowCC.apply(this, arguments); };
+}
+const CC_TZ = 'Africa/Cairo', CC_WD = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const cc = { tab: 'out', range: 'month', from: '', to: '', q: '', cat: 'all', out: [], inn: [], names: new Map(), limit: 200, groups: new Map() };
+const ccDate = v => { const s = String(v || ''), d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z'); return isNaN(d) ? null : d; };
+const ccDayKey = v => { const d = ccDate(v); return d ? d.toLocaleDateString('en-CA', { timeZone: CC_TZ }) : ''; };
+const ccTime = v => { const d = ccDate(v); return d ? d.toLocaleTimeString('en-US', { timeZone: CC_TZ, hour: 'numeric', minute: '2-digit' }) : ''; };
+const ccDow = key => new Date(key + 'T12:00:00Z').getUTCDay();
+function ccDayLabel(key) {
+  const t = dsToday(), [y, m, d] = key.split('-'), wd = CC_WD[ccDow(key)], dmy = `${d}/${m}/${y}`;
+  if (key === t) return `النهارده · ${wd} ${dmy}`;
+  if (key === dsAddDays(t, -1)) return `إمبارح · ${wd} ${dmy}`;
+  return `${wd} · ${dmy}`;
+}
+const CC_RANGES = [['all', 'الكل'], ['today', 'النهارده'], ['yest', 'إمبارح'], ['week', 'الأسبوع ده'], ['lweek', 'الأسبوع اللي فات'], ['month', 'الشهر ده'], ['lmonth', 'الشهر اللي فات']];
+function ccBounds() {   /* inclusive Cairo day keys; the week starts on Saturday */
+  const t = dsToday(), r = cc.range;
+  if (r === 'custom') return [cc.from || '0000-00-00', cc.to || '9999-99-99'];
+  if (r === 'today') return [t, t];
+  if (r === 'yest') { const y = dsAddDays(t, -1); return [y, y]; }
+  const ws = dsAddDays(t, -((ccDow(t) + 1) % 7));
+  if (r === 'week') return [ws, dsAddDays(ws, 6)];
+  if (r === 'lweek') return [dsAddDays(ws, -7), dsAddDays(ws, -1)];
+  const m0 = t.slice(0, 8) + '01';
+  if (r === 'month') return [m0, t];
+  if (r === 'lmonth') { const e = dsAddDays(m0, -1); return [e.slice(0, 8) + '01', e]; }
+  return ['0000-00-00', '9999-99-99'];
+}
+const ccSender = r => r.name || r.trainee_name || r.trainee || '—';
+
+function ccGroupOut(rows) {   /* one message sent to many trainees at once = ONE card */
+  const m = new Map();
+  rows.forEach(n => {
+    const k = [n.kind, n.title || '', n.body || '', (n.meta || {}).word || '', String(n.created_at || '').slice(0, 16)].join('\u0001');
+    let g = m.get(k);
+    if (!g) { g = { rows: [], first: n, cat: ccCatOf(n), names: [] }; m.set(k, g); }
+    g.rows.push(n); g.names.push(cc.names.get(String(n.trainee_id)) || 'طالب #' + n.trainee_id);
+  });
+  return [...m.values()].map(g => Object.assign(g, {
+    search: [g.first.title, g.first.body, (g.first.meta || {}).word, g.names.join(' ')].join(' ').toLowerCase()
+  }));
+}
+function ccFiltered(tab) {
+  const [a, b] = ccBounds(), q = cc.q.trim().toLowerCase();
+  const inR = v => { const k = ccDayKey(v); return k && k >= a && k <= b; };
+  if (tab === 'in') return cc.inn.filter(r => inR(r.created_at) && (!q || [ccSender(r), r.page, r.problem].join(' ').toLowerCase().includes(q)));
+  return ccGroupOut(cc.out.filter(n => inR(n.created_at))).filter(g => (cc.cat === 'all' || g.cat === cc.cat) && (!q || g.search.includes(q)));
+}
+function ccByDay(items, iso) {
+  const out = []; let cur = null;
+  items.forEach(it => { const k = ccDayKey(iso(it)); if (!cur || cur.k !== k) { cur = { k, items: [] }; out.push(cur); } cur.items.push(it); });
+  return out;
+}
+function ccOutCard(g, gid) {
+  const n = g.first, c = CC_CATS[g.cat], read = g.rows.filter(x => x.read_at).length;
+  const title = n.kind === 'word_ready' ? 'كلمة جاهزة' : (n.title || ''), body = n.kind === 'word_ready' ? ((n.meta || {}).word || '') : (n.body || '');
+  const shown = g.names.slice(0, 8), more = g.names.length - shown.length;
+  return `<div class="cc-card"><div class="cc-meta">
+      <span class="cc-cat" style="color:${c.c};border-color:${c.c};background:${c.c}22">${esc(c.t)}</span><span>${esc(ccTime(n.created_at))}</span><span style="flex:1"></span>
+      ${n.kind === 'message' ? `<button type="button" class="ds-b blue" title="تعديل" onclick="ccEdit('${gid}')"><i class="fa-solid fa-pen"></i></button>` : ''}
+      <button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="ccDelOut('${gid}')"><i class="fa-solid fa-trash"></i></button></div>
+    ${title ? `<b dir="auto" style="font-size:13px;color:#fbbf24">${esc(title)}</b>` : ''}
+    ${body ? `<div class="cc-body" dir="auto">${esc(body)}</div>` : ''}
+    <div class="cc-to"><span>إلى:</span>${shown.map(x => `<span class="nt-chip" dir="auto">${esc(x)}</span>`).join('')}${more > 0 ? `<span>+${more}</span>` : ''}
+      <span style="margin-inline-start:auto">${read ? '✓ ' : ''}قرأها ${read}/${g.rows.length}</span></div></div>`;
+}
+function ccInCard(r) {
+  const nm = ccSender(r);
+  return `<div class="cc-card"><div class="cc-meta"><div class="cc-av">${esc(String(nm).trim().charAt(0).toUpperCase() || '?')}</div>
+      <div style="flex:1;min-width:0"><b dir="auto" style="color:#f1f5f9;font-size:13px">${esc(nm)}</b><div>${esc(CC_WD[ccDow(ccDayKey(r.created_at))] || '')} · ${esc(ccDayKey(r.created_at))} · ${esc(ccTime(r.created_at))}${r.page ? ' · ' + esc(r.page) : ''}</div></div>
+      <button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="ccDelIn('${esc(r.id)}')"><i class="fa-solid fa-trash"></i></button></div>
+    <div class="cc-body" dir="auto">${esc(r.problem || '')}</div></div>`;
+}
+function ccPaint() {
+  const list = $id('ccList'); if (!list) return;
+  const outG = ccFiltered('out'), inR = ccFiltered('in');
+  $id('ccCntOut').textContent = outG.length; $id('ccCntIn').textContent = inR.length;
+  document.querySelectorAll('#ccFrame .cc-tab').forEach(b => b.classList.toggle('on', b.dataset.t === cc.tab));
+  document.querySelectorAll('#ccRanges .cc-chip').forEach(b => b.classList.toggle('on', b.dataset.r === cc.range));
+  document.querySelectorAll('#ccCatRow .cc-chip').forEach(b => b.classList.toggle('on', b.dataset.c === cc.cat));
+  $id('ccCatRow').style.display = cc.tab === 'out' ? '' : 'none';
+  cc.groups = new Map(); let shownN = 0, html = '';
+  const items = cc.tab === 'out' ? outG : inR;
+  if (!items.length) { list.innerHTML = `<div class="tha-note">${cc.tab === 'out' ? 'مفيش إشعارات مبعوتة في الفترة دي.' : 'مفيش بلاغات في الفترة دي.'}</div>`; return; }
+  const days = ccByDay(items, it => cc.tab === 'out' ? it.first.created_at : it.created_at);
+  for (const d of days) {
+    if (shownN >= cc.limit) break;
+    const part = d.items.slice(0, cc.limit - shownN); shownN += part.length;
+    html += `<div class="cc-day"><span>${esc(ccDayLabel(d.k))} · ${d.items.length}</span></div>`
+      + part.map(it => { if (cc.tab !== 'out') return ccInCard(it); const gid = 'g' + cc.groups.size; cc.groups.set(gid, it); return ccOutCard(it, gid); }).join('');
+  }
+  if (shownN < items.length) html += `<div style="text-align:center;margin:10px"><button type="button" class="ds-b ghost" onclick="cc.limit+=200;ccPaint()">عرض المزيد (${items.length - shownN})</button></div>`;
+  list.innerHTML = html;
+}
+window.cc = cc; window.ccPaint = ccPaint;
+window.ccTab = function (t) { cc.tab = t; ccPaint(); };
+window.ccRange = function (r) { cc.range = r; cc.from = cc.to = ''; const a = $id('ccFrom'), b = $id('ccTo'); if (a) a.value = ''; if (b) b.value = ''; cc.limit = 200; ccPaint(); };
+window.ccDates = function () { cc.from = $id('ccFrom').value; cc.to = $id('ccTo').value; cc.range = (cc.from || cc.to) ? 'custom' : 'all'; cc.limit = 200; ccPaint(); };
+window.ccQ = function (v) { cc.q = String(v || ''); cc.limit = 200; ccPaint(); };
+window.ccCat = function (c) { cc.cat = c; cc.limit = 200; ccPaint(); };
+async function ccRender() {
+  const w = WSE.cc; if (!w) return;
+  if (!$id('ccFrame')) {
+    w.body.innerHTML = `<div id="ccFrame">
+      <div class="cc-tabs"><button type="button" class="cc-tab" data-t="out" onclick="ccTab('out')"><i class="fa-solid fa-paper-plane"></i> Outbound <small id="ccCntOut">0</small></button>
+        <button type="button" class="cc-tab" data-t="in" onclick="ccTab('in')"><i class="fa-solid fa-inbox"></i> Inbound <small id="ccCntIn">0</small></button></div>
+      <div class="cc-fl">
+        <div class="cc-row" id="ccRanges">${CC_RANGES.map(([k, l]) => `<button type="button" class="cc-chip" data-r="${k}" onclick="ccRange('${k}')">${l}</button>`).join('')}</div>
+        <div class="cc-row"><span style="font-size:11px;color:#94a3b8">من</span><input type="date" id="ccFrom" class="cc-in" onchange="ccDates()"><span style="font-size:11px;color:#94a3b8">إلى</span><input type="date" id="ccTo" class="cc-in" onchange="ccDates()">
+          <input id="ccQ" class="cc-in" dir="auto" placeholder="ابحث بالاسم أو النص..." style="flex:1;min-width:150px" oninput="ccQ(this.value)"></div>
+        <div class="cc-row" id="ccCatRow"><button type="button" class="cc-chip" data-c="all" onclick="ccCat('all')">كل الأنواع</button>${Object.entries(CC_CATS).map(([k, c]) => `<button type="button" class="cc-chip" data-c="${k}" onclick="ccCat('${k}')">${esc(c.t)}</button>`).join('')}</div></div>
+      <div id="ccList"></div></div>`;
+  }
+  $id('ccList').innerHTML = '<div class="tha-note">جاري التحميل...</div>';
+  const [out, inn, studs] = await Promise.all([
+    fetchAllRows('notifications?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل الإشعارات: ' + e.message, true); return []; }),
+    fetchAllRows('reports?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل البلاغات: ' + e.message, true); return []; }),
+    fetchAllRows(`${PROFILES_TABLE}?select=id,trainee`).catch(() => [])
+  ]);
+  cc.out = out; cc.inn = inn; cc.names = new Map(studs.map(s => [String(s.id), s.trainee || '']));
+  ccPaint();
+}
+
+/* edit / delete (Outbound) */
+window.ccEdit = function (gid) {
+  const g = cc.groups.get(gid); if (!g) return;
+  const n = g.first, old = document.getElementById('ccEdOv'); if (old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'ccEdOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:200010;background:rgba(2,6,23,.7);display:flex;align-items:center;justify-content:center;padding:12px';
+  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `<div style="width:min(520px,100%);max-height:92vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:16px;padding:14px;color:#e2e8f0">
+    <b style="color:#fbbf24;font-size:13px">تعديل الإشعار · ${g.rows.length} طالب</b>
+    <div class="ds-lbl" style="margin-top:10px">النوع · Category</div>${ccCatChips('ccEdCat', g.cat)}
+    <div class="ds-lbl" style="margin-top:10px">العنوان</div><input id="ccEdTitle" class="ds-in" dir="auto" maxlength="80">
+    <div class="ds-lbl" style="margin-top:10px">الرسالة</div><textarea id="ccEdBody" class="ds-in" dir="auto" rows="6" style="width:100%;box-sizing:border-box"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="ds-b green" id="ccEdSave">حفظ</button><button type="button" class="ds-b ghost" onclick="document.getElementById('ccEdOv').remove()">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);
+  $id('ccEdTitle').value = n.title || ''; $id('ccEdBody').value = n.body || '';
+  $id('ccEdSave').onclick = async () => {
+    const body = $id('ccEdBody').value.trim(), title = $id('ccEdTitle').value.trim(), cat = ccCatVal('ccEdCat');
+    if (!body) { showToast('الرسالة فاضية', true, true); return; }
+    $id('ccEdSave').disabled = true;
+    try {
+      const ids = g.rows.map(r => r.id), meta = Object.assign({}, n.meta || {}, { category: cat });
+      await mutate(`notifications?id=in.(${ids.map(enc).join(',')})`, 'PATCH', { title: title || null, body, meta });
+      g.rows.forEach(r => { r.title = title || null; r.body = body; r.meta = meta; });
+      ov.remove(); ccPaint(); showToast('اتعدّل الإشعار ✓');
+    } catch (e) { showToast('فشل التعديل: ' + e.message, true); $id('ccEdSave').disabled = false; }
+  };
+};
+window.ccDelOut = async function (gid) {
+  const g = cc.groups.get(gid); if (!g) return;
+  if (!confirm(`تمسح الإشعار ده؟${g.rows.length > 1 ? ' (عند ' + g.rows.length + ' طالب)' : ''} هيختفي من داشبورد الطالب.`)) return;
+  try {
+    const ids = g.rows.map(r => r.id);
+    await mutate(`notifications?id=in.(${ids.map(enc).join(',')})`, 'DELETE');
+    const gone = new Set(ids.map(String)); cc.out = cc.out.filter(r => !gone.has(String(r.id)));
+    ccPaint(); showToast('اتمسح الإشعار ✓');
+  } catch (e) { showToast('فشل المسح: ' + e.message, true); }
+};
+window.ccDelIn = async function (id) {
+  if (!confirm('تمسح البلاغ ده؟')) return;
+  try { await mutate(`reports?id=eq.${enc(id)}`, 'DELETE'); cc.inn = cc.inn.filter(r => String(r.id) !== String(id)); ccPaint(); showToast('اتمسح ✓'); }
+  catch (e) { showToast('فشل المسح: ' + e.message, true); }
+};
+
+/* the Reports launcher button becomes Contact Center (the toolbar lives in the page HTML, so it is changed from here) */
+function ccInstallBtn(force) {
+  if (document.querySelector('.ws-lb[data-ws="cc"]')) return true;
+  const rep = document.querySelector('.ws-lb[data-ws="rep"]');
+  const set = b => { b.removeAttribute('onclick'); b.setAttribute('data-ws', 'cc'); b.classList.remove('on'); b.type = 'button'; b.innerHTML = '<i class="fa-solid fa-headset"></i> Contact Center'; b.onclick = () => toggleWin('cc'); };
+  if (rep) { set(rep); return true; }
+  if (!force) return false;
+  const hl = document.querySelector('.ws-lb[data-ws="hl"]'); if (!hl) return false;
+  const b = hl.cloneNode(false); b.removeAttribute('id'); set(b); hl.insertAdjacentElement('afterend', b); return true;
+}
+{
+  let tries = 0; const iv = setInterval(() => { if (ccInstallBtn(tries > 20) || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpenMain2 = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain2.apply(this, arguments); ccInstallBtn(); return r; };
+}
+
+/* ---------- session time-zone widget (Profile, right under "Session time") ---------- */
+const TZ_OPTS = [
+  { id: 'Africa/Cairo', flag: '🇪🇬', short: 'القاهرة' },
+  { id: 'Asia/Riyadh', flag: '🇸🇦', short: 'مكة المكرمة' }
+];   /* a third zone can be added here later: { id: 'Asia/Dubai', ... } + its case in tzInfo */
+function tzOffsetMin(zone, d) {
+  d = d || new Date(); const g = {};
+  new Intl.DateTimeFormat('en-GB', { timeZone: zone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(d).forEach(x => g[x.type] = +x.value);
+  return Math.round((Date.UTC(g.year, g.month - 1, g.day, g.hour, g.minute, g.second) - Math.floor(d.getTime() / 1000) * 1000) / 6e4);
+}
+const tzLastDow = (y, m, dow) => { const d = new Date(Date.UTC(y, m, 0)); while (d.getUTCDay() !== dow) d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+function tzInfo(zone, d) {
+  d = d || new Date();
+  const off = tzOffsetMin(zone, d), h = Math.floor(Math.abs(off) / 60), m = Math.abs(off) % 60, utc = 'UTC' + (off < 0 ? '−' : '+') + h + (m ? ':' + String(m).padStart(2, '0') : '');
+  if (zone === 'Africa/Cairo') {
+    /* Egypt: summer time from the last Friday of April to the last Thursday of October (2023 law) */
+    const dst = off === 180, y = +dmyYear(d), fmt = k => k.split('-').reverse().join('/');
+    let next;
+    if (dst) next = `التوقيت الشتوي من يوم الجمعة ${fmt(dsAddDays(tzLastDow(y, 10, 4), 1))}`;
+    else { const a = tzLastDow(y, 4, 5); next = `التوقيت الصيفي من يوم الجمعة ${fmt(a > tzDayKey(d) ? a : tzLastDow(y + 1, 4, 5))}`; }
+    return { title: 'توقيت القاهرة (مصر)', tag: dst ? 'التوقيت الصيفي' : 'التوقيت الشتوي', color: dst ? '#f59e0b' : '#38bdf8',
+      en: dst ? 'Eastern European Summer Time (EEST)' : 'Eastern European Time (EET)', utc, note: 'الجاي: ' + next };
+  }
+  if (zone === 'Asia/Riyadh') return { title: 'توقيت مكة المكرمة (السعودية)', tag: 'التوقيت الرسمي', color: '#34d399', en: 'Arabia Standard Time (AST)', utc, note: 'ثابت طول السنة · مفيش تغيير صيفي وشتوي' };
+  return { title: zone, tag: '', color: '#94a3b8', en: zone, utc, note: '' };
+}
+const dmyYear = d => d.toLocaleDateString('en-CA', { timeZone: CC_TZ }).slice(0, 4);
+const tzDayKey = d => d.toLocaleDateString('en-CA', { timeZone: CC_TZ });
+const tzLive = zone => { const d = new Date(); return '🕒 ' + d.toLocaleTimeString('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit' }) + ' · ' + d.toLocaleDateString('ar-EG-u-nu-latn', { timeZone: zone, weekday: 'long', day: 'numeric', month: 'long' }); };
+function tzCardHtml(zone) {
+  const i = tzInfo(zone);
+  return `<div class="tz-main"><b>${esc(i.title)}</b><span class="tz-tag" style="background:${i.color}26;color:${i.color};border:1px solid ${i.color}">${esc(i.tag)}</span></div>
+    <div class="tz-sub" dir="ltr" style="text-align:start">${esc(i.en)} · ${esc(i.utc)}</div>
+    <div class="tz-live" data-z="${esc(zone)}">${esc(tzLive(zone))}</div>${i.note ? `<div class="tz-note">${esc(i.note)}</div>` : ''}`;
+}
+function tzWidgetHtml(r) {
+  const cur = TZ_OPTS.some(o => o.id === r.session_tz) ? r.session_tz : 'Africa/Cairo', id = esc(r.id);
+  return `<div class="tz-w" data-id="${id}"><div style="font-size:10px;color:#94a3b8;margin-bottom:6px">الوقت اللي بيظهر في داشبورد الطالب · بتوقيت</div>
+    <div class="tz-seg">${TZ_OPTS.map(o => `<button type="button" class="tz-o${o.id === cur ? ' on' : ''}" onclick="tzPick('${id}','${o.id}')">${o.flag} ${esc(o.short)}</button>`).join('')}<button type="button" class="tz-o soon" disabled title="مكان محجوز لتوقيت تالت">＋ قريبًا</button></div>
+    <div class="tz-card" id="tzCard">${tzCardHtml(cur)}</div></div>`;
+}
+window.tzPick = async function (id, zone) {
+  try {
+    const rows = await mutate(`${PROFILES_TABLE}?id=eq.${enc(id)}`, 'PATCH', { session_tz: zone, updated_at: new Date().toISOString() });
+    rows.forEach(r => { const i = mpState.list.findIndex(x => String(x.id) === String(r.id)); if (i >= 0) mpState.list[i] = r; });
+    const w = document.querySelector(`.tz-w[data-id="${CSS.escape(String(id))}"]`);
+    if (w) { w.querySelectorAll('.tz-o:not(.soon)').forEach((b, i) => b.classList.toggle('on', TZ_OPTS[i].id === zone)); $id('tzCard').innerHTML = tzCardHtml(zone); }
+    showToast('اتحفظ التوقيت ✓ · ' + tzInfo(zone).title);
+  } catch (e) { showToast('فشل حفظ التوقيت: ' + e.message + ' (شغّل 09_contact_center.sql لو لسه)', true); }
+};
+{
+  const prevOpenTz = mpOpen;
+  mpOpen = function (id) {
+    prevOpenTz.apply(this, arguments);
+    if (!mpCur) return;
+    const r = mpState.list.find(x => String(x.id) === String(id)), hid = $id(mpId('session_time')); if (!r || !hid) return;
+    const host = hid.parentElement; host.querySelectorAll('.tz-w').forEach(e => e.remove());
+    host.insertAdjacentHTML('beforeend', tzWidgetHtml(r));
+  };
+  setInterval(() => document.querySelectorAll('.tz-live').forEach(e => { e.textContent = tzLive(e.dataset.z); }), 20000);
+}
