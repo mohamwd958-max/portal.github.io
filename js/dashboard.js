@@ -563,6 +563,11 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;margin:0 auto!important;transform:none!important;width:min(100%,520px)!important;max-width:none!important;height:calc(54px + env(safe-area-inset-bottom,0px))!important;min-height:0!important;box-sizing:border-box!important;padding:0 8px env(safe-area-inset-bottom,0px)!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;align-items:center!important;gap:0!important;border-radius:16px 16px 0 0!important;border-bottom-width:0!important}
 @media(max-width:600px){html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{width:100%!important;border-radius:0!important;border-left-width:0!important;border-right-width:0!important}}
 html #mobileFloatingBar .bar-divider{display:none!important}
+/* one icon-to-circle ratio everywhere (about 45%): bar buttons and pop-out buttons */
+html #mobileFloatingBar svg.asv,html #mobileFloatingBar [data-bk="assist"] svg{width:16px!important;height:16px!important}
+html #langPop .lgi>i,html #langPop .lgi .plS{font-size:20px!important}
+html #langPop .lgi .plA svg{width:21px!important;height:21px!important}
+html #langPop .lgi svg:not(.asv){width:21px!important;height:21px!important}
 html #thHint .thnx,html[data-bar="bottom"] #thHint .thnx{bottom:calc(66px + env(safe-area-inset-bottom,0px))!important}
 /* each of the 3 sections sits in the vertical middle of the screen */
 html .thsec{justify-content:center!important}
