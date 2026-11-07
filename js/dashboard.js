@@ -26,7 +26,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -614,7 +614,8 @@ async function sendReq() {
   if (ty === 'session') { const d = RQT.en.durs.find(x => x[0] === fv); tail = `\n\n[EXPECTED DURATION] ${d ? d[1] : fv}`; }
   const msg = `[REQUEST] ${what}\n[DETAILS] ${det}${tail}`.slice(0, 2000);
   const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: ty, p_message: msg });
-  if (ok === true) { $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); load(); }
+  if (ok === true) { rpc('trainee_submit_report', { p_token: tok(), p_type: ty, p_title: what.slice(0, 140), p_details: det.slice(0, 1500), p_follow: fv || null }).catch(() => null);   // also saved, field by field, in the trainee_reports table (silent: the old request above keeps working either way)
+    $('rqWhat').value = ''; $('rqMsg').value = ''; rqFollowUI(true); load(); }
 }
 window.addEventListener('DOMContentLoaded', () => {
   try { if (localStorage.getItem('thabit_theme') === 'light') { $('bodyRoot').classList.add('light-theme'); $('themeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {}
