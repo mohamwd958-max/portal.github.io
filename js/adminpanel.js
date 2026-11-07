@@ -2832,13 +2832,17 @@ function payBill(r) {
   const m = t.match(/\d+(?:[.٫]\d+)?/g); if (!m) return null;
   return Math.max(...m.map(x => parseFloat(x.replace('٫', '.'))));
 }
-const payDue = r => { const b = payBill(r); return b === null ? null : payRound(b + payNum(r.past_due)); };
+/* discounts: basic_info.discounts (jsonb array) = [{id, type:'once'|'frequent', month:'YYYY-MM', amount, percent, at}] */
+const payDiscList = r => Array.isArray(r && r.discounts) ? r.discounts : [];
+const payDisc = (r, m) => payRound(payDiscList(r).filter(d => d && d.month === (m || payMonth())).reduce((t, d) => t + payNum(d.amount), 0));
+const payDue = r => { const b = payBill(r); return b === null ? null : payRound(b + payNum(r.past_due) - payDisc(r)); };
 const payPaidAmt = r => r.paid_amount != null && r.paid_amount !== '' ? payNum(r.paid_amount) : (payBill(r) || 0);
 function payBalText(v) { v = payNum(v); return v > 0 ? 'عليه باس دو ' + payFmt(v) : v < 0 ? 'ليه رصيد ' + payFmt(-v) : 'خالص (صفر)'; }
 function payTag(r, paid) {
   const pd = payNum(r.past_due);
   return `<small style="color:${paid ? '#34d399' : '#94a3b8'}">${paid ? '✓ دفع ' + esc(payMonth()) + (r.paid_amount != null ? ' · ' + esc(payFmt(r.paid_amount)) : '') : 'لم يدفع ' + esc(payMonth())}</small>`
-    + (pd ? `<small style="color:${pd > 0 ? '#fb7185' : '#34d399'}">${esc(payBalText(pd))}</small>` : '');
+    + (pd ? `<small style="color:${pd > 0 ? '#fb7185' : '#34d399'}">${esc(payBalText(pd))}</small>` : '')
+    + (!paid && payDisc(r) ? `<small style="color:#34d399">خصم ${esc(payMonth())}: −${esc(payFmt(payDisc(r)))}</small>` : '');
 }
 
 /* items: [{id, amount, date}] */
@@ -2854,7 +2858,7 @@ async function paySet(items, paid) {
     }
     const b = { paid_month: month, paid_at: it.date ? it.date + 'T12:00:00Z' : now, paid_amount: it.amount, updated_at: now };
     const bill = payBill(r);
-    if (bill !== null) { b.pre_pay_due = payNum(r.past_due); b.past_due = payRound(bill + payNum(r.past_due) - it.amount); }
+    if (bill !== null) { b.pre_pay_due = payNum(r.past_due); b.past_due = payRound(bill + payNum(r.past_due) - payDisc(r, month) - it.amount); }
     return b;
   };
   let rows;
@@ -2978,10 +2982,13 @@ function payBoxPaint() {
       ${payCalHtml(dsToday())}`;
   }
   box.innerHTML = `<h5>Payment · الدفع (${esc(payMonth())})</h5>
+    ${p7ActionsHtml(r)}
     ${row('الاشتراك الشهري', bill === null ? 'مفيش رقم في الـ Subscription' : esc(payFmt(bill)))}
     ${row('الباس دو / الرصيد', esc(payBalText(pd)))}
+    ${p7DiscRowHtml(r)}
     ${due === null ? '' : row('المطلوب دلوقتي', esc(payFmt(Math.max(due, 0))))}
     ${pdBox}${main}
+    ${p7ListHtml(r)}
     <div style="font-size:10px;color:#64748b;margin-top:8px">اكتب اللي دفعه فعلاً: لو أقل من المطلوب الباقي بيتحط باس دو لوحده، ولو أكتر بيتحط رصيد ليه بيتخصم الشهر الجاي. بعد الدفع بيوصله إشعار شكر مرة واحدة، وبيرجع "لم يدفع" لوحده الشهر الجاي.</div>`;
 }
 {
@@ -3165,7 +3172,7 @@ async function hlRender() {
   const exps = act.map(r => {
     const bill = payBill(r); if (bill === null) return { r, bill: null, pd: 0, exp: 0 };
     const pd = isPaid(r) ? (r.pre_pay_due != null ? payNum(r.pre_pay_due) : 0) : payNum(r.past_due);
-    return { r, bill, pd, exp: Math.max(payRound(bill + pd), 0) };
+    return { r, bill, pd, exp: Math.max(payRound(bill + pd - payDisc(r)), 0) };
   });
   const eBase = payRound(exps.reduce((t, x) => t + (x.bill || 0), 0));
   const eOwe = payRound(exps.reduce((t, x) => t + Math.max(x.pd, 0), 0));
@@ -3829,4 +3836,179 @@ window.moSend = async function () {
     showToast(`اتبعتت ${rows.length} تاسك (تطبيقات) ✓` + (skipped.length ? ` · الخانات ممتلئة عند: ${skipped.join('، ')}` : ''), skipped.length > 0, true);
   } catch (e) { showToast('فشل الإرسال: ' + e.message, true); }
   btn.disabled = false;
+};
+
+/* ==========================================================
+   Patch 7: "Actions" menu in the Profile > Payment box
+   - Discount > Once      : amount -> applies to this month's due (or next month if already paid / nothing due)
+   - Discount > Frequent  : amount + pick months (this year + next year)
+   - Penalty              : empty for now
+   Needs 08_discounts.sql (basic_info.discounts jsonb). Percent = amount / monthly bill.
+   ========================================================== */
+const P7_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const p7Next = m => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; };
+const p7Name = m => { const [y, mo] = m.split('-').map(Number); return P7_MONTHS[mo - 1] + ' ' + y; };
+const p7Pct = (amount, bill) => bill ? Math.round(amount / bill * 1000) / 10 : null;
+const p7Row = id => mpState.list.find(x => String(x.id) === String(id));
+const p7Tag = d => (d.percent != null ? ' (' + payFmt(d.percent) + '%)' : '');
+let p7 = null;
+
+function p7ActionsHtml(r) {
+  const id = esc(r.id), b = 'style="width:100%;text-align:start"';
+  return `<div style="margin:8px 0">
+    <button type="button" class="ds-b amber" onclick="p7Toggle('p7Menu')">Actions ▾</button>
+    <div id="p7Menu" style="display:none;margin-top:6px;border:1px solid #334155;border-radius:10px;padding:6px;background:#0f172a;max-width:230px">
+      <button type="button" class="ds-b ghost" ${b} onclick="p7Toggle('p7Disc')">Discount ▸</button>
+      <div id="p7Disc" style="display:none;flex-direction:column;gap:6px;margin:6px 0 6px;padding-inline-start:14px">
+        <button type="button" class="ds-b green" ${b} onclick="p7Open('${id}','once')">Once</button>
+        <button type="button" class="ds-b blue" ${b} onclick="p7Open('${id}','frequent')">Frequent</button></div>
+      <button type="button" class="ds-b ghost" ${b} onclick="showToast('Penalty لسه فاضي، هنضيفه بعدين', true, true)">Penalty</button>
+    </div></div>`;
+}
+window.p7Toggle = function (id) {
+  const e = document.getElementById(id); if (!e) return;
+  e.style.display = e.style.display === 'none' ? (id === 'p7Disc' ? 'flex' : 'block') : 'none';
+};
+function p7DiscRowHtml(r) {
+  const d = payDisc(r); if (!d) return '';
+  return `<div class="p5-r"><span>خصم الشهر ده</span><b style="color:#34d399">−${esc(payFmt(d))}${esc(p7Pct(d, payBill(r)) != null ? ' (' + payFmt(p7Pct(d, payBill(r))) + '%)' : '')}</b></div>`;
+}
+function p7ListHtml(r) {
+  const list = payDiscList(r).slice().sort((a, b) => String(a.month).localeCompare(String(b.month))), cur = payMonth();
+  if (!list.length) return '';
+  return `<div style="margin:10px 0 2px"><div style="font-size:10px;color:#94a3b8;margin-bottom:4px">الخصومات المسجّلة</div>${list.map(d =>
+    `<span class="nt-chip" dir="auto" style="${d.month < cur ? 'opacity:.5' : ''}">${esc(p7Name(d.month))} · ${d.type === 'once' ? 'Once' : 'Frequent'} · −${esc(payFmt(d.amount))}${esc(p7Tag(d))}<button type="button" title="حذف" onclick="p7Del('${esc(r.id)}','${esc(d.id)}')" style="margin-inline-start:6px;color:#fb7185">✕</button></span>`).join('')}</div>`;
+}
+
+/* ---- the dialog ---- */
+function p7Close() { const o = document.getElementById('p7Ov'); if (o) o.remove(); p7 = null; }
+window.p7Close = p7Close;
+window.p7Open = function (id, type) {
+  const r = p7Row(id); if (!r) return;
+  p7Close();
+  p7 = { id: String(id), type, months: new Set() };
+  const ov = document.createElement('div'); ov.id = 'p7Ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:200010;background:rgba(2,6,23,.7);display:flex;align-items:center;justify-content:center;padding:12px';
+  ov.addEventListener('mousedown', e => { if (e.target === ov) p7Close(); });
+  ov.innerHTML = `<div style="width:min(470px,100%);max-height:92vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:16px;padding:14px;color:#e2e8f0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+      <b style="color:#fbbf24;font-size:13px" dir="auto">Discount · ${type === 'once' ? 'Once · مرة واحدة' : 'Frequent · متكرر'} · ${esc(r.trainee || '')}</b>
+      <button type="button" class="ds-b ghost" onclick="p7Close()">✕</button></div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${type === 'once' ? 'مبلغ الخصم' : 'مبلغ الخصم في كل شهر'}</div>
+    <input type="number" id="p7Amt" step="any" min="0" placeholder="0" oninput="p7Refresh()" style="width:160px">
+    <div id="p7Pct" style="font-size:12px;margin:6px 0 2px;color:#34d399"></div>
+    ${type === 'frequent' ? '<div style="font-size:11px;color:#94a3b8;margin-top:8px">اختار الشهور اللي الخصم يتطبق فيها</div><div id="p7Cal"></div>' : ''}
+    <div id="p7Prev" style="font-size:12px;line-height:1.8;margin:10px 0;padding:8px;border:1px solid #334155;border-radius:10px;background:#0f172a"></div>
+    <label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:10px"><input type="checkbox" id="p7Notify" checked> ابعت إشعار للطالب بالخصم والنسبة</label>
+    <div style="display:flex;gap:8px"><button type="button" class="ds-b green" id="p7Ok" onclick="p7Ok()">OK</button><button type="button" class="ds-b ghost" onclick="p7Close()">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);
+  p7Refresh();
+  const a = document.getElementById('p7Amt'); if (a) a.focus();
+};
+
+function p7CalHtml(r) {
+  const cur = payMonth(), y0 = Number(cur.slice(0, 4)), paid = isPaid(r);
+  let h = '';
+  [y0, y0 + 1].forEach(y => {
+    h += `<div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px"><b style="color:#fbbf24;font-size:12px">${y}</b><button type="button" class="ds-b ghost" style="padding:1px 8px;font-size:10px" onclick="p7YearAll(${y})">الكل</button></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">`;
+    for (let m = 1; m <= 12; m++) {
+      const key = `${y}-${String(m).padStart(2, '0')}`, off = key < cur || (key === cur && paid), on = p7.months.has(key);
+      h += `<button type="button" ${off ? 'disabled' : ''} title="${off && key === cur ? 'الشهر ده اتدفع' : ''}" onclick="p7Pick('${key}')" style="border:1px solid #334155;border-radius:8px;padding:6px 0;font-size:11px;background:${on ? '#059669' : '#0f172a'};color:${on ? '#fff' : '#cbd5e1'};${off ? 'opacity:.3;cursor:not-allowed' : ''}">${P7_MONTHS[m - 1]}${key === cur ? ' •' : ''}</button>`;
+    }
+    h += '</div>';
+  });
+  return h;
+}
+function p7OkMonths(r) {
+  const cur = payMonth(), y0 = Number(cur.slice(0, 4)), paid = isPaid(r), out = [];
+  [y0, y0 + 1].forEach(y => { for (let m = 1; m <= 12; m++) { const k = `${y}-${String(m).padStart(2, '0')}`; if (!(k < cur || (k === cur && paid))) out.push(k); } });
+  return out;
+}
+window.p7Pick = function (k) { if (!p7) return; p7.months.has(k) ? p7.months.delete(k) : p7.months.add(k); p7Refresh(); };
+window.p7YearAll = function (y) {
+  const r = p7 && p7Row(p7.id); if (!r) return;
+  const ks = p7OkMonths(r).filter(k => k.startsWith(y + '-')), all = ks.length && ks.every(k => p7.months.has(k));
+  ks.forEach(k => all ? p7.months.delete(k) : p7.months.add(k)); p7Refresh();
+};
+
+/* once: this month if he still owes it, otherwise next month */
+function p7OnceMonth(r) {
+  const bill = payBill(r), due = payDue(r);
+  return (!isPaid(r) && (bill === null || due > 0)) ? payMonth() : p7Next(payMonth());
+}
+function p7PreviewHtml(r, amt) {
+  const bill = payBill(r), paid = isPaid(r), cur = payMonth(), pd = payNum(r.past_due), due = payDue(r), f = payFmt, out = [];
+  if (!(amt > 0)) return '<span style="color:#64748b">اكتب المبلغ وهيظهر هنا هيتطبق إزاي.</span>';
+  if (p7.type === 'once') {
+    const m = p7OnceMonth(r);
+    if (m === cur) {
+      if (bill === null) out.push(`هيتسجّل على شهر <b>${esc(p7Name(m))}</b>. مفيش رقم في الـ Subscription فهيتحسب أول ما تضيفه.`);
+      else {
+        const left = payRound(due - amt);
+        out.push(`هيتطبق على مستحقات شهر <b>${esc(p7Name(m))}</b> (الاشتراك ${f(bill)}${pd > 0 ? ' + باس دو ' + f(pd) : pd < 0 ? ' − رصيد ' + f(-pd) : ''}).`);
+        out.push(`المطلوب منه: ${f(Math.max(due, 0))} ← <b style="color:#34d399">${f(Math.max(left, 0))}</b>${left < 0 ? ` · ويفضل له رصيد ${f(-left)}` : ''}`);
+      }
+    } else {
+      out.push(paid ? `شهر ${esc(p7Name(cur))} اتدفع خلاص،` : `مفيش مستحقات عليه دلوقتي،`);
+      if (bill === null) out.push(`فالخصم هيتسجّل على شهر <b>${esc(p7Name(m))}</b> ومفيش رقم في الـ Subscription.`);
+      else {
+        const carry = paid ? pd : Math.min(due, 0), before = payRound(bill + carry - payDisc(r, m)), after = payRound(before - amt);
+        out.push(`فإن شاء الله شهر <b>${esc(p7Name(m))}</b> هيتخصم ${f(amt)} من مستحقاته: المطلوب هيبقى <b style="color:#34d399">${f(Math.max(after, 0))}</b> بدل ${f(Math.max(before, 0))}.`);
+      }
+    }
+  } else {
+    const ms = [...p7.months].sort();
+    if (!ms.length) return '<span style="color:#64748b">اختار الشهور من فوق.</span>';
+    out.push(`هيتطبق ${f(amt)} في كل شهر من ${ms.length} شهر (الإجمالي ${f(payRound(amt * ms.length))}):`);
+    if (ms.includes(cur) && bill !== null) { const left = payRound(due - amt); out.push(`• ${esc(p7Name(cur))}: المطلوب منه ${f(Math.max(due, 0))} ← <b style="color:#34d399">${f(Math.max(left, 0))}</b>`); }
+    ms.filter(k => k !== cur).forEach(k => out.push(`• ${esc(p7Name(k))}${bill !== null ? ': ' + f(Math.max(payRound(bill - amt), 0)) + ' (بدون أي باس دو)' : ''}`));
+  }
+  return out.join('<br>');
+}
+window.p7Refresh = function () {
+  if (!p7) return; const r = p7Row(p7.id); if (!r) return;
+  const el = document.getElementById('p7Amt'), amt = el && el.value.trim() !== '' ? Number(el.value) : 0, bill = payBill(r);
+  const pc = document.getElementById('p7Pct');
+  if (pc) {
+    if (!(amt > 0)) pc.innerHTML = '';
+    else if (bill === null) pc.innerHTML = '<span style="color:#fbbf24">مفيش رقم في الـ Subscription فالنسبة ما اتحسبتش</span>';
+    else pc.innerHTML = `= <b>${esc(payFmt(p7Pct(amt, bill)))}%</b> من الاشتراك الشهري (${esc(payFmt(bill))})` + (amt > bill ? ' <span style="color:#fb7185">· أكبر من الاشتراك!</span>' : '');
+  }
+  const cal = document.getElementById('p7Cal'); if (cal) cal.innerHTML = p7CalHtml(r);
+  const pv = document.getElementById('p7Prev'); if (pv) pv.innerHTML = p7PreviewHtml(r, amt);
+};
+
+async function p7Save(r, list) {
+  const rows = await mutate(`${PROFILES_TABLE}?id=eq.${enc(r.id)}`, 'PATCH', { discounts: list, updated_at: new Date().toISOString() });
+  rows.forEach(x => { const i = mpState.list.findIndex(y => String(y.id) === String(x.id)); if (i >= 0) mpState.list[i] = x; });
+  mpPaintList(); if (mpCur) payBoxPaint();
+}
+window.p7Ok = async function () {
+  if (!p7) return; const r = p7Row(p7.id); if (!r) return;
+  const amt = Number(document.getElementById('p7Amt').value);
+  if (!isFinite(amt) || amt <= 0) { showToast('اكتب مبلغ الخصم', true); return; }
+  const months = p7.type === 'once' ? [p7OnceMonth(r)] : [...p7.months].sort();
+  if (!months.length) { showToast('اختار شهر واحد على الأقل', true); return; }
+  const pct = p7Pct(amt, payBill(r)), at = new Date().toISOString(), batch = Date.now().toString(36), type = p7.type;
+  const notify = document.getElementById('p7Notify') && document.getElementById('p7Notify').checked;
+  const ok = document.getElementById('p7Ok'); if (ok) ok.disabled = true;
+  const add = months.map((m, i) => ({ id: batch + i, type, month: m, amount: payRound(amt), percent: pct, at }));
+  try { await p7Save(r, payDiscList(r).concat(add)); }
+  catch (e) { showToast('فشل حفظ الخصم: ' + e.message + ' (شغّل 08_discounts.sql لو لسه)', true); if (ok) ok.disabled = false; return; }
+  p7Close();
+  if (notify) {
+    try {
+      const body = type === 'once'
+        ? `تم تسجيل خصم ${payFmt(amt)}${pct != null ? ' (' + payFmt(pct) + '%)' : ''} على مستحقات شهر ${p7Name(months[0])}.`
+        : `تم تسجيل خصم شهري ${payFmt(amt)}${pct != null ? ' (' + payFmt(pct) + '%)' : ''} على الشهور: ${months.map(p7Name).join('، ')}.`;
+      await sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ trainee_id: r.id, kind: 'message', title: 'خصم', body, meta: { discount: true } }]) });
+    } catch (e) { showToast('الخصم اتسجّل، بس الإشعار ما اتبعتش: ' + e.message, true, true); return; }
+  }
+  showToast(`اتسجّل الخصم ✓ · ${months.length === 1 ? p7Name(months[0]) : months.length + ' شهور'}${pct != null ? ' · ' + payFmt(pct) + '%' : ''}`);
+};
+window.p7Del = async function (id, did) {
+  const r = p7Row(id); if (!r) return;
+  if (!confirm('تمسح الخصم ده؟')) return;
+  try { await p7Save(r, payDiscList(r).filter(d => String(d.id) !== String(did))); showToast('اتمسح الخصم ✓'); }
+  catch (e) { showToast('فشل: ' + e.message, true); }
 };
