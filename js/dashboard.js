@@ -229,7 +229,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + itemsCard('dandana') + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
+  $('lists').innerHTML = tasksCard() + dandanaCard() + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
   { const e = $('tInfo'); if (e) e.textContent = t.info; }
   rqUI();
   const L = all[all.length - 1], line = sessLine;
@@ -240,6 +240,7 @@ function render() {
   watchTodo();
   renderAvatar();
   requestAnimationFrame(() => { fitCaps(); fitTk(); });
+  tkRefill();
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 /* ===== Scratches: screenshots / drawings from the trainer's board (Board system), shown in the Notes section =====
@@ -402,10 +403,15 @@ setInterval(() => { document.querySelectorAll('.cd[data-dl]').forEach(el => { co
 .ittp span{position:absolute;left:0;transform:translateX(-50%);top:16px;font-size:.62rem;white-space:nowrap;opacity:.8}
 .ittp span.lo2{top:30px}
 .itl2{display:flex;align-items:flex-start;gap:8px;margin-top:8px}`; document.head.appendChild(s); })();
+const DLET = { en: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'], ar: ['أ', 'إ', 'ث', 'ر', 'خ', 'ج', 'س'] };
+function fmtOpenS(ms) {   // short label for the timeline: day letter + time, so labels never run into each other
+  const d = new Date(ms), h = d.getUTCHours(), en = lang === 'en', L = (DLET[lang] || DLET.ar)[d.getUTCDay()];
+  return `<b>${L}</b> ${(h % 12) || 12}:${String(d.getUTCMinutes()).padStart(2, '0')}${en ? (h < 12 ? ' AM' : ' PM') : (h < 12 ? ' ص' : ' م')}`;
+}
 const tlHtml = (p, d, s) => {
   const o = p && p.opens; if (!o || o.length < 2) return '';
   const a = o[0], span = o[o.length - 1] - a; if (!(span > 0)) return '';
-  return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpen(t)}</span></div>`).join('')}</div>`;
+  return `<div class="itt" dir="ltr">${o.map((t, j) => `<div class="ittp" style="left:${((t - a) / span * 100).toFixed(2)}%"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpenS(t)}</span></div>`).join('')}</div>`;
 };
 
 /* ===== Applications (Monthly obligations) = ordinary tasks whose body ends with
@@ -433,6 +439,7 @@ function appExtra(it, app, atts, endAt) {
 }
 /* tap an attachment card: its description + the link in a small card; tapping the link opens the real site */
 function openAtt(id, j) {
+  TKOPEN = null;
   const a = (ATTMAP[id] || [])[j]; if (!a) return; const t = itT();
   let host = a.u; try { const u = new URL(a.u); host = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : ''); } catch (e) { }
   $('mdl').dataset.ear = ''; $('mT').textContent = t.att1;
@@ -481,31 +488,70 @@ const TKT = {
   ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
   eg: { tasks: 'التاسكس', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
 };
-const tkLogCell = x => {
+let TKOPEN = null, TKL = {};
+const tkHead = x => {
   const t2 = itT(), k = itState(x).k, ok = k === 'done';
-  return `<div class="ssi" role="button" tabindex="0" style="cursor:pointer" onclick="openLogItem(${x.id})" onkeydown="if(event.key==='Enter')openLogItem(${x.id})"><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${ok ? 'color:#34d399' : 'color:#fb7185'}">${ok ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></div>`;
+  return `<summary><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${ok ? 'color:#34d399' : 'color:#fb7185'}">${ok ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></summary>`;
 };
+/* preview cell inside the card: just a look, a tap anywhere opens the whole container */
+const tkLogCell = x => `<div class="ssi tkprev">${tkHead(x).replace(/^<summary>|<\/summary>$/g, '')}</div>`;
+/* cell inside the container pop-up: opens its own details */
+const tkLogDet = x => {
+  const s = itState(x), p = x.plan, ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
+  const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);
+  return `<details class="ssi">${tkHead(x)}<div class="ssdet">${ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : ''}${appExtra(x, ap.app, atts, endAt)}${s.k === 'closed' ? `<div class="row"><b dir="auto">${esc(closedText(x))}</b></div>` : ''}</div></details>`;
+};
+const tkGroup = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
+  return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
+function tkSec(key, cls, title, n, cells, full, mt) {
+  TKL[key] = { t: mt, f: full };
+  return `<div class="tkc ${cls}" data-k="${key}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
+}
 function tasksCard() {
   const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
-  const fin = (D.items || []).filter(x => (x.kind === 'task' || x.kind === 'dandana') && !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
-  if (!its.length && !fin.length) return '';
+  const fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
+  if (!its.length) return '';
   const today = itToday(), pend = its.filter(itShown);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
-  const group = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
-    return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
-  const sec = (cls, title, n, cells) => `<div class="tkc ${cls}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
-  const c1 = urg.length ? sec('urg', t.urgent, urg.length, group(urg)) : '';
-  const c2 = (prv.length || fin.length) ? sec('prv', t.prev, prv.length + fin.length, (prv.length ? group(prv) : '') + fin.map(tkLogCell).join('')) : '';
+  const c1 = urg.length ? tkSec('tk:urg', 'urg', t.urgent, urg.length, tkGroup(urg), () => tkGroup(urg), `${t.tasks} · ${t.urgent}`) : '';
+  const c2 = (prv.length || fin.length) ? tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, (prv.length ? tkGroup(prv) : '') + fin.map(tkLogCell).join(''), () => (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join(''), `${t.tasks} · ${t.prev}`) : '';
   if (!c1 && !c2) return '';
   return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
+const DNX = { en: { cur: 'Current' }, ar: { cur: 'الحالية' }, eg: { cur: 'الحالية' } };
+function dandanaCard() {
+  const t = TKT[lang] || TKT.en, t2 = itT(), its = (D.items || []).filter(x => x.kind === 'dandana');
+  if (!its.length) return '';
+  const pend = its.filter(itShown), fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no), cur = (DNX[lang] || DNX.en).cur;
+  const c1 = pend.length ? tkSec('dn:cur', 'urg', cur, pend.length, tkGroup(pend), () => tkGroup(pend), `${t2.dnd} · ${cur}`) : '';
+  const c2 = fin.length ? tkSec('dn:old', 'prv', t.prev, fin.length, fin.map(tkLogCell).join(''), () => fin.map(tkLogDet).join(''), `${t2.dnd} · ${t.prev}`) : '';
+  if (!c1 && !c2) return '';
+  return `<div class="thabit-card dcard" id="dandanaCard"><div class="tkh"><h4>${t2.dnd}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
+}
+function openTkModal(key) {
+  const o = TKL[key]; if (!o) return; TKOPEN = key;
+  $('mdl').dataset.ear = ''; $('mT').textContent = o.t; $('mB').innerHTML = `<div class="tkm">${o.f()}</div>`;
+  $('mdl').classList.add('open');
+  const box = document.querySelector('#mdl .mbox'); if (box) box.scrollTop = 0;
+}
+function tkRefill() {   // after a check / re-render, keep the open container pop-up up to date
+  if (!TKOPEN || !TKL[TKOPEN] || !$('mdl').classList.contains('open') || !document.querySelector(`[data-k="${TKOPEN}"]`)) return;
+  const box = document.querySelector('#mdl .mbox'), y = box ? box.scrollTop : 0;
+  $('mB').innerHTML = `<div class="tkm">${TKL[TKOPEN].f()}</div>`; if (box) box.scrollTop = y;
+}
+/* a tap anywhere on a container (except the check circle / links) opens the whole list */
+document.addEventListener('click', e => {
+  const c = e.target.closest && e.target.closest('#taskCard .tkc, #dandanaCard .tkc'); if (!c) return;
+  if (e.target.closest('button,a')) return;
+  openTkModal(c.dataset.k);
+});
 /* each list shows one cell and a quarter of the next one, so you know there is more below; scroll to see it */
 function fitTk() {
-  document.querySelectorAll('#taskCard .tkl').forEach(l => {
+  document.querySelectorAll('#taskCard .tkl, #dandanaCard .tkl').forEach(l => {
     const c = [...l.children]; l.style.maxHeight = ''; l.style.overflowY = '';
     if (c.length < 2 || !c[0].offsetHeight) return;
-    l.style.overflowY = 'auto';
+    l.style.overflowY = 'hidden';
     l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
   });
 }
@@ -513,15 +559,21 @@ window.addEventListener('resize', fitTk);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 (function () { const st = document.createElement('style'); st.textContent = `
 .tk2.one{grid-template-columns:1fr!important}
-.tkl{overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+.tkl{overflow:hidden;cursor:pointer}
+.tkl>.ssi.tkprev{cursor:pointer}
+.ittp span b{font-size:.78rem;margin-inline-end:3px}.ittp span{unicode-bidi:isolate}
+#taskCard *,#dandanaCard *{scrollbar-width:none!important;-ms-overflow-style:none!important}
+#taskCard *::-webkit-scrollbar,#dandanaCard *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+#dandanaCard{grid-column:1/-1}
 .tkl::-webkit-scrollbar{display:none;width:0;height:0}
 .lst{scrollbar-width:none;-ms-overflow-style:none}.lst::-webkit-scrollbar{display:none;width:0;height:0}
 /* same look as the Notes / TEFL / QOL cells */
-.tkl>.it,.tkl>.ssi{box-sizing:border-box;margin:0 0 8px;padding:10px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}
-.tkl>.it>.dt{text-align:center;font-weight:700;margin-bottom:6px}
+.tkl>.it,.tkl>.ssi,.tkm>.it,.tkm>.ssi{box-sizing:border-box;margin:0 0 8px;padding:10px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}
+.tkl>.it>.dt,.tkm>.it>.dt{text-align:center;font-weight:700;margin-bottom:6px}
 #taskCard .itc,#dandanaCard .itc{zoom:.8}`; document.head.appendChild(st); })();
 /* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
 function openLogItem(id) {
+  TKOPEN = null;
   const x = (D.items || []).find(i => i.id === id); if (!x) return;
   const t2 = itT(), s = itState(x), p = x.plan, n = p ? p.n_eff : x.repeats, d = (x.checks || []).length;
   const ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
@@ -578,13 +630,14 @@ async function toggleTask(i, on) {
   if (ok !== true) { D.done = await fetchDone(); render(); }
 }
 function openModal(i, focus) {
+  TKOPEN = null;
   const m = MD[i]; $('mdl').dataset.ear = m[2] && earOn(m[2]) ? '1' : ''; $('mT').textContent = m[0];
   $('mB').innerHTML = m[3] ? `<div class="rich">${m[3].map((x, n) => `<div class="cti" data-n="${n}"><div class="dt ctd">${esc(x.date)}</div>${richC(x.text)}</div>`).join('')}</div>` : `<div class="rich">${richC(m[1])}</div>`;
   $('mdl').classList.add('open');
   const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
   box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
 }
-function closeModal() { $('mdl').classList.remove('open', 'scr'); }
+function closeModal() { $('mdl').classList.remove('open', 'scr'); TKOPEN = null; }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
