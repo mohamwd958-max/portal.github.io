@@ -758,9 +758,9 @@ function billLeft() {   // days until the next 7th
 /* ===== Notification cards: collapsed (type only) -> tap = details + "Understood" -> check mark, thanks, gone.
    Counted in the Feed button: the trainer's notifications + the automatic payment reminder. Nothing else. ===== */
 const thn_NCX = {
-  en: { money: 'Payment', system: 'System', note: 'Notification', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
-  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
-  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
+  en: { money: 'Payment', system: 'System', note: 'Notification', update: 'Update', alert: 'Important', reply: 'Reply', tap: 'Tap to read', ok: 'Understood', thanks: 'Thank you' },
+  ar: { money: 'المدفوعات', system: 'النظام', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'اضغط للقراءة', ok: 'فهمت', thanks: 'شكراً لك' },
+  eg: { money: 'الفلوس', system: 'السيستم', note: 'إشعار', update: 'تحديث', alert: 'مهم', reply: 'رد', tap: 'دوس واقرا', ok: 'فهمت', thanks: 'شكراً ليك' }
 };
 const thn_NCT = () => thn_NCX[lang] || thn_NCX.en;
 const thn_ACKK = 'thabit_ack', thn_OPNK = 'thabit_nopen'; let thn_ACKS = {};
@@ -779,10 +779,23 @@ function noteText(n) {
   if (n.kind === 'request_reply') return { h: esc(t.reply), b: m.reply ? rich(m.reply) : '' };
   return { h: esc(n.title || t.msg), b: rich(n.body || '') };
 }
+/* one icon per notification category: general = bell, financial = wallet, system = gear, app update = arrow, policy / restriction = warning, reply to a request = chat bubble.
+   Category comes from notification.meta.category (money | system | update | alert | reply | note) or, if absent, from its kind. */
+const THN_ICON = { money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell', update: 'fa-circle-arrow-up', alert: 'fa-triangle-exclamation', reply: 'fa-comment-dots' };
+function noteCat(n) {
+  const m = (n && n.meta) || {}, c = String(m.category || m.cat || '').toLowerCase(), k = String((n && n.kind) || '').toLowerCase();
+  if (THN_ICON[c]) return c;
+  if (/pay|bill|money|financ|fee|subscri/.test(k)) return 'money';
+  if (k === 'request_reply') return 'reply';
+  if (/policy|restrict/.test(k)) return 'alert';
+  if (/update/.test(k)) return 'update';
+  if (/system|maint/.test(k)) return 'system';
+  return 'note';
+}
 function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
   const c = thn_NCT();
   return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
-    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ ({ money: 'fa-wallet', system: 'fa-gear', note: 'fa-bell' })[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ THN_ICON[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
 }
 function thn_toggleNf(pc) {
@@ -809,7 +822,7 @@ function thn_noteList() {
 function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return thn_nCard(thn_nKey(n), n.kind === 'request_reply' ? 'system' : 'note', x.h, x.b, dt);
+  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt);
 }
 (function () { const st = document.createElement('style'); st.textContent = `
 .pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
@@ -821,7 +834,11 @@ body.light-theme #pop .pc{background:rgba(255,255,255,.6)!important;border-color
 .pc.nf .nfh{display:flex;align-items:center;gap:11px;cursor:pointer}
 .pc.nf .nfi{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;background:linear-gradient(145deg,#94a3b8,#64748b);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .pc.nf .nfi.money{background:linear-gradient(145deg,#fbbf24,#f59e0b)}
-.pc.nf .nfi.system{background:linear-gradient(145deg,#60a5fa,#3b82f6)}
+.pc.nf .nfi.system{background:linear-gradient(145deg,#94a3b8,#475569)}
+.pc.nf .nfi.update{background:linear-gradient(145deg,#a78bfa,#7c3aed)}
+.pc.nf .nfi.alert{background:linear-gradient(145deg,#fb7185,#e11d48)}
+.pc.nf .nfi.reply{background:linear-gradient(145deg,#34d399,#059669)}
+.pc.nf .nfi.note{background:linear-gradient(145deg,#60a5fa,#3b82f6)}
 .pc.nf .nfm{flex:1;min-width:0}
 .pc.nf .nfc{font-weight:700;font-size:.9rem;line-height:1.2}
 .pc.nf .nft2{font-size:.74rem;opacity:.6;margin-top:1px}
