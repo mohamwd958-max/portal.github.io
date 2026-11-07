@@ -559,6 +559,8 @@ window.addEventListener('resize', fitTk);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 (function () { const st = document.createElement('style'); st.textContent = `
 .tk2.one{grid-template-columns:1fr!important}
+/* each of the 3 sections sits in the vertical middle of the screen */
+html .thsec{justify-content:center!important}
 .tkl{overflow:hidden;cursor:pointer}
 .tkl>.ssi.tkprev{cursor:pointer}
 .ittp span b{font-size:.78rem;margin-inline-end:3px}.ittp span{unicode-bidi:isolate}
