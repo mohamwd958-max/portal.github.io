@@ -3151,3 +3151,57 @@ function thDiag() {
 .tvd.ed::after{content:"";position:absolute;left:-26px;top:-26px;width:52px;height:52px}
 .tvd span{position:absolute;left:22px;top:-8px;font-size:.7rem;white-space:nowrap;opacity:.95;unicode-bidi:isolate;pointer-events:none}
 .tvd span b{font-size:.8rem;margin-inline-end:3px}`; document.head.appendChild(st); })();
+
+
+
+
+/* ===== Light bar/header, softer card sweep, outline Feed star, outline theme icon ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thSoftUI';
+  st.textContent = `
+/* 1) bottom bar + top header: just a hair lighter than the background */
+html #mobileFloatingBar{background:rgba(148,163,184,.12)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-color:rgba(148,163,184,.14)!important}
+body.light-theme #mobileFloatingBar{background:rgba(255,255,255,.55)!important;border-color:rgba(15,23,42,.06)!important}
+header,.site-header,.navbar,#topHeader,.header{background:rgba(148,163,184,.10)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+body.light-theme header,body.light-theme .site-header,body.light-theme .navbar,body.light-theme #topHeader,body.light-theme .header{background:rgba(255,255,255,.55)!important}
+
+/* 2) softer light sweep on cards */
+.thabit-card::before,.thabit-card::after,.test-card::before,.test-card::after{opacity:.35!important}
+.thabit-card.lit::before,.thabit-card.lit::after,.test-card.lit::before,.test-card.lit::after{opacity:.35!important}
+
+/* 3) Feed button: no border/background, hollow red star, number badge on top */
+html #mobileFloatingBar>.feed,html #feedBtn{position:relative!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;outline:0!important}
+#feedBtn::before,#feedBtn::after{display:none!important}
+#feedBtn .fdp,#feedBtn>svg:not(.fstar){display:none!important}
+#feedBtn .fstar{width:29px;height:29px;display:block;overflow:visible}
+#feedBtn .fstar path{fill:none;stroke:#ef4444;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
+#feedBtn #feedNum{position:absolute!important;top:2px;inset-inline-end:2px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 10px/16px Inter,Cairo,sans-serif;text-align:center;display:block;transform:none}
+#feedBtn:not(.num) #feedNum{display:none!important}
+
+/* 4) theme button: outline icon */
+#themeIcon{font-weight:400!important}`;
+  document.head.appendChild(st);
+
+  /* star */
+  const STAR = '<svg class="fstar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
+  function putStar() {
+    const b = document.getElementById('feedBtn'); if (!b || b.querySelector('.fstar')) return;
+    b.insertAdjacentHTML('afterbegin', STAR);
+  }
+
+  /* theme icon: fa-solid -> fa-regular (works for both moon and sun, also after every toggle) */
+  function hollowTheme() {
+    const i = document.getElementById('themeIcon'); if (!i) return;
+    if (i.classList.contains('fa-solid')) { i.classList.remove('fa-solid'); i.classList.add('fa-regular'); }
+  }
+
+  function init() {
+    putStar(); hollowTheme();
+    const i = document.getElementById('themeIcon');
+    if (i) new MutationObserver(hollowTheme).observe(i, { attributes: true, attributeFilter: ['class'] });
+    const b = document.getElementById('feedBtn');
+    if (b) new MutationObserver(putStar).observe(b, { childList: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
