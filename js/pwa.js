@@ -14,7 +14,7 @@
   }
 
   // 1b) Push helpers (used by the dashboard). The public VAPID key comes from <script src="pwa.js" data-vapid="...">
-  var VAPID = (SELF && SELF.getAttribute('data-vapid')) || window.THABIT_VAPID_KEY || '';
+  var VAPID = (SELF && SELF.getAttribute('data-vapid')) || window.THABIT_VAPID_KEY || 'BHP9_STm4jaSQFB4LCxtRXdPnfZZKacsfMMuDulox6VdLbkou4Sn-mOJmBybGW_kftp3sp_yOoZfBgrLfbqwoWE';
   function b64u(s) { var p = '='.repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')), o = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
   window.ThabitPush = {
     supported: !!(VAPID && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window),
