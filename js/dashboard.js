@@ -3385,3 +3385,54 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
     return r;
   };
 })();
+
+
+
+
+/* ===== Feed star: hover pop, wiggle when there are notifications, small red badge on its top-right ===== */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+/* soft pop on hover / press, like the other bar buttons */
+#feedBtn .fstar{transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+@media(hover:hover){#feedBtn:hover .fstar{transform:rotate(-12deg) scale(1.18)}}
+#feedBtn:active .fstar{transform:rotate(-12deg) scale(.94)}
+
+/* wiggle: the star straightens a little, then tilts back (twice) */
+#feedBtn .fstar.fwig{animation:fstarWig 1.6s ease-in-out 1}
+@keyframes fstarWig{
+  0%{transform:rotate(-12deg)}
+  22%{transform:rotate(2deg) scale(1.1)}
+  44%{transform:rotate(-12deg)}
+  66%{transform:rotate(2deg) scale(1.1)}
+  100%{transform:rotate(-12deg)}
+}
+@media(prefers-reduced-motion:reduce){#feedBtn .fstar.fwig{animation:none}}
+
+/* small red badge sitting on the star's top-right corner */
+html #feedBtn #feedNum{
+  top:1px!important;right:1px!important;left:auto!important;bottom:auto!important;
+  min-width:15px!important;height:15px!important;padding:0 4px!important;
+  font:800 9px/15px Inter,Cairo,sans-serif!important;
+  background:#ef4444!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+  border-radius:999px!important;box-shadow:0 0 0 2px rgba(239,68,68,.25),0 2px 6px rgba(239,68,68,.55)!important;
+  transform:scale(.4);transition:transform .35s cubic-bezier(.3,1.7,.5,1),opacity .25s}
+html #feedBtn.num #feedNum{transform:scale(1)}
+html #feedBtn #feedNum.l2{font-size:8px!important}`;
+  document.head.appendChild(st);
+
+  let played = false;
+  function wiggle() {
+    const b = document.getElementById('feedBtn'), s = b && b.querySelector('.fstar');
+    if (!s || played || !b.classList.contains('num')) return;
+    played = true;
+    s.classList.remove('fwig'); void s.getBoundingClientRect(); s.classList.add('fwig');
+    setTimeout(() => s.classList.remove('fwig'), 1800);
+  }
+  function init() {
+    const b = document.getElementById('feedBtn'); if (!b) return;
+    new MutationObserver(wiggle).observe(b, { attributes: true, attributeFilter: ['class'] });
+    wiggle();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
