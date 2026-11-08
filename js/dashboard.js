@@ -3477,3 +3477,172 @@ html #feedBtn #feedNum.l2{font-size:8px!important}`;
     setTimeout(() => { if (window._ntPoll) clearInterval(window._ntPoll); window._ntPoll = setInterval(() => { if (!document.hidden) refreshNotes(); }, 10000); }, 3000);
   });
 })();
+
+
+/* ===== Calm mode: nothing moves on its own. Motion only on hover / press. ===== */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+/* card light sweep: hidden, runs once only while hovered / pressed */
+.thabit-card::before,.test-card::before{animation:none!important;opacity:0!important}
+@media(hover:hover){.thabit-card:hover::before,.test-card:hover::before{opacity:.5!important;animation:thabitCardSwipeSlow 2.4s linear 1!important}}
+.thabit-card:active::before,.test-card:active::before{opacity:.5!important;animation:thabitCardSwipeSlow 2.4s linear 1!important}
+
+/* arrow under the chart, ghost, bounce arrow, pulsing circles */
+.tharr .pq{animation:none!important}
+.tharr:hover .pq{animation:thPls 1s ease-in-out 1!important}
+#thHint .thnx{animation:none!important}
+#thHint .thnx:hover{animation:thBob 1s ease-in-out 1!important}
+#thGhost,#thGhost.on{animation:none!important}
+#thGhost:hover{animation:ghFloat 1.2s ease-in-out 1!important}
+#thGhost.on ellipse{animation:none!important;fill:#22d3a6}
+#thGhost.on:hover ellipse{animation:ghEye 2.4s linear 1!important}
+.itc.open{animation:none!important}
+.itc.open:hover{animation:itp 1.8s 1!important}
+.hnd.wv,.ittp i.ed,.itl i.ed{animation:none!important}
+.lgi .plA svg g path{animation-iteration-count:2!important}
+
+/* attention effects that played by themselves */
+.tkcell.pop{animation:none!important}
+.vx.vx-tap{animation:none!important}`;
+  document.head.appendChild(st);
+})();
+
+
+/* ===== Calendar: "Submit an apology" button. Pick days / weeks / months, write the reason, send. ===== */
+(function () {
+  const X = {
+    en: { btn: 'Submit an apology', title: 'Apology', day: 'Day', week: 'Week', month: 'Month', sel: n => n + (n === 1 ? ' day selected' : ' days selected'), none: 'Tap the days you will miss', reason: 'Reason / notes', ph: 'Write the reason here…', send: 'Send', sending: 'Sending…', sent: 'Sent ✓', fail: 'Could not send, try again', needR: 'Please write the reason', pre: 'Apology: ' },
+    ar: { btn: 'تقديم اعتذار', title: 'تقديم اعتذار', day: 'يوم', week: 'أسبوع', month: 'شهر', sel: n => 'تم اختيار ' + n + ' يوم', none: 'اضغط على الأيام التي ستغيب عنها', reason: 'السبب / ملاحظات', ph: 'اكتب السبب هنا…', send: 'إرسال', sending: 'جاري الإرسال…', sent: 'تم الإرسال ✓', fail: 'تعذر الإرسال، حاول مرة أخرى', needR: 'اكتب السبب من فضلك', pre: 'اعتذار: ' },
+    eg: { btn: 'تقديم اعتذار', title: 'تقديم اعتذار', day: 'يوم', week: 'أسبوع', month: 'شهر', sel: n => 'اخترت ' + n + ' يوم', none: 'دوس على الأيام اللي هتغيب فيها', reason: 'السبب / ملاحظات', ph: 'اكتب السبب هنا…', send: 'ابعت', sending: 'بيتبعت…', sent: 'اتبعت ✓', fail: 'معرفناش نبعت، جرب تاني', needR: 'اكتب السبب الأول', pre: 'اعتذار: ' }
+  };
+  const T3 = () => X[lang] || X.en, loc = () => lang === 'en' ? 'en-GB' : 'ar-EG';
+  const P = s => new Date(s + 'T00:00:00Z'), Y = d => d.toISOString().slice(0, 10), AD = (d, n) => new Date(d.getTime() + n * 864e5);
+  const WS = d => AD(d, -((d.getUTCDay() + 1) % 7));
+  const dim = (y, m) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const fmt = (d, o) => d.toLocaleDateString(loc(), Object.assign({ timeZone: 'UTC' }, o));
+  const num = n => n.toLocaleString(loc(), { useGrouping: false });
+  let mode = 'day', sel = new Set(), vm = null, busy = false;
+
+  const st = document.createElement('style');
+  st.textContent = `
+#thCal .cexb{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;padding:10px;border-radius:14px;border:1px dashed rgba(251,191,36,.6);background:rgba(251,191,36,.08);color:#fbbf24;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer}
+body.light-theme #thCal .cexb{color:#92400e}
+#thExc{position:fixed;inset:0;z-index:10035;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#thExc.open{display:flex;animation:tdIn .2s ease-out}
+#thExc .xb{box-sizing:border-box;width:min(440px,100%);max-height:100%;overflow:auto;border-radius:24px;padding:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.16);box-shadow:0 20px 60px rgba(0,0,0,.5);animation:thPop .3s cubic-bezier(.2,.9,.3,1.15)}
+body.light-theme #thExc .xb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
+#thExc .xh{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+#thExc .xt{flex:1;text-align:center;font-weight:800}
+#thExc .xc{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;font-size:.8rem}
+html[dir=rtl] #thExc .xc i{transform:scaleX(-1)}
+#thExc .xm{display:flex;gap:6px;margin-bottom:10px}
+#thExc .xm button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:transparent;color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
+#thExc .xm button.on{border-color:#fbbf24;background:rgba(251,191,36,.16);color:#fbbf24}
+body.light-theme #thExc .xm button.on{color:#92400e}
+#thExc .xg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+#thExc .xw{text-align:center;font-size:.66rem;font-weight:700;opacity:.55}
+#thExc .xd{aspect-ratio:1;min-width:0;padding:0;border:1px solid transparent;border-radius:12px;background:transparent;color:inherit;font:600 .85rem Inter,Cairo,sans-serif;cursor:pointer}
+#thExc .xd.out{opacity:.25}
+#thExc .xd.past{opacity:.25;cursor:default;text-decoration:line-through}
+#thExc .xd.td{border-color:#fbbf24}
+#thExc .xd.s{background:#fbbf24;color:#111}
+#thExc .xs{margin:10px 0 4px;text-align:center;font-size:.8rem;font-weight:700;color:#fbbf24}
+body.light-theme #thExc .xs{color:#92400e}
+#thExc .xr{margin-top:6px;font-size:.74rem;opacity:.7;text-align:center;overflow-wrap:anywhere}
+#thExc .xf{margin-top:10px;animation:rqFade .3s ease-out}
+#thExc .xf[hidden]{display:none}
+#thExc .xf label{display:block;margin:0 2px 6px;font-size:.74rem;font-weight:700;opacity:.8}
+#thExc textarea{display:block;width:100%;box-sizing:border-box;margin:0;padding:12px;border-radius:14px;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.1);color:inherit;font:500 .9rem Inter,Cairo,sans-serif;outline:0;resize:vertical}
+body.light-theme #thExc textarea{background:#fff;color:#0f172a}
+#thExc .xe{margin-top:8px;color:#fb7185;font-size:.78rem;font-weight:600}
+#thExc .xe:empty{display:none}
+#thExc .xsend{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:12px;border:0;border-radius:14px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111;font:800 .9rem Inter,Cairo,sans-serif;cursor:pointer}
+#thExc .xsend:disabled{opacity:.7;cursor:default}
+#thExc .xsend.ok{background:linear-gradient(135deg,#34d399,#10b981);color:#04231a}`;
+  document.head.appendChild(st);
+
+  const ov = document.createElement('div'); ov.id = 'thExc'; ov.innerHTML = '<div class="xb"></div>';
+  document.body.appendChild(ov);
+  const xb = ov.querySelector('.xb');
+
+  function build() {
+    const t = T3();
+    xb.innerHTML = `<div class="xh"><button type="button" class="xc" data-a="prev"><i class="fa-solid fa-chevron-left"></i></button><div class="xt" id="xT"></div><button type="button" class="xc" data-a="next"><i class="fa-solid fa-chevron-right"></i></button><button type="button" class="xc" data-a="close">&times;</button></div>`
+      + `<div class="xm" id="xM"></div><div class="xg" id="xG"></div><div class="xs" id="xS"></div><div class="xr" id="xR"></div>`
+      + `<div class="xf" id="xF" hidden><label>${esc(t.reason)} <b style="color:#f87171">*</b></label><textarea id="xTxt" rows="3" maxlength="1200" placeholder="${esc(t.ph)}"></textarea><div class="xe" id="xE"></div><button type="button" class="xsend" id="xSend" data-a="send"><i class="fa-solid fa-paper-plane"></i><span>${esc(t.send)}</span></button></div>`;
+    paint();
+  }
+  function ranges() {
+    const a = [...sel].sort(), out = []; let s = null, p = null;
+    a.forEach(k => { if (s && Y(AD(P(p), 1)) === k) p = k; else { if (s) out.push([s, p]); s = p = k; } });
+    if (s) out.push([s, p]);
+    return out.map(r => r[0] === r[1] ? r[0] : r[0] + ' → ' + r[1]);
+  }
+  function paint() {
+    const t = T3(), today = itToday(), y = vm.getUTCFullYear(), m = vm.getUTCMonth(), first = new Date(Date.UTC(y, m, 1)), st0 = WS(first), rows = Math.ceil(((first - st0) / 864e5 + dim(y, m)) / 7);
+    xb.querySelector('#xT').textContent = fmt(vm, { month: 'long', year: 'numeric' });
+    xb.querySelector('#xM').innerHTML = ['day', 'week', 'month'].map(k => `<button type="button" data-m="${k}" class="${k === mode ? 'on' : ''}"><i class="fa-regular ${k === mode ? 'fa-square-check' : 'fa-square'}"></i>${t[k]}</button>`).join('');
+    const wk = WS(P('2024-01-06'));
+    xb.querySelector('#xG').innerHTML = Array.from({ length: 7 }, (_, i) => `<div class="xw">${fmt(AD(wk, i), { weekday: 'short' })}</div>`).join('')
+      + Array.from({ length: rows * 7 }, (_, i) => { const d = AD(st0, i), k = Y(d); return `<button type="button" class="xd${d.getUTCMonth() === m ? '' : ' out'}${k < today ? ' past' : ''}${k === today ? ' td' : ''}${sel.has(k) ? ' s' : ''}" data-d="${k}">${num(d.getUTCDate())}</button>`; }).join('');
+    xb.querySelector('#xS').textContent = sel.size ? t.sel(sel.size) : t.none;
+    xb.querySelector('#xR').textContent = ranges().join('  ·  ');
+    xb.querySelector('#xF').hidden = !sel.size;
+  }
+  function pick(k) {
+    const d = P(k), today = itToday(); let list;
+    if (mode === 'day') list = [k];
+    else if (mode === 'week') { const a = WS(d); list = Array.from({ length: 7 }, (_, i) => Y(AD(a, i))); }
+    else { const y = d.getUTCFullYear(), m = d.getUTCMonth(); list = Array.from({ length: dim(y, m) }, (_, i) => Y(new Date(Date.UTC(y, m, i + 1)))); }
+    list = list.filter(x => x >= today); if (!list.length) return;
+    const all = list.every(x => sel.has(x)); list.forEach(x => all ? sel.delete(x) : sel.add(x));
+    paint();
+  }
+  async function send() {
+    if (busy) return;
+    const t = T3(), txt = xb.querySelector('#xTxt'), er = xb.querySelector('#xE'), btn = xb.querySelector('#xSend'), reason = txt.value.trim();
+    if (!sel.size) return;
+    if (!reason) { er.textContent = t.needR; txt.focus(); return; }
+    er.textContent = ''; busy = true; btn.disabled = true; btn.querySelector('span').textContent = t.sending;
+    const rg = ranges(), title = (X.en.pre + rg.join(', ')).slice(0, 140);
+    const msg = `[REQUEST] ${title}\n[DETAILS] ${reason}\n\n[EXPECTED DURATION] ${sel.size} days`.slice(0, 2000);
+    const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: 'session', p_message: msg }).catch(() => null);
+    if (ok === true) {
+      rpc('trainee_submit_report', { p_token: tok(), p_type: 'session', p_title: title, p_details: (reason + '\n\n' + rg.join('\n')).slice(0, 1500), p_follow: rg.join(', ').slice(0, 200) }).catch(() => null);
+      btn.classList.add('ok'); btn.querySelector('span').textContent = t.sent;
+      try { rqRefresh(); } catch (e) {}
+      setTimeout(() => { close(); }, 1100);
+    } else { busy = false; btn.disabled = false; btn.querySelector('span').textContent = t.send; er.textContent = t.fail; }
+    if (ok === true) busy = false;
+  }
+  function open() { sel = new Set(); mode = 'day'; vm = new Date(Date.UTC(+itToday().slice(0, 4), +itToday().slice(5, 7) - 1, 1)); busy = false; build(); ov.classList.add('open'); }
+  function close() { ov.classList.remove('open'); }
+  window.openExcuse = open;
+
+  xb.addEventListener('click', e => {
+    const a = e.target.closest('[data-a]'), m = e.target.closest('[data-m]'), d = e.target.closest('.xd[data-d]');
+    if (a) {
+      const k = a.dataset.a;
+      if (k === 'close') close();
+      else if (k === 'send') send();
+      else { vm = new Date(Date.UTC(vm.getUTCFullYear(), vm.getUTCMonth() + (k === 'next' ? 1 : -1), 1)); paint(); }
+    } else if (m) { mode = m.dataset.m; paint(); }
+    else if (d && !d.classList.contains('past')) pick(d.dataset.d);
+  });
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('open')) { e.stopImmediatePropagation(); close(); } }, true);
+
+  /* put the button at the bottom of the calendar (it is redrawn on every page / view change) */
+  const cal = document.querySelector('#thCal .cbox');
+  if (cal) {
+    const add = () => {
+      if (cal.querySelector('.cexb')) return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'cexb';
+      b.innerHTML = `<i class="fa-regular fa-calendar-xmark"></i><span>${esc(T3().btn)}</span>`;
+      b.onclick = open; cal.appendChild(b);
+    };
+    new MutationObserver(add).observe(cal, { childList: true });
+    add();
+  }
+})();
