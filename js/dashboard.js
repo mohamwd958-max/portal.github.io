@@ -1590,13 +1590,14 @@ function peekWords(root) {
 /* ===== Background lock: while the feed or the word player is open, the page behind never scrolls ===== */
 (function () { const st = document.createElement('style'); st.textContent = `
 html.bgl,html.bgl body{overflow:hidden!important}
-#pop,.pc,.aw,.ntl,.lst{overscroll-behavior:contain}
+#pop,.pc,.aw,.ntl,.lst,#mdl .mbox,#thDet .tdb,.tkm,#ssList,#logList{overscroll-behavior:contain}
 .pkh{scrollbar-width:none;-ms-overflow-style:none}.pkh::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
-const bgLocked = () => { const p = $('pop'); return !!((p && p.classList.contains('open')) || $('wp')); };
+const BG_OV = '#pop.open, #wp, #mdl.open, #ssm.open, #avm.open, #rqn.open, #rqo.open, #tpk, #thDet.open, #langPop.open';   // every pop-up that sits in front of the page
+const bgLocked = () => !!document.querySelector(BG_OV);
 let lockOn = false;
 const syncLock = () => { const l = bgLocked(); document.documentElement.classList.toggle('bgl', l); if (l === lockOn) return; lockOn = l; const m = l ? 'addEventListener' : 'removeEventListener'; document[m]('wheel', onLockWheel, { passive: false }); document[m]('touchmove', onLockMove, { passive: false }); };
 function pkScroller(t, dy) {   // a scrollable element inside the feed / player that can still move in this direction
-  const host = t && t.closest ? t.closest('#pop, #wp') : null; if (!host) return null;
+  const host = t && t.closest ? t.closest(BG_OV) : null; if (!host) return null;
   for (let e = t; e; e = e.parentElement) {
     const oy = getComputedStyle(e).overflowY;
     if ((oy === 'auto' || oy === 'scroll') && e.scrollHeight > e.clientHeight + 1 && (dy > 0 ? e.scrollTop + e.clientHeight < e.scrollHeight - 1 : e.scrollTop > 0)) return e;
@@ -1613,11 +1614,11 @@ function onLockMove(e) {
   if (e.target.closest && e.target.closest('input[type=range]')) return;
   if (!pkScroller(e.target, dy)) e.preventDefault();
 }
-window.addEventListener('DOMContentLoaded', () => {
-  const p = $('pop'); if (p) new MutationObserver(syncLock).observe(p, { attributes: true, attributeFilter: ['class'] });
-  new MutationObserver(syncLock).observe(document.body, { childList: true });   // the player (#wp) is added to / removed from body
+const initBgLock = () => {
+  new MutationObserver(syncLock).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });   // pop-ups open / close by class, or are added to / removed from the page
   syncLock();
-});
+};
+if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', initBgLock); else initBgLock();
 
 /* ===== Peek hint for every long text area: the last line shows half-cut until the first scroll, then it settles to the normal size ===== */
 const PK_BOXES = '.lst, .ntl, #mB, #ssList, #logList';      // scroll boxes that already have a height from the CSS: keep that height, only add the hint
@@ -2909,6 +2910,14 @@ html #mobileFloatingBar .circle-badge-btn i{font-size:15px!important;line-height
 html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:22px!important;height:22px!important}
 html #mobileFloatingBar>.feed .fdp{width:22px!important;height:22px!important}
 html #mobileFloatingBar #barEdit{opacity:.85}
+/* --- no circle around the bar buttons: only the icons, a bit bigger; their colours and effects stay --- */
+html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed{width:44px!important;height:44px!important;min-width:44px!important;max-width:44px!important;border-radius:12px!important;background:transparent!important;background-image:none!important;border:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;-webkit-tap-highlight-color:transparent}
+html #mobileFloatingBar>[data-bk]:not(.glow):not(.upd),html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed:not(.glow):not(.upd){box-shadow:none!important}
+html #mobileFloatingBar svg.asv,html #mobileFloatingBar [data-bk="assist"] svg{width:22px!important;height:22px!important}
+html #mobileFloatingBar .circle-badge-btn i{font-size:21px!important}
+html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:29px!important;height:29px!important}
+html #mobileFloatingBar>.feed .fdp{width:29px!important;height:29px!important}
+html #mobileFloatingBar #langBtn{font-size:15px!important}
 /* --- the + pop-out: coloured, bigger icons that move when it opens --- */
 .lgi .plA,.lgi .plS{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
 .lgi .plA{color:#34d399}
