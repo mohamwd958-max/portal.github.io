@@ -882,7 +882,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); setTimeout(thDiag, 900); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -3090,3 +3090,17 @@ body.light-theme .tpwarn{color:#92400e}
 .tpwarn[hidden]{display:none}
 .tpt .tpbs{max-width:360px;margin-inline:auto}`; document.head.appendChild(st);
 })();
+
+/* temporary diagnostics: prints where the Tasks / Dandana cards are (console only, nothing on screen). Safe to delete. */
+function thDiag() {
+  try {
+    const secs = [...document.querySelectorAll('.thsec')].map(s => s.id + ' hidden=' + s.hidden + ' display=' + getComputedStyle(s).display + ' h=' + Math.round(s.getBoundingClientRect().height));
+    const info = id => { const c = document.getElementById(id); if (!c) return id + ': NOT IN DOM'; const r = c.getBoundingClientRect(), cs = getComputedStyle(c), s = c.closest('.thsec'); return id + ': section=' + (s && s.id) + ' display=' + cs.display + ' visibility=' + cs.visibility + ' opacity=' + cs.opacity + ' w=' + Math.round(r.width) + ' h=' + Math.round(r.height) + ' top=' + Math.round(r.top + scrollY) + ' htmlLen=' + c.innerHTML.length; };
+    const L = document.getElementById('lists');
+    console.info('[diag] sections:', secs.join(' | '));
+    console.info('[diag]', info('taskCard'));
+    console.info('[diag]', info('dandanaCard'));
+    console.info('[diag] #lists children:', L ? [...L.children].map(e => e.id || e.className).join(',') : 'no #lists', '| scripts:', [...document.scripts].map(s => (s.src || 'inline').split('/').pop()).join(','));
+    console.info('[diag] items by state:', (D.items || []).map(i => i.kind + ':' + itState(i).k).join(','));
+  } catch (e) { console.warn('[diag] failed', e); }
+}
