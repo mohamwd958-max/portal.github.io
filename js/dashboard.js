@@ -3805,3 +3805,101 @@ html body.light-theme #thBrand{
 html body.light-theme #mobileFloatingBar{border:1px solid rgba(15,23,42,.12)!important}`;
   document.head.appendChild(st);
 })();
+
+/* ===== Taller bar with labels + centered pop-out menu (lower quarter of the screen) ===== */
+(function () {
+  const LBL = {
+    reload: { en: 'Reload', ar: 'تحديث', eg: 'تحديث' },
+    assist: { en: 'Add', ar: 'إضافة', eg: 'إضافة' },
+    lang: { en: 'Language', ar: 'اللغة', eg: 'اللغة' },
+    theme: { en: 'Theme', ar: 'الوضع', eg: 'الوضع' },
+    logout: { en: 'Profile', ar: 'الحساب', eg: 'الحساب' },
+    feed: { en: 'Notifications', ar: 'الإشعارات', eg: 'الإشعارات' },
+    edit: { en: 'Settings', ar: 'الإعدادات', eg: 'الإعدادات' }
+  };
+  const L = () => (typeof lang !== 'undefined' && lang) || 'en';
+
+  const st = document.createElement('style'); st.id = 'thLabels';
+  st.textContent = `
+html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar #barEdit,html body #mobileFloatingBar #langBtn,html body #mobileFloatingBar>.feed{
+  width:60px!important;min-width:60px!important;max-width:60px!important;height:58px!important;
+  flex-direction:column!important;gap:3px!important;justify-content:center!important;align-items:center!important;border-radius:12px!important}
+html body #mobileFloatingBar{height:calc(70px + env(safe-area-inset-bottom,0px))!important}
+.thl{display:block;font:700 9.5px/1.1 Cairo,Inter,sans-serif;opacity:.8;white-space:nowrap;color:#cbd5e1;letter-spacing:0;pointer-events:none}
+body.light-theme .thl{color:#334155}
+html body #mobileFloatingBar #langBtn{font-size:15px!important}
+html body #mobileFloatingBar #feedBtn #feedNum{top:0!important;right:8px!important}
+
+#thMenu{position:fixed;inset:0;z-index:10025;display:none;background:rgba(2,6,23,.4);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+body.light-theme #thMenu{background:rgba(255,255,255,.4)}
+#thMenu.open{display:block;animation:tdIn .2s ease-out}
+#thMenu .tmr{position:absolute;left:0;right:0;top:66%;display:flex;flex-wrap:wrap;justify-content:center;gap:22px 26px;padding:0 18px}
+#thMenu .tmi{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:76px;background:none;border:0;padding:0;color:#f1f5f9;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;animation:tmIn .35s cubic-bezier(.2,.9,.3,1.2) forwards;animation-delay:calc(var(--i,0)*.06s)}
+body.light-theme #thMenu .tmi{color:#0f172a}
+#thMenu .tmi .tic{width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:26px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.55))}
+#thMenu .tmi .tic svg{width:30px;height:30px}
+#thMenu .tmi .tlb{font:700 .78rem Cairo,Inter,sans-serif;text-align:center;max-width:110px}
+#thMenu .tmi:active{transform:scale(.92)}
+@keyframes tmIn{from{opacity:0;transform:translateY(14px) scale(.85)}to{opacity:1;transform:none}}`;
+  document.head.appendChild(st);
+
+  
+  /* ---- labels under the bar buttons ---- */
+  function labels() {
+    const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
+    const map = [['[data-bk="reload"]', 'reload'], ['#plusBtn', 'assist'], ['#langBtn', 'lang'], ['#floatBtnTheme', 'theme'], ['#profBtn', 'logout'], ['#feedBtn', 'feed'], ['#barEdit', 'edit']];
+    map.forEach(([sel, k]) => {
+      const b = bar.querySelector(sel); if (!b) return;
+      let s = b.querySelector(':scope>.thl'); if (!s) { s = document.createElement('span'); s.className = 'thl'; b.appendChild(s); }
+      s.textContent = LBL[k][L()] || LBL[k].en;
+    });
+  }
+  [100, 600, 1500, 3500].forEach(t => setTimeout(labels, t));
+  new MutationObserver(labels).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  const fb = () => document.getElementById('feedBtn'); const iv = setInterval(() => { if (fb() && fb().parentNode === document.getElementById('mobileFloatingBar')) { labels(); clearInterval(iv); } }, 500);
+
+  /* ---- centered menu ---- */
+  const menu = document.createElement('div'); menu.id = 'thMenu'; menu.innerHTML = '<div class="tmr"></div>';
+  document.body.appendChild(menu);
+  const row = menu.querySelector('.tmr');
+  const close = () => menu.classList.remove('open');
+  menu.addEventListener('click', e => { if (e.target === menu || e.target === row) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  function show(items) {
+    row.innerHTML = '';
+    items.forEach((it, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'tmi'; b.style.setProperty('--i', i);
+      b.innerHTML = `<span class="tic">${it.icon}</span><span class="tlb" dir="auto">${it.label}</span>`;
+      b.onclick = e => { e.stopPropagation(); close(); setTimeout(it.on, 60); };
+      row.appendChild(b);
+    });
+    menu.classList.add('open');
+  }
+  const t3 = (a, b, c) => L() === 'en' ? a : (L() === 'ar' ? b : c);
+
+  const ASSIST = '<svg viewBox="0 0 32 32" fill="#34d399"><path d="M11.5 4.5c-3.6 0-6.5 2.9-6.5 6.5 0 2.1.9 3.9 2.4 5.2.5.4.8 1 .8 1.7V21h7.6v-3h1.3c.9 0 1.6-.7 1.6-1.6v-2.1l1.4-.7c.5-.2.6-.8.3-1.2l-2-2.9C18.6 6.4 15.4 4.5 11.5 4.5z"/><path d="M7.4 23.5c0-1 .8-1.8 1.8-1.8h6.6c1 0 1.8.8 1.8 1.8V27H7.4z"/><g fill="none" stroke="#34d399" stroke-width="1.7" stroke-linecap="round"><path d="M23.6 10.2l3.2-1.2"/><path d="M24.2 13.4h3.6"/><path d="M23.6 16.6l3.2 1.2"/></g></svg>';
+  const calIcon = () => '<svg viewBox="0 0 32 32" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="6" width="23" height="21.5" rx="5"/><path d="M4.5 12.5h23M10.5 3.5v5M21.5 3.5v5"/><text x="16" y="23.4" text-anchor="middle" font-family="Inter,Cairo,sans-serif" font-weight="800" font-size="11" stroke="none" fill="#fbbf24">' + parseInt(itToday().slice(8), 10) + '</text></svg>';
+
+  window.openPlus = () => show([
+    { icon: ASSIST, label: t3('Assistant', 'المساعد', 'المساعد'), on: () => Panels.open('assistant') },
+    { icon: '<i class="fa-solid fa-paper-plane" style="color:#38bdf8"></i>', label: t3('Requests', 'الطلبات', 'الطلبات'), on: () => openRq() }
+  ]);
+  window.openLang = () => {
+    const nm = { en: 'English', ar: 'عربي', eg: 'مصري' };
+    show(['en', 'ar', 'eg'].filter(x => x !== L()).map(x => ({ icon: `<span style="font:800 15px Inter,Cairo,sans-serif">${x === 'en' ? 'EN' : x === 'ar' ? 'عربي' : 'مصري'}</span>`, label: nm[x], on: () => setLanguage(x) })));
+  };
+  window.openProf = () => show([
+    { icon: '<i class="fa-regular fa-user"></i>', label: t3('Profile', 'ملفي', 'ملفي'), on: () => Panels.open('profile') },
+    { icon: calIcon(), label: t3('Calendar', 'التقويم', 'التقويم'), on: () => window.openCal && window.openCal() },
+    { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: t3('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }
+  ]);
+  window.openStar = () => {
+    const wide = innerWidth > 700, U = UIT[L()] || UIT.en;
+    show([
+      { icon: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', label: wide ? t3('Phone view', 'شكل التليفون', 'شكل التليفون') : t3('Desktop view', 'شكل الديسكتوب', 'شكل الديسكتوب'),
+        on: () => { try { localStorage.setItem('thabit_view', wide ? 'phone' : 'desktop'); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } } },
+      { icon: '<i class="fa-solid fa-text-height"></i>', label: U.zoom, on: () => startAdjust('zoom') },
+      { icon: '<i class="fa-solid fa-sun"></i>', label: U.bri, on: () => startAdjust('bri') }
+    ]);
+  };
+})();
