@@ -3207,3 +3207,34 @@ html #mobileFloatingBar>.feed,#feedBtn{position:relative!important;background:tr
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+
+
+
+
+
+
+
+/* ===== Feed star: thin outline (same weight as the theme icon), softly rounded corners, slight tilt ===== */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+#feedBtn .fstar{width:28px;height:28px;transform:rotate(-12deg)}
+#feedBtn .fstar path{stroke-width:1.35!important;stroke-linejoin:round;stroke-linecap:round;fill:none}`;
+  document.head.appendChild(st);
+
+  /* star with each corner rounded by a small curve */
+  const cx = 12, cy = 12, R = 9.6, r = 4.8, d = 1.4, P = [];
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? r : R; P.push([cx + k * Math.cos(a), cy + k * Math.sin(a)]); }
+  const toward = (a, b, t) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [a[0] + dx / l * t, a[1] + dy / l * t]; };
+  let path = '';
+  P.forEach((p, i) => {
+    const t = i % 2 ? d * 0.6 : d, a = toward(p, P[(i + 9) % 10], t), b = toward(p, P[(i + 1) % 10], t);
+    path += (i ? 'L' : 'M') + a[0].toFixed(2) + ',' + a[1].toFixed(2) + 'Q' + p[0].toFixed(2) + ',' + p[1].toFixed(2) + ' ' + b[0].toFixed(2) + ',' + b[1].toFixed(2);
+  });
+  path += 'Z';
+
+  const fix = () => document.querySelectorAll('#feedBtn .fstar path').forEach(p => p.setAttribute('d', path));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { fix(); setTimeout(fix, 300); });
+  else { fix(); setTimeout(fix, 300); }
+})();
