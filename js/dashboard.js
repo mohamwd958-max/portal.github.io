@@ -516,7 +516,7 @@ const tkLogCell = x => `<div class="ssi tkprev">${tkHead(x).replace(/^<summary>|
 const tkLogDet = x => {
   const s = itState(x), p = x.plan, ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);
-  return `<details class="ssi">${tkHead(x)}<div class="ssdet">${ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : ''}${appExtra(x, ap.app, atts, endAt)}${s.k === 'closed' ? `<div class="row"><b dir="auto">${esc(closedText(x))}</b></div>` : ''}</div></details>`;
+  return `<details class="ssi">${tkHead(x)}<div class="ssdet">${ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : ''}${appExtra(x, ap.app, atts, endAt)}${s.k === 'closed' ? `<div class="row"><b dir="auto">${esc(closedText(x))}</b></div>` : ''}${window.thDispHtml ? thDispHtml(x) : ''}</div></details>`;
 };
 const tkGroup = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
   return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
@@ -813,7 +813,7 @@ function openLogItem(id) {
   $('mB').innerHTML = `<div class="sm" style="margin-bottom:8px">${esc(x.date)}${x.badge ? ' · <span dir="auto">' + esc(x.badge) + '</span>' : ''}</div>`
     + (ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : '')
     + appExtra(x, ap.app, atts, endAt)
-    + `<div class="sss" style="margin-top:10px"><span style="${s.k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${s.k === 'done' ? t2.done : t2.missed}</span><span>${d}/${n}</span>${s.k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div>`;
+    + `<div class="sss" style="margin-top:10px"><span style="${s.k === 'done' ? 'color:#34d399' : 'color:#fb7185'}">${s.k === 'done' ? t2.done : t2.missed}</span><span>${d}/${n}</span>${s.k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div>` + (window.thDispHtml ? thDispHtml(x) : '');
   $('mdl').classList.add('open');
 }
 function itemsCard(kind) {
@@ -1195,7 +1195,7 @@ function billCard(s) {
 /* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
 function thn_noteList() {
   const now = Date.now();
-  return ((D && D.notes) || []).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
+  return (((D && D.notes) || []).concat(window.thLocalNotes ? thLocalNotes() : [])).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
     .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
 function thn_noteCardN(n) {
@@ -3929,4 +3929,108 @@ body.light-theme svg.c2 .dot:not(.hit){filter:none!important;stroke:#fff;stroke-
 body.light-theme #barTip{background:#fff!important;color:#0f172a!important;border:1px solid rgba(15,23,42,.15)!important;box-shadow:0 6px 18px rgba(15,23,42,.18)!important}
 #barTip{pointer-events:none}`;
   document.head.appendChild(st);
+})();
+
+
+/* ==========================================================
+   Dispute: a closed (missed) Task / Dandana can be disputed from the Log / History.
+   1) "I did it for real but forgot to check it here" -> a request goes to the trainer (trainee_send_request + trainee_submit_report,
+      so it lands in Requests / Reports in Supabase), the score is given back by the server function trainee_dispute_item,
+      and a notification tells him we believe him.
+   2) "I didn't do it, neither for real nor here" -> nothing changes, a notification tells him his score stays.
+   One dispute per item (remembered on this device and, when the server function exists, on the server).
+   ========================================================== */
+(function () {
+  const DK = 'thabit_disputes', NK = 'thabit_local_notes';
+  const X = {
+    en: { btn: 'Dispute', ttl: 'What really happened?', o1: 'I did it for real, but forgot to check it here', o2: "I didn't do it, neither for real nor here", sending: 'Sending…', fail: 'Could not send, try again', sent1: 'Dispute sent', sent2: 'Score unchanged', close: 'Close',
+      n1t: 'Dispute accepted', n1b: t => `Done, we trust you. Your score for “${t}” has been restored: you did it for real and only forgot to check it here.`,
+      n1pt: 'Dispute received', n1pb: t => `We received your dispute for “${t}”. The trainer will review it and you will be notified.`,
+      n2t: 'Your score stays the same', n2b: t => `Unfortunately your compliance score for “${t}” will not change, because you did not do it, neither for real nor here. Try to finish the next one before its deadline.` },
+    ar: { btn: 'اعتراض', ttl: 'ماذا حدث فعلًا؟', o1: 'أنجزتها فعلًا لكن نسيت تأشيرها هنا', o2: 'لم أنجزها، لا فعليًا ولا هنا', sending: 'جارٍ الإرسال…', fail: 'تعذر الإرسال، حاول مرة أخرى', sent1: 'تم إرسال الاعتراض', sent2: 'الدرجة لم تتغير', close: 'إغلاق',
+      n1t: 'تم قبول الاعتراض', n1b: t => `تم، نحن نصدّقك. أعدنا لك درجتك في «${t}» لأنك أنجزتها فعلًا ونسيت تأشيرها هنا.`,
+      n1pt: 'تم استلام اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». سيراجعه المدرب وسيصلك إشعار.`,
+      n2t: 'درجتك لن تتغير', n2b: t => `للأسف لن تتغير درجتك في الالتزام بخصوص «${t}»، لأنك لم تنجزها لا فعليًا ولا هنا. حاول إنهاء القادمة قبل موعدها النهائي.` },
+    eg: { btn: 'اعتراض', ttl: 'إيه اللي حصل بجد؟', o1: 'عملتها بجد بس نسيت أشيّكها هنا', o2: 'ما عملتهاش، لا بجد ولا هنا', sending: 'بيتبعت…', fail: 'معرفناش نبعت، جرب تاني', sent1: 'الاعتراض اتبعت', sent2: 'الدرجة زي ما هي', close: 'إغلاق',
+      n1t: 'الاعتراض اتقبل', n1b: t => `تمام، صدّقناك. رجّعنا لك درجتك في «${t}» لأنك عملتها بجد وبس نسيت تشيّك عليها هنا.`,
+      n1pt: 'استلمنا اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». المدرب هيراجعه وهيوصلك إشعار.`,
+      n2t: 'درجتك زي ما هي', n2b: t => `للأسف رقمك في الكومبلاينس في «${t}» مش هيتغير، لأنك ما خلصتهاش لا بجد ولا هنا. حاول تخلّص الجاية قبل الديدلاين.` }
+  };
+  const T = () => X[lang] || X.en;
+  const rd = k => { try { return JSON.parse(localStorage.getItem(k) || (k === NK ? '[]' : '{}')) || (k === NK ? [] : {}); } catch (e) { return k === NK ? [] : {}; } };
+  const wr = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  window.thLocalNotes = () => rd(NK).filter(n => n && Date.now() - Date.parse(n.created_at) < 864e5);
+  const addNote = (title, body, cat) => {
+    const a = rd(NK).filter(n => Date.now() - Date.parse(n.created_at) < 864e5); a.push({ id: null, kind: 'dispute', title, body, created_at: new Date().toISOString(), read_at: null, meta: { category: cat } });
+    wr(NK, a); try { updateFeed(); } catch (e) {}
+  };
+
+  window.thDispHtml = x => {
+    if (VIEW || !x || itState(x).k !== 'closed') return '';
+    const t = T(), got = rd(DK)[x.id];
+    if (got) return `<div class="thdst"><i class="fa-solid ${got === 'did' ? 'fa-paper-plane' : 'fa-ban'}"></i> ${esc(got === 'did' ? t.sent1 : t.sent2)}</div>`;
+    return `<button type="button" class="thdb" onclick="event.stopPropagation();thDispute(${x.id})"><i class="fa-regular fa-flag"></i> ${esc(t.btn)}</button>`;
+  };
+
+  const st = document.createElement('style'); st.textContent = `
+.thdb{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 14px;border-radius:999px;border:1px solid rgba(251,191,36,.55);background:rgba(251,191,36,.1);color:#fbbf24;font:700 .78rem Cairo,Inter,sans-serif;cursor:pointer}
+.thdb:active{transform:scale(.96)}
+.thdst{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font:700 .78rem Cairo,Inter,sans-serif;opacity:.75}
+body.light-theme .thdb{color:#92400e;border-color:rgba(180,83,9,.5);background:rgba(251,191,36,.18)}
+#thDisp{position:fixed;inset:0;z-index:100050;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#thDisp.open{display:flex}
+#thDisp .db{box-sizing:border-box;width:min(94vw,420px);border-radius:22px;padding:18px 16px 16px;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);font:600 .9rem Cairo,Inter,sans-serif}
+body.light-theme #thDisp{background:rgba(255,255,255,.5)}
+body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
+#thDisp .dt{font-weight:800;font-size:1.02rem;text-align:center;margin-bottom:4px}
+#thDisp .ds{font-size:.8rem;opacity:.7;text-align:center;margin-bottom:12px;overflow-wrap:anywhere}
+#thDisp .dopt{display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:13px 14px;border-radius:14px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font:inherit;text-align:start;cursor:pointer}
+#thDisp .dopt:active{transform:scale(.98)}
+#thDisp .dopt:disabled{opacity:.6;cursor:default}
+#thDisp .dopt.a{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.12)}
+#thDisp .dopt.b{border-color:rgba(251,113,133,.55);background:rgba(251,113,133,.1)}
+#thDisp .de{min-height:1.2em;margin-top:8px;text-align:center;color:#fb7185;font-size:.8rem}
+#thDisp .dx{display:block;margin:6px auto 0;border:0;background:none;color:inherit;opacity:.65;font:inherit;cursor:pointer;padding:6px 12px}`;
+  document.head.appendChild(st);
+
+  const ov = document.createElement('div'); ov.id = 'thDisp'; document.body.appendChild(ov);
+  let busy = false;
+  const close = () => { if (!busy) ov.classList.remove('open'); };
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('open')) close(); });
+
+  window.thDispute = id => {
+    const x = (D.items || []).find(i => i.id === id); if (!x || VIEW || itState(x).k !== 'closed' || rd(DK)[id]) return;
+    const t = T(); busy = false;
+    ov.innerHTML = `<div class="db"><div class="dt">${esc(t.ttl)}</div><div class="ds" dir="auto">${esc(x.title || '')} · ${esc(x.date)}</div>`
+      + `<button type="button" class="dopt a" data-c="did" dir="auto">${esc(t.o1)}</button><button type="button" class="dopt b" data-c="not" dir="auto">${esc(t.o2)}</button><div class="de"></div><button type="button" class="dx">${esc(t.close)}</button></div>`;
+    ov.querySelector('.dx').onclick = close;
+    ov.querySelectorAll('.dopt').forEach(b => b.onclick = () => choose(x, b.dataset.c));
+    ov.classList.add('open');
+  };
+
+  async function choose(x, ch) {
+    if (busy) return; busy = true;
+    const t = T(), btns = ov.querySelectorAll('.dopt'), er = ov.querySelector('.de'); btns.forEach(b => b.disabled = true); er.textContent = t.sending; er.style.color = 'inherit';
+    const prof = (D && D.profile) || {}, name = prof.trainee || '', title = x.title || '', now = new Date(cairoNow()).toISOString().replace('T', ' ').slice(0, 16);
+    const p = x.plan, kind = x.kind === 'dandana' ? 'Dandana' : 'Task';
+    if (ch === 'did') {   /* the request goes to the trainer first; if it can't be sent nothing else happens */
+      const msg = `[REQUEST] Dispute: ${kind} #${x.no} - ${title}`.slice(0, 140);
+      const full = `[DISPUTE] ${title}\n[DETAILS] The trainee says he DID this ${kind.toLowerCase()} for real but forgot to check it on the dashboard.\n[TRAINEE] ${name}\n[ITEM] ${kind} #${x.no} | date ${x.date} | id ${x.id}\n[CLOSED] ${p ? 'deadline ' + new Date(p.deadline).toISOString().replace('T', ' ').slice(0, 16) + (p.deadline_reason ? ' (' + p.deadline_reason + ')' : '') : 'n/a'}\n[SENT AT] ${now} (Cairo)\n[CHOICE] did_it_but_forgot_to_check\n[SCORE] given back automatically, pending your review`.slice(0, 2000);
+      const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: 'other', p_message: full }).catch(() => null);
+      if (ok !== true) { busy = false; btns.forEach(b => b.disabled = false); er.style.color = '#fb7185'; er.textContent = t.fail; return; }
+      rpc('trainee_submit_report', { p_token: tok(), p_type: 'other', p_title: msg, p_details: full.slice(0, 1500), p_follow: null }).catch(() => null);
+    }
+    /* server side: gives the score back (choice "did") / logs the choice, and creates the notification. Returns true when it did all of it. */
+    const r = await rpc('trainee_dispute_item', { p_token: tok(), p_item_id: x.id, p_choice: ch }).catch(() => null);
+    const serverDone = r === true;
+    const m = rd(DK); m[x.id] = ch; wr(DK, m);
+    if (serverDone) { try { await load(); } catch (e) {} }
+    else if (ch === 'did') addNote(t.n1pt, t.n1pb(title), 'note');
+    else addNote(t.n2t, t.n2b(title), 'alert');
+    busy = false; ov.classList.remove('open'); itToast(ch === 'did' ? t.sent1 : t.sent2);
+    const wasLog = $('mdl').classList.contains('open') && $('mT').textContent === title;
+    try { render(); } catch (e) {} if (wasLog) openLogItem(x.id);
+  }
 })();
