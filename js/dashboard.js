@@ -42,6 +42,7 @@ function toggleTheme() {
   const light = $('bodyRoot').classList.toggle('light-theme');
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
   try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
+  try { const tb = $('floatBtnTheme'); if (tb) tb.blur(); } catch (e) {}
 }
 
 
@@ -2101,7 +2102,7 @@ function placeFeed() {
     layoutBar(); swallow = true; setTimeout(() => { swallow = false; }, 400);
   }
   bar.addEventListener('pointerdown', e => {
-    const it = e.target.closest && e.target.closest('[data-bk]'); if (!it || it.parentNode !== bar) return;
+    const it = e.target.closest && e.target.closest('[data-bk]'); if (!it || it.parentNode !== bar || it.id === 'floatBtnTheme') return;   /* theme button: a plain tap button, can't be lifted or moved */
     sx = e.clientX; sy = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it, e), 450);
   });
   document.addEventListener('pointermove', e => { if (drag) { move(e); return; } if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(timer); timer = null; } });   // listeners on the document: moving the icon in the DOM must not end the drag
@@ -3909,8 +3910,14 @@ body.light-theme #thMenu .tmi{color:#0f172a}
   const st = document.createElement('style'); st.id = 'thFixes2'; st.textContent = `
 /* notification number: straddles the star's corner, nothing clips it */
 html #mobileFloatingBar,html #mobileFloatingBar>.feed,html #feedBtn,html #feedBtn .fdp{overflow:visible!important}
-html body #mobileFloatingBar #feedBtn #feedNum{top:-3px!important;right:5px!important;z-index:5!important;box-shadow:0 0 0 2px #181c20!important}
+html body #mobileFloatingBar #feedBtn #feedNum{top:3px!important;left:calc(50% + 9px)!important;right:auto!important;z-index:5!important;box-shadow:0 0 0 2px #181c20!important}
 html body.light-theme #mobileFloatingBar #feedBtn #feedNum{box-shadow:0 0 0 2px #f4f6f9!important}
+/* bar buttons: equal slices (even spacing), icon centred in the upper part, every label on the same line */
+html body #mobileFloatingBar>[data-bk]:not(#z),html body #mobileFloatingBar #barEdit:not(#z),html body #mobileFloatingBar>.feed:not(#z){flex:1 1 0!important;width:auto!important;min-width:0!important;max-width:76px!important;position:relative!important;padding:0 0 16px!important;justify-content:center!important;margin:0!important}
+html body #mobileFloatingBar .thl{position:absolute!important;left:0;right:0;bottom:5px;text-align:center}
+/* theme button: never moves, never tilts, the sun/moon swap happens inside a fixed box */
+html body #mobileFloatingBar #floatBtnTheme:not(#z),html body #mobileFloatingBar #floatBtnTheme:not(#z):hover,html body #mobileFloatingBar #floatBtnTheme:not(#z):active,html body #mobileFloatingBar #floatBtnTheme:not(#z):focus{transform:none!important;transition:none!important;translate:none!important;rotate:none!important;outline:0!important}
+html body #mobileFloatingBar #themeIcon:not(#z){display:flex!important;align-items:center;justify-content:center;width:26px;height:26px;transform:none!important;transition:none!important;font-size:21px!important;line-height:1!important}
 /* light theme: softer dots + a clear patch around the bar labels and the header name */
 html body.light-theme #mobileFloatingBar,html body.light-theme~#thBrand,html body.light-theme #thBrand{background-image:radial-gradient(circle,rgba(15,23,42,.13) 1.1px,transparent 1.5px)!important}
 html body.light-theme .thl{opacity:1;color:#1e293b;text-shadow:0 0 2px #f4f6f9,0 0 2px #f4f6f9,0 0 4px #f4f6f9,0 0 4px #f4f6f9,0 0 6px #f4f6f9}
