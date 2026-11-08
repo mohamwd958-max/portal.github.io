@@ -1,63 +1,62 @@
-/* Thabit PWA service worker
- * Strategy: network-first for everything on the same origin (so every GitHub push
- * shows up immediately), falling back to the cache only when offline.
- * Cross-origin requests (Supabase, APIs, Google Fonts, CDNs) and all non-GET
- * requests are never touched, so login/data calls always go straight to the network.
- */
-const CACHE = 'thabit-v1';
-const SHELL = [
-  './',
-  './index.html',
-  './offline.html',
-  './Css/portal.css',
-  './js/brand.js',
-  './js/portal.js',
-  './js/pwa.js',
-  './assets/thabit-favicon.svg',
-  './assets/thabit-ornament.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
-];
+/* Thabit service worker: offline page + push notifications.
+   Deliberately does NOT cache the app files, so updates always arrive immediately. */
+const VERSION = 'thabit-sw-2';
+const OFFLINE = 'offline.html';
+/* same public (anon) values the dashboard already uses: needed only to report "delivered" / "clicked" */
+const SB = 'https://vkfexceitwjmxncwceqb.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI';
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) =>
-      // allSettled: one missing file must not break the install
-      Promise.allSettled(SHELL.map((url) => cache.add(url)))
-    ).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll([OFFLINE, 'icons/icon-192.png'])).catch(() => {}).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+/* only page navigations: if the network is down show the offline page */
+self.addEventListener('fetch', e => {
+  if (e.request.mode !== 'navigate') return;
+  e.respondWith(fetch(e.request).catch(() => caches.match(OFFLINE)));
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+/* tells Supabase what happened on this phone: 'delivered' | 'clicked' */
+async function track(ev, nid) {
+  try {
+    const sub = await self.registration.pushManager.getSubscription(); if (!sub) return;
+    await fetch(SB + '/rest/v1/rpc/push_event', {
+      method: 'POST', keepalive: true,
+      headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_endpoint: sub.endpoint, p_event: ev, p_nid: nid || null })
+    });
+  } catch (x) {}
+}
 
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // Supabase, fonts, CDNs: network only
+/* push: { title, body, lang, nid, url }. Same tag every time = the new one REPLACES the old one, never a pile. */
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) {}
+  e.waitUntil((async () => {
+    /* iOS requires every push to show something, so when the app is open it still shows, just silently */
+    const open = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).some(c => c.visibilityState === 'visible');
+    await self.registration.showNotification(d.title || 'Thabit', {
+      body: d.body || '', tag: 'thabit', renotify: true, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
+      dir: d.lang && d.lang !== 'en' ? 'rtl' : 'ltr', lang: d.lang === 'en' ? 'en' : 'ar',
+      silent: open, data: { url: d.url || './', nid: d.nid || null }
+    });
+    await track('delivered', d.nid);
+  })());
+});
 
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
-        }
-        return res;
-      })
-      .catch(() =>
-        caches.match(req).then((hit) => {
-          if (hit) return hit;
-          if (req.mode === 'navigate') return caches.match('./offline.html');
-          return Response.error();
-        })
-      )
-  );
+/* tap: straight into the app, on the notifications (no cancel / mark-as-read needed) */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const data = e.notification.data || {};
+  const target = new URL(data.url || './', self.registration.scope); target.hash = 'th-feed';
+  e.waitUntil((async () => {
+    await track('clicked', data.nid);
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if (c.url.startsWith(self.registration.scope) && 'focus' in c) { await c.focus(); c.postMessage({ type: 'thabit-open-feed' }); return; }
+    }
+    return self.clients.openWindow(target.href);
+  })());
 });
