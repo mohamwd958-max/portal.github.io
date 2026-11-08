@@ -4049,3 +4049,29 @@ body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,
     try { render(); } catch (e) {} if (wasLog) openLogItem(x.id);
   }
 })();
+
+/* ===== Bar: breathing room above / below, hover pop on mouse devices ONLY (phones: no effect on tap) ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFixes3'; st.textContent = `
+/* room: the notification circle is no longer glued to the top border, the labels no longer touch the bottom */
+html body #mobileFloatingBar{height:calc(80px + env(safe-area-inset-bottom,0px))!important}
+html body #mobileFloatingBar>[data-bk]:not(#z),html body #mobileFloatingBar #barEdit:not(#z),html body #mobileFloatingBar>.feed:not(#z){height:60px!important}
+html body #mobileFloatingBar #feedBtn #feedNum{top:7px!important}
+html body #mobileFloatingBar .thl{bottom:7px}
+/* computer (mouse): a very small pop on hover */
+@media (hover:hover) and (pointer:fine){
+  html #mobileFloatingBar>[data-bk]:not(.feed):not(.lifting):not(.pk-on):not(.pk-hide):hover,html #mobileFloatingBar #barEdit:not(.pk-on):not(.pk-hide):hover{transform:scale(1.06)}
+  @media (hover:hover){#feedBtn:hover .fstar{transform:rotate(-12deg) scale(1.08)}}
+}
+/* phone / touch: tapping a bar button does nothing visual (only the long-press lift moves it) */
+@media not all and (hover:hover) and (pointer:fine){
+  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):hover,
+  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):active,
+  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):focus,
+  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):hover,
+  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):active,
+  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):focus{transform:none!important;transition:none!important}
+  html body #feedBtn:hover .fstar,html body #feedBtn:active .fstar,html body #feedBtn:focus .fstar{transform:rotate(-12deg)!important;transition:none!important}
+}`;
+  document.head.appendChild(st);
+})();
