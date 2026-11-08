@@ -3155,47 +3155,50 @@ function thDiag() {
 
 
 
-/* ===== Light bar/header, softer card sweep, outline Feed star, outline theme icon ===== */
+
+
+/* ===== Light bar/header, softer sweep, soft tilted outline star for Feed, outline theme icon ===== */
 (function () {
+  const old = document.getElementById('thSoftUI'); if (old) old.remove();
   const st = document.createElement('style'); st.id = 'thSoftUI';
   st.textContent = `
-/* 1) bottom bar + top header: just a hair lighter than the background */
-html #mobileFloatingBar{background:rgba(148,163,184,.12)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-color:rgba(148,163,184,.14)!important}
-body.light-theme #mobileFloatingBar{background:rgba(255,255,255,.55)!important;border-color:rgba(15,23,42,.06)!important}
-header,.site-header,.navbar,#topHeader,.header{background:rgba(148,163,184,.10)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-body.light-theme header,body.light-theme .site-header,body.light-theme .navbar,body.light-theme #topHeader,body.light-theme .header{background:rgba(255,255,255,.55)!important}
+/* 1) bottom bar: solid, a hair lighter than the page */
+html #mobileFloatingBar{background:#181c20!important;background-image:none!important;border:1px solid rgba(255,255,255,.07)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.light-theme #mobileFloatingBar{background:#fbfcfe!important;border-color:rgba(15,23,42,.08)!important}
+/* top header (logo) - guessed names, see note */
+body>header,body>nav,.th-header,.thabit-header,#thHeader,#brandBar,.brand-bar,.site-header,.navbar{background:#181c20!important;background-image:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.light-theme>header,body.light-theme>nav,body.light-theme .th-header,body.light-theme .thabit-header,body.light-theme #thHeader,body.light-theme #brandBar,body.light-theme .brand-bar,body.light-theme .site-header,body.light-theme .navbar{background:#fbfcfe!important}
 
-/* 2) softer light sweep on cards */
-.thabit-card::before,.thabit-card::after,.test-card::before,.test-card::after{opacity:.35!important}
-.thabit-card.lit::before,.thabit-card.lit::after,.test-card.lit::before,.test-card.lit::after{opacity:.35!important}
+/* 2) softer light sweep */
+.thabit-card::before,.test-card::before{opacity:.35!important}
 
-/* 3) Feed button: no border/background, hollow red star, number badge on top */
-html #mobileFloatingBar>.feed,html #feedBtn{position:relative!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;outline:0!important}
-#feedBtn::before,#feedBtn::after{display:none!important}
-#feedBtn .fdp,#feedBtn>svg:not(.fstar){display:none!important}
-#feedBtn .fstar{width:29px;height:29px;display:block;overflow:visible}
-#feedBtn .fstar path{fill:none;stroke:#ef4444;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
-#feedBtn #feedNum{position:absolute!important;top:2px;inset-inline-end:2px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 10px/16px Inter,Cairo,sans-serif;text-align:center;display:block;transform:none}
-#feedBtn:not(.num) #feedNum{display:none!important}
+/* 3) Feed button: plain, hollow red soft star, red number dot on top */
+html #mobileFloatingBar>.feed,#feedBtn{position:relative!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;outline:0!important}
+#feedBtn .fdp{position:static!important;display:contents!important}
+#feedBtn .fdw,#feedBtn .fdg,#feedBtn .fdb{display:none!important}
+#feedBtn .fstar{width:30px;height:30px;display:block;overflow:visible;transform:rotate(-13deg)}
+#feedBtn .fstar path{fill:none;stroke:#ef4444;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+#feedBtn #feedNum{position:absolute!important;inset:auto!important;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;display:block;
+ background:#ef4444!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+ font:800 10px/16px Inter,Cairo,sans-serif!important;text-align:center;opacity:0;transform:none!important;animation:none!important}
+#feedBtn.num #feedNum{opacity:1}
 
-/* 4) theme button: outline icon */
+/* 4) theme icon: outline */
 #themeIcon{font-weight:400!important}`;
   document.head.appendChild(st);
 
-  /* star */
-  const STAR = '<svg class="fstar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
+  /* chubby star with rounded corners (thick round stroke softens the tips) */
+  const STAR = '<svg class="fstar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L15.06 7.79L20.56 9.22L16.95 13.61L17.29 19.28L12 17.2L6.71 19.28L7.05 13.61L3.44 9.22L8.94 7.79Z"/></svg>';
   function putStar() {
     const b = document.getElementById('feedBtn'); if (!b || b.querySelector('.fstar')) return;
     b.insertAdjacentHTML('afterbegin', STAR);
   }
-
-  /* theme icon: fa-solid -> fa-regular (works for both moon and sun, also after every toggle) */
   function hollowTheme() {
     const i = document.getElementById('themeIcon'); if (!i) return;
     if (i.classList.contains('fa-solid')) { i.classList.remove('fa-solid'); i.classList.add('fa-regular'); }
   }
-
   function init() {
+    document.querySelectorAll('#feedBtn .fstar').forEach(e => e.remove());
     putStar(); hollowTheme();
     const i = document.getElementById('themeIcon');
     if (i) new MutationObserver(hollowTheme).observe(i, { attributes: true, attributeFilter: ['class'] });
@@ -3204,4 +3207,3 @@ html #mobileFloatingBar>.feed,html #feedBtn{position:relative!important;backgrou
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
-
