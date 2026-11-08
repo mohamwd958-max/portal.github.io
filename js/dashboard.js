@@ -1,4 +1,5 @@
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
+console.info('[dashboard] build 2026-11-08 vertical-timeline-v4');
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
@@ -464,6 +465,12 @@ body.light-theme a.alk{color:#0369a1}
 .atlk small{opacity:.75;font-weight:600}
 body.light-theme .atlk,body.light-theme .atc i{color:#0369a1}`; document.head.appendChild(s); })();
 
+/* vertical timeline (top = first check, bottom = last): dots on the left, the time written to the right of each dot */
+const tlVHtml = (p, d, s) => {
+  const o = p && p.opens; if (!o || o.length < 2) return '';
+  const n = p.n_eff || o.length;
+  return `<div class="vt">${o.slice(0, n).map((t, j) => `<div class="vtr"><i class="${j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : '')}"></i><span>${fmtOpenS(t)}</span></div>`).join('')}</div>`;
+};
 function itemRow(it) {
   const t = itT(), s = itState(it), p = it.plan, n = p ? p.n_eff : it.repeats, d = (it.checks || []).length;
   const ap = appSplit(it.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
@@ -481,10 +488,12 @@ function itemRow(it) {
     ? `<button type="button" class="tpkb used" disabled><i class="fa-solid fa-check"></i> ${TP_.used}</button>`
     : `<button type="button" class="tpkb" onclick="event.stopPropagation();tkPersonalize(${it.id})"><i class="fa-regular fa-clock"></i> ${TP_.choose}</button>`) : '';
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
+  const vt = tlVHtml(p, d, s), bodyHtml = (ap.text ? `<div class="itd rich">${rich(ap.text)}</div>` : '') + appExtra(it, ap.app, atts, endAt);
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}${TKNEW.has(it.id) ? ' itpop' : ''}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
-    + `<div class="itb2"><div class="ith">${head}</div>${ap.text ? `<div class="itd rich">${rich(ap.text)}</div>` : ''}${appExtra(it, ap.app, atts, endAt)}`
-    + (tlHtml(p, d, s, da) ? `<div class="itl2">${tlHtml(p, d, s, da)}<span class="sm">${d}/${n}</span></div>` : `<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
+    + `<div class="itb2"><div class="ith">${head}</div>`
+    + (vt ? `<div class="itsp" dir="ltr"><div class="itsl">${vt}<span class="sm itcnt">${d}/${n}</span></div><div class="itsd" dir="auto">${bodyHtml}</div></div>`
+           : `${bodyHtml}<div class="itl">${dots}<span class="sm" style="margin-inline-start:8px">${d}/${n}</span></div>`)
     + `<div class="itg"><span style="width:${Math.round(100 * d / n)}%"></span></div>`
     + (status ? `<div class="its">${esc(status)}</div>` : '')
     + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + pickBtn + `</div>`
@@ -577,22 +586,29 @@ function tkTimeline(id, eds) {
   const T = TPK[lang] || TPK.en; tkTlClose(); tkClose();
   const now = Math.floor(cairoNow() / 6e4) * 6e4, endMax = Math.floor((p.deadline - 6e4) / 6e4) * 6e4;
   const o0 = p.opens.slice(0, p.n_eff), W = o0.slice(), n = o0.length;
-  const A = Math.min(now, ...o0), B = Math.max(endMax, ...o0, A + 36e5), span = B - A;
+  const A = Math.min(now, ...o0), B = Math.max(endMax, ...o0, A + 36e5), span = B - A, half = span / 2, H = 330, TOP = 24;
+  /* the period is cut in two halves, drawn side by side as two vertical lines (time runs top to bottom): small and with room to write the times */
   const o = document.createElement('div'); o.id = 'tpt'; o.className = 'tpt';
   o.innerHTML = `<div class="tptb" dir="auto"><div class="tpt1">${esc(it.title || '')}</div><div class="sm">${esc(T.drag)}</div><div class="sm tpo">${esc(T.once)}</div>`
-    + `<div class="tptl" dir="ltr"><div class="tptr"></div></div><div class="tpval" id="tpval">&nbsp;</div><div class="tpwarn" id="tpwarn" hidden></div>`
+    + `<div class="tvw" dir="ltr" style="height:${TOP + H + 26}px">`
+    + [0, 1].map(c => `<div class="tvc" style="left:${c * 50}%"><div class="tvl" style="top:${TOP}px;height:${H}px"></div><div class="tvh" style="top:0">${fmtOpenS(A + c * half)}</div><div class="tvh" style="top:${TOP + H + 6}px">${fmtOpenS(A + (c + 1) * half)}</div></div>`).join('')
+    + `</div><div class="tpval" id="tpval">&nbsp;</div><div class="tpwarn" id="tpwarn" hidden></div>`
     + `<div class="tpbs"><button type="button" class="tpc">${T.cancel}</button><button type="button" class="tps">${T.save}</button></div></div>`;
   document.body.appendChild(o);
-  const track = o.querySelector('.tptl'), els = o0.map((_, j) => { const d = document.createElement('div'); d.className = 'tpd ' + (eds.includes(j) ? 'ed' : 'fx'); d.dataset.j = j; d.innerHTML = '<i></i><span></span>'; track.appendChild(d); return d; });
+  const wrap = o.querySelector('.tvw'), els = o0.map((_, j) => { const d = document.createElement('div'); d.className = 'tvd ' + (eds.includes(j) ? 'ed' : 'fx'); d.dataset.j = j; d.innerHTML = '<i></i><span></span>'; wrap.appendChild(d); return d; });
   const warn = $('tpwarn'), val = $('tpval'), sv = o.querySelector('.tps'); let conf = false, wt = null;
-  const upd = () => els.forEach((d, j) => { d.style.left = ((W[j] - A) / span * 100) + '%'; const s = d.querySelector('span'); s.innerHTML = fmtOpenS(W[j]); s.className = j % 2 ? 'lo2' : ''; });
+  const upd = () => {
+    const pos = els.map((_, j) => { const c = W[j] - A >= half ? 1 : 0, y = TOP + Math.min(1, Math.max(0, (W[j] - A - c * half) / half)) * H; return { j, c, y }; });
+    pos.forEach(q => { const d = els[q.j]; d.style.left = `calc(${q.c * 50}% + 16px)`; d.style.top = q.y + 'px'; d.querySelector('span').innerHTML = fmtOpenS(W[q.j]); });
+    [0, 1].forEach(c => { let last = -1e9; pos.filter(q => q.c === c).sort((a, b) => a.y - b.y).forEach(q => { const ly = Math.max(q.y, last + 15); els[q.j].querySelector('span').style.top = (ly - q.y - 8) + 'px'; last = ly; }); });   // labels never sit on top of each other
+  };
   const note = m => { warn.textContent = m; warn.hidden = !m; clearTimeout(wt); if (m) wt = setTimeout(() => { if (!conf) warn.hidden = true; }, 3200); };
   upd();
   let drag = null;
-  track.addEventListener('pointerdown', e => { const d = e.target.closest('.tpd.ed'); if (!d) return; e.preventDefault(); drag = { j: +d.dataset.j, id: e.pointerId }; d.classList.add('drag'); try { track.setPointerCapture(e.pointerId); } catch (x) {} });
-  track.addEventListener('pointermove', e => {
+  wrap.addEventListener('pointerdown', e => { const d = e.target.closest('.tvd.ed'); if (!d) return; e.preventDefault(); drag = { j: +d.dataset.j, id: e.pointerId }; d.classList.add('drag'); try { wrap.setPointerCapture(e.pointerId); } catch (x) {} });
+  wrap.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.id) return;
-    const j = drag.j, r = track.getBoundingClientRect(), raw = A + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * span;
+    const j = drag.j, r = wrap.getBoundingClientRect(), c = (e.clientX - r.left) < r.width / 2 ? 0 : 1, fy = Math.min(1, Math.max(0, (e.clientY - r.top - TOP) / H)), raw = A + c * half + fy * half;
     const lo = Math.max(now, j > 0 ? W[j - 1] + TK_GAP : now), hi = Math.min(endMax, j + 1 < n ? W[j + 1] - TK_GAP : endMax);
     if (lo > hi) return;
     let ms = Math.round(raw / 3e5) * 3e5, hit = false;
@@ -601,7 +617,7 @@ function tkTimeline(id, eds) {
     if (hit) note(T.gap); else if (!conf) warn.hidden = true;
   });
   const up = e => { if (!drag || e.pointerId !== drag.id) return; const d = els[drag.j]; if (d) d.classList.remove('drag'); drag = null; };
-  track.addEventListener('pointerup', up); track.addEventListener('pointercancel', up);
+  wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up);
   o.querySelector('.tpc').onclick = tkTlClose;
   o.addEventListener('click', e => { if (e.target === o) tkTlClose(); });
   sv.onclick = async () => {
@@ -881,7 +897,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); setTimeout(thDiag, 900); try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { history.scrollRestoration = 'manual'; } catch (e) {} window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 350); setTimeout(thDiag, 900);   // always open on the first section (Tasks / Dandana) try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -3108,3 +3124,30 @@ function thDiag() {
 }
 
 (function(){const st=document.createElement('style');st.textContent='.tkcell.tkempty{opacity:.6}.tkcell.tkempty .tkc2{font-weight:500}';document.head.appendChild(st);})();
+
+/* vertical timelines: in the item (first quarter = line + dots, times written to the right of each dot; the other three quarters = details) and in the full-screen editor */
+(function () { const st = document.createElement('style'); st.textContent = `
+.itsp{display:flex;gap:10px;align-items:flex-start;margin-top:4px}
+.itsl{flex:0 0 28%;min-width:96px;max-width:150px}
+.itsd{flex:1;min-width:0}
+.itsd>.itd{margin-top:0}
+.vt{position:relative}
+.vt::before{content:"";position:absolute;left:5px;top:12px;bottom:12px;width:2px;border-radius:2px;background:rgba(148,163,184,.35)}
+.vtr{display:flex;align-items:center;gap:7px;height:28px}
+.vtr i{position:relative;z-index:1;flex:none;width:12px;height:12px;border-radius:50%;background:rgba(148,163,184,.55)}
+.vtr i.on{background:#34d399}.vtr i.nx{background:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.25)}
+.vtr span{font-size:.66rem;white-space:nowrap;opacity:.85;unicode-bidi:isolate}
+.vtr span b{font-size:.74rem;margin-inline-end:3px}
+.itcnt{display:block;margin-top:4px;padding-left:1px}
+.tpt{overflow:auto}
+.tvw{position:relative;margin:12px auto 4px;width:min(100%,380px);touch-action:none;-webkit-user-select:none;user-select:none}
+.tvc{position:absolute;top:0;width:50%;height:100%}
+.tvl{position:absolute;left:16px;width:3px;margin-left:-1px;border-radius:3px;background:rgba(148,163,184,.4)}
+.tvh{position:absolute;left:26px;font-size:.62rem;opacity:.55;white-space:nowrap;unicode-bidi:isolate}
+.tvd{position:absolute;width:0;height:0;touch-action:none}
+.tvd i{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;background:rgba(148,163,184,.55);box-sizing:border-box}
+.tvd.ed i{background:#34d399;box-shadow:0 0 0 5px rgba(52,211,153,.28);cursor:grab}
+.tvd.ed.drag i{cursor:grabbing;transform:scale(1.15);box-shadow:0 0 0 9px rgba(52,211,153,.22)}
+.tvd.ed::after{content:"";position:absolute;left:-26px;top:-26px;width:52px;height:52px}
+.tvd span{position:absolute;left:22px;top:-8px;font-size:.7rem;white-space:nowrap;opacity:.95;unicode-bidi:isolate;pointer-events:none}
+.tvd span b{font-size:.8rem;margin-inline-end:3px}`; document.head.appendChild(st); })();
