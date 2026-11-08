@@ -4065,3 +4065,73 @@ body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,
     try { render(); } catch (e) {} if (wasLog) openLogItem(x.id);
   }
 })();
+
+
+/* ==========================================================
+   Push notifications: asks once (a tap is required by the browser), then keeps the phone's subscription synced.
+   Works through ThabitPush (pwa.js). Nothing shows when push is unsupported (e.g. iPhone Safari outside the installed app).
+   ========================================================== */
+(function () {
+  const ASK = 'thabit_push_ask', SYNC = 'thabit_push_sync';
+  const X = {
+    en: { ttl: 'Get notified when Thabit sends you something', yes: 'Turn on', no: 'Not now', on: 'Notifications are on', blocked: 'Notifications are blocked in your phone or browser settings' },
+    ar: { ttl: 'احصل على إشعار عندما يرسل لك ثابت شيئًا جديدًا', yes: 'تفعيل', no: 'لاحقًا', on: 'تم تفعيل الإشعارات', blocked: 'الإشعارات محظورة من إعدادات الهاتف أو المتصفح' },
+    eg: { ttl: 'خد إشعار لما ثابت يبعتلك حاجة جديدة', yes: 'فعّل', no: 'مش دلوقتي', on: 'الإشعارات اتفعلت', blocked: 'الإشعارات مقفولة من إعدادات التليفون أو المتصفح' }
+  };
+  const T = () => X[lang] || X.en, P = () => window.ThabitPush;
+  const ls = (k, v) => { try { if (v === undefined) return +localStorage.getItem(k) || 0; localStorage.setItem(k, String(v)); } catch (e) {} return 0; };
+
+  async function sync(ask) {
+    const p = P(); if (!p || !p.supported || !tok()) return false;
+    const s = await p.subscribe(!!ask); if (!s) return false;
+    const r = await rpc('trainee_push_subscribe', { p_token: tok(), p_endpoint: s.endpoint, p_p256dh: s.p256dh, p_auth: s.auth, p_lang: lang }).catch(() => null);
+    if (r === true) ls(SYNC, Date.now());
+    return r === true;
+  }
+  /* can also be wired to a settings button later: thEnablePush() */
+  window.thEnablePush = async () => {
+    const ok = await sync(true), t = T();
+    itToast(ok ? t.on : (window.Notification && Notification.permission === 'denied' ? t.blocked : t.no));
+    return ok;
+  };
+
+  const st = document.createElement('style'); st.textContent = `
+#thPush{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:100040;max-width:440px;margin:0 auto;display:flex;align-items:center;gap:10px;box-sizing:border-box;padding:12px 14px;border-radius:18px;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);box-shadow:0 14px 40px rgba(0,0,0,.45);font:600 .85rem/1.5 Cairo,Inter,sans-serif}
+#thPush b{flex:1;min-width:0;font-weight:700}
+#thPush button{border:0;border-radius:11px;padding:8px 14px;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer;flex:none}
+#thPush .y{background:#fbbf24;color:#111}#thPush .n{background:none;color:inherit;opacity:.65;padding:8px 6px}
+body.light-theme #thPush{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}`;
+  document.head.appendChild(st);
+
+  function ask() {
+    if (document.getElementById('thPush')) return;
+    const t = T(), c = document.createElement('div'); c.id = 'thPush';
+    c.innerHTML = `<i class="fa-regular fa-bell"></i><b dir="auto">${esc(t.ttl)}</b><button class="y" type="button">${esc(t.yes)}</button><button class="n" type="button">${esc(t.no)}</button>`;
+    c.querySelector('.n').onclick = () => { ls(ASK, Date.now()); c.remove(); };
+    c.querySelector('.y').onclick = async () => { c.remove(); ls(ASK, Date.now()); await window.thEnablePush(); };
+    document.body.appendChild(c);
+  }
+  function run() {
+    const p = P(); if (VIEW || !p || !p.supported || !window.Notification) return;
+    if (Notification.permission === 'granted') { if (Date.now() - ls(SYNC) > 864e5) sync(false); return; }   // keep it fresh once a day
+    if (Notification.permission !== 'default') return;                                                      // blocked: never nag
+    if (Date.now() - ls(ASK) < 7 * 864e5) return;                                                           // asked in the last 7 days
+    ask();
+  }
+  let tries = 0; const iv = setInterval(() => {
+    if (++tries > 90) return clearInterval(iv);
+    if (typeof D !== 'undefined' && D && D.profile && tok()) { clearInterval(iv); setTimeout(run, 3500); }
+  }, 1000);
+})();
+
+
+/* ===== Opened from a push notification: go straight to the notifications ===== */
+(function () {
+  const go = async () => {
+    try { const a = await fetchNotes(); if (D) { D.notes = a; updateFeed(); } } catch (e) {}   // fresh list first
+    try { openFeed(); } catch (e) {}
+  };
+  const when = fn => { let n = 0; const iv = setInterval(() => { if (++n > 120) return clearInterval(iv); if (typeof D !== 'undefined' && D && D.profile && tok()) { clearInterval(iv); setTimeout(fn, 600); } }, 500); };
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'thabit-open-feed') go(); });   // app already open
+  if (location.hash === '#th-feed') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} when(go); }                // app was closed
+})();
