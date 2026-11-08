@@ -1997,9 +1997,11 @@ function openProf(btn) {
   ]);
 }
 function setView(v) { try { localStorage.setItem('thabit_view', v); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } }
+const LNL = { en: 'EN', ar: '\u0639\u0631\u0628\u064a', eg: '\u0645\u0635\u0631\u064a' };
 function viewSubList() {
   const ar = lang !== 'en', wide = innerWidth > 700, U = UIT[lang] || UIT.en;
   return [
+    { html: LNL[lang] || 'EN', title: ar ? '\u0627\u0644\u0644\u063a\u0629' : 'Language', sub: () => ({ key: 'lang', list: ['en', 'ar', 'eg'].map(l => ({ html: LNL[l], title: LNL[l], cur: l === lang, on: () => { if (l !== lang) setLanguage(l); } })) }) },
     { html: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', title: wide ? (ar ? 'شكل التليفون' : 'Phone view') : (ar ? 'شكل الديسكتوب' : 'Desktop view'), on: () => setView(wide ? 'phone' : 'desktop') },
     { html: '<i class="fa-solid fa-text-height"></i>', title: U.zoom, keep: 1, on: () => startAdjust('zoom') },
     { html: '<i class="fa-solid fa-sun"></i>', title: U.bri, keep: 1, on: () => startAdjust('bri') }
@@ -2044,11 +2046,18 @@ function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
 }
+function thGear(b) {   // the star button is now the settings gear
+  if (!b) return;
+  if (!b.dataset.gear) { b.dataset.gear = '1'; b.innerHTML = '<i class="fa-solid fa-gear"></i>'; }
+  const t = lang === 'en' ? 'Settings' : '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a'; b.setAttribute('aria-label', t); b.title = t;
+}
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
   bar.querySelectorAll(':scope > [data-bk]').forEach(e => els[e.dataset.bk] = e);
   bar.querySelectorAll(':scope > .bar-divider').forEach(d => d.remove());
-  const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden);
+  if (els.lang) { els.lang.hidden = true; els.lang.style.display = 'none'; }   // the language button is gone from the bar: it sits inside the gear now
+  thGear(edit);
+  const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden && e.dataset.bk !== 'lang');
   list.forEach((e, i) => { bar.appendChild(e); if (i < list.length - 1) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); } });
   const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit);
 }
@@ -2937,14 +2946,24 @@ html #mobileFloatingBar .circle-badge-btn i{font-size:15px!important;line-height
 html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:22px!important;height:22px!important}
 html #mobileFloatingBar>.feed .fdp{width:22px!important;height:22px!important}
 html #mobileFloatingBar #barEdit{opacity:.85}
-/* --- no circle around the bar buttons: only the icons, a bit bigger; their colours and effects stay --- */
-html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed{width:44px!important;height:44px!important;min-width:44px!important;max-width:44px!important;border-radius:12px!important;background:transparent!important;background-image:none!important;border:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;-webkit-tap-highlight-color:transparent}
-html #mobileFloatingBar>[data-bk]:not(.glow):not(.upd),html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed:not(.glow):not(.upd){box-shadow:none!important}
+/* --- bar: no box behind the buttons, no circles (only the Feed button keeps its own circle), no shine; a plain pop when hovered / pressed --- */
+html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{width:min(100%,280px)!important;justify-content:space-evenly!important;padding-left:0!important;padding-right:0!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+@media(max-width:600px){html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{width:min(100%,280px)!important}}
+html #mobileFloatingBar::before,html #mobileFloatingBar::after{display:none!important}
+html #mobileFloatingBar #langBtn{display:none!important}
+html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit{width:44px!important;height:44px!important;min-width:44px!important;max-width:44px!important;-webkit-tap-highlight-color:transparent;transition:transform .18s ease}
+html #mobileFloatingBar>[data-bk]:not(.feed),html #mobileFloatingBar #barEdit{border-radius:12px!important;background:transparent!important;background-image:none!important;border:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html #mobileFloatingBar>[data-bk]:not(.feed):not(.glow):not(.upd),html #mobileFloatingBar #barEdit{box-shadow:none!important}
+html #mobileFloatingBar>.feed{border-radius:50%!important}
+html #mobileFloatingBar>[data-bk]:not(.feed):hover,html #mobileFloatingBar>[data-bk]:not(.feed):active,html #mobileFloatingBar>[data-bk]:not(.feed).pk-on,html #mobileFloatingBar #barEdit:hover,html #mobileFloatingBar #barEdit:active,html #mobileFloatingBar #barEdit.pk-on{background:transparent!important;border:0!important;box-shadow:none!important;filter:none!important}
+html #mobileFloatingBar>[data-bk]:not(.feed)::before,html #mobileFloatingBar>[data-bk]:not(.feed)::after,html #mobileFloatingBar #barEdit::before,html #mobileFloatingBar #barEdit::after{background:none!important;animation:none!important;transition:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html #mobileFloatingBar>.feed:hover::before,html #mobileFloatingBar>.feed:hover::after,html #mobileFloatingBar>.feed:active::before,html #mobileFloatingBar>.feed:active::after{background-image:none!important;animation:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+@media(hover:hover){html #mobileFloatingBar>[data-bk]:hover,html #mobileFloatingBar #barEdit:hover{transform:scale(1.14)}}
+html #mobileFloatingBar>[data-bk]:active,html #mobileFloatingBar #barEdit:active{transform:scale(.94)}
 html #mobileFloatingBar svg.asv,html #mobileFloatingBar [data-bk="assist"] svg{width:22px!important;height:22px!important}
-html #mobileFloatingBar .circle-badge-btn i{font-size:21px!important}
+html #mobileFloatingBar .circle-badge-btn i,html #mobileFloatingBar #barEdit i{font-size:21px!important;line-height:1}
 html #mobileFloatingBar #plusBtn svg,html #mobileFloatingBar #profBtn svg{width:29px!important;height:29px!important}
 html #mobileFloatingBar>.feed .fdp{width:29px!important;height:29px!important}
-html #mobileFloatingBar #langBtn{font-size:15px!important}
 /* --- the + pop-out: coloured, bigger icons that move when it opens --- */
 .lgi .plA,.lgi .plS{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
 .lgi .plA{color:#34d399}
