@@ -3959,15 +3959,15 @@ body.light-theme #barTip{background:#fff!important;color:#0f172a!important;borde
   const DK = 'thabit_disputes', NK = 'thabit_local_notes';
   const X = {
     en: { btn: 'Dispute', ttl: 'What really happened?', o1: 'I did it for real, but forgot to check it here', o2: "I didn't do it, neither for real nor here", sending: 'Sending…', fail: 'Could not send, try again', sent1: 'Dispute sent', sent2: 'Score unchanged', close: 'Close',
-      n1t: 'Dispute accepted', n1b: t => `Done, we trust you. Your score for “${t}” has been restored: you did it for real and only forgot to check it here.`,
+      n1t: 'Dispute accepted', n1b: (t, a, b) => `Done, we trust you. The score for “${t}” is back.${a != null ? ` Your compliance is now ${a}${b != null ? ` (was ${b})` : ''}.` : ''} You can see it in the dashboard.`, left: 'Dispute open for', expired: 'The 24-hour dispute window for this item has ended', already: 'You already disputed this item',
       n1pt: 'Dispute received', n1pb: t => `We received your dispute for “${t}”. The trainer will review it and you will be notified.`,
       n2t: 'Your score stays the same', n2b: t => `Unfortunately your compliance score for “${t}” will not change, because you did not do it, neither for real nor here. Try to finish the next one before its deadline.` },
     ar: { btn: 'اعتراض', ttl: 'ماذا حدث فعلًا؟', o1: 'أنجزتها فعلًا لكن نسيت تأشيرها هنا', o2: 'لم أنجزها، لا فعليًا ولا هنا', sending: 'جارٍ الإرسال…', fail: 'تعذر الإرسال، حاول مرة أخرى', sent1: 'تم إرسال الاعتراض', sent2: 'الدرجة لم تتغير', close: 'إغلاق',
-      n1t: 'تم قبول الاعتراض', n1b: t => `تم، نحن نصدّقك. أعدنا لك درجتك في «${t}» لأنك أنجزتها فعلًا ونسيت تأشيرها هنا.`,
+      n1t: 'تم قبول الاعتراض', n1b: (t, a, b) => `تم، نحن نصدّقك. عادت درجتك في «${t}».${a != null ? ` أصبح التزامك الآن ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} يمكنك رؤيته في لوحة البيانات.`, left: 'الاعتراض متاح لمدة', expired: 'انتهت مهلة الاعتراض (24 ساعة) لهذا العنصر', already: 'سبق أن اعترضت على هذا العنصر',
       n1pt: 'تم استلام اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». سيراجعه المدرب وسيصلك إشعار.`,
       n2t: 'درجتك لن تتغير', n2b: t => `للأسف لن تتغير درجتك في الالتزام بخصوص «${t}»، لأنك لم تنجزها لا فعليًا ولا هنا. حاول إنهاء القادمة قبل موعدها النهائي.` },
     eg: { btn: 'اعتراض', ttl: 'إيه اللي حصل بجد؟', o1: 'عملتها بجد بس نسيت أشيّكها هنا', o2: 'ما عملتهاش، لا بجد ولا هنا', sending: 'بيتبعت…', fail: 'معرفناش نبعت، جرب تاني', sent1: 'الاعتراض اتبعت', sent2: 'الدرجة زي ما هي', close: 'إغلاق',
-      n1t: 'الاعتراض اتقبل', n1b: t => `تمام، صدّقناك. رجّعنا لك درجتك في «${t}» لأنك عملتها بجد وبس نسيت تشيّك عليها هنا.`,
+      n1t: 'الاعتراض اتقبل', n1b: (t, a, b) => `تمام، صدّقناك. الدرجة بتاعة «${t}» رجعت.${a != null ? ` الالتزام بتاعك بقى ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} تقدر تشوفه في الداشبورد.`, left: 'الاعتراض متاح لمدة', expired: 'مهلة الاعتراض (24 ساعة) خلصت على العنصر ده', already: 'انت اعترضت على العنصر ده قبل كده',
       n1pt: 'استلمنا اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». المدرب هيراجعه وهيوصلك إشعار.`,
       n2t: 'درجتك زي ما هي', n2b: t => `للأسف رقمك في الكومبلاينس في «${t}» مش هيتغير، لأنك ما خلصتهاش لا بجد ولا هنا. حاول تخلّص الجاية قبل الديدلاين.` }
   };
@@ -3981,11 +3981,14 @@ body.light-theme #barTip{background:#fff!important;color:#0f172a!important;borde
     wr(NK, a); try { updateFeed(); } catch (e) {}
   };
 
+  /* the dispute stays open for 24 hours after the item closed (its deadline), then it is over */
+  const WIN = 864e5, dispLeft = x => { const p = x && x.plan; return p && p.deadline ? p.deadline + WIN - cairoNow() : -1; };
   window.thDispHtml = x => {
     if (VIEW || !x || itState(x).k !== 'closed') return '';
     const t = T(), got = rd(DK)[x.id];
-    if (got) return `<div class="thdst"><i class="fa-solid ${got === 'did' ? 'fa-paper-plane' : 'fa-ban'}"></i> ${esc(got === 'did' ? t.sent1 : t.sent2)}</div>`;
-    return `<button type="button" class="thdb" onclick="event.stopPropagation();thDispute(${x.id})"><i class="fa-regular fa-flag"></i> ${esc(t.btn)}</button>`;
+    if (got) return `<div class="thdst"><i class="fa-solid ${got === 'did' ? 'fa-circle-check' : 'fa-ban'}"></i> ${esc(got === 'did' ? t.sent1 : t.sent2)}</div>`;
+    const left = dispLeft(x); if (left <= 0) return '';
+    return `<button type="button" class="thdb" onclick="event.stopPropagation();thDispute(${x.id})"><i class="fa-regular fa-flag"></i> ${esc(t.btn)}</button><div class="thdst" style="display:block;margin-top:4px;font-weight:600">${esc(t.left)} ${esc(fmtLeft(left))}</div>`;
   };
 
   const st = document.createElement('style'); st.textContent = `
@@ -4017,6 +4020,7 @@ body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,
 
   window.thDispute = id => {
     const x = (D.items || []).find(i => i.id === id); if (!x || VIEW || itState(x).k !== 'closed' || rd(DK)[id]) return;
+    if (dispLeft(x) <= 0) { itToast(T().expired); try { render(); } catch (e) {} return; }
     const t = T(); busy = false;
     ov.innerHTML = `<div class="db"><div class="dt">${esc(t.ttl)}</div><div class="ds" dir="auto">${esc(x.title || '')} · ${esc(x.date)}</div>`
       + `<button type="button" class="dopt a" data-c="did" dir="auto">${esc(t.o1)}</button><button type="button" class="dopt b" data-c="not" dir="auto">${esc(t.o2)}</button><div class="de"></div><button type="button" class="dx">${esc(t.close)}</button></div>`;
@@ -4028,50 +4032,36 @@ body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,
   async function choose(x, ch) {
     if (busy) return; busy = true;
     const t = T(), btns = ov.querySelectorAll('.dopt'), er = ov.querySelector('.de'); btns.forEach(b => b.disabled = true); er.textContent = t.sending; er.style.color = 'inherit';
+    const unlock = m => { busy = false; btns.forEach(b => b.disabled = false); er.style.color = '#fb7185'; er.textContent = m; };
+    if (dispLeft(x) <= 0) { busy = false; ov.classList.remove('open'); itToast(t.expired); try { render(); } catch (e) {} return; }
     const prof = (D && D.profile) || {}, name = prof.trainee || '', title = x.title || '', now = new Date(cairoNow()).toISOString().replace('T', ' ').slice(0, 16);
     const p = x.plan, kind = x.kind === 'dandana' ? 'Dandana' : 'Task';
-    if (ch === 'did') {   /* the request goes to the trainer first; if it can't be sent nothing else happens */
-      const msg = `[REQUEST] Dispute: ${kind} #${x.no} - ${title}`.slice(0, 140);
-      const full = `[DISPUTE] ${title}\n[DETAILS] The trainee says he DID this ${kind.toLowerCase()} for real but forgot to check it on the dashboard.\n[TRAINEE] ${name}\n[ITEM] ${kind} #${x.no} | date ${x.date} | id ${x.id}\n[CLOSED] ${p ? 'deadline ' + new Date(p.deadline).toISOString().replace('T', ' ').slice(0, 16) + (p.deadline_reason ? ' (' + p.deadline_reason + ')' : '') : 'n/a'}\n[SENT AT] ${now} (Cairo)\n[CHOICE] did_it_but_forgot_to_check\n[SCORE] given back automatically, pending your review`.slice(0, 2000);
-      const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: 'other', p_message: full }).catch(() => null);
-      if (ok !== true) { busy = false; btns.forEach(b => b.disabled = false); er.style.color = '#fb7185'; er.textContent = t.fail; return; }
-      rpc('trainee_submit_report', { p_token: tok(), p_type: 'other', p_title: msg, p_details: full.slice(0, 1500), p_follow: null }).catch(() => null);
-    }
-    /* server side: gives the score back (choice "did") / logs the choice, and creates the notification. Returns true when it did all of it. */
+    /* 1) the server checks the 24h window, gives the score back ("did") and answers { ok:true, score_before, score_after } (or true) */
     const r = await rpc('trainee_dispute_item', { p_token: tok(), p_item_id: x.id, p_choice: ch }).catch(() => null);
-    const serverDone = r === true;
+    const obj = r && typeof r === 'object' ? r : null;
+    if (obj && obj.ok === false) {
+      busy = false; ov.classList.remove('open');
+      if (obj.reason === 'already') { const m = rd(DK); m[x.id] = ch; wr(DK, m); itToast(t.already); } else itToast(t.expired);
+      try { render(); } catch (e) {} return;
+    }
+    const serverDone = r === true || (obj && obj.ok === true);
+    const pick = (o, ks) => { for (const k of ks) if (o && o[k] != null && o[k] !== '') return o[k]; return null; };
+    const after = pick(obj, ['score_after', 'after', 'new_score']), before = pick(obj, ['score_before', 'before', 'old_score']);
+    /* 2) "did it": the trainer always gets the request too (Requests / Reports), with who / what / when */
+    if (ch === 'did') {
+      const msg = `[REQUEST] Dispute: ${kind} #${x.no} - ${title}`.slice(0, 140);
+      const full = `[DISPUTE] ${title}\n[DETAILS] The trainee says he DID this ${kind.toLowerCase()} for real but forgot to check it on the dashboard.\n[TRAINEE] ${name}\n[ITEM] ${kind} #${x.no} | date ${x.date} | id ${x.id}\n[CLOSED] ${p ? 'deadline ' + new Date(p.deadline).toISOString().replace('T', ' ').slice(0, 16) + (p.deadline_reason ? ' (' + p.deadline_reason + ')' : '') : 'n/a'}\n[SENT AT] ${now} (Cairo)\n[CHOICE] did_it_but_forgot_to_check\n[SCORE] ${serverDone ? 'restored automatically' + (after != null ? ' (' + (before != null ? before + ' -> ' : '') + after + ')' : '') : 'NOT restored yet, waiting for your review'}`.slice(0, 2000);
+      const ok = await rpc('trainee_send_request', { p_token: tok(), p_type: 'other', p_message: full }).catch(() => null);
+      if (ok !== true && !serverDone) return unlock(t.fail);
+      if (ok === true) rpc('trainee_submit_report', { p_token: tok(), p_type: 'other', p_title: msg, p_details: full.slice(0, 1500), p_follow: null }).catch(() => null);
+    }
     const m = rd(DK); m[x.id] = ch; wr(DK, m);
-    if (serverDone) { try { await load(); } catch (e) {} }
-    else if (ch === 'did') addNote(t.n1pt, t.n1pb(title), 'note');
-    else addNote(t.n2t, t.n2b(title), 'alert');
+    if (ch === 'did') {
+      if (serverDone) { try { await load(); } catch (e) {} addNote(t.n1t, t.n1b(title, after, before), 'note'); }
+      else addNote(t.n1pt, t.n1pb(title), 'note');
+    } else addNote(t.n2t, t.n2b(title), 'alert');
     busy = false; ov.classList.remove('open'); itToast(ch === 'did' ? t.sent1 : t.sent2);
     const wasLog = $('mdl').classList.contains('open') && $('mT').textContent === title;
     try { render(); } catch (e) {} if (wasLog) openLogItem(x.id);
   }
-})();
-
-/* ===== Bar: breathing room above / below, hover pop on mouse devices ONLY (phones: no effect on tap) ===== */
-(function () {
-  const st = document.createElement('style'); st.id = 'thFixes3'; st.textContent = `
-/* room: the notification circle is no longer glued to the top border, the labels no longer touch the bottom */
-html body #mobileFloatingBar{height:calc(80px + env(safe-area-inset-bottom,0px))!important}
-html body #mobileFloatingBar>[data-bk]:not(#z),html body #mobileFloatingBar #barEdit:not(#z),html body #mobileFloatingBar>.feed:not(#z){height:60px!important}
-html body #mobileFloatingBar #feedBtn #feedNum{top:7px!important}
-html body #mobileFloatingBar .thl{bottom:7px}
-/* computer (mouse): a very small pop on hover */
-@media (hover:hover) and (pointer:fine){
-  html #mobileFloatingBar>[data-bk]:not(.feed):not(.lifting):not(.pk-on):not(.pk-hide):hover,html #mobileFloatingBar #barEdit:not(.pk-on):not(.pk-hide):hover{transform:scale(1.06)}
-  @media (hover:hover){#feedBtn:hover .fstar{transform:rotate(-12deg) scale(1.08)}}
-}
-/* phone / touch: tapping a bar button does nothing visual (only the long-press lift moves it) */
-@media not all and (hover:hover) and (pointer:fine){
-  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):hover,
-  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):active,
-  html body #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(#z):focus,
-  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):hover,
-  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):active,
-  html body #mobileFloatingBar #barEdit:not(.pk-on):not(#z):focus{transform:none!important;transition:none!important}
-  html body #feedBtn:hover .fstar,html body #feedBtn:active .fstar,html body #feedBtn:focus .fstar{transform:rotate(-12deg)!important;transition:none!important}
-}`;
-  document.head.appendChild(st);
 })();
