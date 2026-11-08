@@ -4,6 +4,7 @@
  */
 (function () {
   'use strict';
+  var SELF = document.currentScript;
 
   // 1) Service worker (path is relative so it also works under a GitHub Pages sub-folder)
   if ('serviceWorker' in navigator) {
@@ -11,6 +12,31 @@
       navigator.serviceWorker.register('service-worker.js').catch(function () {});
     });
   }
+
+  // 1b) Push helpers (used by the dashboard). The public VAPID key comes from <script src="pwa.js" data-vapid="...">
+  var VAPID = (SELF && SELF.getAttribute('data-vapid')) || window.THABIT_VAPID_KEY || '';
+  function b64u(s) { var p = '='.repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')), o = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
+  window.ThabitPush = {
+    supported: !!(VAPID && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window),
+    /* ask=true shows the permission prompt (call it from a tap); ask=false only refreshes an already granted subscription */
+    subscribe: function (ask) {
+      var self = this;
+      if (!self.supported) return Promise.resolve(null);
+      var perm = Notification.permission === 'default' && ask ? Notification.requestPermission() : Promise.resolve(Notification.permission);
+      return perm.then(function (p) {
+        if (p !== 'granted') return null;
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (sub) {
+            return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID) });
+          });
+        }).then(function (sub) { var j = sub.toJSON(); return { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }; });
+      }).catch(function () { return null; });
+    },
+    unsubscribe: function () {
+      return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); })
+        .then(function (s) { return s ? s.unsubscribe().then(function () { return s.endpoint; }) : null; }).catch(function () { return null; });
+    }
+  };
 
   var SHOW_BANNER = !!(document.currentScript && document.currentScript.hasAttribute('data-banner'));
 
