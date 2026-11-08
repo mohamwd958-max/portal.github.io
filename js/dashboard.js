@@ -3562,6 +3562,7 @@ body.light-theme #thExc textarea{background:#fff;color:#0f172a}
 #thExc .xsend.ok{background:linear-gradient(135deg,#34d399,#10b981);color:#04231a}`;
   document.head.appendChild(st);
 
+  
   const ov = document.createElement('div'); ov.id = 'thExc'; ov.innerHTML = '<div class="xb"></div>';
   document.body.appendChild(ov);
   const xb = ov.querySelector('.xb');
@@ -3648,6 +3649,7 @@ body.light-theme #thExc textarea{background:#fff;color:#0f172a}
 })();
 
 
+
 /* ===== Dotted bars, one-time card glow, bigger moon / reload, icon-only pop-outs, yellow date calendar icon ===== */
 (function () {
   const st = document.createElement('style'); st.id = 'thDotsUI';
@@ -3676,6 +3678,8 @@ html .lgi,html .pkfly{background:none!important;border:0!important;box-shadow:no
 html .lgi svg,html .lgi i,html .lgi .plA,html .lgi .plS,html .pkfly svg,html .pkfly i{filter:drop-shadow(0 2px 5px rgba(0,0,0,.65))}
 html .lgi.cur{color:#fbbf24!important}
 html .lgi:hover{transform:scale(1.12)}
+
+
 
 /* calendar icon with today's date */
 .calico{position:relative;display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center}
@@ -3727,4 +3731,59 @@ html .lgi:hover{transform:scale(1.12)}
       { html: '<i class="fa-solid fa-right-from-bracket pfi" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
     ]);
   };
+})();
+
+
+/* ===== One fixed size system: everything follows the Settings button ===== */
+(function () {
+  const old = document.getElementById('thSizeFix'); if (old) old.remove();
+  const st = document.createElement('style'); st.id = 'thSizeFix';
+  st.textContent = `
+/* --- bottom bar: every button the same box, every icon the same size as the Settings icon --- */
+html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit,html #mobileFloatingBar #langBtn,html #mobileFloatingBar>.feed{
+  width:44px!important;height:44px!important;min-width:44px!important;max-width:44px!important}
+html #mobileFloatingBar .circle-badge-btn i,
+html #mobileFloatingBar #themeIcon,
+html #mobileFloatingBar #themeIcon.fa-moon,
+html #mobileFloatingBar [data-bk="reload"] i,
+html #mobileFloatingBar #barEdit i{font-size:21px!important;line-height:1!important}
+html #mobileFloatingBar #plusBtn svg,
+html #mobileFloatingBar #profBtn svg,
+html #mobileFloatingBar svg.asv{width:24px!important;height:24px!important}
+html #mobileFloatingBar>.feed .fstar{width:26px!important;height:26px!important}
+html #mobileFloatingBar #langBtn{font-size:15px!important}
+
+/* --- pop-out icons: all the same size as the icons inside the Settings pop-out --- */
+html #langPop .lgi i,
+html #langPop .lgi .pfi,
+html #langPop .lgi>i,
+html #langPop .lgi .plS,
+html #langPop .lgi .plS i,
+html .pkfly i{font-size:20px!important;line-height:1!important}
+html #langPop .lgi svg,
+html #langPop .lgi .plA svg,
+html #langPop .lgi svg:not(.asv){width:21px!important;height:21px!important}
+html #langPop .lgi .calico,
+html #langPop .lgi .calico svg{width:23px!important;height:23px!important}
+html #langPop .lgi .plA,html #langPop .lgi .plS{width:100%;height:100%}`;
+  document.head.appendChild(st);
+})();
+
+/* ===== Top header (#thBrand) = same look as the bottom bar ===== */
+(function () {
+  const old = document.getElementById('thHdrSame'); if (old) old.remove();
+  const st = document.createElement('style'); st.id = 'thHdrSame';
+  st.textContent = `
+html #thBrand{
+  background-color:#181c20!important;
+  background-image:radial-gradient(circle,rgba(255,255,255,.13) 1px,transparent 1.3px)!important;
+  background-size:9px 9px!important;background-position:0 0!important;
+  border:0!important;border-bottom:1px solid rgba(255,255,255,.07)!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.light-theme #thBrand{
+  background-color:#eef1f5!important;
+  background-image:radial-gradient(circle,rgba(15,23,42,.14) 1px,transparent 1.3px)!important;
+  border-bottom-color:rgba(15,23,42,.08)!important}`;
+  document.head.appendChild(st);
 })();
