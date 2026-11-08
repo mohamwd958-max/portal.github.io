@@ -707,7 +707,7 @@ body.light-theme .tpl{color:#047857}
 .tpe .ittp i{width:20px;height:20px;left:-10px;top:-4px}
 .tpe .ittp span{top:26px}.tpe .ittp span.lo2{top:46px}
 .tpe .ittp i.on{background:#34d399}
-.tpe .ittp i.mv{background:#fbbf24;box-shadow:0 0 0 4px rgba(251,191,36,.28);cursor:grab;touch-action:none;position:absolute;animation:tpPulse 1.8s ease-in-out infinite}
+.tpe .ittp i.mv{background:#fbbf24;box-shadow:0 0 0 4px rgba(251,191,36,.28);cursor:grab;touch-action:none;position:absolute;animation:tpPulse 1.8s ease-in-out 1}
 .tpe .ittp i.mv::after{content:"";position:absolute;inset:-16px}
 .tpe .ittp i.mv:active{cursor:grabbing;transform:scale(1.2)}
 .tpb .tpl{min-height:1.6em}`; document.head.appendChild(st); })();
@@ -907,18 +907,43 @@ window.addEventListener('DOMContentLoaded', () => {
   setLanguage(l); load();
 });
 
+/* what a student sees when he taps a dot: that day's score and the reason, never running totals */
+const TIPX = {
+  en: { none: 'The coach did not leave a note.', note: 'Coach note', comp: (d, n, m, pl) => `You completed ${d} of ${n} task checks for ${pl ? 'these sessions' : 'this session'}.` + (m.length ? ` Not finished: ${m.join(', ')}.` : ''), abs: p => `You were absent from part ${p}.` },
+  ar: { none: 'لم يترك المدرب ملاحظة', note: 'ملاحظة المدرب', comp: (d, n, m, pl) => `أنجزت ${d} من ${n} مرات تشيك في مهام ${pl ? 'هذه الجلسات' : 'هذه الجلسة'}.` + (m.length ? ` لم تكتمل: ${m.join('، ')}.` : ''), abs: p => `غبت عن الجزء ${p}.` },
+  eg: { none: 'المدرب ما سابش ملاحظة', note: 'ملاحظة المدرب', comp: (d, n, m, pl) => `عملت ${d} من ${n} مرات تشيك في تاسكس ${pl ? 'السيشنز دي' : 'السيشن دي'}.` + (m.length ? ` ما اتكملتش: ${m.join('، ')}.` : ''), abs: p => `غبت عن الجزء ${p}.` }
+};
+function tipReason(k, b, rk) {
+  const x = TIPX[lang] || TIPX.en, g = f => { const v = rk[f]; return v != null && String(v).trim() ? String(v).trim() : ''; };
+  const note = k === 'performance' ? (g('why') || g('performance_details')) : k === 'attendance' ? (g('attendance_details') || g('attendance_why')) : g(k + '_details');
+  if (note) return { lab: x.note, txt: note };
+  const dates = new Set(b.rows.map(r => r.supply_date));
+  if (k === 'compliance') {   // no note: the reason is how many task checks of that day were finished
+    let n = 0, d = 0; const miss = [];
+    (D.items || []).filter(i => dates.has(i.date) && (i.kind === 'task' || i.kind === 'dandana')).forEach(i => {
+      const need = i.plan ? i.plan.n_eff : (+i.repeats || 0), got = Math.min((i.checks || []).length, need);
+      n += need; d += got; if (got < need && i.title) miss.push(i.title);
+    });
+    if (n) return { txt: x.comp(d, n, miss, dates.size > 1) };
+  }
+  if (k === 'attendance' && dates.size === 1) {   // no note: the parts of the session he was not present in
+    const ab = ((D && D.parts) || []).filter(p => dates.has(p.supply_date) && p.present === false).map(p => p.part_no);
+    if (ab.length) return { txt: x.abs(ab.join(', ')) };
+  }
+  return { txt: x.none };
+}
 document.addEventListener('click', e => {
   const tip = $('barTip'), d = e.target.closest && e.target.closest('.dot');
   document.querySelectorAll('svg .xh').forEach(l => l.style.display = 'none');
   if (!d) { tip.classList.remove('show'); return; }
   const sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
   if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
-  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
-  const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
-  tip.textContent = `${b.label} · ${T[lang][k]} ${v} (+${sc})`;
+  const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i];
+  const rk = [...b.rows].reverse().find(x => x[k] != null && x[k] !== '') || b.rows[b.rows.length - 1], nv = Number(rk[k]), sc = Number.isFinite(nv) ? +nv.toFixed(1) : '';
+  tip.textContent = `${b.label} \u00b7 ${T[lang][k]} ${sc}/10`;
   const bx = d.getBoundingClientRect(); tip.style.left = (bx.left + bx.width / 2) + 'px'; tip.style.top = (bx.top - 8) + 'px'; tip.classList.add('show');
-  const w = $('why_' + k), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
-  if (w) w.innerHTML = `${b.label} · +${sc} → ${v}` + (why ? `<br><span dir="auto">${esc(why)}</span>` : '');
+  const card = d.closest('.dcard'), w = (card && card.querySelector('[id^="why_"]')) || $('why_' + k), R = tipReason(k, b, rk);
+  if (w) w.innerHTML = `<b>${esc(b.label)} \u00b7 ${sc}/10</b><br>` + (R.lab ? `<span class="sm">${esc(R.lab)}:</span> ` : '') + `<span dir="auto">${esc(R.txt)}</span>`;
 });
 
 /* phone accordions: tap header to open, tap anywhere else to close */
@@ -1343,8 +1368,9 @@ window.Panels = (function () {
     dock(); if (mins.includes('assistant')) nudge();
   }
   function stopNudge() { clearTimeout(nudgeT); clearTimeout(hideT); }
+  let nudged = false;   // the yellow assistant button calls attention once per visit, then it stays quiet
   function nudge() {
-    clearTimeout(nudgeT);
+    clearTimeout(nudgeT); if (nudged) return;
     nudgeT = setTimeout(() => {
       if (!mins.includes('assistant')) return;
       const n = $('asNudge'), b = $('dock').querySelector('.dk[data-p="assistant"]');
@@ -1352,6 +1378,7 @@ window.Panels = (function () {
         n.textContent = MSG[L()]; n.hidden = false;
         b.classList.remove('shk'); void b.offsetWidth; b.classList.add('shk');
         hideT = setTimeout(() => { n.hidden = true; b.classList.remove('shk'); }, NUDGE_SHOW);
+        nudged = true; return;
       }
       nudge();
     }, NUDGE_EVERY);
@@ -2493,7 +2520,7 @@ html.bar-hid #dock .aswrap{opacity:0;visibility:hidden;pointer-events:none;trans
 .aswrap.dkw.dragging{transition:none;z-index:70}
 .aswrap.dkw .dk{width:100%;height:100%;padding:0;border:0;border-radius:50%;color:#111;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:calc(var(--dk) * .42);transition:transform .2s}
 .aswrap.dkw .dk .asv{width:calc(var(--dk) * .5);height:calc(var(--dk) * .5)}
-.aswrap.dkw .dk.shk{animation:asShk .9s ease-in-out 2}
+.aswrap.dkw .dk.shk{animation:asShk .9s ease-in-out 1}
 .aswrap.dkw.dragging .dk{transform:scale(1.12);box-shadow:0 8px 22px rgba(0,0,0,.55)}
 .aswrap.dkw .dkx{top:-6px;right:-6px;width:18px;height:18px;font-size:13px}
 .aswrap.dkw.sl .dkx{right:auto;left:-6px}
@@ -2885,7 +2912,7 @@ html[data-bar="bottom"] #thHint .thnx{bottom:84px}
 .tharr{align-self:center;margin:12px auto 0;width:48px;height:48px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.12);color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .2s;-webkit-tap-highlight-color:transparent;order:5}
 .tharr:hover{background:rgba(251,191,36,.18)}.tharr:active{transform:scale(.92)}
 .tharr svg{display:block;overflow:visible}
-.tharr .pq{transform-box:fill-box;transform-origin:center;animation:thPls 2s ease-in-out infinite}
+.tharr .pq{transform-box:fill-box;transform-origin:center;animation:thPls 2s ease-in-out 1}
 @keyframes thPls{0%,60%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.22) rotate(90deg)}}
 @keyframes tdIn{from{opacity:0}to{opacity:1}}
 /* --- details pop-up: a finger of space from the bottom and from both sides, tap anywhere outside to leave --- */
