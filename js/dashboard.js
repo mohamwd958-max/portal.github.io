@@ -521,6 +521,8 @@ const tkCell = x => {
   return `<div class="tkcell"><div class="tkcm"><div class="tkc1"><b>${esc(lbl)} #${esc(x.no)}</b><span class="sm">${esc(x.date)}</span></div><div class="tkc2" dir="auto">${esc(x.title || '')}${x.badge ? ' · ' + esc(x.badge) : ''}</div></div>`
     + (seen ? `<span class="tkdot ${s.k}" aria-hidden="true">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</span>` : '') + `</div>`;
 };
+const tkEmpty = () => `<div class="tkcell tkempty"><div class="tkcm"><div class="tkc2">${esc((TKT[lang] || TKT.en).none)}</div></div></div>`;
+const tkEmptyFull = () => `<div class="sm" style="padding:10px 4px">${esc((TKT[lang] || TKT.en).none)}</div>`;
 function tkSec(key, cls, title, n, cells, full, mt, ids) {
   TKL[key] = { t: mt, f: full, ids: ids || [] };
   return `<div class="tkc ${cls}" data-k="${key}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
@@ -528,14 +530,13 @@ function tkSec(key, cls, title, n, cells, full, mt, ids) {
 function tasksCard() {
   const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
   const fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
-  if (!its.length) return '';
   const today = itToday(), pend = its.filter(itShown);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
-  const c1 = urg.length ? tkSec('tk:urg', 'urg', t.urgent, urg.length, tkCell(urg[0]), () => tkGroup(urg), `${t.tasks} · ${t.urgent}`, urg.map(x => x.id)) : '';
-  const c2 = (prv.length || fin.length) ? tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, tkCell(prv[0] || fin[0]), () => (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join(''), `${t.tasks} · ${t.prev}`, prv.concat(fin).map(x => x.id)) : '';
-  if (!c1 && !c2) return '';
-  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
+  /* the card and BOTH containers are always there, even when empty (an empty one just says "nothing here"; the old one can always be opened) */
+  const c1 = tkSec('tk:urg', 'urg', t.urgent, urg.length, urg.length ? tkCell(urg[0]) : tkEmpty(), () => urg.length ? tkGroup(urg) : tkEmptyFull(), `${t.tasks} · ${t.urgent}`, urg.map(x => x.id));
+  const c2 = tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, (prv[0] || fin[0]) ? tkCell(prv[0] || fin[0]) : tkEmpty(), () => (prv.length + fin.length) ? (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join('') : tkEmptyFull(), `${t.tasks} · ${t.prev}`, prv.concat(fin).map(x => x.id));
+  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2">${c1}${c2}</div></div>`;
 }
 
 /* ===== "Choose your time": the student moves the check time of a dot that has not come yet =====
@@ -721,12 +722,10 @@ body.light-theme .tpl{color:#047857}
 const DNX = { en: { cur: 'Current' }, ar: { cur: 'الحالية' }, eg: { cur: 'الحالية' } };
 function dandanaCard() {
   const t = TKT[lang] || TKT.en, t2 = itT(), its = (D.items || []).filter(x => x.kind === 'dandana');
-  if (!its.length) return '';
   const pend = its.filter(itShown), fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no), cur = (DNX[lang] || DNX.en).cur;
-  const c1 = pend.length ? tkSec('dn:cur', 'urg', cur, pend.length, tkCell(pend[0]), () => tkGroup(pend), `${t2.dnd} · ${cur}`, pend.map(x => x.id)) : '';
-  const c2 = fin.length ? tkSec('dn:old', 'prv', t.prev, fin.length, tkCell(fin[0]), () => fin.map(tkLogDet).join(''), `${t2.dnd} · ${t.prev}`, fin.map(x => x.id)) : '';
-  if (!c1 && !c2) return '';
-  return `<div class="thabit-card dcard" id="dandanaCard"><div class="tkh"><h4>${t2.dnd}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
+  const c1 = tkSec('dn:cur', 'urg', cur, pend.length, pend.length ? tkCell(pend[0]) : tkEmpty(), () => pend.length ? tkGroup(pend) : tkEmptyFull(), `${t2.dnd} · ${cur}`, pend.map(x => x.id));
+  const c2 = tkSec('dn:old', 'prv', t.prev, fin.length, fin.length ? tkCell(fin[0]) : tkEmpty(), () => fin.length ? fin.map(tkLogDet).join('') : tkEmptyFull(), `${t2.dnd} · ${t.prev}`, fin.map(x => x.id));
+  return `<div class="thabit-card dcard" id="dandanaCard"><div class="tkh"><h4>${t2.dnd}</h4></div><div class="tk2">${c1}${c2}</div></div>`;
 }
 function openTkModal(key) {
   const o = TKL[key]; if (!o) return; TKOPEN = key;
@@ -3107,3 +3106,5 @@ function thDiag() {
     (D.items || []).forEach(i => { const p = i.plan; console.info('[diag] item', i.id, i.kind, 'date=' + i.date, 'no=' + i.no, 'state=' + itState(i).k, 'checks=' + (i.checks || []).length + '/' + (p ? p.n_eff : i.repeats), p ? 'opens=' + (p.opens || []).map(w).join(',') + ' deadline=' + w(p.deadline) + ' reason=' + p.deadline_reason : 'NO PLAN'); });
   } catch (e) { console.warn('[diag] failed', e); }
 }
+
+(function(){const st=document.createElement('style');st.textContent='.tkcell.tkempty{opacity:.6}.tkcell.tkempty .tkc2{font-weight:500}';document.head.appendChild(st);})();
