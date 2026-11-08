@@ -3238,3 +3238,150 @@ html #mobileFloatingBar>.feed,#feedBtn{position:relative!important;background:tr
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { fix(); setTimeout(fix, 300); });
   else { fix(); setTimeout(fix, 300); }
 })();
+
+
+
+
+
+/* ===== Calendar: opens from the profile button. Week (default) / Month / Year, Google-Calendar style ===== */
+(function () {
+  const X = {
+    en: { cal: 'Calendar', week: 'Week', month: 'Month', year: 'Year', today: 'Today', none: 'No session on this day', sess: 'Session' },
+    ar: { cal: 'التقويم', week: 'أسبوع', month: 'شهر', year: 'سنة', today: 'اليوم', none: 'لا توجد جلسة في هذا اليوم', sess: 'جلسة' },
+    eg: { cal: 'التقويم', week: 'أسبوع', month: 'شهر', year: 'سنة', today: 'النهاردة', none: 'مفيش سيشن في اليوم ده', sess: 'سيشن' }
+  };
+  const T3 = () => X[lang] || X.en, loc = () => lang === 'en' ? 'en-GB' : 'ar-EG';
+  const P = s => new Date(s + 'T00:00:00Z'), Y = d => d.toISOString().slice(0, 10), AD = (d, n) => new Date(d.getTime() + n * 864e5);
+  const WS = d => AD(d, -((d.getUTCDay() + 1) % 7));                       // week starts on Saturday, like the rest of the dashboard
+  const dim = (y, m) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const addM = (d, n) => { const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1)); t.setUTCDate(Math.min(d.getUTCDate(), dim(t.getUTCFullYear(), t.getUTCMonth()))); return t; };
+  const fmt = (d, o) => d.toLocaleDateString(loc(), Object.assign({ timeZone: 'UTC' }, o));
+  const num = n => n.toLocaleString(loc(), { useGrouping: false });
+  let view = 'week', cur = null;
+
+  const st = document.createElement('style');
+  st.textContent = `
+#thCal{position:fixed;inset:0;z-index:10030;display:none;align-items:center;justify-content:center;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+#thCal.open{display:flex;animation:tdIn .2s ease-out}
+#thCal .cbox{box-sizing:border-box;width:min(460px,100%);max-height:100%;overflow:auto;border-radius:24px;padding:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.16);box-shadow:0 20px 60px rgba(0,0,0,.5);animation:thPop .3s cubic-bezier(.2,.9,.3,1.15);touch-action:pan-y}
+body.light-theme #thCal .cbox{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
+#thCal .ch{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+#thCal .ct{flex:1;text-align:center;font-weight:800;font-size:1rem}
+#thCal .cb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron-right{transform:scaleX(-1)}
+#thCal .ctd{flex:none;padding:0 12px;width:auto;font:700 .74rem Inter,Cairo,sans-serif}
+#thCal .cs{display:flex;gap:4px;padding:3px;margin-bottom:12px;border-radius:999px;background:rgba(148,163,184,.14)}
+#thCal .cs button{flex:1;padding:7px 4px;border:0;border-radius:999px;background:transparent;color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
+#thCal .cs button.on{background:#fbbf24;color:#111}
+#thCal .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+#thCal .cw{text-align:center;font-size:.68rem;font-weight:700;opacity:.55;padding:2px 0}
+#thCal .cd{position:relative;aspect-ratio:1;min-width:0;padding:0;border:1px solid transparent;border-radius:14px;background:transparent;color:inherit;font:600 .9rem Inter,Cairo,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#thCal .cd.out{opacity:.3}
+#thCal .cd.td{border-color:#fbbf24}
+#thCal .cd.sel{background:#fbbf24;color:#111;border-color:#fbbf24}
+#thCal .cd i.dt2{width:5px;height:5px;border-radius:50%;background:#34d399}
+#thCal .cd.sel i.dt2{background:#111}
+#thCal .cd i.no{visibility:hidden}
+#thCal .cg.wk .cd{aspect-ratio:auto;padding:12px 0;border-radius:16px;background:rgba(148,163,184,.1)}
+#thCal .cg.wk .cd.sel{background:#fbbf24}
+#thCal .cg.wk .cd small{font-size:.64rem;opacity:.7;font-weight:700}
+#thCal .cy{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+#thCal .cm{padding:8px 6px;border-radius:14px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.07);color:inherit;cursor:pointer;text-align:center}
+#thCal .cm.cur{border-color:#fbbf24}
+#thCal .cm b{display:block;font-size:.74rem;margin-bottom:4px}
+#thCal .cm .cg{gap:1px}
+#thCal .cm .mn{font-size:.5rem;aspect-ratio:auto;padding:1px 0;border-radius:3px;line-height:1.5;opacity:.8}
+#thCal .cm .mn.s{background:rgba(52,211,153,.35);opacity:1}
+#thCal .cm .mn.t{outline:1px solid #fbbf24}
+#thCal .cx{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+#thCal .cl{padding:10px 12px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08);border-inline-start:3px solid #34d399}
+#thCal .cl b{font-size:.88rem}#thCal .cl span{display:block;font-size:.76rem;opacity:.7;margin-top:2px}
+#thCal .ce{text-align:center;font-size:.8rem;opacity:.6;padding:6px 0}`;
+  document.head.appendChild(st);
+
+  const box = document.createElement('div'); box.id = 'thCal';
+  box.innerHTML = '<div class="cbox"></div>';
+  document.body.appendChild(box);
+  const body = box.querySelector('.cbox');
+
+  const sessions = () => { const m = {}; ((typeof D !== 'undefined' && D && D.rows) || []).forEach(r => (m[r.supply_date] = m[r.supply_date] || []).push(r)); return m; };
+
+  function title() {
+    if (view === 'year') return num(cur.getUTCFullYear());
+    if (view === 'month') return fmt(cur, { month: 'long', year: 'numeric' });
+    const a = WS(cur), b = AD(a, 6);
+    return a.getUTCMonth() === b.getUTCMonth() ? num(a.getUTCDate()) + ' – ' + fmt(b, { day: 'numeric', month: 'short', year: 'numeric' }) : fmt(a, { day: 'numeric', month: 'short' }) + ' – ' + fmt(b, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function cell(d, S, today, extra) {
+    const k = Y(d), has = S[k];
+    return `<button type="button" class="cd${k === Y(cur) ? ' sel' : ''}${k === today ? ' td' : ''}${extra || ''}" data-d="${k}">${view === 'week' ? `<small>${fmt(d, { weekday: 'short' })}</small>` : ''}<span>${num(d.getUTCDate())}</span><i class="dt2${has ? '' : ' no'}"></i></button>`;
+  }
+  function weekHead() { const a = WS(P('2024-01-06')); return Array.from({ length: 7 }, (_, i) => `<div class="cw">${fmt(AD(a, i), { weekday: 'short' })}</div>`).join(''); }
+  function details(S) {
+    const t = T3(), rows = S[Y(cur)] || [], hm5 = v => v ? String(v).slice(0, 5) : '';
+    return `<div class="cx">` + (rows.length ? rows.map(r => `<div class="cl"><b dir="auto">${esc(t.sess)} #${esc(r.session_number == null ? '' : r.session_number)}${r.session_title ? ' · ' + esc(r.session_title) : ''}</b>${r.sub_title ? `<span dir="auto">${esc(r.sub_title)}</span>` : ''}${r.start_time || r.end_time ? `<span>${esc(hm5(r.start_time))}–${esc(hm5(r.end_time))}</span>` : ''}</div>`).join('') : `<div class="ce">${t.none}</div>`) + `</div>`;
+  }
+  function render() {
+    const t = T3(), S = sessions(), today = itToday();
+    let h = `<div class="ch"><button type="button" class="cb" data-a="prev" aria-label="Previous"><i class="fa-solid fa-chevron-left"></i></button><div class="ct">${esc(title())}</div><button type="button" class="cb" data-a="next" aria-label="Next"><i class="fa-solid fa-chevron-right"></i></button><button type="button" class="cb ctd" data-a="today">${t.today}</button></div>`
+      + `<div class="cs">${['week', 'month', 'year'].map(v => `<button type="button" data-v="${v}" class="${v === view ? 'on' : ''}">${t[v]}</button>`).join('')}</div>`;
+    if (view === 'week') {
+      const a = WS(cur);
+      h += `<div class="cg wk">${Array.from({ length: 7 }, (_, i) => cell(AD(a, i), S, today)).join('')}</div>` + details(S);
+    } else if (view === 'month') {
+      const y = cur.getUTCFullYear(), m = cur.getUTCMonth(), first = new Date(Date.UTC(y, m, 1)), st0 = WS(first), rows = Math.ceil(((first - st0) / 864e5 + dim(y, m)) / 7);
+      h += `<div class="cg">${weekHead()}${Array.from({ length: rows * 7 }, (_, i) => { const d = AD(st0, i); return cell(d, S, today, d.getUTCMonth() === m ? '' : ' out'); }).join('')}</div>` + details(S);
+    } else {
+      const y = cur.getUTCFullYear();
+      h += `<div class="cy">${Array.from({ length: 12 }, (_, m) => {
+        const first = new Date(Date.UTC(y, m, 1)), st0 = WS(first), rows = Math.ceil(((first - st0) / 864e5 + dim(y, m)) / 7);
+        const cells = Array.from({ length: rows * 7 }, (_, i) => { const d = AD(st0, i), k = Y(d); return d.getUTCMonth() === m ? `<div class="cd mn${S[k] ? ' s' : ''}${k === today ? ' t' : ''}">${num(d.getUTCDate())}</div>` : '<div></div>'; }).join('');
+        return `<button type="button" class="cm${m === cur.getUTCMonth() ? ' cur' : ''}" data-m="${m}"><b>${fmt(first, { month: 'long' })}</b><div class="cg">${cells}</div></button>`;
+      }).join('')}</div>`;
+    }
+    body.innerHTML = h;
+  }
+  function step(n) {
+    if (view === 'week') cur = AD(cur, 7 * n);
+    else if (view === 'month') cur = addM(cur, n);
+    else cur = addM(cur, 12 * n);
+    render();
+  }
+  body.addEventListener('click', e => {
+    const a = e.target.closest('[data-a]'), v = e.target.closest('[data-v]'), d = e.target.closest('.cd[data-d]'), m = e.target.closest('.cm[data-m]');
+    if (a) { if (a.dataset.a === 'today') { cur = P(itToday()); render(); } else step(a.dataset.a === 'next' ? 1 : -1); }
+    else if (v) { view = v.dataset.v; render(); }
+    else if (d) { cur = P(d.dataset.d); render(); }
+    else if (m) { cur = new Date(Date.UTC(cur.getUTCFullYear(), +m.dataset.m, Math.min(cur.getUTCDate(), dim(cur.getUTCFullYear(), +m.dataset.m)))); view = 'month'; render(); }
+  });
+  /* swipe left / right = next / previous */
+  let sx = 0, sy = 0;
+  body.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  body.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step((dx < 0) !== (document.documentElement.dir === 'rtl') ? 1 : -1);
+  }, { passive: true });
+
+  function openCal() { cur = P(itToday()); view = 'week'; render(); box.classList.add('open'); document.documentElement.style.overflow = 'hidden'; }
+  function closeCal() { box.classList.remove('open'); document.documentElement.style.overflow = ''; }
+  box.addEventListener('click', e => { if (e.target === box) closeCal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && box.classList.contains('open')) closeCal(); });
+  window.openCal = openCal;
+
+  /* the profile button's pop-out: Profile, Calendar, Log out */
+  window.openProf = function (btn) {
+    const ar = lang !== 'en';
+    window.thPick(btn || $('profBtn'), [
+      { html: '<i class="fa-solid fa-user pfi"></i>', title: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+      { html: '<i class="fa-regular fa-calendar-days pfi" style="color:#38bdf8"></i>', title: T3().cal, on: openCal },
+      { html: '<i class="fa-solid fa-right-from-bracket pfi" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+    ]);
+  };
+  /* tour tip for the new option (same order as the buttons) */
+  const _tt = tourTips;
+  tourTips = function (key, side) {
+    const r = _tt(key, side);
+    if (key === 'prof' && r) r.splice(1, 0, lang === 'en' ? 'Calendar: week, month and year, with your session days marked' : lang === 'ar' ? 'التقويم: أسبوع وشهر وسنة، وأيام جلساتك معلّمة' : 'التقويم: أسبوع وشهر وسنة، وأيام سيشناتك معلّمة');
+    return r;
+  };
+})();
