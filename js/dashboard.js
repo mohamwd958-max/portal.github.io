@@ -3102,5 +3102,8 @@ function thDiag() {
     console.info('[diag]', info('dandanaCard'));
     console.info('[diag] #lists children:', L ? [...L.children].map(e => e.id || e.className).join(',') : 'no #lists', '| scripts:', [...document.scripts].map(s => (s.src || 'inline').split('/').pop()).join(','));
     console.info('[diag] items by state:', (D.items || []).map(i => i.kind + ':' + itState(i).k).join(','));
+    const w = ms => ms ? new Date(ms).toISOString().slice(5, 16).replace('T', ' ') : '-';
+    console.info('[diag] now(wall):', w(cairoNow()), '| tz:', USER_TZ);
+    (D.items || []).forEach(i => { const p = i.plan; console.info('[diag] item', i.id, i.kind, 'date=' + i.date, 'no=' + i.no, 'state=' + itState(i).k, 'checks=' + (i.checks || []).length + '/' + (p ? p.n_eff : i.repeats), p ? 'opens=' + (p.opens || []).map(w).join(',') + ' deadline=' + w(p.deadline) + ' reason=' + p.deadline_reason : 'NO PLAN'); });
   } catch (e) { console.warn('[diag] failed', e); }
 }
