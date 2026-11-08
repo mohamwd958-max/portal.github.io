@@ -3436,3 +3436,44 @@ html #feedBtn #feedNum.l2{font-size:8px!important}`;
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+
+/* ===== Faster notifications: parallel loading, instant badge, shorter polling ===== */
+(function () {
+  /* 1) load the small pieces together instead of one after another */
+  const _load = window.load || load;
+  load = async function () {
+    if (window.__mtGate && await window.__mtGate) return;
+    const t = tok();
+    const dP = t ? rpc('trainee_dashboard', { p_token: t }).catch(() => ({ __net: true })) : Promise.resolve(null);
+    const nP = t ? fetchNotes() : Promise.resolve([]);        // start notes + the rest at the same time as the dashboard
+    const bP = t ? fetchBill() : Promise.resolve(null);
+    const dnP = t ? fetchDone() : Promise.resolve([]);
+    const tmP = t ? fetchTimes() : Promise.resolve({});
+    const d = await dP;
+    if (!d || d.__net || !d.profile) { return _load(); }      // anything unusual: fall back to the original flow
+    d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0')));
+    applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today';
+    [D.notes, D.bill, D.done, D.times] = await Promise.all([nP, bP, dnP, tmP]);
+    mergeTimes();
+    const sP = Array.isArray(D.scratches) ? Promise.resolve(D.scratches) : fetchScratches();
+    D.scratches = await sP;
+    render();
+    try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  };
+
+  /* 2) show the number right away, don't wait for the intro animation */
+  const _upd = updateFeed;
+  updateFeed = function () {
+    _upd();
+    try {
+      const b = document.getElementById('feedBtn'), n = feedCount();
+      if (b && n > 0 && !b.classList.contains('empty')) b.classList.add('num');
+    } catch (e) {}
+  };
+
+  /* 3) check for new notifications every 10 seconds (was 30), and when the tab comes back */
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { if (window._ntPoll) clearInterval(window._ntPoll); window._ntPoll = setInterval(() => { if (!document.hidden) refreshNotes(); }, 10000); }, 3000);
+  });
+})();
