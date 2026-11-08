@@ -1,5 +1,5 @@
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
-console.info('[dashboard] build 2026-11-08 vertical-timeline-v4');
+console.info('[dashboard] build 2026-11-08 feed-restored-v5');
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token', PORTAL = 'index.html';
@@ -3052,12 +3052,12 @@ function thListsBind(L) {
 (function () {
   const st = document.createElement('style'); st.id = 'thFreeBar'; st.textContent = `
 html #mobileFloatingBar #langBtn{display:none!important}
-html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit,html #mobileFloatingBar>.feed{border:0!important;outline:0!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent!important;-webkit-appearance:none;appearance:none}
+html #mobileFloatingBar>[data-bk]:not(.feed),html #mobileFloatingBar #barEdit{border:0!important;outline:0!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent!important;-webkit-appearance:none;appearance:none}
 html #mobileFloatingBar>[data-bk]:not(.feed),html #mobileFloatingBar #barEdit{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html #mobileFloatingBar>[data-bk]:not(.feed):hover,html #mobileFloatingBar>[data-bk]:not(.feed):active,html #mobileFloatingBar>[data-bk]:not(.feed):focus,html #mobileFloatingBar>[data-bk]:not(.feed):focus-visible,html #mobileFloatingBar #barEdit:hover,html #mobileFloatingBar #barEdit:active,html #mobileFloatingBar #barEdit:focus,html #mobileFloatingBar #barEdit:focus-visible{background:transparent!important;outline:0!important;box-shadow:none!important;border:0!important}
-html #mobileFloatingBar>[data-bk]:not(.feed)::before,html #mobileFloatingBar>[data-bk]:not(.feed)::after,html #mobileFloatingBar #barEdit::before,html #mobileFloatingBar #barEdit::after,html #mobileFloatingBar .circle-badge-btn::before,html #mobileFloatingBar .circle-badge-btn::after{content:none!important;display:none!important;background:none!important;animation:none!important}
-html #mobileFloatingBar>[data-bk],html #mobileFloatingBar #barEdit{transition:transform .18s cubic-bezier(.2,.9,.3,1.4)}
-@media(hover:hover){html #mobileFloatingBar>[data-bk]:not(.lifting):not(.pk-on):not(.pk-hide):hover,html #mobileFloatingBar #barEdit:not(.pk-on):not(.pk-hide):hover{transform:scale(1.14)}}
+html #mobileFloatingBar>[data-bk]:not(.feed)::before,html #mobileFloatingBar>[data-bk]:not(.feed)::after,html #mobileFloatingBar #barEdit::before,html #mobileFloatingBar #barEdit::after,html #mobileFloatingBar .circle-badge-btn:not(.feed)::before,html #mobileFloatingBar .circle-badge-btn:not(.feed)::after{content:none!important;display:none!important;background:none!important;animation:none!important}
+html #mobileFloatingBar>[data-bk]:not(.feed),html #mobileFloatingBar #barEdit{transition:transform .18s cubic-bezier(.2,.9,.3,1.4)}
+@media(hover:hover){html #mobileFloatingBar>[data-bk]:not(.feed):not(.lifting):not(.pk-on):not(.pk-hide):hover,html #mobileFloatingBar #barEdit:not(.pk-on):not(.pk-hide):hover{transform:scale(1.14)}}
 html #mobileFloatingBar #barEdit svg.gear{width:22px;height:22px;display:block}`; document.head.appendChild(st);
   const GEAR = '<svg class="gear" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>';
   const go = () => { const e = document.getElementById('barEdit'); if (e && !e.querySelector('svg.gear')) e.innerHTML = GEAR; const l = document.getElementById('langBtn'); if (l) l.hidden = true; };
