@@ -136,15 +136,15 @@ function chart(S, keys, o) {
   const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / S.max) * (H - Tp - B);
   let s = `<svg class="c2${CINTRO.played ? '' : ' ci'}" viewBox="0 0 ${W} ${H}" data-l="${L}" data-b="${H - B}">`;
   if (o.grad) s += `<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="${L}" y1="0" x2="${W - R}" y2="0"><stop offset="0" stop-color="#ff5d55"/><stop offset=".34" stop-color="#ffc247"/><stop offset=".67" stop-color="#22d3a6"/><stop offset="1" stop-color="#4c8dff"/></linearGradient></defs>`;
-  [0, S.max / 2, S.max].forEach(g => s += `<text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
-  S.bk.forEach((b, i) => { if (i % step === 0) s += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
+  let tx = ''; [0, S.max / 2, S.max].forEach(g => tx += `<text class="tx" x="${L - 6}" y="${y(g) + o.f / 3}" text-anchor="end" font-size="${o.f}">${Math.round(g)}</text>`);
+  S.bk.forEach((b, i) => { if (i % step === 0) tx += `<text class="tx" x="${x(i)}" y="${H - 3}" text-anchor="middle" font-size="${o.f}">${b.label}</text>`; });
   keys.forEach(k => {
     const li = keys.indexOf(k);
     s += `<path class="ln ${k}" pathLength="1" style="--li:${li}${o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : ''}" fill="none" stroke-width="${o.w}" d="${smooth(S.cum[k].map((v, i) => [x(i), y(v)]))}"/>`;
     if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) { const cx = x(i), cy = y(S.cum[k][i]), at = `data-k="${k}" data-i="${i}" data-cx="${cx}" data-cy="${cy}"`;
       s += `<circle class="dot ${k}" style="--d:${(n < 2 ? 0 : i / (n - 1)).toFixed(3)};--li:${li}" cx="${cx}" cy="${cy}" r="${o.r}" ${at}/><circle class="dot hit" cx="${cx}" cy="${cy}" r="${o.hit}" ${at}/>`; } });
   });
-  return s + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
+  return s + tx + '<line class="xh xv" style="display:none"/><line class="xh xz" style="display:none"/></svg>';
 }
 function kpi(key, rows, all, S) {
   const t = T[lang], vals = rows.map(r => r[key]).filter(v => v != null && v !== '').map(Number).filter(Number.isFinite);
@@ -224,7 +224,7 @@ function render() {
   thAutoApply();   // Today only when a session was taken today; otherwise This week (until the trainee picks something himself)
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
-  $('hello').textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
+  { const hl = $('hello'); hl.textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); if (window.Thabit && Thabit.hasName && Thabit.hasName()) { hl.textContent = ''; hl.style.display = 'none'; } } $('kAccT').textContent = t.metrics;
   thRangeUI();
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
@@ -891,9 +891,9 @@ function watchTodo() {
 async function load() {
   if (window.__mtGate && await window.__mtGate) return;   // maintenance ON: the dashboard never loads
   const d = tok() ? await rpc('trainee_dashboard', { p_token: tok() }).catch(() => null) : null;
-  if (!d || !d.profile) { if (VIEW) { $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
+  if (!d || !d.profile) { if (VIEW) { $('hello').style.display = ''; $('hello').textContent = lang === 'en' ? 'Could not open this trainee (view link expired). Close and open it again.' : 'تعذر فتح الطالب (انتهى الرابط). أغلق وافتحه من جديد.'; return; }
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-    $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
+    $('hello').style.display = ''; $('hello').innerHTML = `<a href="${PORTAL}" style="color:#fbbf24">${tok() === null ? 'Please log in from the portal first →' : 'Session not valid, log in again →'}</a>`;
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
@@ -3781,7 +3781,7 @@ html #thBrand{
   border:0!important;border-bottom:1px solid rgba(255,255,255,.07)!important;
   box-shadow:none!important;
   -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-body.light-theme #thBrand{
+body.light-theme~#thBrand,body.light-theme #thBrand{
   background-color:#eef1f5!important;
   background-image:radial-gradient(circle,rgba(15,23,42,.14) 1px,transparent 1.3px)!important;
   border-bottom-color:rgba(15,23,42,.08)!important}`;
@@ -3794,13 +3794,13 @@ body.light-theme #thBrand{
   const st = document.createElement('style'); st.id = 'thLightFix';
   st.textContent = `
 html body.light-theme #mobileFloatingBar,
-html body.light-theme #thBrand{
+html body.light-theme~#thBrand,html body.light-theme #thBrand{
   background-color:#f4f6f9!important;
   background-image:radial-gradient(circle,rgba(15,23,42,.30) 1.1px,transparent 1.5px)!important;
   background-size:9px 9px!important;
   border-color:rgba(15,23,42,.12)!important;
   box-shadow:none!important}
-html body.light-theme #thBrand{
+html body.light-theme~#thBrand,html body.light-theme #thBrand{
   border:0!important;border-bottom:1px solid rgba(15,23,42,.12)!important;color:#0f172a!important}
 html body.light-theme #mobileFloatingBar{border:1px solid rgba(15,23,42,.12)!important}`;
   document.head.appendChild(st);
@@ -3902,4 +3902,24 @@ body.light-theme #thMenu .tmi{color:#0f172a}
       { icon: '<i class="fa-solid fa-sun"></i>', label: U.bri, on: () => startAdjust('bri') }
     ]);
   };
+})();
+
+/* ===== Fixes: badge over the corner; light theme = dots never sit on the written text; header theme ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFixes2'; st.textContent = `
+/* notification number: straddles the star's corner, nothing clips it */
+html #mobileFloatingBar,html #mobileFloatingBar>.feed,html #feedBtn,html #feedBtn .fdp{overflow:visible!important}
+html body #mobileFloatingBar #feedBtn #feedNum{top:-3px!important;right:5px!important;z-index:5!important;box-shadow:0 0 0 2px #181c20!important}
+html body.light-theme #mobileFloatingBar #feedBtn #feedNum{box-shadow:0 0 0 2px #f4f6f9!important}
+/* light theme: softer dots + a clear patch around the bar labels and the header name */
+html body.light-theme #mobileFloatingBar,html body.light-theme~#thBrand,html body.light-theme #thBrand{background-image:radial-gradient(circle,rgba(15,23,42,.13) 1.1px,transparent 1.5px)!important}
+html body.light-theme .thl{opacity:1;color:#1e293b;text-shadow:0 0 2px #f4f6f9,0 0 2px #f4f6f9,0 0 4px #f4f6f9,0 0 4px #f4f6f9,0 0 6px #f4f6f9}
+html body.light-theme~#thBrand .thb-n,html body.light-theme #thBrand .thb-n{text-shadow:0 0 2px #f4f6f9,0 0 2px #f4f6f9,0 0 4px #f4f6f9,0 0 4px #f4f6f9}
+/* chart details: axis text drawn over the dots and never blocks taps; light theme dots get a clean ring */
+svg.c2 .tx{pointer-events:none}
+body.light-theme svg.c2 .tx{paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:3px;stroke-linejoin:round}
+body.light-theme svg.c2 .dot:not(.hit){filter:none!important;stroke:#fff;stroke-width:1.2px}
+body.light-theme #barTip{background:#fff!important;color:#0f172a!important;border:1px solid rgba(15,23,42,.15)!important;box-shadow:0 6px 18px rgba(15,23,42,.18)!important}
+#barTip{pointer-events:none}`;
+  document.head.appendChild(st);
 })();
