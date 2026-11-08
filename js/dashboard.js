@@ -3646,3 +3646,85 @@ body.light-theme #thExc textarea{background:#fff;color:#0f172a}
     add();
   }
 })();
+
+
+/* ===== Dotted bars, one-time card glow, bigger moon / reload, icon-only pop-outs, yellow date calendar icon ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thDotsUI';
+  st.textContent = `
+/* 1) bottom bar + top header: same colour, tiny soft dots */
+html #mobileFloatingBar,.thHdr{
+  background-color:#181c20!important;
+  background-image:radial-gradient(circle,rgba(255,255,255,.13) 1px,transparent 1.3px)!important;
+  background-size:9px 9px!important;background-position:0 0!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html #mobileFloatingBar{border:1px solid rgba(255,255,255,.07)!important}
+body.light-theme #mobileFloatingBar,body.light-theme .thHdr{
+  background-color:#eef1f5!important;
+  background-image:radial-gradient(circle,rgba(15,23,42,.14) 1px,transparent 1.3px)!important}
+
+/* 2) cards: no light at all, except one soft pass (class added once per section) */
+html .thabit-card::before,html .test-card::before{animation:none!important;opacity:0!important}
+html .thabit-card.lit1::before,html .test-card.lit1::before{opacity:.3!important;animation:thabitCardSwipeSlow 2.4s linear 1!important}
+
+/* 3) bigger moon + reload (sun and the rest stay as they are) */
+html #mobileFloatingBar #themeIcon.fa-moon{font-size:25px!important}
+html #mobileFloatingBar [data-bk="reload"] i{font-size:25px!important}
+
+/* 4) pop-out icons: no border, no background, just the icon */
+html .lgi,html .pkfly{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html .lgi svg,html .lgi i,html .lgi .plA,html .lgi .plS,html .pkfly svg,html .pkfly i{filter:drop-shadow(0 2px 5px rgba(0,0,0,.65))}
+html .lgi.cur{color:#fbbf24!important}
+html .lgi:hover{transform:scale(1.12)}
+
+/* calendar icon with today's date */
+.calico{position:relative;display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center}
+.calico svg{width:30px;height:30px;display:block}`;
+  document.head.appendChild(st);
+
+  /* top header: find the fixed bar at the top of the page (the one with the logo) and tag it */
+  function tagHeader() {
+    const skip = new Set(['mobileFloatingBar', 'pop', 'thDet', 'thHint', 'langPop', 'asm', 'thGhost', 'dock', 'thBri', 'barTip']);
+    [...document.body.children].forEach(el => {
+      if (!el.id || !skip.has(el.id)) {
+        const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+        if ((cs.position === 'fixed' || cs.position === 'sticky') && r.top < 6 && r.width > innerWidth * 0.5 && r.height > 20 && r.height < 130 && el.tagName !== 'SECTION' && !skip.has(el.id)) el.classList.add('thHdr');
+      }
+    });
+  }
+  [300, 1200, 3000].forEach(t => setTimeout(tagHeader, t));
+  window.addEventListener('load', tagHeader);
+
+  /* one soft glow the first time each page section comes into view */
+  const seen = new Set();
+  function watchSections() {
+    if (!('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting || seen.has(e.target.id)) return;
+      seen.add(e.target.id);
+      const cards = [...e.target.querySelectorAll('.thabit-card,.test-card')];
+      cards.forEach(c => c.classList.add('lit1'));
+      setTimeout(() => cards.forEach(c => c.classList.remove('lit1')), 2800);
+    }), { threshold: 0.35 });
+    document.querySelectorAll('.thsec').forEach(s => io.observe(s));
+  }
+  setTimeout(watchSections, 800);
+
+  /* theme button: outline moon / sun after every toggle */
+  const fixTheme = () => { const i = document.getElementById('themeIcon'); if (i && i.classList.contains('fa-solid')) { i.classList.remove('fa-solid'); i.classList.add('fa-regular'); } };
+  document.addEventListener('DOMContentLoaded', () => { const i = document.getElementById('themeIcon'); fixTheme(); if (i) new MutationObserver(fixTheme).observe(i, { attributes: true, attributeFilter: ['class'] }); });
+
+  /* account pop-out: calendar icon = yellow outline with today's date number */
+  function calIcon() {
+    const d = parseInt(itToday().slice(8), 10);
+    return '<span class="calico"><svg viewBox="0 0 32 32" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="6" width="23" height="21.5" rx="5"/><path d="M4.5 12.5h23M10.5 3.5v5M21.5 3.5v5"/><text x="16" y="23.4" text-anchor="middle" font-family="Inter,Cairo,sans-serif" font-weight="800" font-size="11" stroke="none" fill="#fbbf24">' + d + '</text></svg></span>';
+  }
+  window.openProf = function (btn) {
+    const ar = lang !== 'en', cal = lang === 'en' ? 'Calendar' : 'التقويم';
+    window.thPick(btn || document.getElementById('profBtn'), [
+      { html: '<i class="fa-regular fa-user pfi"></i>', title: ar ? 'ملفي' : 'Profile', on: () => Panels.open('profile') },
+      { html: calIcon(), title: cal, on: () => window.openCal && window.openCal() },
+      { html: '<i class="fa-solid fa-right-from-bracket pfi" style="color:#f43f5e"></i>', title: ar ? 'تسجيل الخروج' : 'Log out', on: () => window.logout && window.logout() }
+    ]);
+  };
+})();
