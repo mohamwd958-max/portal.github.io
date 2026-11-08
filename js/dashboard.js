@@ -3959,15 +3959,15 @@ body.light-theme #barTip{background:#fff!important;color:#0f172a!important;borde
   const DK = 'thabit_disputes', NK = 'thabit_local_notes';
   const X = {
     en: { btn: 'Dispute', ttl: 'What really happened?', o1: 'I did it for real, but forgot to check it here', o2: "I didn't do it, neither for real nor here", sending: 'Sending…', fail: 'Could not send, try again', sent1: 'Dispute sent', sent2: 'Score unchanged', close: 'Close',
-      n1t: 'Dispute accepted', n1b: (t, a, b) => `Done, we trust you. The score for “${t}” is back.${a != null ? ` Your compliance is now ${a}${b != null ? ` (was ${b})` : ''}.` : ''} You can see it in the dashboard.`, left: 'Dispute open for', expired: 'The 24-hour dispute window for this item has ended', already: 'You already disputed this item',
+      n1t: 'Dispute accepted', n1b: (t, a, b) => `Done, we trust you. The score for “${t}” is back.${a != null ? ` Your compliance is now ${a}${b != null ? ` (was ${b})` : ''}.` : ''} You can see it in the dashboard.`, left: 'Dispute open for', expired: 'The 24-hour dispute window for this item has ended', already: 'You already disputed this item', nothing: 'Nothing to restore: this item has no missed checks',
       n1pt: 'Dispute received', n1pb: t => `We received your dispute for “${t}”. The trainer will review it and you will be notified.`,
       n2t: 'Your score stays the same', n2b: t => `Unfortunately your compliance score for “${t}” will not change, because you did not do it, neither for real nor here. Try to finish the next one before its deadline.` },
     ar: { btn: 'اعتراض', ttl: 'ماذا حدث فعلًا؟', o1: 'أنجزتها فعلًا لكن نسيت تأشيرها هنا', o2: 'لم أنجزها، لا فعليًا ولا هنا', sending: 'جارٍ الإرسال…', fail: 'تعذر الإرسال، حاول مرة أخرى', sent1: 'تم إرسال الاعتراض', sent2: 'الدرجة لم تتغير', close: 'إغلاق',
-      n1t: 'تم قبول الاعتراض', n1b: (t, a, b) => `تم، نحن نصدّقك. عادت درجتك في «${t}».${a != null ? ` أصبح التزامك الآن ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} يمكنك رؤيته في لوحة البيانات.`, left: 'الاعتراض متاح لمدة', expired: 'انتهت مهلة الاعتراض (24 ساعة) لهذا العنصر', already: 'سبق أن اعترضت على هذا العنصر',
+      n1t: 'تم قبول الاعتراض', n1b: (t, a, b) => `تم، نحن نصدّقك. عادت درجتك في «${t}».${a != null ? ` أصبح التزامك الآن ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} يمكنك رؤيته في لوحة البيانات.`, left: 'الاعتراض متاح لمدة', expired: 'انتهت مهلة الاعتراض (24 ساعة) لهذا العنصر', already: 'سبق أن اعترضت على هذا العنصر', nothing: 'لا يوجد ما يُستعاد: لا توجد فحوصات فائتة في هذا العنصر',
       n1pt: 'تم استلام اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». سيراجعه المدرب وسيصلك إشعار.`,
       n2t: 'درجتك لن تتغير', n2b: t => `للأسف لن تتغير درجتك في الالتزام بخصوص «${t}»، لأنك لم تنجزها لا فعليًا ولا هنا. حاول إنهاء القادمة قبل موعدها النهائي.` },
     eg: { btn: 'اعتراض', ttl: 'إيه اللي حصل بجد؟', o1: 'عملتها بجد بس نسيت أشيّكها هنا', o2: 'ما عملتهاش، لا بجد ولا هنا', sending: 'بيتبعت…', fail: 'معرفناش نبعت، جرب تاني', sent1: 'الاعتراض اتبعت', sent2: 'الدرجة زي ما هي', close: 'إغلاق',
-      n1t: 'الاعتراض اتقبل', n1b: (t, a, b) => `تمام، صدّقناك. الدرجة بتاعة «${t}» رجعت.${a != null ? ` الالتزام بتاعك بقى ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} تقدر تشوفه في الداشبورد.`, left: 'الاعتراض متاح لمدة', expired: 'مهلة الاعتراض (24 ساعة) خلصت على العنصر ده', already: 'انت اعترضت على العنصر ده قبل كده',
+      n1t: 'الاعتراض اتقبل', n1b: (t, a, b) => `تمام، صدّقناك. الدرجة بتاعة «${t}» رجعت.${a != null ? ` الالتزام بتاعك بقى ${a}${b != null ? ` (كان ${b})` : ''}.` : ''} تقدر تشوفه في الداشبورد.`, left: 'الاعتراض متاح لمدة', expired: 'مهلة الاعتراض (24 ساعة) خلصت على العنصر ده', already: 'انت اعترضت على العنصر ده قبل كده', nothing: 'مفيش حاجة تترجع: العنصر ده مفيهوش شيكات فاتت',
       n1pt: 'استلمنا اعتراضك', n1pb: t => `استلمنا اعتراضك على «${t}». المدرب هيراجعه وهيوصلك إشعار.`,
       n2t: 'درجتك زي ما هي', n2b: t => `للأسف رقمك في الكومبلاينس في «${t}» مش هيتغير، لأنك ما خلصتهاش لا بجد ولا هنا. حاول تخلّص الجاية قبل الديدلاين.` }
   };
@@ -4041,7 +4041,7 @@ body.light-theme #thDisp .db{background:#fff;color:#0f172a;border-color:rgba(15,
     const obj = r && typeof r === 'object' ? r : null;
     if (obj && obj.ok === false) {
       busy = false; ov.classList.remove('open');
-      if (obj.reason === 'already') { const m = rd(DK); m[x.id] = ch; wr(DK, m); itToast(t.already); } else itToast(t.expired);
+      if (obj.reason === 'already') { const m = rd(DK); m[x.id] = ch; wr(DK, m); itToast(t.already); } else itToast(obj.reason === 'nothing' ? t.nothing : t.expired);
       try { render(); } catch (e) {} return;
     }
     const serverDone = r === true || (obj && obj.ok === true);
