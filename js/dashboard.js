@@ -239,7 +239,7 @@ function render() {
   renderSessions(rows);
   watchTodo();
   renderAvatar();
-  requestAnimationFrame(() => { fitCaps(); fitTk(); });
+  requestAnimationFrame(() => { fitCaps(); fitTk(); tkObserve(); });
   tkRefill();
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
@@ -473,11 +473,11 @@ function itemRow(it) {
   const head = it.kind === 'dandana'
     ? `<b dir="ltr">${esc(it.title || '')}</b>${it.badge ? `<i class="itv"></i><span class="itar" dir="rtl">${esc(it.badge)}</span>` : ''}`
     : `<b dir="auto">${esc(it.title || '')}</b>${hi}${it.badge ? `<i class="itv"></i><span class="itbd" dir="auto">${esc(it.badge)}</span>` : ''}`;
-  const eds = VIEW ? [] : tkEditable(it), editing = TEDIT === it.id && eds.length > 0;
-  const da = (j, c) => (editing && eds.includes(j)) ? `class="${c} ed" onclick="event.stopPropagation();tkPick(${it.id},${j})"` : `class="${c}"`;
+  const eds = VIEW ? [] : tkEditable(it);
+  const da = (j, c) => `class="${c}"`;
   const dots = Array.from({ length: n }, (_, j) => `<i ${da(j, j < d ? 'on' : (j === d && s.k === 'open' ? 'nx' : ''))}></i>`).join('<b></b>');
   const TP_ = TPK[lang] || TPK.en;
-  const pickBtn = eds.length ? `<button type="button" class="tpkb${editing ? ' on' : ''}" onclick="event.stopPropagation();tkEditToggle(${it.id})"><i class="fa-regular fa-clock"></i> ${editing ? TP_.done : TP_.choose}</button>` : '';
+  const pickBtn = eds.length ? `<button type="button" class="tpkb${editing ? ' on' : ''}" onclick="event.stopPropagation();tkPick(${it.id})"><i class="fa-solid fa-sliders"></i> ${TP_.choose}</button>` : '';
   const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);   // range-based items show the end of the range
   const status = s.k === 'lock' ? `${t.opens} ${fmtOpen(s.o)}${p && p.estimated ? t.est : ''}` : s.k === 'open' ? t.ready : s.k === 'closed' ? closedText(it) : s.k === 'wait' ? t.waiting : '';
   return `<div class="itm"><button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${it.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>`
@@ -493,7 +493,46 @@ const TKT = {
   ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
   eg: { tasks: 'التاسكس', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
 };
-let TKOPEN = null, TKL = {};
+let TKOPEN = null, TKL = {}, TKSEEN = null;
+/* ===== Current tasks / Dandana in the card: a thin cell (date + title only) that pops once or twice to catch the eye.
+   No circle, no times, no details until the student opens the list once and leaves it; from then on the yellow check circle
+   appears and the cell tells him only when his next time is. ===== */
+const TKACT = new Set((() => { try { return JSON.parse(localStorage.getItem('thabit_tk_act') || '[]'); } catch (e) { return []; } })());
+const TKPOP = new Set();
+let tkIO = null;
+const tkActive = x => TKACT.has(x.id) || (x.checks || []).length > 0;
+function tkActivate(key) {
+  const ids = (TKL[key] && TKL[key].ids) || []; let ch = false;
+  ids.forEach(id => { if (!TKACT.has(id)) { TKACT.add(id); ch = true; } });
+  if (!ch) return;
+  if (!VIEW) { try { localStorage.setItem('thabit_tk_act', JSON.stringify([...TKACT].slice(-300))); } catch (e) {} }
+  if (D) render();
+}
+function tkCompact(x) {
+  const t = itT(), T = TPK[lang] || TPK.en, s = itState(x), act = tkActive(x);
+  const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
+  const circle = act ? `<button type="button" class="itc ${s.k}" ${s.k === 'open' ? `onclick="checkItem(${x.id})"` : 'disabled'} aria-label="check">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</button>` : '';
+  const lbl = !act ? '' : s.k === 'lock' ? `${x.kind === 'dandana' ? T.nextDnd : T.nextTask}: ${fmtOpen(s.o)}` : s.k === 'open' ? t.ready : s.k === 'closed' ? t.closed : s.k === 'wait' ? t.waiting : '';
+  return `<div class="ssi tkcell${TKPOP.has(x.id) ? '' : ' tkn'}" data-id="${x.id}">${circle}<div class="tkcb"><div class="tkct"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span></div>${lbl ? `<div class="tkcl" dir="auto">${esc(lbl)}</div>` : ''}</div></div>`;
+}
+function tkObserve() {   // the pop plays when the cell is really on screen (twice), then it stays calm
+  const els = document.querySelectorAll('.tkcell.tkn:not(.pop)'); if (!els.length) return;
+  const go = e => { const id = +e.dataset.id; if (TKPOP.has(id)) return; TKPOP.add(id); e.classList.add('pop'); };
+  if (!('IntersectionObserver' in window)) { els.forEach(go); return; }
+  if (!tkIO) tkIO = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { tkIO.unobserve(en.target); go(en.target); } }), { threshold: .6 });
+  els.forEach(e => tkIO.observe(e));
+}
+(function () { const st = document.createElement('style'); st.textContent = `
+.tkl>.ssi.tkcell{display:flex;align-items:center;gap:10px;padding:8px 12px;border-inline-start:3px solid #fbbf24;cursor:pointer}
+.tkcell .tkcb{flex:1;min-width:0}
+.tkcell .tkct{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.tkcell .tkct b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86rem}
+.tkcell .tkct span{flex:none;font-size:.7rem;opacity:.65}
+.tkcell .tkcl{margin-top:2px;font-size:.72rem;opacity:.85;color:#fbbf24}
+body.light-theme .tkcell .tkcl{color:#b45309}
+.tkcell.pop{animation:tkPop .75s cubic-bezier(.2,.8,.3,1.2) 2}
+@keyframes tkPop{0%{transform:scale(1);background:rgba(251,191,36,.0)}40%{transform:scale(1.035);background:rgba(251,191,36,.22)}100%{transform:scale(1);background:rgba(148,163,184,.08)}}
+@media(prefers-reduced-motion:reduce){.tkcell.pop{animation:none}}`; document.head.appendChild(st); })();
 const tkHead = x => {
   const t2 = itT(), k = itState(x).k, ok = k === 'done';
   return `<summary><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${ok ? 'color:#34d399' : 'color:#fb7185'}">${ok ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></summary>`;
@@ -508,8 +547,8 @@ const tkLogDet = x => {
 };
 const tkGroup = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
   return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
-function tkSec(key, cls, title, n, cells, full, mt) {
-  TKL[key] = { t: mt, f: full };
+function tkSec(key, cls, title, n, cells, full, mt, ids) {
+  TKL[key] = { t: mt, f: full, ids: ids || [] };
   return `<div class="tkc ${cls}" data-k="${key}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
 }
 function tasksCard() {
@@ -519,8 +558,8 @@ function tasksCard() {
   const today = itToday(), pend = its.filter(itShown);
   const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
   const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
-  const c1 = urg.length ? tkSec('tk:urg', 'urg', t.urgent, urg.length, tkGroup(urg), () => tkGroup(urg), `${t.tasks} · ${t.urgent}`) : '';
-  const c2 = (prv.length || fin.length) ? tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, (prv.length ? tkGroup(prv) : '') + fin.map(tkLogCell).join(''), () => (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join(''), `${t.tasks} · ${t.prev}`) : '';
+  const c1 = urg.length ? tkSec('tk:urg', 'urg', t.urgent, urg.length, urg.map(tkCompact).join(''), () => tkGroup(urg), `${t.tasks} · ${t.urgent}`, urg.map(x => x.id)) : '';
+  const c2 = (prv.length || fin.length) ? tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, prv.map(tkCompact).join('') + fin.map(tkLogCell).join(''), () => (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join(''), `${t.tasks} · ${t.prev}`, prv.map(x => x.id)) : '';
   if (!c1 && !c2) return '';
   return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
@@ -529,17 +568,20 @@ function tasksCard() {
    Rules: never into the past, never after the deadline, only dots not checked yet. Nothing is forced:
    close to a session (3h before the next one / 1h after the last one) he only gets a recommendation once. */
 const TPK = {
-  en: { choose: 'Choose your time', done: 'Done', pick: 'Pick a time', now: 'Do it now', save: 'Save', cancel: 'Cancel', saved: 'Time saved ✓', fail: 'Could not save, try again', gone: 'This time has already passed', rec: 'Recommendation', sure: 'I am sure, continue', change: 'Change time',
+  en: { choose: 'Personalize', done: 'Done', pick: 'Pick a time', now: 'Do it now', save: 'Save', cancel: 'Cancel', saved: 'Time saved ✓', fail: 'Could not save, try again', gone: 'This time has already passed', rec: 'Recommendation', sure: 'I am sure, continue', change: 'Change time',
         wb: 'Reviewing within 3 hours before your next session is not recommended.', wa: 'Reviewing within an hour after your last session is not recommended.' },
-  ar: { choose: 'اختر وقتك', done: 'تم', pick: 'اختر وقتاً', now: 'افعلها الآن', save: 'حفظ', cancel: 'إلغاء', saved: 'تم حفظ الوقت ✓', fail: 'تعذر الحفظ، حاول مرة أخرى', gone: 'هذا الوقت مرّ بالفعل', rec: 'توصية', sure: 'أنا متأكد، تابع', change: 'تغيير الوقت',
+  ar: { choose: 'تخصيص', done: 'تم', pick: 'اختر وقتاً', now: 'افعلها الآن', save: 'حفظ', cancel: 'إلغاء', saved: 'تم حفظ الوقت ✓', fail: 'تعذر الحفظ، حاول مرة أخرى', gone: 'هذا الوقت مرّ بالفعل', rec: 'توصية', sure: 'أنا متأكد، تابع', change: 'تغيير الوقت',
         wb: 'لا يُنصح بالمراجعة خلال الثلاث ساعات التي تسبق جلستك القادمة.', wa: 'لا يُنصح بالمذاكرة خلال الساعة التي تلي آخر جلسة.' },
-  eg: { choose: 'اختار وقتك', done: 'تم', pick: 'اختار وقت', now: 'اعملها دلوقتي', save: 'حفظ', cancel: 'إلغاء', saved: 'الوقت اتحفظ ✓', fail: 'معرفناش نحفظ، جرب تاني', gone: 'الوقت ده عدّى خلاص', rec: 'نصيحة', sure: 'متأكد، كمّل', change: 'غيّر الوقت',
+  eg: { choose: 'تخصيص', done: 'تم', pick: 'اختار وقت', now: 'اعملها دلوقتي', save: 'حفظ', cancel: 'إلغاء', saved: 'الوقت اتحفظ ✓', fail: 'معرفناش نحفظ، جرب تاني', gone: 'الوقت ده عدّى خلاص', rec: 'نصيحة', sure: 'متأكد، كمّل', change: 'غيّر الوقت',
         wb: 'مش مُفضّل تراجع في التلات ساعات اللي قبل سيشنك الجاية.', wa: 'مش مُفضّل تذاكر في الساعة اللي بعد آخر سيشن.' }
 };
 let TEDIT = null, TP = null;
 Object.assign(TPK.en, { gap: 'Two checks of the same task can not be at the same time. The gap between them must be at least 30 minutes.', after: 'Put it 30 min after the previous', before: 'Put it 30 min before the next' });
 Object.assign(TPK.ar, { gap: 'لا يمكن أن تكون مرتان من نفس المهمة في نفس الوقت. يجب أن يكون الفاصل بينهما 30 دقيقة على الأقل.', after: 'ضعها بعد السابقة بنصف ساعة', before: 'ضعها قبل التالية بنصف ساعة' });
 Object.assign(TPK.eg, { gap: 'ما ينفعش مرتين من نفس التاسك يبقوا في نفس الوقت. لازم يبقى بينهم نص ساعة على الأقل.', after: 'حطها بعد اللي قبلها بنص ساعة', before: 'حطها قبل اللي بعدها بنص ساعة' });
+Object.assign(TPK.en, { hint: 'Drag a yellow dot to move it', nextTask: 'Your next task', nextDnd: 'Your next Dandana' });
+Object.assign(TPK.ar, { hint: 'اسحب النقطة الصفراء لتحريكها', nextTask: 'مهمتك القادمة', nextDnd: 'دندنتك القادمة' });
+Object.assign(TPK.eg, { hint: 'اسحب النقطة الصفرا وحرّكها', nextTask: 'التاسك الجاية', nextDnd: 'الدندنة الجاية' });
 const TK_GAP = 30 * 6e4;
 const tkIso = ms => new Date(ms).toISOString().slice(0, 16);
 function tkEditable(it) {   // indexes of the dots that can still be moved
@@ -549,7 +591,6 @@ function tkEditable(it) {   // indexes of the dots that can still be moved
   for (let j = (it.checks || []).length; j < p.n_eff; j++) if (p.opens[j] > now) out.push(j);
   return out;
 }
-function tkEditToggle(id) { TEDIT = TEDIT === id ? null : id; render(); }
 const fetchTimes = () => rpc('trainee_item_times', { p_token: tok() }).then(o => o && typeof o === 'object' && !Array.isArray(o) && !o.message && !o.code ? o : {}).catch(() => ({}));
 function mergeTimes() {   // the student's own choices sit on top of the planned times
   const ov = (D && D.times) || {};
@@ -572,57 +613,73 @@ function tkWarn(ms) {
   return '';
 }
 function tkClose() { const o = $('tpk'); if (o) o.remove(); TP = null; }
-function tkPick(id, j) {
-  const it = (D.items || []).find(x => x.id === id); if (!it || !it.plan) return;
+const tkPct = ms => ((ms - TP.A) / (TP.B - TP.A) * 100).toFixed(2) + '%';
+function tkPaint(act) {   // moves the dots + their time labels (under each dot) while dragging
   const T = TPK[lang] || TPK.en;
-  if (!tkEditable(it).includes(j)) { itToast(T.gone); render(); return; }
-  const now = Math.floor(cairoNow() / 6e4) * 6e4, max = Math.floor((it.plan.deadline - 6e4) / 6e4) * 6e4;
-  if (!(max > now)) { itToast(T.gone); return; }
-  const cur = Math.min(max, Math.max(now, Math.floor(it.plan.opens[j] / 6e4) * 6e4));
-  TP = { id, j, min: now, max, ms: cur };
-  tkClose(); TP = { id, j, min: now, max, ms: cur };
-  const o = document.createElement('div'); o.id = 'tpk'; o.className = 'tpk';
-  o.innerHTML = `<div class="tpb" dir="auto"><div class="tpt">${esc(it.title || '')} · ${j + 1}/${it.plan.n_eff}</div><div class="tpl" id="tpl"></div>`
-    + `<input type="range" id="tpr" min="0" max="${(max - now) / 6e4}" step="1" value="${(cur - now) / 6e4}" dir="ltr">`
-    + `<input type="datetime-local" id="tpd" min="${tkIso(now)}" max="${tkIso(max)}" value="${tkIso(cur)}" dir="ltr">`
-    + `<div class="tpbs"><button type="button" class="tpnow">${T.now}</button><button type="button" class="tps">${T.save}</button><button type="button" class="tpc">${T.cancel}</button></div></div>`;
-  document.body.appendChild(o);
-  const lab = () => { $('tpl').textContent = fmtDT(TP.ms); }, set = ms => { TP.ms = Math.min(TP.max, Math.max(TP.min, Math.round(ms / 6e4) * 6e4)); $('tpr').value = (TP.ms - TP.min) / 6e4; $('tpd').value = tkIso(TP.ms); lab(); };
-  lab();
-  $('tpr').oninput = e => set(TP.min + (+e.target.value) * 6e4);
-  $('tpd').onchange = e => { const v = Date.parse(e.target.value + ':00Z'); set(Number.isFinite(v) ? v : TP.ms); };
-  o.querySelector('.tpnow').onclick = () => tkTry(Math.floor(cairoNow() / 6e4) * 6e4);
-  o.querySelector('.tps').onclick = () => tkTry(TP.ms);
-  o.querySelector('.tpc').onclick = tkClose;
-  o.addEventListener('click', e => { if (e.target === o) tkClose(); });
-}
-function tkTry(ms) {
-  const T = TPK[lang] || TPK.en, b0 = document.querySelector('#tpk .tpb');
-  /* the one hard rule: at least 30 minutes between the checks of the same task */
-  const it = TP && (D.items || []).find(x => x.id === TP.id), p = it && it.plan;
-  if (p && b0) {
-    const d = (it.checks || []).length, j = TP.j, prev = j > d ? p.opens[j - 1] : null, next = j + 1 < p.n_eff ? p.opens[j + 1] : null;
-    let sug = null, key = '';
-    if (prev != null && ms < prev + TK_GAP) { sug = prev + TK_GAP; key = 'after'; }
-    else if (next != null && ms > next - TK_GAP) { sug = next - TK_GAP; key = 'before'; }
-    if (key) {
-      const okSug = sug >= TP.min && sug <= TP.max && (prev == null || sug >= prev + TK_GAP) && (next == null || sug <= next - TK_GAP);
-      b0.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(T.gap)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button>${okSug ? `<button type="button" class="tps">${T[key]}</button>` : ''}</div>`;
-      b0.querySelector('.tpc').onclick = () => { const id = TP.id, jj = TP.j; tkPick(id, jj); };
-      const sb = b0.querySelector('.tps'); if (sb) sb.onclick = () => tkTry(sug);
-      return;
-    }
+  for (let k = TP.first; k < TP.n; k++) {
+    const g = document.querySelector(`#tpe .ittp[data-j="${k}"]`); if (!g) continue;
+    g.style.left = tkPct(TP.ms[k]); g.querySelector('span').innerHTML = fmtOpenS(TP.ms[k]);
   }
-  const w = tkWarn(ms); if (!w) { tkSend(ms); return; }
-  const b = document.querySelector('#tpk .tpb'); if (!b) { tkSend(ms); return; }
-  b.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
-  b.querySelector('.tps').onclick = () => tkSend(ms);
-  b.querySelector('.tpc').onclick = () => { const id = TP.id, j = TP.j; tkPick(id, j); };
+  $('tpl').textContent = act == null ? T.hint : fmtDT(TP.ms[act]);
 }
-async function tkSend(ms) {
-  const T = TPK[lang] || TPK.en, id = TP && TP.id, j = TP && TP.j; tkClose(); if (id == null) return;
-  const ok = await rpc('trainee_set_item_time', { p_token: tok(), p_item_id: id, p_idx: j, p_open_ms: ms }).catch(() => null);
-  if (ok === true) { D.times = await fetchTimes(); mergeTimes(); render(); itToast(T.saved); } else itToast(T.fail);
+/* moving a dot pushes its neighbours so that there are always at least 30 minutes between two checks of the same task */
+function tkMove(j, raw) {
+  const o = TP.ms, lo = TP.base + (j - TP.first) * TK_GAP, hi = TP.max - (TP.n - 1 - j) * TK_GAP;
+  if (lo > hi) return;
+  o[j] = Math.min(hi, Math.max(lo, Math.round(raw / 3e5) * 3e5));
+  for (let k = j + 1; k < TP.n; k++) { if (o[k] < o[k - 1] + TK_GAP) o[k] = o[k - 1] + TK_GAP; else break; }
+  for (let k = j - 1; k >= TP.first; k--) { if (o[k] > o[k + 1] - TK_GAP) o[k] = o[k + 1] - TK_GAP; else break; }
+  tkPaint(j);
+}
+function tkDrag(e, j) {
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget, tr = $('tpe').getBoundingClientRect();
+  try { el.setPointerCapture(e.pointerId); } catch (x) {}
+  const mv = ev => tkMove(j, TP.A + Math.min(1, Math.max(0, (ev.clientX - tr.left) / tr.width)) * (TP.B - TP.A));
+  const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); };
+  el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+function tkPick(id) {   // "Personalize": everything else fades away, only the timeline is left and the student drags the dots
+  const it = (D.items || []).find(x => x.id === id); if (!it || !it.plan) return;
+  const T = TPK[lang] || TPK.en, p = it.plan, eds = tkEditable(it);
+  if (!eds.length) { itToast(T.gone); render(); return; }
+  const now = Math.floor(cairoNow() / 6e4) * 6e4, max = Math.floor((p.deadline - 6e4) / 6e4) * 6e4, d = (it.checks || []).length, first = eds[0], n = p.n_eff;
+  const base = Math.max(now, first - 1 >= d ? p.opens[first - 1] + TK_GAP : -Infinity);
+  const A = Math.min(now, ...p.opens), B = Math.max(max, ...p.opens);
+  if (!(B > A) || base + (n - 1 - first) * TK_GAP > max) { itToast(T.gone); return; }
+  tkClose();
+  TP = { id, A, B, first, n, base, max, ms: p.opens.slice(), orig: p.opens.slice() };
+  const mvs = new Set(eds);
+  const dots = p.opens.map((t, j) => `<div class="ittp" data-j="${j}" style="left:${tkPct(t)}"><i class="${mvs.has(j) ? 'mv' : (j < d ? 'on' : '')}"></i><span class="${j % 2 ? 'lo2' : ''}">${fmtOpenS(t)}</span></div>`).join('');
+  const o = document.createElement('div'); o.id = 'tpk'; o.className = 'tpk';
+  o.innerHTML = `<div class="tpb tpw" dir="auto"><div class="tps1"><div class="tpt">${esc(it.title || '')}</div><div class="tpl" id="tpl" style="text-align:center"></div>`
+    + `<div class="itt tpe" id="tpe" dir="ltr">${dots}</div>`
+    + `<div class="tpbs"><button type="button" class="tpc">${T.cancel}</button><button type="button" class="tps">${T.save}</button></div></div>`
+    + `<div class="tps2" hidden></div></div>`;
+  document.body.appendChild(o);
+  o.querySelectorAll('.ittp i.mv').forEach(i => { const j = +i.parentNode.dataset.j; i.addEventListener('pointerdown', e => tkDrag(e, j)); });
+  o.querySelector('.tpc').onclick = tkClose;
+  o.querySelector('.tps').onclick = tkSave;
+  tkPaint(null);
+}
+function tkSave() {
+  const T = TPK[lang] || TPK.en, ch = []; for (let k = TP.first; k < TP.n; k++) if (TP.ms[k] !== TP.orig[k]) ch.push(k);
+  if (!ch.length) { tkClose(); return; }
+  let w = ''; for (const k of ch) { w = tkWarn(TP.ms[k]); if (w) break; }   // only a recommendation, never a block
+  if (!w) { tkSend(ch); return; }
+  const s1 = document.querySelector('#tpk .tps1'), s2 = document.querySelector('#tpk .tps2');
+  s2.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
+  s1.hidden = true; s2.hidden = false;
+  s2.querySelector('.tpc').onclick = () => { s2.hidden = true; s1.hidden = false; };
+  s2.querySelector('.tps').onclick = () => tkSend(ch);
+}
+async function tkSend(ch) {
+  const T = TPK[lang] || TPK.en, id = TP && TP.id, ms = TP && TP.ms.slice(), orig = TP && TP.orig; tkClose(); if (id == null) return;
+  /* dots moved later are sent last-first, dots moved earlier first-first, so the server never sees two checks closer than 30 minutes */
+  const order = ch.filter(k => ms[k] > orig[k]).sort((a, b) => b - a).concat(ch.filter(k => ms[k] < orig[k]).sort((a, b) => a - b));
+  let ok = true;
+  for (const k of order) { const r = await rpc('trainee_set_item_time', { p_token: tok(), p_item_id: id, p_idx: k, p_open_ms: ms[k] }).catch(() => null); if (r !== true) { ok = false; break; } }
+  D.times = await fetchTimes(); mergeTimes(); render(); itToast(ok ? T.saved : T.fail);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('tpk')) tkClose(); });
 (function () { const st = document.createElement('style'); st.textContent = `
@@ -644,19 +701,28 @@ body.light-theme .tpl{color:#047857}
 .tpbs{display:flex;gap:8px;margin-top:14px}
 .tpbs button{flex:1;padding:9px 6px;border-radius:12px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
 .tpbs .tps{background:#34d399;border-color:#34d399;color:#04231a}
-.tpbs .tpnow{border-color:rgba(251,191,36,.6);color:#fbbf24;background:rgba(251,191,36,.12)}`; document.head.appendChild(st); })();
+.tpbs .tpnow{border-color:rgba(251,191,36,.6);color:#fbbf24;background:rgba(251,191,36,.12)}
+.tpb.tpw{width:min(94vw,540px)}
+.tpb .itt.tpe{height:70px;margin:22px 34px 8px}
+.tpe .ittp i{width:20px;height:20px;left:-10px;top:-4px}
+.tpe .ittp span{top:26px}.tpe .ittp span.lo2{top:46px}
+.tpe .ittp i.on{background:#34d399}
+.tpe .ittp i.mv{background:#fbbf24;box-shadow:0 0 0 4px rgba(251,191,36,.28);cursor:grab;touch-action:none;position:absolute;animation:tpPulse 1.8s ease-in-out infinite}
+.tpe .ittp i.mv::after{content:"";position:absolute;inset:-16px}
+.tpe .ittp i.mv:active{cursor:grabbing;transform:scale(1.2)}
+.tpb .tpl{min-height:1.6em}`; document.head.appendChild(st); })();
 const DNX = { en: { cur: 'Current' }, ar: { cur: 'الحالية' }, eg: { cur: 'الحالية' } };
 function dandanaCard() {
   const t = TKT[lang] || TKT.en, t2 = itT(), its = (D.items || []).filter(x => x.kind === 'dandana');
   if (!its.length) return '';
   const pend = its.filter(itShown), fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no), cur = (DNX[lang] || DNX.en).cur;
-  const c1 = pend.length ? tkSec('dn:cur', 'urg', cur, pend.length, tkGroup(pend), () => tkGroup(pend), `${t2.dnd} · ${cur}`) : '';
+  const c1 = pend.length ? tkSec('dn:cur', 'urg', cur, pend.length, pend.map(tkCompact).join(''), () => tkGroup(pend), `${t2.dnd} · ${cur}`, pend.map(x => x.id)) : '';
   const c2 = fin.length ? tkSec('dn:old', 'prv', t.prev, fin.length, fin.map(tkLogCell).join(''), () => fin.map(tkLogDet).join(''), `${t2.dnd} · ${t.prev}`) : '';
   if (!c1 && !c2) return '';
   return `<div class="thabit-card dcard" id="dandanaCard"><div class="tkh"><h4>${t2.dnd}</h4></div><div class="tk2${c1 && c2 ? '' : ' one'}">${c1}${c2}</div></div>`;
 }
 function openTkModal(key) {
-  const o = TKL[key]; if (!o) return; TKOPEN = key;
+  const o = TKL[key]; if (!o) return; TKOPEN = key; TKSEEN = key;
   $('mdl').dataset.ear = ''; $('mT').textContent = o.t; $('mB').innerHTML = `<div class="tkm">${o.f()}</div>`;
   $('mdl').classList.add('open');
   const box = document.querySelector('#mdl .mbox'); if (box) box.scrollTop = 0;
@@ -775,7 +841,7 @@ function openModal(i, focus) {
   const box = document.querySelector('#mdl .mbox'), t = m[3] && focus ? $('mB').querySelector(`.cti[data-n="${focus}"]`) : null;
   box.scrollTop = t ? t.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8 : 0;
 }
-function closeModal() { $('mdl').classList.remove('open', 'scr'); TKOPEN = null; }
+function closeModal() { $('mdl').classList.remove('open', 'scr'); TKOPEN = null; if (TKSEEN) { const k = TKSEEN; TKSEEN = null; tkActivate(k); } }
 function raiseHand(i) {
   const k = TK[i], t = T[lang]; $('mdl').dataset.ear = ''; HAND_NEW = false; try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {}
   $('mT').textContent = `${k.date} · #${k.no}`;
