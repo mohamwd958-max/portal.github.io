@@ -1,20 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thabit - Offline</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thabit</title>
 <style>
-  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fff;color:#111;font-family:system-ui,-apple-system,"Segoe UI",Cairo,sans-serif;text-align:center;padding:24px}
-  img{width:96px;height:96px}
-  button{margin-top:8px;padding:12px 28px;border:0;border-radius:12px;background:#000;color:#fff;font-size:16px;cursor:pointer}
-  @media (prefers-color-scheme: dark){body{background:#000;color:#eee}img{filter:invert(1)}button{background:#fff;color:#000}}
+:root{--bg:#0f172a;--fg:#e2e8f0;--card:#1e293b}
+@media (prefers-color-scheme:light){:root{--bg:#f4f6f9;--fg:#0f172a;--card:#fff}}
+html,body{height:100%;margin:0}
+body{display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font:600 16px/1.7 Cairo,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+.c{background:var(--card);border-radius:22px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+h1{font-size:1.2rem;margin:0 0 6px}p{margin:4px 0;opacity:.8;font-size:.9rem}
+button{margin-top:18px;border:0;border-radius:12px;padding:11px 22px;background:#fbbf24;color:#111;font:700 .95rem Cairo,system-ui,sans-serif;cursor:pointer}
 </style>
 </head>
 <body>
-  <img src="icons/icon-192.png" alt="Thabit">
-  <h2>لا يوجد اتصال بالإنترنت</h2>
-  <p>You're offline. Check your connection and try again.<br>اتأكد من النت وجرب تاني.</p>
-  <button onclick="location.reload()">Retry / إعادة المحاولة</button>
+<div class="c">
+  <h1>مفيش إنترنت دلوقتي</h1>
+  <p>No internet connection</p>
+  <p>أول ما النت يرجع ادخل تاني.</p>
+  <button type="button" onclick="location.reload()">حاول تاني · Retry</button>
+</div>
+<script>addEventListener('online',function(){location.reload()})</script>
 </body>
 </html>
