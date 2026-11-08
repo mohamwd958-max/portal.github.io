@@ -3787,3 +3787,21 @@ body.light-theme #thBrand{
   border-bottom-color:rgba(15,23,42,.08)!important}`;
   document.head.appendChild(st);
 })();
+
+/* ===== Light theme fix: bar + header turn white with visible dots ===== */
+(function () {
+  const old = document.getElementById('thLightFix'); if (old) old.remove();
+  const st = document.createElement('style'); st.id = 'thLightFix';
+  st.textContent = `
+html body.light-theme #mobileFloatingBar,
+html body.light-theme #thBrand{
+  background-color:#f4f6f9!important;
+  background-image:radial-gradient(circle,rgba(15,23,42,.30) 1.1px,transparent 1.5px)!important;
+  background-size:9px 9px!important;
+  border-color:rgba(15,23,42,.12)!important;
+  box-shadow:none!important}
+html body.light-theme #thBrand{
+  border:0!important;border-bottom:1px solid rgba(15,23,42,.12)!important;color:#0f172a!important}
+html body.light-theme #mobileFloatingBar{border:1px solid rgba(15,23,42,.12)!important}`;
+  document.head.appendChild(st);
+})();
