@@ -553,11 +553,11 @@ function tasksCard() {
    Rules: never into the past, never after the deadline, only dots not checked yet. Nothing is forced:
    close to a session (3h before the next one / 1h after the last one) he only gets a recommendation once. */
 const TPK = {
-  en: { choose: 'Choose your time', done: 'Done', pick: 'Pick a time', now: 'Do it now', save: 'Save', cancel: 'Cancel', saved: 'Time saved ✓', fail: 'Could not save, try again', gone: 'This time has already passed', rec: 'Recommendation', sure: 'I am sure, continue', change: 'Change time',
+  en: { choose: 'Personalize', done: 'Done', pick: 'Pick a time', now: 'Do it now', save: 'Save', cancel: 'Cancel', saved: 'Time saved ✓', fail: 'Could not save, try again', gone: 'This time has already passed', rec: 'Recommendation', sure: 'I am sure, continue', change: 'Change time',
         wb: 'Reviewing within 3 hours before your next session is not recommended.', wa: 'Reviewing within an hour after your last session is not recommended.' },
-  ar: { choose: 'اختر وقتك', done: 'تم', pick: 'اختر وقتاً', now: 'افعلها الآن', save: 'حفظ', cancel: 'إلغاء', saved: 'تم حفظ الوقت ✓', fail: 'تعذر الحفظ، حاول مرة أخرى', gone: 'هذا الوقت مرّ بالفعل', rec: 'توصية', sure: 'أنا متأكد، تابع', change: 'تغيير الوقت',
+  ar: { choose: 'تخصيص', done: 'تم', pick: 'اختر وقتاً', now: 'افعلها الآن', save: 'حفظ', cancel: 'إلغاء', saved: 'تم حفظ الوقت ✓', fail: 'تعذر الحفظ، حاول مرة أخرى', gone: 'هذا الوقت مرّ بالفعل', rec: 'توصية', sure: 'أنا متأكد، تابع', change: 'تغيير الوقت',
         wb: 'لا يُنصح بالمراجعة خلال الثلاث ساعات التي تسبق جلستك القادمة.', wa: 'لا يُنصح بالمذاكرة خلال الساعة التي تلي آخر جلسة.' },
-  eg: { choose: 'اختار وقتك', done: 'تم', pick: 'اختار وقت', now: 'اعملها دلوقتي', save: 'حفظ', cancel: 'إلغاء', saved: 'الوقت اتحفظ ✓', fail: 'معرفناش نحفظ، جرب تاني', gone: 'الوقت ده عدّى خلاص', rec: 'نصيحة', sure: 'متأكد، كمّل', change: 'غيّر الوقت',
+  eg: { choose: 'تخصيص', done: 'تم', pick: 'اختار وقت', now: 'اعملها دلوقتي', save: 'حفظ', cancel: 'إلغاء', saved: 'الوقت اتحفظ ✓', fail: 'معرفناش نحفظ، جرب تاني', gone: 'الوقت ده عدّى خلاص', rec: 'نصيحة', sure: 'متأكد، كمّل', change: 'غيّر الوقت',
         wb: 'مش مُفضّل تراجع في التلات ساعات اللي قبل سيشنك الجاية.', wa: 'مش مُفضّل تذاكر في الساعة اللي بعد آخر سيشن.' }
 };
 let TEDIT = null, TP = null;
@@ -568,6 +568,16 @@ Object.assign(TPK.en, { used: 'Time already changed today', once: 'You can chang
 Object.assign(TPK.ar, { used: 'تم تغيير الوقت اليوم', once: 'يمكنك تغيير الأوقات مرة واحدة فقط في اليوم. بعد الحفظ لا يمكن التغيير مرة أخرى اليوم.', drag: 'اسحب النقاط إلى الوقت الذي تريده' });
 Object.assign(TPK.eg, { used: 'غيّرت الوقت النهاردة خلاص', once: 'تقدر تغيّر الأوقات مرة واحدة بس في اليوم. بعد ما تحفظ مفيش تغيير تاني النهاردة.', drag: 'اسحب النقط للوقت اللي عايزه' });
 const TK_GAP = 30 * 6e4;
+/* when the last finished check of this item happened (Cairo wall-clock ms), or null */
+function tkLastCheck(it) {
+  const off = cairoNow() - Date.now(); let best = null;
+  (it.checks || []).forEach(c => {
+    const v = c && typeof c === 'object' ? (c.at || c.checked_at || c.created_at || c.ts || c.time || c.t) : c;
+    let ms = typeof v === 'number' ? (v < 1e11 ? v * 1000 : v) : Date.parse(v);
+    if (Number.isFinite(ms)) { ms += off; if (best == null || ms > best) best = ms; }
+  });
+  return best;
+}
 /* once a day per task (kept on this device) */
 const TPU_KEY = 'thabit_tp_used';
 const tpUsedMap = () => { try { return JSON.parse(localStorage.getItem(TPU_KEY) || '{}') || {}; } catch (e) { return {}; } };
@@ -673,7 +683,7 @@ function tkPick(id, j) {
   TP = { id, j, min: now, max, ms: cur };
   tkClose(); TP = { id, j, min: now, max, ms: cur };
   const o = document.createElement('div'); o.id = 'tpk'; o.className = 'tpk';
-  o.innerHTML = `<div class="tpb" dir="auto"><div class="tpt">${esc(it.title || '')} · ${j + 1}/${it.plan.n_eff}</div><div class="sm" style="margin-bottom:6px">${esc(T.once)}</div><div class="tpl" id="tpl"></div>`
+  o.innerHTML = `<div class="tpb" dir="auto"><div class="tpbt">${esc(it.title || '')} · ${j + 1}/${it.plan.n_eff}</div><div class="sm" style="margin-bottom:6px">${esc(T.once)}</div><div class="tpl" id="tpl"></div>`
     + `<input type="range" id="tpr" min="0" max="${(max - now) / 6e4}" step="1" value="${(cur - now) / 6e4}" dir="ltr">`
     + `<input type="datetime-local" id="tpd" min="${tkIso(now)}" max="${tkIso(max)}" value="${tkIso(cur)}" dir="ltr">`
     + `<div class="tpbs"><button type="button" class="tpnow">${T.now}</button><button type="button" class="tps">${T.save}</button><button type="button" class="tpc">${T.cancel}</button></div></div>`;
@@ -692,13 +702,13 @@ function tkTry(ms) {
   /* the one hard rule: at least 30 minutes between the checks of the same task */
   const it = TP && (D.items || []).find(x => x.id === TP.id), p = it && it.plan;
   if (p && b0) {
-    const d = (it.checks || []).length, j = TP.j, prev = j > d ? p.opens[j - 1] : null, next = j + 1 < p.n_eff ? p.opens[j + 1] : null;
+    const d = (it.checks || []).length, j = TP.j, prev = j > d ? p.opens[j - 1] : tkLastCheck(it), next = j + 1 < p.n_eff ? p.opens[j + 1] : null;
     let sug = null, key = '';
     if (prev != null && ms < prev + TK_GAP) { sug = prev + TK_GAP; key = 'after'; }
     else if (next != null && ms > next - TK_GAP) { sug = next - TK_GAP; key = 'before'; }
     if (key) {
       const okSug = sug >= TP.min && sug <= TP.max && (prev == null || sug >= prev + TK_GAP) && (next == null || sug <= next - TK_GAP);
-      b0.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(T.gap)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button>${okSug ? `<button type="button" class="tps">${T[key]}</button>` : ''}</div>`;
+      b0.innerHTML = `<div class="tpbt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(T.gap)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button>${okSug ? `<button type="button" class="tps">${T[key]}</button>` : ''}</div>`;
       b0.querySelector('.tpc').onclick = () => { const id = TP.id, jj = TP.j; tkPick(id, jj); };
       const sb = b0.querySelector('.tps'); if (sb) sb.onclick = () => tkTry(sug);
       return;
@@ -706,14 +716,19 @@ function tkTry(ms) {
   }
   const w = tkWarn(ms); if (!w) { tkSend(ms); return; }
   const b = document.querySelector('#tpk .tpb'); if (!b) { tkSend(ms); return; }
-  b.innerHTML = `<div class="tpt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
+  b.innerHTML = `<div class="tpbt">${T.rec}</div><div class="tpl" style="font-weight:600">${esc(w)}</div><div class="tpbs"><button type="button" class="tpc">${T.change}</button><button type="button" class="tps">${T.sure}</button></div>`;
   b.querySelector('.tps').onclick = () => tkSend(ms);
   b.querySelector('.tpc').onclick = () => { const id = TP.id, j = TP.j; tkPick(id, j); };
 }
 async function tkSend(ms) {
   const T = TPK[lang] || TPK.en, id = TP && TP.id, j = TP && TP.j; tkClose(); if (id == null) return;
+  /* show the new time at once, then confirm with the server (rolled back if it fails) */
+  if (!D.times) D.times = {};
+  const before = D.times[id], mine = Array.isArray(before) ? before.slice() : Object.assign({}, before || {}); mine[j] = ms;
+  D.times[id] = mine; mergeTimes(); render();
   const ok = await rpc('trainee_set_item_time', { p_token: tok(), p_item_id: id, p_idx: j, p_open_ms: ms }).catch(() => null);
-  if (ok === true) { tpMarkUsed(id); D.times = await fetchTimes(); mergeTimes(); render(); itToast(T.saved); } else itToast(T.fail);
+  if (ok === true) { tpMarkUsed(id); D.times = await fetchTimes(); mergeTimes(); render(); itToast(T.saved); }
+  else { if (before === undefined) delete D.times[id]; else D.times[id] = before; mergeTimes(); render(); itToast(T.fail); }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('tpk')) tkClose(); });
 (function () { const st = document.createElement('style'); st.textContent = `
@@ -727,7 +742,7 @@ body.light-theme .tpkb:not(.on){color:#047857}
 .tpk{position:fixed;inset:0;z-index:10070;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .tpb{box-sizing:border-box;width:min(92vw,380px);padding:16px;border-radius:20px;background:rgba(15,23,42,.96);color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 18px 50px rgba(0,0,0,.55);font:600 .85rem Inter,Cairo,sans-serif}
 body.light-theme .tpb{background:rgba(255,255,255,.97);color:#0f172a;border-color:rgba(15,23,42,.18)}
-.tpt{font-weight:800;margin-bottom:8px;overflow-wrap:anywhere}
+.tpbt{font-weight:800;margin-bottom:8px;overflow-wrap:anywhere}
 .tpl{margin:6px 0 10px;color:#34d399;font-weight:800;line-height:1.6}
 body.light-theme .tpl{color:#047857}
 .tpb input[type=range]{width:100%;accent-color:#34d399;height:28px;touch-action:pan-x}
