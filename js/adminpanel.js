@@ -4575,3 +4575,45 @@ function libInstallBtn() {
     return p;
   };
 })();
+
+
+/* ==========================================================
+   Admin: "Student upload" option on Tasks (none / voice / photo / both)
+   Stored as a hidden marker  @@up@@audio | image | both  at the end of the task description.
+   ========================================================== */
+(function () {
+  const RX = /\s*@@up@@(?:audio|image|both)\s*/g, ONE = /@@up@@(audio|image|both)/;
+  const selHtml = id => `<div><span class="ds-lbl">رفع الطالب · Student upload</span><select id="${id}" class="ds-in" style="width:auto"><option value="">بدون</option><option value="audio">🎤 صوت</option><option value="image">🖼 صورة</option><option value="both">🎤🖼 صوت + صورة</option></select></div>`;
+
+  /* single task editor (DS window) */
+  const prevRender = dsItemsRender;
+  dsItemsRender = function () {
+    prevRender.apply(this, arguments);
+    const c = dsItemCtx, b = document.getElementById('dsi_body');
+    if (!c || c.kind !== 'task' || !b || document.getElementById('dsiUp')) return;
+    const m = b.value.match(ONE);
+    b.parentElement.insertAdjacentHTML('afterend', selHtml('dsiUp'));
+    document.getElementById('dsiUp').value = m ? m[1] : '';
+    b.value = b.value.replace(RX, '').trim();
+  };
+  const prevSave = window.dsItemSave;
+  window.dsItemSave = function () {
+    const b = document.getElementById('dsi_body'), s = document.getElementById('dsiUp'), t = document.getElementById('dsi_title');
+    if (b && s) { let v = b.value.replace(RX, '').trim(); if (s.value && (v || (t && t.value.trim()))) v += (v ? '\n\n' : '') + '@@up@@' + s.value; b.value = v; }
+    return prevSave.apply(this, arguments);
+  };
+
+  /* bulk Task window */
+  const prevBulk = window.openBulkTask;
+  window.openBulkTask = function () {
+    const r = prevBulk.apply(this, arguments), p = document.getElementById('tkPri');
+    if (p && !document.getElementById('tkUp')) p.parentElement.insertAdjacentHTML('afterend', selHtml('tkUp'));
+    return r;
+  };
+  const prevTk = window.tkSend;
+  window.tkSend = function () {
+    const b = document.getElementById('tkBody'), s = document.getElementById('tkUp'), t = document.getElementById('tkTitle');
+    if (b && s) { let v = b.value.replace(RX, '').trim(); if (s.value && (v || (t && t.value.trim()))) v += (v ? '\n\n' : '') + '@@up@@' + s.value; b.value = v; }
+    return prevTk.apply(this, arguments);
+  };
+})();
