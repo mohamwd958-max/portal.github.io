@@ -4472,279 +4472,106 @@ function libInstallBtn() {
 }
 
 /* ==========================================================
-   Patch 10 (paste at the END of adminpanel.js, AFTER all other patches)
-   Task attachments: a "صوت ولا صورة" button inside the Task editor and the bulk Task window.
-   - صوت  -> small Claude-style recorder pops up and starts recording immediately (live pulse / waveform)
-   - صورة -> small drop zone ("Drag anything here") + click to choose
-   On Save / Send the files go to Storage and one row per trainee is added to task_uploads,
-   so they show up in the Library (admin) and in the trainee's library.
+   Patch 11 (paste at the END of adminpanel.js, AFTER all other patches)
+   "صوت ولا صورة" button in the Task editor (and in the bulk Task window).
+   You only choose what the TRAINEE has to send for this task: صوت / صورة / الاتنين.
+   The recorder and the photo drop zone appear on the trainee's dashboard (dashboard.js).
+   What the trainee sends is saved in task_uploads -> your Library + the trainee's library.
+   The choice travels inside the task body as a hidden marker  @@up@@audio | @@up@@image | @@up@@both
+   (same trick as the monthly-obligation applications, so no new column is needed).
    ========================================================== */
 (function () {
-  const BUCKET = 'audio-files';              // public bucket the files are stored in (change here if you use another)
-  const PREFIX = 'task-attachments';         // folder inside the bucket; also how the admin's files are told apart from trainee uploads
-  const ATT = {};
-  const att = k => ATT[k] || (ATT[k] = { items: [], saved: [], tok: 0 });
-  const touch = matchMedia('(hover:none)').matches;
-
-  /* ---------- styles ---------- */
-  const st = document.createElement('style');
-  st.textContent = `
-.tha-att{display:flex;flex-direction:column;gap:8px}
-.tha-opts{display:flex;gap:6px;flex-wrap:wrap}
-.tha-dz{border:1.5px dashed #475569;border-radius:12px;padding:14px 10px;text-align:center;color:#94a3b8;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;background:#020617}
-.tha-dz:hover,.tha-dz.over{border-color:#f59e0b;color:#fbbf24;background:rgba(245,158,11,.07)}
-.tha-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tha-chip{position:relative;display:inline-flex;align-items:center;gap:6px;border:1px solid #334155;border-radius:12px;background:#0f172a;color:#e2e8f0;font-size:12px;font-weight:700;overflow:hidden}
-.tha-chip.img{width:64px;height:64px;padding:0}
-.tha-chip.img img{width:100%;height:100%;object-fit:cover;cursor:pointer}
-.tha-chip.aud{padding:5px 30px 5px 6px}
-.tha-chip.saved{border-color:rgba(52,211,153,.55)}
-.tha-play{width:28px;height:28px;border-radius:50%;border:0;background:#f59e0b;color:#0f172a;cursor:pointer;flex:none}
-.tha-x{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(2,6,23,.8);color:#fff;font-size:11px;line-height:20px;cursor:pointer;padding:0}
-.tha-rec{position:fixed;left:50%;bottom:28px;z-index:2147483300;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:999px;background:#0f172a;border:1px solid rgba(148,163,184,.35);box-shadow:0 18px 50px rgba(0,0,0,.55);transform:translateX(-50%);animation:thaPop .24s cubic-bezier(.34,1.56,.64,1) both}
-@keyframes thaPop{from{opacity:0;transform:translateX(-50%) translateY(14px) scale(.82)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
-.tha-rec canvas{width:min(46vw,220px);height:30px;display:block}
-.tha-rec-t{font:600 12px/1 ui-monospace,monospace;color:#cbd5e1;min-width:34px;text-align:center}
-.tha-rb{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px}
-.tha-rb.x{background:#1e293b;color:#cbd5e1}
-.tha-rb.ok{background:#f1f5f9;color:#0f172a}`;
-  document.head.appendChild(st);
-
-  /* ---------- helpers ---------- */
-  const extOf = it => {
-    const t = (it.blob.type || '').split(';')[0], n = (it.blob.name || '').match(/\.([a-z0-9]+)$/i);
-    if (n) return n[1].toLowerCase();
-    return ({ 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/aac': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' })[t] || (it.kind === 'audio' ? 'webm' : 'jpg');
+  const MARK = '@@up@@';
+  const MODES = { audio: ['🎤', 'صوت'], image: ['🖼', 'صورة'], both: ['🎤🖼', 'الاتنين'] };
+  const split = body => {
+    const s = String(body == null ? '' : body), m = s.match(/\s*@@up@@(audio|image|both)\s*$/);
+    return m ? { text: s.slice(0, m.index).replace(/\s+$/, ''), mode: m[1] } : { text: s, mode: '' };
   };
-  const pathUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${String(p).split('/').map(encodeURIComponent).join('/')}`;
-  const addFiles = (key, files) => {
-    [...files].forEach(f => {
-      if (!/^(image|audio)\//.test(f.type)) { showToast('ده مش صورة ولا صوت: ' + f.name, true, true); return; }
-      add(key, { kind: f.type.startsWith('audio/') ? 'audio' : 'image', blob: f });
-    });
-  };
-  function add(key, it) {
-    it.url = URL.createObjectURL(it.blob);
-    att(key).items.push(it); paint(key);
-  }
-  function clearKey(key) {
-    const a = att(key); a.items.forEach(i => { try { URL.revokeObjectURL(i.url); } catch (e) { } });
-    a.items = []; a.saved = []; a.tok++;
-  }
-  function viewImg(url) {
-    const o = document.createElement('div'); o.id = 'libV';
-    o.innerHTML = `<img src="${esc(url)}" alt="" style="max-width:100%;max-height:82vh;border-radius:12px;object-fit:contain">`;
-    o.addEventListener('click', () => o.remove()); document.body.appendChild(o);
-  }
+  const BULK = { mode: '' };
 
-  /* ---------- widget ---------- */
-  const widgetHtml = key => `<div class="tha-att" data-key="${key}">
-    <div class="tha-opts"><button type="button" class="ds-b blue" data-act="menu"><i class="fa-solid fa-paperclip"></i> صوت ولا صورة</button>
-      <span data-opts style="display:none;gap:6px">
-        <button type="button" class="ds-b green" data-act="voice"><i class="fa-solid fa-microphone"></i> صوت</button>
-        <button type="button" class="ds-b amber" data-act="image"><i class="fa-solid fa-image"></i> صورة</button></span></div>
-    <div class="tha-dz" data-dz style="display:none">${touch ? 'دوس عشان تختار صورة أو صوت' : 'Drag anything here'}<div style="font-size:10px;font-weight:600;margin-top:3px;opacity:.8">${touch ? '' : 'أو دوس عشان تختار'}</div>
-      <input type="file" accept="image/*,audio/*" multiple hidden></div>
-    <div class="tha-chips" data-chips></div></div>`;
+  const css = document.createElement('style');
+  css.textContent = `
+.tha-up{display:flex;flex-direction:column;gap:6px}
+.tha-up-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tha-up-opts{display:none;gap:6px;flex-wrap:wrap}
+.tha-up-opts.on{display:flex}
+.tha-up .ds-b.sel{background:#f59e0b;color:#0f172a}
+.tha-up-note{font-size:10px;color:#64748b}`;
+  document.head.appendChild(css);
 
-  function paint(key) {
-    const box = document.querySelector(`.tha-att[data-key="${key}"] [data-chips]`); if (!box) return;
-    const a = att(key), rows = [];
-    a.saved.forEach((r, i) => rows.push(r.kind === 'audio'
-      ? `<div class="tha-chip aud saved"><button type="button" class="tha-play" data-act="splay" data-i="${i}"><i class="fa-solid fa-play"></i></button><span>صوت</span><button type="button" class="tha-x" data-act="sdel" data-i="${i}">✕</button></div>`
-      : `<div class="tha-chip img saved"><img src="${esc(pathUrl(r.path))}" alt="" data-act="sview" data-i="${i}"><button type="button" class="tha-x" data-act="sdel" data-i="${i}">✕</button></div>`));
-    a.items.forEach((it, i) => rows.push(it.kind === 'audio'
-      ? `<div class="tha-chip aud"><button type="button" class="tha-play" data-act="play" data-i="${i}"><i class="fa-solid fa-play"></i></button><span>صوت</span><button type="button" class="tha-x" data-act="del" data-i="${i}">✕</button></div>`
-      : `<div class="tha-chip img"><img src="${esc(it.url)}" alt="" data-act="view" data-i="${i}"><button type="button" class="tha-x" data-act="del" data-i="${i}">✕</button></div>`));
-    box.innerHTML = rows.join('');
+  const widget = (scope, mode) => `<div class="tha-up" data-scope="${scope}">
+    <div class="tha-up-row"><button type="button" class="ds-b blue" data-up="toggle"><i class="fa-solid fa-paperclip"></i> صوت ولا صورة</button>
+      <span class="ds-tag" data-up="badge" style="${mode ? '' : 'display:none'}">${mode ? MODES[mode].join(' ') : ''}</span></div>
+    <div class="tha-up-opts" data-up="opts">
+      ${Object.keys(MODES).map(k => `<button type="button" class="ds-b ${mode === k ? 'sel' : 'ghost'}" data-up="${k}">${MODES[k].join(' ')}</button>`).join('')}</div>
+    <div class="tha-up-note">الطالب هو اللي بيسجّل أو يرفع من الداشبورد بتاعه، وبيوصلك في الـ Library.</div></div>`;
+
+  function refresh(w, mode) {
+    w.querySelectorAll('[data-up]').forEach(b => { const k = b.dataset.up; if (MODES[k]) { b.classList.toggle('sel', mode === k); b.classList.toggle('ghost', mode !== k); } });
+    const bd = w.querySelector('[data-up="badge"]'); bd.style.display = mode ? '' : 'none'; bd.textContent = mode ? MODES[mode].join(' ') : '';
   }
-
-  /* one delegated listener for every widget (the forms are re-rendered with innerHTML) */
-  document.addEventListener('click', async e => {
-    const b = e.target.closest('[data-act]'), w = e.target.closest('.tha-att');
-    if (w && !b && e.target.tagName !== 'INPUT' && e.target.closest('[data-dz]')) { const f = w.querySelector('input[type=file]'); if (f) f.click(); return; }
-    if (!b || !w) return;
-    const key = w.dataset.key, a = att(key), i = +b.dataset.i, act = b.dataset.act;
-    if (act === 'menu') { const o = w.querySelector('[data-opts]'); o.style.display = o.style.display === 'none' ? 'inline-flex' : 'none'; }
-    else if (act === 'image') { const d = w.querySelector('[data-dz]'); d.style.display = d.style.display === 'none' ? 'block' : 'none'; }
-    else if (act === 'voice') openRecorder(key);
-    else if (act === 'del') { try { URL.revokeObjectURL(a.items[i].url); } catch (x) { } a.items.splice(i, 1); paint(key); }
-    else if (act === 'play') adminAudioPop(a.items[i].url, 'صوت');
-    else if (act === 'view') viewImg(a.items[i].url);
-    else if (act === 'splay') adminAudioPop(pathUrl(a.saved[i].path), 'صوت');
-    else if (act === 'sview') viewImg(pathUrl(a.saved[i].path));
-    else if (act === 'sdel') {
-      const r = a.saved[i]; if (!r || !confirm('تمسح المرفق ده من الطالب؟')) return;
-      try {
-        await sbFetch(`task_uploads?id=eq.${enc(r.id)}`, { method: 'DELETE' });
-        const left = await (await sbFetch(`task_uploads?select=id&path=eq.${enc(r.path)}&limit=1`)).json();
-        if (!left.length) fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${String(r.path).split('/').map(enc).join('/')}`, { method: 'DELETE', headers: sbHeaders() }).catch(() => { });
-        a.saved.splice(i, 1); paint(key);
-      } catch (x) { showToast('فشل المسح: ' + x.message, true); }
-    }
-  });
-  document.addEventListener('change', e => {
-    const f = e.target.closest('.tha-att input[type=file]'); if (!f) return;
-    addFiles(f.closest('.tha-att').dataset.key, f.files); f.value = '';
-  });
-  ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { const z = e.target.closest && e.target.closest('.tha-dz'); if (z) { e.preventDefault(); z.classList.add('over'); } }));
-  document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('.tha-dz'); if (z) z.classList.remove('over'); });
-  document.addEventListener('drop', e => {
-    const z = e.target.closest && e.target.closest('.tha-dz'); if (!z) return;
-    e.preventDefault(); z.classList.remove('over');
-    addFiles(z.closest('.tha-att').dataset.key, e.dataTransfer.files);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.tha-up [data-up]'); if (!b) return;
+    const w = b.closest('.tha-up'), k = b.dataset.up, scope = w.dataset.scope;
+    if (k === 'toggle') { w.querySelector('[data-up="opts"]').classList.toggle('on'); return; }
+    if (!MODES[k]) return;
+    const cur = scope === 'bulk' ? BULK.mode : (dsItemCtx ? dsItemCtx.upm : ''), nxt = cur === k ? '' : k;   // tap the chosen one again = none
+    if (scope === 'bulk') BULK.mode = nxt; else if (dsItemCtx) dsItemCtx.upm = nxt;
+    refresh(w, nxt);
   });
 
-  /* ---------- the recorder: pops up, records at once, live line that pulses with the voice ---------- */
-  let closeRec = null;
-  function openRecorder(key) {
-    if (closeRec) closeRec();
-    const el = document.createElement('div'); el.className = 'tha-rec';
-    el.innerHTML = '<button type="button" class="tha-rb x" aria-label="cancel"><i class="fa-solid fa-xmark"></i></button><canvas></canvas><span class="tha-rec-t">0:00</span><button type="button" class="tha-rb ok" aria-label="done"><i class="fa-solid fa-check"></i></button>';
-    document.body.appendChild(el);
-    const cv = el.querySelector('canvas'), tm = el.querySelector('.tha-rec-t'), g = cv.getContext('2d');
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const W = cv.width = Math.round((cv.clientWidth || 200) * dpr), H = cv.height = Math.round(30 * dpr);
-    const BW = 2 * dpr, GAP = 2 * dpr, N = Math.floor(W / (BW + GAP)), hist = new Array(N).fill(0);
-    let stream, rec, ctx, an, raf = 0, t0 = 0, lastPush = 0, lastSec = -1, shut = false, keep = true;
-    const chunks = [], td = new Uint8Array(512), fd = new Uint8Array(256);
-
-    function draw(now) {
-      raf = requestAnimationFrame(draw);
-      if (an) {
-        an.getByteTimeDomainData(td); an.getByteFrequencyData(fd);
-        let s = 0; for (let i = 0; i < td.length; i++) { const x = (td[i] - 128) / 128; s += x * x; }
-        const rms = Math.sqrt(s / td.length);
-        let f = 0; for (let i = 2; i < 56; i++) f += fd[i]; f = f / 54 / 255;                  // voice band energy
-        const amp = Math.max(0, rms - 0.012) * 7;                                                  // noise gate: silence = 0
-        cur = Math.min(1, amp) * (0.6 + 0.4 * Math.min(1, f * 3));
-      }
-      if (now - lastPush > 40) { hist.push(cur); hist.shift(); lastPush = now; }
-      g.clearRect(0, 0, W, H);
-      const pulse = 0.4 + 0.2 * Math.sin(now / 320);                                              // idle line breathes
-      for (let i = 0; i < N; i++) {
-        const v = hist[i], x = i * (BW + GAP);
-        if (v < 0.02) { g.fillStyle = `rgba(203,213,225,${pulse})`; g.fillRect(x, H / 2 - dpr, BW, 2 * dpr); }
-        else { const h = Math.max(3 * dpr, v * H); g.fillStyle = '#f1f5f9'; g.beginPath(); (g.roundRect ? g.roundRect(x, (H - h) / 2, BW, h, BW / 2) : g.rect(x, (H - h) / 2, BW, h)); g.fill(); }
-      }
-      if (t0) { const sec = Math.floor((performance.now() - t0) / 1000); if (sec !== lastSec) { lastSec = sec; tm.textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); } }
-    }
-    let cur = 0; raf = requestAnimationFrame(draw);
-
-    function cleanup() {
-      cancelAnimationFrame(raf); document.removeEventListener('keydown', onKey, true);
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      if (ctx) try { ctx.close(); } catch (e) { }
-      el.remove(); if (closeRec === closeFn) closeRec = null;
-    }
-    function stop(save) {
-      keep = save !== false; shut = true;
-      if (rec && rec.state === 'recording') rec.stop(); else cleanup();
-    }
-    const closeFn = () => stop(false); closeRec = closeFn;
-    const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); stop(false); } else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); stop(true); } };
-    document.addEventListener('keydown', onKey, true);
-    el.querySelector('.x').onclick = () => stop(false);
-    el.querySelector('.ok').onclick = () => stop(true);
-
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
-      if (shut) { s.getTracks().forEach(t => t.stop()); return; }
-      stream = s;
-      const mt = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
-      rec = mt ? new MediaRecorder(s, { mimeType: mt }) : new MediaRecorder(s);
-      rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
-      rec.onstop = () => {
-        const type = rec.mimeType || mt || 'audio/webm';
-        cleanup();
-        if (keep && chunks.length) add(key, { kind: 'audio', blob: new Blob(chunks, { type }) });
-      };
-      rec.start(); t0 = performance.now();
-      try {
-        ctx = new (window.AudioContext || window.webkitAudioContext)(); ctx.resume();
-        an = ctx.createAnalyser(); an.fftSize = 512; an.smoothingTimeConstant = 0.55;
-        ctx.createMediaStreamSource(s).connect(an);
-      } catch (e) { }
-    }).catch(() => { cleanup(); showToast('مفيش صلاحية للميكروفون', true); });
-  }
-
-  /* ---------- upload: file once, then one task_uploads row per (trainee, task) ---------- */
-  async function uploadFile(it) {
-    const path = `${PREFIX}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extOf(it)}`;
-    const type = (it.blob.type || 'application/octet-stream').split(';')[0];
-    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path.split('/').map(enc).join('/')}`, {
-      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (window.SB_ACCESS_TOKEN || SUPABASE_ANON_KEY), 'Content-Type': type, 'x-upsert': 'true' }, body: it.blob
-    });
-    if (!up.ok) throw new Error(friendlyError(await up.text()));
-    return path;
-  }
-  async function attachAll(items, targets) {            // targets: [{trainee_id, item_id}]
-    const rows = [];
-    for (const it of items) {
-      const path = await uploadFile(it);
-      targets.forEach(t => rows.push({ trainee_id: t.trainee_id, item_id: t.item_id, kind: it.kind, bucket: BUCKET, path, status: 'done' }));
-    }
-    if (rows.length) await sbFetch('task_uploads', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
-    return items.length;
-  }
-
-  /* ---------- Task editor (single trainee) ---------- */
+  /* ---------- Task editor ---------- */
   const prevRender = dsItemsRender;
   dsItemsRender = function () {
     prevRender();
-    const c = dsItemCtx; if (!c || !c.open) return;
-    const form = c.ov.querySelector('.ds-form'); if (!form || form.querySelector('.tha-att')) return;
-    const wrap = document.createElement('div'); wrap.innerHTML = widgetHtml('item');
-    form.insertBefore(wrap.firstElementChild, form.lastElementChild);
-    paint('item');
-    const sx = supplyState.students[c.idx], cur = dsItemsOf(sx, c.date, c.kind).find(x => x.item_no === c.open);
-    if (cur && cur.id != null) {
-      const a = att('item'), tok = a.tok;
-      sbFetch(`task_uploads?select=id,kind,path&item_id=eq.${enc(cur.id)}&path=like.${enc(PREFIX + '/*')}&order=created_at.asc`)
-        .then(r => r.json()).then(rows => { if (a.tok === tok && Array.isArray(rows)) { a.saved = rows; paint('item'); } }).catch(() => { });
+    const c = dsItemCtx; if (!c) return;
+    const sx = supplyState.students[c.idx], have = dsItemsOf(sx, c.date, c.kind);
+    if (c.open) {
+      const form = c.ov.querySelector('.ds-form'); if (!form || form.querySelector('.tha-up')) return;
+      if (c.upFor !== c.open) { const it = have.find(x => x.item_no === c.open) || {}; c.upFor = c.open; c.upm = split(it.body).mode; }
+      const ta = $id('dsi_body'); if (ta) ta.value = split(ta.value).text;                    // the marker never shows in the Description box
+      const wrap = document.createElement('div'); wrap.innerHTML = widget('item', c.upm || '');
+      form.insertBefore(wrap.firstElementChild, form.lastElementChild);
+    } else {
+      c.upFor = null;
+      c.ov.querySelectorAll('.ds-slot.saved').forEach(row => {                                // small tag on saved tasks that ask for an upload
+        if (row.querySelector('[data-upt]')) return;
+        const no = +((row.querySelector('.ds-no') || {}).textContent), it = have.find(x => x.item_no === no), m = it && split(it.body).mode, edit = row.querySelector('button.amber');
+        if (!m || !edit) return;
+        const t = document.createElement('span'); t.className = 'ds-tag'; t.dataset.upt = '1'; t.textContent = MODES[m].join(' ');
+        row.insertBefore(t, row.querySelector('[data-fx]') || edit);
+      });
     }
   };
-  const prevOpen = window.dsItemOpen;
-  window.dsItemOpen = function (n) { clearKey('item'); return prevOpen.apply(this, arguments); };
-  const prevClose = window.dsCloseItems;
-  window.dsCloseItems = function () { clearKey('item'); return prevClose.apply(this, arguments); };
-
   const prevSave = window.dsItemSave;
-  window.dsItemSave = async function (n) {
-    const c = dsItemCtx; if (!c) return prevSave.apply(this, arguments);
-    const sx = supplyState.students[c.idx], kind = c.kind, date = c.date, pend = att('item').items.slice(), t0 = new Date().toISOString();
-    await prevSave.apply(this, arguments);
-    if (!pend.length) return;
-    const row = supplyState.items.find(i => String(i.trainee_id) === String(sx.id) && i.supply_date === date && i.kind === kind && i.item_no === n);
-    if (!row || new Date(row.updated_at) < new Date(t0)) return;                      // the save failed -> keep the files in the form
-    if (row.id == null) { showToast('التاسك اتحفظ بس مش قادر أربط المرفقات بيه (مفيش id)', true); return; }
-    try {
-      const k = await attachAll(pend, [{ trainee_id: sx.id, item_id: row.id }]);
-      clearKey('item'); showToast(`اتحفظ ${k} مرفق في اللايبراري ✓`);
-    } catch (e) { showToast('التاسك اتحفظ لكن فشل رفع المرفقات: ' + e.message + ' — افتحه وضيفهم تاني', true); }
+  window.dsItemSave = function (n) {
+    const c = dsItemCtx, ta = $id('dsi_body'), ti = $id('dsi_title');
+    let keep = null;
+    if (c && ta && c.upm && ((ti && ti.value.trim()) || ta.value.trim())) { keep = ta.value; ta.value = split(keep).text + '\n\n' + MARK + c.upm; }
+    const p = prevSave.apply(this, arguments);                                                // it reads the fields before its first await
+    if (keep !== null && ta && document.body.contains(ta)) ta.value = keep;
+    return p;
   };
 
   /* ---------- bulk Task window ---------- */
   const prevBulk = window.openBulkTask;
   window.openBulkTask = function () {
-    clearKey('bulk');
+    BULK.mode = '';
     const r = prevBulk.apply(this, arguments);
     const send = $id('tkSend');
-    if (send && !document.querySelector('.tha-att[data-key="bulk"]')) {
-      const wrap = document.createElement('div'); wrap.innerHTML = widgetHtml('bulk');
-      send.parentElement.insertAdjacentElement('beforebegin', wrap.firstElementChild); paint('bulk');
+    if (send && !document.querySelector('.tha-up[data-scope="bulk"]')) {
+      const wrap = document.createElement('div'); wrap.innerHTML = widget('bulk', '');
+      send.parentElement.insertAdjacentElement('beforebegin', wrap.firstElementChild);
     }
     return r;
   };
   const prevSend = window.tkSend;
-  window.tkSend = async function () {
-    const c = tkCur, pend = att('bulk').items.slice(), t0 = new Date().toISOString();
-    await prevSend.apply(this, arguments);
-    if (!c || !pend.length) return;
-    try {
-      const rows = await fetchAllRows(`supply_items?select=id,trainee_id&kind=eq.task&updated_at=gte.${enc(t0)}&trainee_id=in.(${c.ids.map(enc).join(',')})`);
-      if (!rows.length) return;                                            // validation failed or nothing was sent -> keep the files
-      const k = await attachAll(pend, rows.filter(r => r.id != null).map(r => ({ trainee_id: r.trainee_id, item_id: r.id })));
-      clearKey('bulk'); paint('bulk'); showToast(`اتوزّع ${k} مرفق على ${rows.length} طالب ✓`);
-    } catch (e) { showToast('التاسك اتبعت لكن فشل رفع المرفقات: ' + e.message, true); }
+  window.tkSend = function () {
+    const el = $id('tkBody'), ti = $id('tkTitle');
+    let keep = null;
+    if (el && BULK.mode && ((ti && ti.value.trim()) || el.value.trim())) { keep = el.value; el.value = split(keep).text + '\n\n' + MARK + BULK.mode; }
+    const p = prevSend.apply(this, arguments);
+    if (keep !== null && el) el.value = keep;
+    return p;
   };
 })();
