@@ -4572,3 +4572,50 @@ body.light-theme .upn{color:#92400e}
     }).catch(() => { cleanup(); itToast(U().mic); });
   }
 })();
+
+
+
+
+/* ==========================================================
+   Task uploads: voice / photo (fresh, self-contained). Needs the SQL above.
+   A task asks for an upload when its description ends with  @@up@@audio | @@up@@image | @@up@@both
+   (the marker is hidden from the trainee). Errors are shown on screen with the real reason.
+   ========================================================== */
+(function () {
+  const UP_RE = /\s*@@up@@(audio|image|both)\s*$/;
+  const X = {
+    en: { voice: 'Voice note', photo: 'Photo', quiet: 'Record in a quiet place so your voice is 100% clear.', clear: 'The photo must be clear and every word readable. Mind the lighting.', send: 'Send', cancel: 'Cancel', sending: 'Sending…', sent: 'Sent ✓', rec: 'Tap to record', stop: 'Tap to stop', again: 'Tap to record again', nomic: 'Recording is not supported or the microphone is blocked', empty: 'The recording is empty, try again', big: 'File is too big (15 MB max)', pick: 'Choose / take a photo', drag: 'or drag a photo here' },
+    ar: { voice: 'تسجيل صوتي', photo: 'صورة', quiet: 'سجّل في مكان هادئ ليخرج صوتك واضحًا 100%.', clear: 'يجب أن تكون الصورة واضحة وكل الكلام مقروء. راعِ الإضاءة.', send: 'إرسال', cancel: 'إلغاء', sending: 'جاري الإرسال…', sent: 'تم الإرسال ✓', rec: 'اضغط للتسجيل', stop: 'اضغط للإيقاف', again: 'اضغط لإعادة التسجيل', nomic: 'التسجيل غير مدعوم أو الميكروفون محظور', empty: 'التسجيل فارغ، حاول مرة أخرى', big: 'الملف كبير (الحد 15 ميجا)', pick: 'اختر / التقط صورة', drag: 'أو اسحب صورة هنا' },
+    eg: { voice: 'تسجيل صوتي', photo: 'صورة', quiet: 'سجّل في مكان هادي عشان صوتك يطلع واضح 100%.', clear: 'لازم الصورة تبقى واضحة والكلام كله مقروء. راعي الإضاءة.', send: 'ابعت', cancel: 'إلغاء', sending: 'بيتبعت…', sent: 'اتبعت ✓', rec: 'دوس عشان تسجّل', stop: 'دوس عشان توقف', again: 'دوس عشان تسجّل تاني', nomic: 'التسجيل مش مدعوم أو الميكروفون مقفول', empty: 'التسجيل فاضي، جرب تاني', big: 'الملف كبير (الحد 15 ميجا)', pick: 'اختار / صوّر', drag: 'أو اسحب صورة هنا' }
+  };
+  const T = () => X[lang] || X.en;
+  const EXT = { 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/aac': 'aac', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+  const mode = it => { const m = String((it && it.body) || '').match(UP_RE); return m ? m[1] : null; };
+  const cnt = id => { const c = { audio: 0, image: 0 }; ((D && D.ups) || []).forEach(u => { if (String(u.item_id) === String(id) && c[u.kind] != null) c[u.kind]++; }); return c; };
+
+  /* hide the marker from the task text */
+  const _as = appSplit;
+  appSplit = function (body) { return _as(String(body == null ? '' : body).replace(UP_RE, '')); };
+
+  /* add the buttons at the bottom of every task that asked for an upload */
+  const _ir = itemRow;
+  itemRow = function (it) {
+    const html = _ir(it), m = mode(it);
+    if (!m || VIEW || !html.endsWith('</div></div>')) return html;
+    const c = cnt(it.id), t = T();
+    const b = (k, ic, l) => `<button type="button" class="upbtn" data-k="${k}" data-id="${it.id}"><i class="fa-solid ${ic}"></i> ${l}${c[k] ? ` <b>${c[k]}</b>` : ''}</button>`;
+    return html.slice(0, -12) + `<div class="upb">${m !== 'image' ? b('audio', 'fa-microphone', t.voice) : ''}${m !== 'audio' ? b('image', 'fa-camera', t.photo) : ''}</div></div></div>`;
+  };
+
+  const st = document.createElement('style'); st.textContent = `
+.upb{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.upbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:1px solid rgba(56,189,248,.6);background:rgba(56,189,248,.12);color:#38bdf8;font:700 .78rem Cairo,Inter,sans-serif;cursor:pointer}
+.upbtn b{background:#34d399;color:#04231a;border-radius:999px;padding:0 7px;font-size:.7rem}
+body.light-theme .upbtn{color:#0369a1}
+.upx{position:fixed;inset:0;z-index:100060;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(2,6,23,.65);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.upxb{box-sizing:border-box;width:min(94vw,400px);max-height:92vh;overflow:auto;padding:16px;border-radius:20px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.55);font:600 .88rem/1.6 Cairo,Inter,sans-serif;text-align:center}
+body.light-theme .upxb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
+.upt{font-weight:800;font-size:1.05rem;margin-bottom:8px}
+.upn{margin:0 0 12px;padding:8px 12px;border-radius:12px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);color:#fbbf24;font-size:.78rem;text-align:start}
+body.light-theme .upn{color:#92400e}
+.upr{width:74px;height:74px;border-radius:50%;border:0;background:#ef4444;color:#fff;font-size:1.7rem;cursor:pointer;box-shadow:0 8px 22px
