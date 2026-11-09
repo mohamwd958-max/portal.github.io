@@ -4135,3 +4135,183 @@ body.light-theme #thPush{background:#fff;color:#0f172a;border-color:rgba(15,23,4
   if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'thabit-open-feed') go(); });   // app already open
   if (location.hash === '#th-feed') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} when(go); }                // app was closed
 })();
+
+
+
+
+
+/* ==========================================================
+   Library (paste at the END of dashboard.js, after task-uploads.js)
+   - "Library" item in the + menu: two tabs, Audio and Images, everything since the start, search only (no date filter)
+   - listen / view / download / share. No edit, no delete.
+   - image upload pop-up: drag & drop zone on computers + a short quality notice; voice pop-up: a quiet-place notice
+   ========================================================== */
+(function () {
+  const X = {
+    en: { lib: 'Library', aud: 'Audio', img: 'Images', search: 'Search by task or day…', none: 'Nothing here yet', dl: 'Download', sh: 'Share', copied: 'Link copied ✓', fail: 'Could not load your library', loading: 'Loading…', task: 'Task',
+          nImg: 'Important: the photo must be clear and every word readable. Mind the lighting and keep the writing sharp, because I will grade it from the photo.',
+          nAud: 'Make sure you record in a quiet place so your voice comes out 100% clear.', drag: 'Drag anything here' },
+    ar: { lib: 'المكتبة', aud: 'الصوت', img: 'الصور', search: 'ابحث باسم المهمة أو اليوم…', none: 'لا يوجد شيء بعد', dl: 'تحميل', sh: 'مشاركة', copied: 'تم نسخ الرابط ✓', fail: 'تعذر تحميل المكتبة', loading: 'جاري التحميل…', task: 'مهمة',
+          nImg: 'مهم: يجب أن تكون الصورة واضحة والكلام كله مقروء. راعِ الإضاءة وأن تظهر الكلمات بوضوح لأنني سأقيّمها من الصورة.',
+          nAud: 'تأكد أنك تسجل في مكان هادئ حتى يخرج صوتك واضحًا 100%.', drag: 'اسحب أي ملف هنا' },
+    eg: { lib: 'المكتبة', aud: 'الصوت', img: 'الصور', search: 'دوّر باسم التاسك أو اليوم…', none: 'لسه مفيش حاجة', dl: 'تحميل', sh: 'مشاركة', copied: 'اللينك اتنسخ ✓', fail: 'معرفناش نحمّل المكتبة', loading: 'بيتحمّل…', task: 'تاسك',
+          nImg: 'مهم: الصورة لازم تبقى واضحة والكلام كله مقروء. راعي الإضاءة وإن الكلمات تبان بوضوح عشان أنا اللي هقيّمها.',
+          nAud: 'اتأكد إنك بتسجل في مكان هادي عشان صوتك يطلع واضح 100%.', drag: 'اسحب أي حاجة هنا' }
+  };
+  const T = () => X[lang] || X.en;
+  const LIB = { rows: [], tab: 'audio', q: '', view: [] };
+
+  const st = document.createElement('style');
+  st.textContent = `
+#thLib{position:fixed;inset:0;z-index:10090;display:none;align-items:center;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+#thLib.open{display:flex}
+#thLib .lb{box-sizing:border-box;width:min(560px,100%);height:min(86vh,720px);display:flex;flex-direction:column;border-radius:22px;padding:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.16);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+body.light-theme #thLib .lb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
+#thLib .lh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#thLib .lh b{flex:1;font-size:1.05rem}
+#thLib .lx{width:32px;height:32px;border-radius:50%;border:0;background:rgba(148,163,184,.2);color:inherit;font-size:1.2rem;cursor:pointer}
+#thLib .lt{display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(148,163,184,.14);margin-bottom:10px}
+#thLib .lt button{flex:1;padding:8px 4px;border:0;border-radius:999px;background:transparent;color:inherit;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer}
+#thLib .lt button.on{background:#fbbf24;color:#111}
+#thLib .lq{width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.1);color:inherit;font:500 .9rem Inter,Cairo,sans-serif;outline:0}
+#thLib .ll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#thLib .ld{margin:14px 0 6px;font-size:.74rem;font-weight:800;opacity:.65}
+#thLib .lc{padding:10px 12px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08);margin-bottom:8px}
+#thLib .lc b{display:block;font-size:.86rem;overflow-wrap:anywhere}
+#thLib .lc small{opacity:.65;font-size:.72rem}
+#thLib audio{width:100%;margin-top:8px}
+#thLib .la{display:flex;gap:8px;margin-top:8px}
+#thLib .la button,#thLibV .la button{padding:6px 12px;border-radius:999px;border:1px solid rgba(148,163,184,.45);background:transparent;color:inherit;font:700 .74rem Inter,Cairo,sans-serif;cursor:pointer}
+#thLib .lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+#thLib .lg button{position:relative;aspect-ratio:1;padding:0;border:1px solid rgba(148,163,184,.3);border-radius:12px;overflow:hidden;background:rgba(148,163,184,.1);cursor:pointer}
+#thLib .lg img{width:100%;height:100%;object-fit:cover;display:block}
+#thLib .le{text-align:center;opacity:.6;padding:30px 0;font-size:.85rem}
+#thLibV{position:fixed;inset:0;z-index:10095;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px;background:rgba(2,6,23,.92)}
+#thLibV.open{display:flex}
+#thLibV img{max-width:100%;max-height:76vh;border-radius:12px;object-fit:contain}
+#thLibV .la{display:flex;gap:8px;color:#f1f5f9}
+.upn{margin:0 0 14px;padding:9px 12px;border-radius:12px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);color:#fbbf24;font-size:.78rem;font-weight:600;line-height:1.6;text-align:start}
+body.light-theme .upn{color:#92400e}
+.updz{margin:0 0 12px;padding:16px 10px;border:2px dashed rgba(148,163,184,.55);border-radius:16px;font-size:.8rem;opacity:.85;transition:background .15s,border-color .15s}
+#thUp.dz .updz{background:rgba(56,189,248,.14);border-color:#38bdf8;opacity:1}`;
+  document.head.appendChild(st);
+
+  /* ---------- the library window ---------- */
+  const ov = document.createElement('div'); ov.id = 'thLib';
+  ov.innerHTML = '<div class="lb"><div class="lh"><b></b><button type="button" class="lx" aria-label="Close">&times;</button></div><div class="lt"></div><input class="lq" type="search" autocomplete="off"><div class="ll"></div></div>';
+  document.body.appendChild(ov);
+  const vw = document.createElement('div'); vw.id = 'thLibV';
+  vw.innerHTML = '<img alt=""><div class="la"></div>';
+  document.body.appendChild(vw);
+  const $l = s => ov.querySelector(s);
+
+  const pub = r => `${SB}/storage/v1/object/public/${r.bucket}/${String(r.path).split('/').map(encodeURIComponent).join('/')}`;
+  const dayKey = r => { try { return cairoDay(r.created_at) || String(r.created_at).slice(0, 10); } catch (e) { return String(r.created_at).slice(0, 10); } };
+  const dayLbl = k => { try { return new Date(k + 'T12:00:00Z').toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (e) { return k; } };
+  const timeLbl = r => { try { return new Date(r.created_at).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'ar-EG', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Cairo' }); } catch (e) { return ''; } };
+  const ext = r => (String(r.path).match(/\.([a-z0-9]+)$/i) || [0, r.kind === 'audio' ? 'webm' : 'jpg'])[1];
+
+  function paint() {
+    const t = T(), kind = LIB.tab === 'audio' ? 'audio' : 'image', q = LIB.q.trim().toLowerCase();
+    $l('.lh b').textContent = t.lib; $l('.lq').placeholder = t.search;
+    $l('.lt').innerHTML = `<button type="button" data-t="audio" class="${LIB.tab === 'audio' ? 'on' : ''}"><i class="fa-solid fa-microphone"></i> ${t.aud}</button><button type="button" data-t="image" class="${LIB.tab === 'image' ? 'on' : ''}"><i class="fa-solid fa-image"></i> ${t.img}</button>`;
+    LIB.view = LIB.rows.filter(r => r.kind === kind && (!q || `${r.title || ''} ${dayKey(r)} ${dayLbl(dayKey(r))}`.toLowerCase().includes(q)))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    if (!LIB.view.length) { $l('.ll').innerHTML = `<div class="le">${esc(t.none)}</div>`; return; }
+    let html = '', cur = '', open = false;
+    LIB.view.forEach((r, i) => {
+      const k = dayKey(r);
+      if (k !== cur) { if (open) html += '</div>'; cur = k; html += `<div class="ld">${esc(dayLbl(k))}</div>`; open = false; if (kind === 'image') { html += '<div class="lg">'; open = true; } }
+      if (kind === 'audio') {
+        html += `<div class="lc"><b dir="auto">${esc(r.title || t.task)}</b><small>${esc(timeLbl(r))}</small><audio controls preload="none" src="${esc(pub(r))}"></audio>`
+          + `<div class="la"><button type="button" data-a="dl" data-i="${i}"><i class="fa-solid fa-download"></i> ${t.dl}</button><button type="button" data-a="sh" data-i="${i}"><i class="fa-solid fa-share-nodes"></i> ${t.sh}</button></div></div>`;
+      } else html += `<button type="button" data-a="view" data-i="${i}" aria-label="${esc(r.title || '')}"><img loading="lazy" src="${esc(pub(r))}" alt=""></button>`;
+    });
+    if (open) html += '</div>';
+    $l('.ll').innerHTML = html;
+  }
+
+  async function dl(r) {
+    const name = `thabit-${dayKey(r)}-${r.kind}.${ext(r)}`, u = pub(r);
+    try {
+      const b = await (await fetch(u)).blob(), a = document.createElement('a'), o = URL.createObjectURL(b);
+      a.href = o; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(o), 8000);
+    } catch (e) { window.open(u, '_blank', 'noopener'); }
+  }
+  async function share(r) {
+    const u = pub(r);
+    if (navigator.share) { try { await navigator.share({ title: r.title || T().lib, url: u }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(u); itToast(T().copied); }
+    catch (e) { const a = document.createElement('textarea'); a.value = u; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); itToast(T().copied); } catch (x) {} a.remove(); }
+  }
+  function showImg(i) {
+    const r = LIB.view[i]; if (!r) return;
+    vw.querySelector('img').src = pub(r);
+    vw.querySelector('.la').innerHTML = `<button type="button" data-a="dl2"><i class="fa-solid fa-download"></i> ${T().dl}</button><button type="button" data-a="sh2"><i class="fa-solid fa-share-nodes"></i> ${T().sh}</button><button type="button" data-a="x">&times;</button>`;
+    vw._r = r; vw.classList.add('open');
+  }
+  vw.addEventListener('click', e => {
+    const a = e.target.closest('[data-a]'), r = vw._r;
+    if (a && a.dataset.a === 'dl2') dl(r); else if (a && a.dataset.a === 'sh2') share(r);
+    else if (!e.target.closest('img')) vw.classList.remove('open');
+  });
+  ov.addEventListener('click', e => {
+    if (e.target === ov || e.target.closest('.lx')) { closeLib(); return; }
+    const tb = e.target.closest('.lt [data-t]'); if (tb) { LIB.tab = tb.dataset.t; paint(); return; }
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    const r = LIB.view[+a.dataset.i]; if (!r) return;
+    if (a.dataset.a === 'dl') dl(r); else if (a.dataset.a === 'sh') share(r); else showImg(+a.dataset.i);
+  });
+  $l('.lq').addEventListener('input', e => { LIB.q = e.target.value; paint(); });
+  function closeLib() { ov.classList.remove('open'); vw.classList.remove('open'); ov.querySelectorAll('audio').forEach(a => { try { a.pause(); } catch (e) {} }); document.documentElement.style.overflow = ''; }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (vw.classList.contains('open')) vw.classList.remove('open'); else if (ov.classList.contains('open')) closeLib(); } });
+
+  async function openLib() {
+    ov.classList.add('open'); document.documentElement.style.overflow = 'hidden';
+    $l('.lq').value = LIB.q; paint(); $l('.ll').innerHTML = `<div class="le">${esc(T().loading)}</div>`;
+    try {
+      const a = await rpc('trainee_library', { p_token: tok() });
+      if (!Array.isArray(a)) throw new Error('bad');
+      LIB.rows = a;
+    } catch (e) { $l('.ll').innerHTML = `<div class="le">${esc(T().fail)}</div>`; return; }
+    paint();
+  }
+  window.openLibrary = openLib;
+
+  /* ---------- an item in the + menu ---------- */
+  const _op = window.openPlus;
+  window.openPlus = function () {
+    const r = _op.apply(this, arguments);
+    const row = document.querySelector('#thMenu .tmr');
+    if (row && !row.querySelector('[data-lib]')) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'tmi'; b.dataset.lib = '1';
+      b.style.setProperty('--i', row.children.length);
+      b.innerHTML = `<span class="tic"><i class="fa-solid fa-photo-film" style="color:#a78bfa"></i></span><span class="tlb" dir="auto">${esc(T().lib)}</span>`;
+      b.onclick = e => { e.stopPropagation(); const m = document.getElementById('thMenu'); if (m) m.classList.remove('open'); setTimeout(openLib, 60); };
+      row.appendChild(b);
+    }
+    return r;
+  };
+
+  /* ---------- upload pop-up extras: quality / quiet notice + drag & drop (computers) ---------- */
+  const fine = window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const up = document.getElementById('thUp');
+  if (up) {
+    const enhance = () => {
+      const box = up.querySelector('.ub'); if (!box) return;
+      const isImg = !!box.querySelector('#upPick'), isAud = !!box.querySelector('#upMic'); if (!isImg && !isAud) return;
+      const t = T();
+      if (!box.querySelector('.upn')) { const n = document.createElement('div'); n.className = 'upn'; n.textContent = isImg ? t.nImg : t.nAud; const h = box.querySelector('.ut'); if (h) h.after(n); else box.prepend(n); }
+      if (isImg && fine && !box.querySelector('.updz')) { const z = document.createElement('div'); z.className = 'updz'; z.innerHTML = `<i class="fa-solid fa-arrow-down-long"></i> ${esc(t.drag)}`; const p = box.querySelector('#upPrev'); if (p) p.before(z); }
+    };
+    new MutationObserver(enhance).observe(up, { childList: true, subtree: true });
+    ['dragenter', 'dragover'].forEach(ev => up.addEventListener(ev, e => { e.preventDefault(); if (up.querySelector('#upPick')) up.classList.add('dz'); }));
+    up.addEventListener('dragleave', e => { if (e.target === up) up.classList.remove('dz'); });
+    up.addEventListener('drop', e => {
+      e.preventDefault(); up.classList.remove('dz');
+      const inp = up.querySelector('input[type=file]'), f = e.dataTransfer && [...e.dataTransfer.files].find(x => /^image\//.test(x.type));
+      if (!inp || !f) return;
+      try { const d = new DataTransfer(); d.items.add(f); inp.files = d.files; inp.dispatchEvent(new Event('change')); } catch (x) { console.warn('[drop]', x); }
+    });
+  }
+})();
