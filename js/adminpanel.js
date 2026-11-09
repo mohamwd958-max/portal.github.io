@@ -4367,3 +4367,106 @@ window.tzPick = async function (id, zone) {
   };
   setInterval(() => document.querySelectorAll('.tz-live').forEach(e => { e.textContent = tzLive(e.dataset.z); }), 20000);
 }
+
+/* ==========================================================
+   Library window (paste at the END of adminpanel.js, after everything else)
+   Everything the trainees uploaded (voice / photo), by trainee, then by day. Needs library.sql + task-uploads.sql.
+   ========================================================== */
+(function () {
+  if (document.getElementById('libCss')) return;
+  const s = document.createElement('style'); s.id = 'libCss';
+  s.textContent = `
+.lib-t{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:10px;margin-bottom:10px}
+.lib-th{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lib-th b{color:#fbbf24;font-size:13px}
+.lib-d{margin:10px 0 4px;color:#94a3b8;font-size:11px;font-weight:800}
+.lib-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid #1e293b;font-size:12px}
+.lib-r:last-child{border:0}
+.lib-g{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.lib-g button{width:84px;height:84px;padding:0;border:1px solid #334155;border-radius:10px;overflow:hidden;background:#020617}
+.lib-g img{width:100%;height:100%;object-fit:cover}
+#libV{position:fixed;inset:0;z-index:2147483200;background:rgba(2,6,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px}`;
+  document.head.appendChild(s);
+})();
+
+
+
+
+WSD.lib = { t: 'Library · المكتبة', i: 'fa-photo-film', w: 2 };
+WS_REFRESH.lib = 1;
+{
+  const prevLoadLib = wsLoad;
+  wsLoad = function (k) { if (k === 'lib') return libRender(); return prevLoadLib(k); };
+}
+const lib = { rows: [], names: new Map(), titles: new Map(), tab: 'all', q: '', tr: '' };
+const libUrl = r => `${SUPABASE_URL}/storage/v1/object/public/${r.bucket}/${String(r.path).split('/').map(encodeURIComponent).join('/')}`;
+const libExt = r => (String(r.path).match(/\.([a-z0-9]+)$/i) || [0, r.kind === 'audio' ? 'webm' : 'jpg'])[1];
+async function libDl(r) {
+  const name = `${(lib.names.get(String(r.trainee_id)) || 'trainee').replace(/[\\/:*?"<>|]+/g, '')}-${ccDayKey(r.created_at)}-${r.kind}.${libExt(r)}`, u = libUrl(r);
+  try { const b = await (await fetch(u)).blob(), a = document.createElement('a'), o = URL.createObjectURL(b); a.href = o; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(o), 8000); }
+  catch (e) { window.open(u, '_blank', 'noopener'); }
+}
+window.libPlay = function (id) { const r = lib.rows.find(x => String(x.id) === String(id)); if (r) adminAudioPop(libUrl(r), `${lib.names.get(String(r.trainee_id)) || ''} · ${lib.titles.get(String(r.item_id)) || ''}`); };
+window.libDown = function (id) { const r = lib.rows.find(x => String(x.id) === String(id)); if (r) libDl(r); };
+window.libView = function (id) {
+  const r = lib.rows.find(x => String(x.id) === String(id)); if (!r) return;
+  const o = document.createElement('div'); o.id = 'libV';
+  o.innerHTML = `<img src="${esc(libUrl(r))}" alt="" style="max-width:100%;max-height:78vh;border-radius:12px;object-fit:contain"><div style="display:flex;gap:8px"><button type="button" class="ds-b blue" data-d><i class="fa-solid fa-download"></i> Download</button><button type="button" class="ds-b ghost" data-x>إغلاق</button></div>`;
+  o.addEventListener('click', e => { if (e.target.closest('[data-d]')) libDl(r); else if (!e.target.closest('img')) o.remove(); });
+  document.body.appendChild(o);
+};
+function libPaint() {
+  const box = $id('libList'); if (!box) return;
+  const q = lib.q.trim().toLowerCase();
+  const rows = lib.rows.filter(r => (lib.tab === 'all' || r.kind === lib.tab) && (!lib.tr || String(r.trainee_id) === lib.tr)
+    && (!q || `${lib.names.get(String(r.trainee_id)) || ''} ${lib.titles.get(String(r.item_id)) || ''} ${ccDayKey(r.created_at)}`.toLowerCase().includes(q)));
+  document.querySelectorAll('#libFrame [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === lib.tab));
+  if (!rows.length) { box.innerHTML = '<div class="tha-note">مفيش حاجة مرفوعة بالفلتر ده.</div>'; return; }
+  const by = new Map();
+  rows.forEach(r => { const k = String(r.trainee_id); if (!by.has(k)) by.set(k, []); by.get(k).push(r); });
+  box.innerHTML = [...by.entries()].sort((a, b) => String(b[1][0].created_at).localeCompare(String(a[1][0].created_at))).map(([tid, list]) => {
+    const na = list.filter(r => r.kind === 'audio').length, ni = list.length - na;
+    const days = new Map(); list.forEach(r => { const d = ccDayKey(r.created_at); if (!days.has(d)) days.set(d, []); days.get(d).push(r); });
+    return `<div class="lib-t"><div class="lib-th"><div class="cc-av">${esc((lib.names.get(tid) || '?').trim().charAt(0).toUpperCase())}</div><b dir="auto">${esc(lib.names.get(tid) || 'طالب #' + tid)}</b><span class="ds-tag">🎤 ${na}</span><span class="ds-tag">🖼 ${ni}</span></div>`
+      + [...days.entries()].map(([d, rs]) => {
+        const aud = rs.filter(r => r.kind === 'audio'), img = rs.filter(r => r.kind !== 'audio');
+        return `<div class="lib-d">${esc(ccDayLabel(d))}</div>`
+          + aud.map(r => `<div class="lib-r"><i class="fa-solid fa-microphone" style="color:#34d399"></i><span dir="auto" style="flex:1;min-width:0">${esc(lib.titles.get(String(r.item_id)) || 'Task')}</span><span class="text-slate-500">${esc(ccTime(r.created_at))}</span><button type="button" class="ds-b green" onclick="libPlay('${esc(r.id)}')"><i class="fa-solid fa-play"></i></button><button type="button" class="ds-b ghost" onclick="libDown('${esc(r.id)}')"><i class="fa-solid fa-download"></i></button></div>`).join('')
+          + (img.length ? `<div class="lib-g">${img.map(r => `<button type="button" title="${esc((lib.titles.get(String(r.item_id)) || '') + ' · ' + ccTime(r.created_at))}" onclick="libView('${esc(r.id)}')"><img loading="lazy" src="${esc(libUrl(r))}" alt=""></button>`).join('')}</div>` : '');
+      }).join('') + '</div>';
+  }).join('');
+}
+async function libRender() {
+  const w = WSE.lib; if (!w) return;
+  w.body.innerHTML = `<div id="libFrame"><div class="cc-fl"><div class="cc-row">
+      <button type="button" class="cc-chip" data-t="all" onclick="lib.tab='all';libPaint()">الكل</button>
+      <button type="button" class="cc-chip" data-t="audio" onclick="lib.tab='audio';libPaint()">🎤 صوت</button>
+      <button type="button" class="cc-chip" data-t="image" onclick="lib.tab='image';libPaint()">🖼 صور</button>
+      <select id="libTr" class="cc-in" onchange="lib.tr=this.value;libPaint()"><option value="">كل الطلاب</option></select>
+      <input class="cc-in" dir="auto" placeholder="ابحث بالاسم أو المهمة أو اليوم..." style="flex:1;min-width:150px" oninput="lib.q=this.value;libPaint()"></div></div><div id="libList"><div class="tha-note">جاري التحميل...</div></div></div>`;
+  try {
+    const rows = await fetchAllRows('task_uploads?select=*&status=eq.done&order=created_at.desc');
+    const studs = await fetchAllRows(`${PROFILES_TABLE}?select=id,trainee`).catch(() => []);
+    lib.rows = rows; lib.names = new Map(studs.map(s => [String(s.id), s.trainee || '']));
+    lib.titles = new Map();
+    const ids = [...new Set(rows.map(r => r.item_id))];
+    for (let i = 0; i < ids.length; i += 100) {
+      try { (await (await sbFetch(`supply_items?select=id,title&id=in.(${ids.slice(i, i + 100).join(',')})`)).json()).forEach(x => lib.titles.set(String(x.id), x.title || '')); } catch (e) { break; }
+    }
+    const sel = $id('libTr');
+    sel.innerHTML = '<option value="">كل الطلاب</option>' + [...new Set(rows.map(r => String(r.trainee_id)))].map(t => `<option value="${esc(t)}">${esc(lib.names.get(t) || 'طالب #' + t)}</option>`).sort().join('');
+    sel.value = lib.tr;
+  } catch (e) { $id('libList').innerHTML = `<div class="p-4 text-rose-300 text-sm">تعذّر التحميل: ${esc(e.message)} (شغّل task-uploads.sql و library.sql لو لسه)</div>`; return; }
+  libPaint();
+}
+function libInstallBtn() {
+  if (document.querySelector('.ws-lb[data-ws="lib"]')) return true;
+  const hl = document.querySelector('.ws-lb[data-ws="hl"]'); if (!hl) return false;
+  const b = hl.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick'); b.setAttribute('data-ws', 'lib'); b.classList.remove('on');
+  b.type = 'button'; b.innerHTML = '<i class="fa-solid fa-photo-film"></i> Library'; b.onclick = () => toggleWin('lib');
+  hl.insertAdjacentElement('afterend', b); return true;
+}
+{
+  let tries = 0; const iv = setInterval(() => { if (libInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpenMain3 = openAdminMainPanel; openAdminMainPanel = function () { const r = prevOpenMain3.apply(this, arguments); libInstallBtn(); return r; };
+}
