@@ -375,7 +375,7 @@ function fmtOpen(ms) {
   return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', timeZone: 'UTC' }) + ' ' + tm;
 }
 const itClosedToday = x => !!(x.plan && new Date(x.plan.deadline).toISOString().slice(0, 10) === itToday());
-const itShown = x => { const k = itState(x).k; return k !== 'done' && (k !== 'closed' || itClosedToday(x)); };
+const itShown = x => { const k = itState(x).k; return k !== 'done' && k !== 'closed'; };
 function fmtLeft(ms) {
   const u = itT().u, m = Math.max(0, Math.floor(ms / 60000)), dd = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
   const out = []; if (dd) out.push(dd + u.d); if (h || dd) out.push(h + u.h); if (!dd) out.push(mm + u.m);
@@ -4314,4 +4314,33 @@ body.light-theme .upn{color:#92400e}
       try { const d = new DataTransfer(); d.items.add(f); inp.files = d.files; inp.dispatchEvent(new Event('change')); } catch (x) { console.warn('[drop]', x); }
     });
   }
+})();
+
+
+/* Closing time = the end of the range only, and everything closes Wednesday 23:59 (Cairo) */
+(function () {
+  const _mt = mergeTimes;
+  mergeTimes = function () {
+    _mt();
+    ((D && D.items) || []).forEach(it => {
+      const p = it.plan; if (!p) return;
+      if (p._d0 === undefined) {
+        p._d0 = +p.deadline;
+        p._r0 = (p.range_end != null && Number.isFinite(+p.range_end)) ? +p.range_end : null;
+        p._why0 = p.deadline_reason;
+      }
+      const base = p._r0 != null ? p._r0 : p._d0;
+      if (!Number.isFinite(base)) return;
+      let end = base, why = p._r0 != null ? 'range' : p._why0;
+      const st = (p.opens0 && p.opens0.length) ? p.opens0[0] : (p.opens && p.opens[0]);
+      if (Number.isFinite(st)) {
+        const d = new Date(st);
+        let cut = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + (3 - d.getUTCDay() + 7) % 7, 23, 59, 0);
+        if (cut < st) cut += 7 * 864e5;
+        if (cut < end) { end = cut; why = 'holiday'; }
+      }
+      p.deadline = end; p.deadline_reason = why;
+      if (p._r0 != null) p.range_end = end;
+    });
+  };
 })();
