@@ -4367,11 +4367,6 @@ window.tzPick = async function (id, zone) {
   };
   setInterval(() => document.querySelectorAll('.tz-live').forEach(e => { e.textContent = tzLive(e.dataset.z); }), 20000);
 }
-
-
-
-
-
 /* ==========================================================
    Patch: "Space" launcher + empty "Options" button (paste at the END of adminpanel.js)
    - Space: a new launcher next to Dashboard, opens an EMPTY window (the shared space gets wired in later)
@@ -4454,5 +4449,57 @@ window.tzPick = async function (id, zone) {
   let q = 0;
   const sched = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { scan(); } catch (e) { console.warn('[options]', e); } }); };
   const start = () => { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); scan(); };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+/* ==========================================================
+   Options (admin side) - Part 1: the list  (paste at the END of adminpanel.js, after the Space / Options patch)
+   - the SAME list of options is offered by every Options button (SP_OPTIONS)
+   - the most used option moves to the top by itself (counted on this browser)
+   - tap an option to turn it on / off for that button (a small counter shows on the button)
+   - DEMO ONLY: nothing is saved or sent to the student yet
+   ========================================================== */
+(function () {
+  if (window.__spOpt2) return; window.__spOpt2 = 1;
+
+  const css = document.createElement('style'); css.id = 'spCss2';
+  css.textContent = `
+.sp-o{display:flex;align-items:center;gap:10px;width:100%;text-align:start;padding:8px 10px;margin-bottom:6px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e2e8f0;cursor:pointer}
+.sp-o:hover{border-color:#fbbf24}
+.sp-o b{display:block;font-size:13px}.sp-o small{display:block;font-size:10px;color:#94a3b8;margin-top:1px}
+.sp-o > i:first-child{color:#38bdf8;font-size:15px;width:18px;text-align:center}
+.sp-o > span{flex:1;min-width:0}
+.sp-o .sp-ck{visibility:hidden;color:#34d399}
+.sp-o.on{border-color:#34d399;background:rgba(52,211,153,.1)}
+.sp-o.on .sp-ck{visibility:visible}
+.sp-hint{font-size:10px;color:#64748b;margin-top:4px}
+.sp-opt.sp-has::after{content:attr(data-n);margin-inline-start:4px;background:#f59e0b;color:#0f172a;border-radius:999px;padding:0 6px;font-size:10px;font-weight:800}`;
+  document.head.appendChild(css);
+
+  /* the shared registry: add the next options here and every Options button gets them */
+  window.SP_OPTIONS = window.SP_OPTIONS || [];
+  if (!SP_OPTIONS.some(o => o.id === 'reply')) SP_OPTIONS.push({ id: 'reply', icon: 'fa-reply', label: 'Reply', sub: 'الطالب يرد عليك: نص · صورة · صوت · لينك' });
+
+  const KEY = 'sp_opt_use';
+  const use = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const bump = id => { const u = use(); u[id] = (u[id] || 0) + 1; try { localStorage.setItem(KEY, JSON.stringify(u)); } catch (e) { } };
+  const ordered = () => { const u = use(); return SP_OPTIONS.map((o, i) => ({ o, i })).sort((a, b) => (u[b.o.id] || 0) - (u[a.o.id] || 0) || a.i - b.i).map(x => x.o); };
+
+  function fill(pop) {
+    const box = pop.querySelector('[data-opts]'), btn = pop._for; if (!box || !btn || box.dataset.f) return;
+    box.dataset.f = '1';
+    const set = btn._opts || (btn._opts = new Set());
+    box.innerHTML = ordered().map(o => `<button type="button" class="sp-o${set.has(o.id) ? ' on' : ''}" data-id="${esc(o.id)}"><i class="fa-solid ${esc(o.icon)}"></i><span><b>${esc(o.label)}</b><small>${esc(o.sub || '')}</small></span><i class="fa-solid fa-check sp-ck"></i></button>`).join('')
+      + '<div class="sp-hint">تجريبي: الاختيار هنا لسه مش بيتخزن ولا بيتبعت للطالب.</div>';
+    box.onclick = e => {
+      const b = e.target.closest('.sp-o'); if (!b) return;
+      const id = b.dataset.id;
+      if (set.has(id)) { set.delete(id); b.classList.remove('on'); } else { set.add(id); b.classList.add('on'); bump(id); }
+      btn.classList.toggle('sp-has', set.size > 0); btn.dataset.n = set.size;
+    };
+  }
+  let q = 0;
+  const sched = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; document.querySelectorAll('.sp-pop').forEach(fill); }); };
+  const start = () => new MutationObserver(sched).observe(document.body, { childList: true, subtree: true });
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
