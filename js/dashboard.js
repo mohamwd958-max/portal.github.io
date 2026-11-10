@@ -4345,24 +4345,24 @@ body.light-theme .upn{color:#92400e}
   };
 })();
 /* ==========================================================
-   Options (student side) - icons under the content   (paste at the END of dashboard.js)
-   REPLACES the earlier "Options (student side) - Part 1" block: delete that block first, then paste this one.
-   - small icon-only buttons (no background, no text) right under the written content, above "Understood":
-       Reply (curved arrow) / Copy / Share
-   - on every notification, task / dandana row and the Notes / TEFL / QOL pop-up
-   - Copy and Share work for real on the device (no database). Reply opens Text / Photo / Voice / Link and only says "Sent" (demo, nothing stored).
+   Options (student side) + Messenger look   (paste at the END of dashboard.js)
+   REPLACES the earlier "Options (student side)" block (delete it first, from its comment to the end of the file, then paste this).
+   - icon row under the content (Reply / Copy / Share), no background, no text
+   - NEW Messenger button (a small dove) next to the Feed button in the bottom bar
+   - Reply opens the Messenger as a centered pop-up (WhatsApp look): mic on the left, a typing field, a paperclip on the right
+     (photo / link / screenshot / video). Tap outside = it parks as a small tab on the edge (tap it to reopen, x to close).
+   - LOOK ONLY: typing + Send just adds your bubble here (today's date, time, two grey ticks). Nothing is saved or sent anywhere,
+     mic and attachment buttons do nothing yet, no unread number yet.
    ========================================================== */
 (function () {
   if (window.__opx) return; window.__opx = 1;
 
   const L = {
-    en: { reply: 'Reply', copy: 'Copy', share: 'Share', copied: 'Copied ✓', how: 'How do you want to reply?', text: 'Text', photo: 'Photo', voice: 'Voice', link: 'Link', title: 'Title', msg: 'Message', url: 'Paste the link (https://...)', normal: 'Normal', urgent: 'Urgent', send: 'Send', back: 'Back', rec: 'Record', stop: 'Stop', again: 'Record again', pick: 'Choose a photo', pickA: 'Choose an audio file', needText: 'Write something first', needPhoto: 'Choose a photo first', needVoice: 'Record a voice note first', needLink: 'Paste a valid link (https://...)', sent: 'Sent ✓ (demo)', nomic: 'Microphone not available. Choose an audio file instead.' },
-    ar: { reply: 'رد', copy: 'نسخ', share: 'مشاركة', copied: 'تم النسخ ✓', how: 'كيف تريد أن ترد؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'رابط', title: 'العنوان', msg: 'الرسالة', url: 'الصق الرابط (https://...)', normal: 'عادي', urgent: 'عاجل', send: 'إرسال', back: 'رجوع', rec: 'تسجيل', stop: 'إيقاف', again: 'إعادة التسجيل', pick: 'اختر صورة', pickA: 'اختر ملفًا صوتيًا', needText: 'اكتب شيئًا أولًا', needPhoto: 'اختر صورة أولًا', needVoice: 'سجّل رسالة صوتية أولًا', needLink: 'الصق رابطًا صحيحًا (https://...)', sent: 'تم الإرسال ✓ (تجريبي)', nomic: 'الميكروفون غير متاح. اختر ملفًا صوتيًا بدلًا منه.' },
-    eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', how: 'عايز تردّ إزاي؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'لينك', title: 'العنوان', msg: 'الرسالة', url: 'الزق اللينك (https://...)', normal: 'عادي', urgent: 'مستعجل', send: 'ابعت', back: 'رجوع', rec: 'سجّل', stop: 'وقّف', again: 'سجّل تاني', pick: 'اختار صورة', pickA: 'اختار ملف صوت', needText: 'اكتب حاجة الأول', needPhoto: 'اختار صورة الأول', needVoice: 'سجّل صوت الأول', needLink: 'الزق لينك صحيح (https://...)', sent: 'اتبعت ✓ (تجريبي)', nomic: 'الميكروفون مش شغال. اختار ملف صوت بدل منه.' }
+    en: { reply: 'Reply', copy: 'Copy', share: 'Share', copied: 'Copied ✓', msgr: 'Messenger', ph: 'Message', rto: 'Replying to', photo: 'Photo', link: 'Link', shot: 'Screenshot', video: 'Video', min: 'Minimize', close: 'Close' },
+    ar: { reply: 'رد', copy: 'نسخ', share: 'مشاركة', copied: 'تم النسخ ✓', msgr: 'ميسنجر', ph: 'اكتب رسالة', rto: 'رد على', photo: 'صورة', link: 'رابط', shot: 'لقطة شاشة', video: 'فيديو', min: 'تصغير', close: 'إغلاق' },
+    eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', msgr: 'ميسنجر', ph: 'اكتب رسالة', rto: 'رد على', photo: 'صورة', link: 'لينك', shot: 'سكرين شوت', video: 'فيديو', min: 'تصغير', close: 'قفل' }
   };
   const T = () => L[(typeof lang === 'string' && lang) || 'en'] || L.en;
-  const RTL = () => typeof lang === 'string' && lang !== 'en';
-  /* the one shared list (same order and ids as the admin panel's SP_OPTIONS) */
   const OPTS = [{ id: 'reply', icon: 'fa-solid fa-reply' }, { id: 'copy', icon: 'fa-regular fa-copy' }, { id: 'share', icon: 'fa-solid fa-share-nodes' }];
 
   const css = document.createElement('style'); css.id = 'opxCss';
@@ -4370,38 +4370,128 @@ body.light-theme .upn{color:#92400e}
 .opx-bar{display:flex;align-items:center;gap:2px;margin-top:6px}
 .opx-i{background:none;border:0;padding:6px 10px;color:inherit;opacity:.7;font-size:16px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .opx-i:hover{opacity:1}.opx-i:active{opacity:1;transform:scale(.88)}
-.opx-sh{position:fixed;inset:0;z-index:2147483001;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;padding:14px}
-.opx-card{width:min(420px,100%);max-height:88vh;overflow:auto;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
-.opx-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.opx-h b{flex:1;font-size:15px}
-.opx-h small{display:block;font-weight:400;color:#94a3b8;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
-.opx-ic{width:30px;height:30px;border-radius:50%;border:1px solid rgba(148,163,184,.4);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer}
-.opx-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opx-t{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 8px;border-radius:16px;border:1px solid rgba(148,163,184,.35);background:rgba(30,41,59,.7);color:#e2e8f0;font-size:13px;font-weight:700;cursor:pointer}
-.opx-t i{font-size:22px;color:rgb(31,182,255)}
-.opx-t:active{background:rgba(31,182,255,.25)}
-.opx-seg{display:flex;gap:8px;margin:0 0 10px}
-.opx-u{flex:1;padding:8px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:transparent;color:#cbd5e1;font-weight:700;font-size:13px;cursor:pointer}
-.opx-u.on{background:rgba(31,182,255,.2);border-color:rgb(31,182,255);color:#fff}
-.opx-u.urg.on{background:rgba(244,63,94,.22);border-color:#f43f5e}
-.opx-in{width:100%;box-sizing:border-box;margin-bottom:8px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:rgba(2,6,23,.55);color:#f1f5f9;font:inherit;font-size:14px}
-textarea.opx-in{min-height:110px;resize:vertical}
-.opx-pickl{display:flex;align-items:center;justify-content:center;gap:8px;padding:18px;border:1.5px dashed rgba(148,163,184,.55);border-radius:14px;cursor:pointer;margin-bottom:8px;font-weight:700;font-size:13px}
-.opx-pv{max-width:100%;max-height:220px;border-radius:12px;display:block;margin:0 auto 8px}
-.opx-rec{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
-.opx-rb{padding:10px 18px;border-radius:999px;border:0;background:#f43f5e;color:#fff;font-weight:800;font-size:13px;cursor:pointer}
-.opx-rb.stop{background:#475569}
-.opx-tm{font-variant-numeric:tabular-nums;font-weight:700;min-width:44px;text-align:center}
-.opx-go{width:100%;padding:11px;border-radius:14px;border:0;background:rgb(31,182,255);color:#06283d;font-weight:800;font-size:14px;cursor:pointer;margin-top:4px}
-.opx-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483002;background:rgba(15,23,42,.96);color:#fff;border:1px solid rgba(255,255,255,.2);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4)}`;
+.opx-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483003;background:rgba(15,23,42,.96);color:#fff;border:1px solid rgba(255,255,255,.2);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#mgrBtn{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;color:rgb(31,182,255);font-size:22px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+#mgrBtn:active{transform:scale(.9)}
+.mgr-veil{position:fixed;inset:0;z-index:2147483000;background:rgba(2,6,23,.55);display:none}
+.mgr-pop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483001;width:min(400px,94vw);height:min(560px,86vh);display:none;flex-direction:column;background:#0b141a;color:#e9edef;border:1px solid rgba(255,255,255,.14);border-radius:20px;overflow:hidden;box-shadow:0 18px 54px rgba(0,0,0,.6);direction:ltr}
+.mgr-h{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#202c33}
+.mgr-av{width:34px;height:34px;border-radius:50%;background:rgba(31,182,255,.2);color:rgb(31,182,255);display:flex;align-items:center;justify-content:center;font-size:16px}
+.mgr-h b{flex:1;font-size:15px}
+.mgr-hb{width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:#aebac1;font-size:13px;cursor:pointer}
+.mgr-hb:hover{background:rgba(255,255,255,.08)}
+.mgr-list{flex:1;overflow:auto;padding:12px 10px;display:flex;flex-direction:column;gap:4px;background:#0b141a}
+.mgr-day{align-self:center;margin:8px 0;padding:3px 10px;border-radius:8px;background:#182229;color:#8696a0;font-size:11px}
+.mgr-b{align-self:flex-end;max-width:82%;padding:6px 8px 4px;border-radius:10px 10px 2px 10px;background:#005c4b;color:#e9edef}
+.mgr-t{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.mgr-m{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:2px;font-size:10px;color:rgba(233,237,239,.6)}
+.mgr-tk{font-size:11px;color:#8696a0}.mgr-b.seen .mgr-tk{color:#53bdeb}
+.mgr-q{border-inline-start:3px solid rgb(31,182,255);background:rgba(0,0,0,.22);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;color:#c5d0d6;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mgr-quote{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#182229;color:#aebac1;font-size:12px}
+.mgr-quote span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mgr-att{display:flex;justify-content:space-around;padding:10px 8px;background:#182229;border-top:1px solid rgba(255,255,255,.06)}
+.mgr-ab{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;color:#aebac1;font-size:10px;cursor:pointer}
+.mgr-ab i{width:42px;height:42px;border-radius:50%;background:#2a3942;display:flex;align-items:center;justify-content:center;font-size:17px;color:rgb(31,182,255)}
+.mgr-comp{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#202c33}
+.mgr-ic{width:40px;height:40px;flex:none;border-radius:50%;border:0;background:#2a3942;color:#aebac1;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mgr-ic:active{transform:scale(.92)}
+.mgr-in{flex:1;min-width:0;height:40px;border-radius:20px;border:0;outline:0;padding:0 14px;background:#2a3942;color:#e9edef;font:inherit;font-size:14px}
+.mgr-in::placeholder{color:#8696a0}
+.mgr-send{background:rgb(31,182,255);color:#06283d}
+.mgr-tab{position:fixed;right:0;top:40%;z-index:2147483000;display:none;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;background:#202c33;border:1px solid rgba(255,255,255,.14);border-right:0;border-radius:14px 0 0 14px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.mgr-tab button{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:rgb(31,182,255);font-size:17px;cursor:pointer}
+.mgr-tab button.x{height:24px;font-size:11px;color:#8696a0}`;
   document.head.appendChild(css);
 
   function toast(m) {
     const t = document.createElement('div'); t.className = 'opx-toast'; t.textContent = m; document.body.appendChild(t);
     setTimeout(() => t.remove(), 2200);
   }
-  const txt = el => el ? (el.innerText || el.textContent || '').trim() : '';
-  /* what the icons act on: the title + written content of the item / notification / pop-up they sit under */
+
+  /* ---------- Messenger (look only) ---------- */
+  const M = { mode: 'closed', built: false, quote: '', lastDay: '' };
+  const el = {};
+  function build() {
+    if (M.built) return; M.built = true; const t = T();
+    el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
+    el.pop = document.createElement('div'); el.pop.className = 'mgr-pop';
+    el.pop.innerHTML = `<div class="mgr-h"><span class="mgr-av"><i class="fa-solid fa-dove"></i></span><b>${t.msgr}</b>
+        <button type="button" class="mgr-hb" data-min aria-label="${t.min}" title="${t.min}"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="mgr-list" data-list></div>
+      <div class="mgr-quote" data-quote hidden><i class="fa-solid fa-reply"></i><span dir="auto"></span><button type="button" class="mgr-hb" data-qx aria-label="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="mgr-att" data-att hidden>
+        <button type="button" class="mgr-ab"><i class="fa-solid fa-image"></i>${t.photo}</button>
+        <button type="button" class="mgr-ab"><i class="fa-solid fa-link"></i>${t.link}</button>
+        <button type="button" class="mgr-ab"><i class="fa-solid fa-camera"></i>${t.shot}</button>
+        <button type="button" class="mgr-ab"><i class="fa-solid fa-video"></i>${t.video}</button></div>
+      <div class="mgr-comp"><button type="button" class="mgr-ic" data-mic aria-label="record"><i class="fa-solid fa-microphone"></i></button>
+        <input class="mgr-in" data-in dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off">
+        <button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
+        <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>`;
+    el.tab = document.createElement('div'); el.tab.className = 'mgr-tab';
+    el.tab.innerHTML = `<button type="button" data-open aria-label="${t.msgr}" title="${t.msgr}"><i class="fa-solid fa-dove"></i></button><button type="button" class="x" data-tx aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button>`;
+    document.body.append(el.veil, el.pop, el.tab);
+    const q = s => el.pop.querySelector(s);
+    el.list = q('[data-list]'); el.in = q('[data-in]'); el.send = q('[data-send]'); el.att = q('[data-att]'); el.quote = q('[data-quote]');
+    el.veil.addEventListener('pointerdown', () => setMode('docked'));                /* tap outside: park it as a side tab */
+    q('[data-min]').onclick = () => setMode('docked');
+    q('[data-x]').onclick = () => setMode('closed');
+    el.tab.querySelector('[data-open]').onclick = () => setMode('open');
+    el.tab.querySelector('[data-tx]').onclick = () => setMode('closed');
+    q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
+    el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
+    q('[data-mic]').onclick = () => { };                                                           /* look only */
+    q('[data-qx]').onclick = () => setQuote('');
+    el.in.addEventListener('input', () => { el.send.hidden = !el.in.value.trim(); });
+    el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); } });
+    el.send.onclick = sendMsg;
+  }
+  function setMode(m) {
+    build(); M.mode = m;
+    el.veil.style.display = m === 'open' ? 'block' : 'none';
+    el.pop.style.display = m === 'open' ? 'flex' : 'none';
+    el.tab.style.display = m === 'docked' ? 'flex' : 'none';
+    if (m !== 'open') el.att.hidden = true;
+    if (m === 'open') { el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); }
+  }
+  function setQuote(s) {
+    M.quote = s || ''; el.quote.hidden = !M.quote; el.quote.querySelector('span').textContent = M.quote;
+  }
+  function sendMsg() {
+    const v = el.in.value.trim(); if (!v) return;
+    const now = new Date(), loc = (typeof lang === 'string' && lang === 'en') ? 'en-GB' : 'ar-EG', dayKey = now.toDateString();
+    if (M.lastDay !== dayKey) {
+      M.lastDay = dayKey; const d = document.createElement('div'); d.className = 'mgr-day';
+      try { d.textContent = now.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { d.textContent = dayKey; }
+      el.list.appendChild(d);
+    }
+    const b = document.createElement('div'); b.className = 'mgr-b';
+    if (M.quote) { const qq = document.createElement('div'); qq.className = 'mgr-q'; qq.dir = 'auto'; qq.textContent = M.quote; b.appendChild(qq); }
+    const tx = document.createElement('div'); tx.className = 'mgr-t'; tx.dir = 'auto'; tx.textContent = v; b.appendChild(tx);
+    let tm = ''; try { tm = now.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }); } catch (e) { tm = now.toTimeString().slice(0, 5); }
+    const m = document.createElement('div'); m.className = 'mgr-m'; m.innerHTML = '<span></span><i class="fa-solid fa-check-double mgr-tk"></i>'; m.firstChild.textContent = tm; b.appendChild(m);
+    el.list.appendChild(b); el.list.scrollTop = el.list.scrollHeight;
+    el.in.value = ''; el.send.hidden = true; setQuote('');                                          /* nothing is stored or sent */
+  }
+  function openMessenger(quote) { setMode('open'); if (quote !== undefined) setQuote(quote); }
+  window.thMessenger = { open: openMessenger, dock: () => setMode('docked'), close: () => setMode('closed') };
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && M.mode === 'open') setMode('docked'); }, true);
+
+  /* the dove button, right next to the Feed button */
+  function installDove() {
+    if (document.getElementById('mgrBtn')) return true;
+    const f = document.getElementById('feedBtn'); if (!f) return false;
+    const b = f.cloneNode(false); b.id = 'mgrBtn'; b.removeAttribute('onclick'); b.type = 'button';
+    b.className = (f.className || '').replace(/\b(upd|glow|live|empty|num|open)\b/g, '').trim();
+    b.title = T().msgr; b.setAttribute('aria-label', T().msgr); b.innerHTML = '<i class="fa-solid fa-dove"></i>';
+    b.onclick = e => { e.stopPropagation(); setMode(M.mode === 'open' ? 'docked' : 'open'); };
+    f.insertAdjacentElement('afterend', b); return true;
+  }
+  { let n = 0; const iv = setInterval(() => { if (installDove() || ++n > 120) clearInterval(iv); }, 500); }
+
+  /* ---------- the icon row ---------- */
+  const txt = e => e ? (e.innerText || e.textContent || '').trim() : '';
   function ctxOf(btn) {
     const it = btn.closest('.itm'); if (it) return { title: txt(it.querySelector('.ith b')), text: [txt(it.querySelector('.ith b')), txt(it.querySelector('.itd'))].filter(Boolean).join('\n') };
     const nf = btn.closest('.pc.nf'); if (nf) return { title: txt(nf.querySelector('.nth')), text: [txt(nf.querySelector('.nth')), txt(nf.querySelector('.nfb .rich'))].filter(Boolean).join('\n') };
@@ -4414,95 +4504,18 @@ textarea.opx-in{min-height:110px;resize:vertical}
   }
   async function act(id, btn) {
     const c = ctxOf(btn);
-    if (id === 'reply') return openReply(c.title, btn);
+    if (id === 'reply') return openMessenger(c.title || c.text.split('\n')[0] || '');
     if (id === 'copy') { if (await copyText(c.text)) toast(T().copied); return; }
     if (id === 'share') {
       if (navigator.share) { try { await navigator.share({ text: c.text }); } catch (e) { } return; }
       if (await copyText(c.text)) toast(T().copied);
     }
   }
-  /* capture phase: nothing underneath (notification fold, row check...) reacts to these icons */
   window.addEventListener('click', e => {
     const b = e.target && e.target.closest && e.target.closest('.opx-i'); if (!b) return;
     e.preventDefault(); e.stopImmediatePropagation(); act(b.getAttribute('data-id'), b);
   }, true);
 
-  /* ---------- Reply sheet (demo: nothing is stored) ---------- */
-  let sheet = null, cleanup = null;
-  function closeSheet() { if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; } if (sheet) { sheet.remove(); sheet = null; } }
-  function openReply(context, srcBtn) {
-    closeSheet();
-    const t = T();
-    let type = null, urg = 'normal', file = null, url = null, stream = null, mr = null, chunks = [], voice = null, secs = 0, tick = null;
-    const ov = sheet = document.createElement('div'); ov.className = 'opx-sh'; ov.dir = RTL() ? 'rtl' : 'ltr';
-    const card = document.createElement('div'); card.className = 'opx-card'; ov.appendChild(card);
-    ov.addEventListener('pointerdown', e => { if (e.target === ov) closeSheet(); });
-    const drop = () => { if (url) { URL.revokeObjectURL(url); url = null; } };
-    const stopRec = () => { clearInterval(tick); tick = null; try { if (mr && mr.state !== 'inactive') mr.stop(); } catch (e) { } if (stream) { stream.getTracks().forEach(k => k.stop()); stream = null; } };
-    cleanup = () => { stopRec(); drop(); };
-    const head = () => `<div class="opx-h">${type ? `<button type="button" class="opx-ic" data-back aria-label="${t.back}"><i class="fa-solid fa-arrow-${RTL() ? 'right' : 'left'}"></i></button>` : ''}<b>${t.reply}${context ? `<small dir="auto">${esc(context)}</small>` : ''}</b><button type="button" class="opx-ic" data-x aria-label="close"><i class="fa-solid fa-xmark"></i></button></div>`;
-    const wire = () => { card.querySelector('[data-x]').onclick = closeSheet; const b = card.querySelector('[data-back]'); if (b) b.onclick = () => { stopRec(); drop(); file = null; voice = null; type = null; paint(); }; };
-    const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-
-    function paint() {
-      if (!type) {
-        card.innerHTML = head() + `<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">${t.how}</div><div class="opx-tiles">`
-          + [['text', 'fa-font'], ['photo', 'fa-image'], ['voice', 'fa-microphone'], ['link', 'fa-link']].map(x => `<button type="button" class="opx-t" data-t="${x[0]}"><i class="fa-solid ${x[1]}"></i>${t[x[0]]}</button>`).join('') + '</div>';
-        wire(); card.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { type = b.getAttribute('data-t'); paint(); });
-        return;
-      }
-      const seg = `<div class="opx-seg"><button type="button" class="opx-u${urg === 'normal' ? ' on' : ''}" data-u="normal">${t.normal}</button><button type="button" class="opx-u urg${urg === 'urgent' ? ' on' : ''}" data-u="urgent">${t.urgent}</button></div>`;
-      let body = '';
-      if (type === 'text') body = `<input class="opx-in" id="opxTi" dir="auto" maxlength="80" placeholder="${t.title}"><textarea class="opx-in" id="opxTb" dir="auto" placeholder="${t.msg}"></textarea>`;
-      if (type === 'photo') body = `<label class="opx-pickl"><i class="fa-solid fa-image"></i> ${t.pick}<input type="file" accept="image/*" id="opxPh" hidden></label><img class="opx-pv" id="opxPv" alt="" hidden>`;
-      if (type === 'link') body = `<input class="opx-in" id="opxLk" dir="ltr" inputmode="url" placeholder="${t.url}">`;
-      if (type === 'voice') body = `<div class="opx-rec"><button type="button" class="opx-rb" id="opxRb"><i class="fa-solid fa-microphone"></i> ${t.rec}</button><span class="opx-tm" id="opxTm">00:00</span></div><audio id="opxAu" controls hidden style="width:100%;margin-bottom:8px"></audio><label class="opx-pickl" id="opxFb" hidden><i class="fa-solid fa-file-audio"></i> ${t.pickA}<input type="file" accept="audio/*" id="opxAf" hidden></label>`;
-      card.innerHTML = head() + seg + body + `<button type="button" class="opx-go" id="opxGo"><i class="fa-solid fa-paper-plane"></i> ${t.send}</button>`;
-      wire();
-      card.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { urg = b.getAttribute('data-u'); card.querySelectorAll('[data-u]').forEach(x => x.classList.toggle('on', x === b)); });
-
-      if (type === 'photo') {
-        const inp = card.querySelector('#opxPh'), pv = card.querySelector('#opxPv');
-        inp.onchange = () => { drop(); file = inp.files && inp.files[0] || null; if (file) { url = URL.createObjectURL(file); pv.src = url; pv.hidden = false; } else pv.hidden = true; };
-      }
-      if (type === 'voice') {
-        const rb = card.querySelector('#opxRb'), tm = card.querySelector('#opxTm'), au = card.querySelector('#opxAu'), fb = card.querySelector('#opxFb'), af = card.querySelector('#opxAf');
-        const canRec = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-        if (!canRec) { rb.hidden = true; fb.hidden = false; }
-        af.onchange = () => { drop(); file = af.files && af.files[0] || null; voice = null; if (file) { url = URL.createObjectURL(file); au.src = url; au.hidden = false; } };
-        rb.onclick = async () => {
-          if (mr && mr.state === 'recording') { stopRec(); return; }
-          try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-          catch (e) { rb.hidden = true; fb.hidden = false; toast(t.nomic); return; }
-          drop(); file = null; voice = null; chunks = []; secs = 0; au.hidden = true; tm.textContent = mmss(0);
-          mr = new MediaRecorder(stream);
-          mr.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
-          mr.onstop = () => {
-            voice = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
-            if (voice.size) { url = URL.createObjectURL(voice); au.src = url; au.hidden = false; }
-            rb.className = 'opx-rb'; rb.innerHTML = `<i class="fa-solid fa-microphone"></i> ${t.again}`;
-          };
-          mr.start(); rb.className = 'opx-rb stop'; rb.innerHTML = `<i class="fa-solid fa-stop"></i> ${t.stop}`;
-          tick = setInterval(() => { secs++; tm.textContent = mmss(secs); if (secs >= 180) stopRec(); }, 1000);
-        };
-      }
-      card.querySelector('#opxGo').onclick = () => {
-        let bad = '';
-        if (type === 'text') { const a = card.querySelector('#opxTi').value.trim(), b = card.querySelector('#opxTb').value.trim(); if (!a && !b) bad = t.needText; }
-        if (type === 'photo' && !file) bad = t.needPhoto;
-        if (type === 'voice' && !(voice && voice.size) && !file) bad = t.needVoice;
-        if (type === 'link' && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(card.querySelector('#opxLk').value.trim())) bad = t.needLink;
-        if (bad) { toast(bad); return; }
-        closeSheet(); toast(t.sent);                      /* demo: nothing is saved or sent */
-        /* replied to a notification = same as pressing "Understood": it goes away and stays away on this device */
-        const pc = srcBtn && srcBtn.closest && srcBtn.closest('.pc.nf');
-        if (pc && pc.isConnected && typeof thn_ackCard === 'function') setTimeout(() => { try { thn_ackCard(pc); } catch (e) { } }, 400);
-      };
-    }
-    paint(); document.body.appendChild(ov);
-  }
-
-  /* ---------- put the icon row under the written content, everywhere the trainer's stuff shows ---------- */
   const bar = () => {
     const w = document.createElement('div'); w.className = 'opx-bar';
     w.innerHTML = OPTS.map(o => `<button type="button" class="opx-i" data-id="${o.id}" aria-label="${T()[o.id]}" title="${T()[o.id]}"><i class="${o.icon}"></i></button>`).join('');
@@ -4511,12 +4524,9 @@ textarea.opx-in{min-height:110px;resize:vertical}
   function scan() {
     document.querySelectorAll('.itm').forEach(it => {
       if (it.querySelector('.opx-bar')) return;
-      const anchor = it.querySelector('.itd') || it.querySelector('.ith'); if (anchor && anchor.parentNode) anchor.insertAdjacentElement('afterend', bar());
+      const a = it.querySelector('.itd') || it.querySelector('.ith'); if (a && a.parentNode) a.insertAdjacentElement('afterend', bar());
     });
-    document.querySelectorAll('.pc.nf .nfb').forEach(nb => {
-      if (nb.querySelector('.opx-bar')) return;
-      nb.insertBefore(bar(), nb.querySelector('.ackb') || null);          /* between the text and "Understood" */
-    });
+    document.querySelectorAll('.pc.nf .nfb').forEach(nb => { if (!nb.querySelector('.opx-bar')) nb.insertBefore(bar(), nb.querySelector('.ackb') || null); });
     const m = document.getElementById('mdl'), mb = document.getElementById('mB');
     if (m && mb && !m.querySelector('.opx-bar')) mb.insertAdjacentElement('afterend', bar());
   }
