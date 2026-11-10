@@ -2708,7 +2708,7 @@ const UIT = {
   ar: { zoom: 'حجم الأيقونات والخطوط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'تم الحفظ ✓', reset: 'تمت العودة للافتراضي ✓' },
   eg: { zoom: 'حجم الأيقونات والخط', bri: 'السطوع', save: 'حفظ', discard: 'تجاهل', def: 'الافتراضي', saved: 'اتحفظ ✓', reset: 'رجعنا للافتراضي ✓' }
 };
-const uiGet = () => { try { const o = JSON.parse(localStorage.getItem(UI_KEY) || 'null') || {}; return { zoom: isFinite(o.zoom) ? +o.zoom : 1, bri: isFinite(o.bri) ? +o.bri : 1 }; } catch (e) { return Object.assign({}, UI_DEF); } };
+const uiGet = () => { try { const o = JSON.parse(localStorage.getItem(UI_KEY) || 'null') || {}; return { zoom: isFinite(o.zoom) ? +o.zoom : 1, bri: 1 }; } catch (e) { return Object.assign({}, UI_DEF); } };
 function uiApply(o) {
   document.documentElement.style.setProperty('--ui-zoom', o.zoom);
   let v = $('thBri'); if (!v) { v = document.createElement('div'); v.id = 'thBri'; document.body.appendChild(v); }
@@ -4567,4 +4567,164 @@ html body #mobileFloatingBar>[data-bk]:not(#z):hover>i,html body #mobileFloating
 html body #mobileFloatingBar #mgrBtn .mgr-ico{width:26px!important;height:26px!important;flex:none}
 html body #mobileFloatingBar .thl,html body #mobileFloatingBar #mgrBtn .thl{position:absolute!important;left:0;right:0;bottom:4px;text-align:center;line-height:1.1}`;
   document.head.appendChild(st);
+})();
+
+/* ==========================================================
+   Settings / Add menus as ONE big container with raised cells (accordion).
+   - header: icon (left), title (centre), X. Cells below, top to bottom (phone and desktop alike).
+   - tap a cell: its options open under it; tap an option that has options: they open under it too. Only one open per level; tap an open one: it folds.
+   - Settings: Theme (Dark / Light), Language, Font size (Small / Normal / Large + a small preview box), Account (Profile / Calendar / Log out).
+     Changes are held until Save. Tap outside or X with unsaved changes = asks first. No tabs anywhere.
+   - Theme, Language and Account are no longer bar buttons (they only live here). Brightness is gone.
+   ========================================================== */
+(function () {
+  const tr = (a, b, c) => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? a : (l === 'ar' ? b : c); };
+  const FS = { small: .9, normal: 1, large: 1.15 };
+  const sizeOf = z => z < .95 ? 'small' : (z > 1.05 ? 'large' : 'normal');
+
+  const old = document.getElementById('thSetCss'); if (old) old.remove();
+  const css = document.createElement('style'); css.id = 'thSetCss';
+  css.textContent = `
+#thSet{position:fixed;inset:0;z-index:10040;display:none;justify-content:center;align-items:flex-start;padding:max(14px,env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);overflow:auto;box-sizing:border-box}
+#thSet.open{display:flex}
+#thSet .tsc{position:relative;width:min(440px,100%);margin:auto 0;padding:12px;border-radius:22px;background:rgba(15,23,42,.97);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 50px rgba(0,0,0,.55);box-sizing:border-box;font-family:Cairo,Inter,sans-serif}
+body.light-theme #thSet .tsc{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.14)}
+#thSet .tsh{display:flex;direction:ltr;align-items:center;gap:10px;padding:4px 6px 12px}
+#thSet .tsh .tsi{width:30px;text-align:center;font-size:20px;flex:none}
+#thSet .tsh b{flex:1;text-align:center;font-size:1.02rem;font-weight:800}
+#thSet .tsx{width:30px;height:30px;flex:none;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;font-size:14px}
+#thSet .tsl{margin-bottom:8px;border-radius:14px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.24);box-shadow:0 3px 0 rgba(0,0,0,.22),0 6px 14px rgba(0,0,0,.18)}
+body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);box-shadow:0 2px 0 rgba(15,23,42,.1),0 5px 12px rgba(15,23,42,.08)}
+#thSet .tsl .tsl{background:rgba(148,163,184,.14);box-shadow:none;margin:6px 0 0}
+#thSet .tsr{display:flex;direction:ltr;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+#thSet .tsr .tsi{width:26px;text-align:center;font-size:18px;flex:none}
+#thSet .tsr .tst{flex:1;text-align:center;font-weight:700;font-size:.9rem;overflow-wrap:anywhere}
+#thSet .tsr .tsv{width:26px;text-align:center;font-size:12px;opacity:.6;flex:none;transition:transform .2s}
+#thSet .tsl.op>.tsr .tsv{transform:rotate(180deg)}
+#thSet .tsl.sel>.tsr{color:#34d399}
+#thSet .tsb{padding:0 10px 10px;display:none}
+#thSet .tsl.op>.tsb{display:block}
+#thSet .tsp{margin-top:8px;padding:16px 10px;border-radius:12px;text-align:center;background:rgba(148,163,184,.12);border:1px dashed rgba(148,163,184,.4);overflow:hidden}
+#thSet .tsp b{display:block;font-weight:800;line-height:1.2}
+#thSet .tsp span{display:block;opacity:.75;line-height:1.3;margin-top:4px}
+#thSet .tsf{margin-top:4px}
+#thSet .tsf button{width:100%;padding:12px;border:0;border-radius:14px;background:#34d399;color:#04231a;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer}
+#thSet .tsq{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:18px;border-radius:22px;background:rgba(2,6,23,.78)}
+#thSet .tsq>div{background:#1e293b;color:#f1f5f9;border-radius:16px;padding:18px;max-width:320px;text-align:center}
+#thSet .tsq p{margin:0 0 14px;font-weight:700;line-height:1.5}
+#thSet .tsq .bb{display:flex;gap:8px}
+#thSet .tsq button{flex:1;padding:10px 8px;border-radius:12px;border:0;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer;background:#475569;color:#fff}
+#thSet .tsq button.y{background:#b42318}`;
+  document.head.appendChild(css);
+
+  let root = null, cfg = null, openMap = {};
+
+  function ensure() {
+    if (root) return;
+    root = document.createElement('div'); root.id = 'thSet'; document.body.appendChild(root);
+    root.addEventListener('pointerdown', e => { if (e.target === root) tryClose(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && root.classList.contains('open')) { e.stopImmediatePropagation(); tryClose(); } }, true);
+  }
+  const dirty = () => !!(cfg && cfg.dirty && cfg.dirty());
+  function closeNow() { root.classList.remove('open'); root.innerHTML = ''; cfg = null; }
+  function tryClose() {
+    if (!cfg) return;
+    if (!dirty()) return closeNow();
+    const q = document.createElement('div'); q.className = 'tsq';
+    q.innerHTML = '<div><p></p><div class="bb"><button type="button" class="y"></button><button type="button" class="n"></button></div></div>';
+    q.querySelector('p').textContent = tr('Are you sure you want to leave before saving your changes?', 'هل أنت متأكد أنك تريد الخروج قبل حفظ التغييرات؟', 'متأكد إنك عايز تطلع قبل ما تحفظ التغييرات؟');
+    q.querySelector('.y').textContent = tr('Leave without saving', 'خروج بدون حفظ', 'اطلع من غير حفظ');
+    q.querySelector('.n').textContent = tr('No, go back', 'لا، ارجع', 'لا، ارجع');
+    q.querySelector('.n').onclick = () => q.remove();
+    q.querySelector('.y').onclick = () => { if (cfg.discard) cfg.discard(); closeNow(); };
+    root.querySelector('.tsc').appendChild(q);
+  }
+
+  function cell(it, path, level) {
+    const w = document.createElement('div'), kids = it.children && it.children(), isOpen = openMap[path.slice(0, path.lastIndexOf('/'))] === path;
+    w.className = 'tsl' + (isOpen ? ' op' : '') + (it.selected && it.selected() ? ' sel' : '');
+    const r = document.createElement('div'); r.className = 'tsr'; r.setAttribute('role', 'button'); r.tabIndex = 0;
+    r.innerHTML = `<span class="tsi">${it.icon || ''}</span><span class="tst" dir="auto"></span><span class="tsv">${kids || it.preview ? '<i class="fa-solid fa-chevron-down"></i>' : (it.selected && it.selected() ? '<i class="fa-solid fa-check"></i>' : '')}</span>`;
+    r.querySelector('.tst').textContent = it.label;
+    const act = () => {
+      if (kids || it.preview) { const par = path.slice(0, path.lastIndexOf('/')); openMap[par] = isOpen ? null : path; draw(); }   /* open one at a time; tap an open one = fold */
+      else if (it.pick) { it.pick(); draw(); }
+      else if (it.on) { const f = it.on; closeNow(); setTimeout(f, 60); }
+    };
+    r.onclick = act; r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } };
+    w.appendChild(r);
+    if (isOpen) {
+      const b = document.createElement('div'); b.className = 'tsb';
+      (kids || []).forEach((k, i) => b.appendChild(cell(k, path + '/' + i, level + 1)));
+      if (it.preview) b.appendChild(it.preview());
+      w.appendChild(b);
+    }
+    return w;
+  }
+  function draw() {
+    const keep = root.scrollTop; root.innerHTML = '';
+    const c = document.createElement('div'); c.className = 'tsc';
+    const h = document.createElement('div'); h.className = 'tsh';
+    h.innerHTML = `<span class="tsi">${cfg.icon}</span><b dir="auto"></b><button type="button" class="tsx" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>`;
+    h.querySelector('b').textContent = cfg.title; h.querySelector('.tsx').onclick = tryClose;
+    c.appendChild(h);
+    cfg.items().forEach((it, i) => c.appendChild(cell(it, 'r/' + i, 0)));
+    if (dirty()) {
+      const f = document.createElement('div'); f.className = 'tsf'; f.innerHTML = '<button type="button"></button>';
+      f.firstChild.textContent = tr('Save', 'حفظ', 'حفظ'); f.firstChild.onclick = () => { const s = cfg.save; closeNow(); s(); }; c.appendChild(f);
+    }
+    root.appendChild(c); root.scrollTop = keep;
+  }
+  function panel(c) { ensure(); cfg = c; openMap = {}; root.classList.add('open'); draw(); }
+
+  /* ---------- Add menu ---------- */
+  window.openPlus = () => panel({
+    title: tr('Add', 'إضافة', 'إضافة'), icon: '<i class="fa-solid fa-plus"></i>',
+    items: () => [
+      { icon: '<i class="fa-solid fa-microphone-lines" style="color:#34d399"></i>', label: tr('Assistant', 'المساعد', 'المساعد'), on: () => Panels.open('assistant') },
+      { icon: '<i class="fa-solid fa-paper-plane" style="color:#38bdf8"></i>', label: tr('Requests', 'الطلبات', 'الطلبات'), on: () => openRq() }
+    ]
+  });
+
+  /* ---------- Settings ---------- */
+  window.openStar = () => {
+    const isLight = () => document.body.classList.contains('light-theme'), curLang = () => (typeof lang === 'string' && lang) || 'en';
+    const base = { theme: isLight() ? 'light' : 'dark', lang: curLang(), size: sizeOf(uiGet().zoom) };
+    const P = Object.assign({}, base);
+    const nm = { en: 'English', ar: 'عربي', eg: 'مصري' };
+    const preview = () => {
+      const d = document.createElement('div'), f = FS[P.size];
+      d.className = 'tsp'; d.innerHTML = '<b></b><span></span>';
+      d.firstChild.style.fontSize = (24 * f) + 'px'; d.firstChild.textContent = 'ثابت';
+      d.lastChild.style.fontSize = (13 * f) + 'px'; d.lastChild.textContent = tr('This is how the text will look', 'هكذا سيبدو النص', 'كده شكل الكلام');
+      return d;
+    };
+    const opt = (key, val, label, icon) => ({ icon: icon || '', label, pick: () => { P[key] = val; }, selected: () => P[key] === val });
+    panel({
+      title: tr('Settings', 'الإعدادات', 'الإعدادات'), icon: '<i class="fa-solid fa-gear"></i>',
+      dirty: () => P.theme !== base.theme || P.lang !== base.lang || P.size !== base.size,
+      discard: () => { },
+      save: () => {
+        if (P.theme !== base.theme) toggleTheme();
+        if (P.size !== base.size) { const o = { zoom: FS[P.size], bri: 1 }; try { localStorage.setItem(UI_KEY, JSON.stringify(o)); } catch (e) { } uiApply(o); }
+        if (P.lang !== base.lang) setLanguage(P.lang);
+        try { itToast(tr('Saved ✓', 'تم الحفظ ✓', 'اتحفظ ✓')); } catch (e) { }
+      },
+      items: () => [
+        { icon: '<i class="fa-solid fa-circle-half-stroke"></i>', label: tr('Theme', 'الوضع', 'الوضع'), children: () => [
+          opt('theme', 'dark', tr('Dark', 'داكن', 'دارك'), '<i class="fa-solid fa-moon"></i>'),
+          opt('theme', 'light', tr('Light', 'فاتح', 'وايت'), '<i class="fa-solid fa-sun"></i>')] },
+        { icon: '<i class="fa-solid fa-globe"></i>', label: tr('Language', 'اللغة', 'اللغة'), children: () => ['en', 'ar', 'eg'].map(x => opt('lang', x, nm[x])) },
+        { icon: '<i class="fa-solid fa-text-height"></i>', label: tr('Font size', 'حجم الخط', 'حجم الخط'), children: () => [
+          opt('size', 'small', tr('Small', 'صغير', 'صغير')), opt('size', 'normal', tr('Normal', 'عادي', 'عادي')), opt('size', 'large', tr('Large', 'كبير', 'كبير'))], preview },
+        { icon: '<i class="fa-regular fa-user"></i>', label: tr('Account', 'الحساب', 'الحساب'), children: () => [
+          { icon: '<i class="fa-regular fa-user"></i>', label: tr('Profile', 'ملفي', 'ملفي'), on: () => Panels.open('profile') },
+          { icon: '<i class="fa-regular fa-calendar"></i>', label: tr('Calendar', 'التقويم', 'التقويم'), on: () => window.openCal && window.openCal() },
+          { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: tr('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }] }
+      ]
+    });
+  };
+
+  /* ---------- Theme / Language / Account buttons never show on the bar (inline !important beats every stylesheet) ---------- */
+  setInterval(() => ['floatBtnTheme', 'profBtn', 'langBtn'].forEach(id => { const b = document.getElementById(id); if (b && b.style.getPropertyValue('display') !== 'none') b.style.setProperty('display', 'none', 'important'); }), 400);
 })();
