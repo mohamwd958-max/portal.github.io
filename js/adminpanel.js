@@ -4479,6 +4479,8 @@ window.tzPick = async function (id, zone) {
   /* the shared registry: add the next options here and every Options button gets them */
   window.SP_OPTIONS = window.SP_OPTIONS || [];
   if (!SP_OPTIONS.some(o => o.id === 'reply')) SP_OPTIONS.push({ id: 'reply', icon: 'fa-reply', label: 'Reply', sub: 'الطالب يرد عليك: نص · صورة · صوت · لينك' });
+  if (!SP_OPTIONS.some(o => o.id === 'copy')) SP_OPTIONS.push({ id: 'copy', icon: 'fa-copy', label: 'Copy', sub: 'الطالب ينسخ النص' });
+  if (!SP_OPTIONS.some(o => o.id === 'share')) SP_OPTIONS.push({ id: 'share', icon: 'fa-share-nodes', label: 'Share', sub: 'الطالب يشارك المحتوى' });
 
   const KEY = 'sp_opt_use';
   const use = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } };
