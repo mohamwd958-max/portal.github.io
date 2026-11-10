@@ -3909,12 +3909,11 @@ body.light-theme #thMenu .tmi{color:#0f172a}
     { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: t3('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }
   ]);
   window.openStar = () => {
-    const wide = innerWidth > 700, U = UIT[L()] || UIT.en;
+    const U = UIT[L()] || UIT.en;
     show([
-      { icon: document.body.classList.contains('light-theme') ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>', label: t3('Theme', 'الوضع', 'الوضع'), on: () => toggleTheme() },
+      { icon: '<i class="fa-solid fa-circle-half-stroke"></i>', label: t3('Theme', 'الوضع', 'الوضع'), on: () => toggleTheme() },
       { icon: '<i class="fa-regular fa-user"></i>', label: t3('Profile', 'الحساب', 'الحساب'), on: () => window.openProf && window.openProf() },
-      { icon: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', label: wide ? t3('Phone view', 'شكل التليفون', 'شكل التليفون') : t3('Desktop view', 'شكل الديسكتوب', 'شكل الديسكتوب'),
-        on: () => { try { localStorage.setItem('thabit_view', wide ? 'phone' : 'desktop'); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } } },
+      { icon: '<i class="fa-solid fa-globe"></i>', label: t3('Language', 'اللغة', 'اللغة'), on: () => window.openLang && window.openLang() },
       { icon: '<i class="fa-solid fa-text-height"></i>', label: U.zoom, on: () => startAdjust('zoom') },
       { icon: '<i class="fa-solid fa-sun"></i>', label: U.bri, on: () => startAdjust('bri') }
     ]);
