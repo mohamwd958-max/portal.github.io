@@ -3911,6 +3911,8 @@ body.light-theme #thMenu .tmi{color:#0f172a}
   window.openStar = () => {
     const wide = innerWidth > 700, U = UIT[L()] || UIT.en;
     show([
+      { icon: document.body.classList.contains('light-theme') ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>', label: t3('Theme', 'الوضع', 'الوضع'), on: () => toggleTheme() },
+      { icon: '<i class="fa-regular fa-user"></i>', label: t3('Profile', 'الحساب', 'الحساب'), on: () => window.openProf && window.openProf() },
       { icon: wide ? '<i class="fa-solid fa-mobile-screen"></i>' : '<i class="fa-solid fa-desktop"></i>', label: wide ? t3('Phone view', 'شكل التليفون', 'شكل التليفون') : t3('Desktop view', 'شكل الديسكتوب', 'شكل الديسكتوب'),
         on: () => { try { localStorage.setItem('thabit_view', wide ? 'phone' : 'desktop'); } catch (e) {} try { (window.top || window).location.reload(); } catch (e) { location.reload(); } } },
       { icon: '<i class="fa-solid fa-text-height"></i>', label: U.zoom, on: () => startAdjust('zoom') },
@@ -4417,7 +4419,6 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop';
     el.pop.innerHTML = `<div class="mgr-h"><span class="mgr-av"><i class="fa-solid fa-dove"></i></span><b>${t.msgr}</b>
-        <button type="button" class="mgr-hb" data-min aria-label="${t.min}" title="${t.min}"><i class="fa-solid fa-minus"></i></button>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-list" data-list></div>
       <div class="mgr-quote" data-quote hidden><i class="fa-solid fa-reply"></i><span dir="auto"></span><button type="button" class="mgr-hb" data-qx aria-label="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
@@ -4430,16 +4431,11 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
         <input class="mgr-in" data-in dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off">
         <button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
         <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>`;
-    el.tab = document.createElement('div'); el.tab.className = 'mgr-tab';
-    el.tab.innerHTML = `<button type="button" data-open aria-label="${t.msgr}" title="${t.msgr}"><i class="fa-solid fa-dove"></i></button><button type="button" class="x" data-tx aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button>`;
-    document.body.append(el.veil, el.pop, el.tab);
+    document.body.append(el.veil, el.pop);
     const q = s => el.pop.querySelector(s);
     el.list = q('[data-list]'); el.in = q('[data-in]'); el.send = q('[data-send]'); el.att = q('[data-att]'); el.quote = q('[data-quote]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
-    q('[data-min]').onclick = leave;
     q('[data-x]').onclick = () => askClose();
-    el.tab.querySelector('[data-open]').onclick = () => setMode('open');
-    el.tab.querySelector('[data-tx]').onclick = () => askClose();
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
     q('[data-mic]').onclick = () => { };                                                           /* look only */
@@ -4448,13 +4444,13 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); } });
     el.send.onclick = sendMsg;
   }
-  const hasDraft = () => !!((el.in && el.in.value.trim()) || M.quote);
+  const hasDraft = () => !!(el.in && el.in.value.trim());   /* only what the student typed counts as a change */
   /* tap outside / minimize: a tab only for a nested Messenger; one opened from the bar button is simply hidden (nothing is cleared) */
-  function leave() { setMode(M.nested ? 'docked' : 'closed'); }
+  function leave() { if (M.nested) askClose(); else setMode('closed'); }   /* no tabs anywhere: nested = same as X (asks only if something was typed); from the bar = just hides, the draft stays */
   function discard() { el.in.value = ''; el.send.hidden = true; setQuote(''); }
   const CF = { en: ['Are you sure? Some things are not saved.', 'Discard', 'Stay'], ar: ['هل أنت متأكد؟ هناك أشياء لم تُحفظ.', 'تجاهل', 'ابقَ'], eg: ['متأكد؟ فيه حاجات لسه ما اتحفظتش.', 'امسح وقفل', 'استنى'] };
   function askClose() {
-    if (!hasDraft()) { M.nested = false; setMode('closed'); return; }
+    if (!hasDraft()) { M.nested = false; setQuote(''); setMode('closed'); return; }
     setMode('open');
     const c = CF[(typeof lang === 'string' && lang) || 'en'] || CF.en;
     const o = document.createElement('div');
@@ -4467,10 +4463,8 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   }
   function setMode(m) {
     build(); M.mode = m;
-    const mn = el.pop.querySelector('[data-min]'); if (mn) mn.style.display = M.nested ? '' : 'none';   /* no minimize unless nested */
     el.veil.style.display = m === 'open' ? 'block' : 'none';
     el.pop.style.display = m === 'open' ? 'flex' : 'none';
-    el.tab.style.display = m === 'docked' ? 'flex' : 'none';
     if (m !== 'open') el.att.hidden = true;
     if (m === 'open') { el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); }
   }
@@ -4494,7 +4488,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.in.value = ''; el.send.hidden = true; setQuote('');                                          /* nothing is stored or sent */
   }
   function openMessenger(quote) { build(); M.nested = quote !== undefined; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* a quote only comes from Reply = nested */
-  window.thMessenger = { open: openMessenger, dock: () => setMode(M.nested ? 'docked' : 'closed'), close: () => askClose() };
+  window.thMessenger = { open: openMessenger, dock: () => leave(), close: () => askClose() };
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && M.mode === 'open') leave(); }, true);
 
   /* the Messenger button (message-in-a-bottle), right next to the Feed button: same box, icon on top and a label under it like the others */
@@ -4558,4 +4552,20 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   const sched = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { scan(); } catch (e) { console.warn('[options]', e); } }); };
   const start = () => { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); scan(); };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+/* ===== Bar: Theme + Profile now live inside Settings; even icon / label / border spacing; hover grows only the icon ===== */
+(function () {
+  const old = document.getElementById('thBarFinal'); if (old) old.remove();
+  const st = document.createElement('style'); st.id = 'thBarFinal';
+  st.textContent = `
+html body #mobileFloatingBar #floatBtnTheme,html body #mobileFloatingBar #profBtn{display:none!important}
+html body #mobileFloatingBar>[data-bk]:not(#z),html body #mobileFloatingBar #barEdit:not(#z),html body #mobileFloatingBar #mgrBtn:not(#z){
+  position:relative!important;box-sizing:border-box!important;height:58px!important;padding:0 0 16px!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+html body #mobileFloatingBar>[data-bk]:not(#z):not(.lifting):not(.pk-on):not(.pk-hide):hover,html body #mobileFloatingBar #barEdit:not(#z):not(.pk-on):not(.pk-hide):hover,html body #mobileFloatingBar #mgrBtn:not(#z):hover{transform:none!important}
+html body #mobileFloatingBar>[data-bk]:not(#z)>i,html body #mobileFloatingBar>[data-bk]:not(#z)>svg,html body #mobileFloatingBar #barEdit>svg,html body #mobileFloatingBar #barEdit>i,html body #mobileFloatingBar #mgrBtn .mgr-ico{transition:transform .18s cubic-bezier(.2,.9,.3,1.4);transform-origin:50% 50%}
+@media(hover:hover){
+html body #mobileFloatingBar>[data-bk]:not(#z):hover>i,html body #mobileFloatingBar>[data-bk]:not(#z):hover>svg,html body #mobileFloatingBar #barEdit:hover>svg,html body #mobileFloatingBar #barEdit:hover>i,html body #mobileFloatingBar #mgrBtn:hover .mgr-ico{transform:scale(1.1)}}
+html body #mobileFloatingBar #mgrBtn .mgr-ico{width:26px!important;height:26px!important;flex:none}
+html body #mobileFloatingBar .thl,html body #mobileFloatingBar #mgrBtn .thl{position:absolute!important;left:0;right:0;bottom:4px;text-align:center;line-height:1.1}`;
+  document.head.appendChild(st);
 })();
