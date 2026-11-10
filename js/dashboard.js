@@ -1406,7 +1406,7 @@ window.Panels = (function () {
     if (e && e.preventDefault) e.preventDefault();
     if (!DEF[id]) return;
     if (cur === id) return;
-    if (cur) { mins.push(cur); }                         // the one that was open becomes a tab
+    /* no parked tabs for bar buttons: switching just replaces the one that was open */
     const i = mins.indexOf(id); if (i > -1) mins.splice(i, 1);
     if (id === 'assistant') {
       const f = $('asFrame');
@@ -1419,8 +1419,7 @@ window.Panels = (function () {
   }
   function min() {
     if (!cur) return;
-    mins.push(cur); cur = null; $('asm').hidden = true; lock(false); dock();
-    if (mins.includes('assistant')) nudge();
+    cur = null; $('asm').hidden = true; lock(false); dock();   /* just hides (the assistant frame and the profile keep their state); no tab */
   }
   function close() {
     if (!cur) return;
@@ -4411,7 +4410,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   }
 
   /* ---------- Messenger (look only) ---------- */
-  const M = { mode: 'closed', built: false, quote: '', lastDay: '' };
+  const M = { mode: 'closed', built: false, quote: '', lastDay: '', nested: false };   /* nested = opened from inside something (Reply): only then it may park as a tab */
   const el = {};
   function build() {
     if (M.built) return; M.built = true; const t = T();
@@ -4436,11 +4435,11 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     document.body.append(el.veil, el.pop, el.tab);
     const q = s => el.pop.querySelector(s);
     el.list = q('[data-list]'); el.in = q('[data-in]'); el.send = q('[data-send]'); el.att = q('[data-att]'); el.quote = q('[data-quote]');
-    el.veil.addEventListener('pointerdown', () => setMode('docked'));                /* tap outside: park it as a side tab */
-    q('[data-min]').onclick = () => setMode('docked');
-    q('[data-x]').onclick = () => setMode('closed');
+    el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
+    q('[data-min]').onclick = leave;
+    q('[data-x]').onclick = () => askClose();
     el.tab.querySelector('[data-open]').onclick = () => setMode('open');
-    el.tab.querySelector('[data-tx]').onclick = () => setMode('closed');
+    el.tab.querySelector('[data-tx]').onclick = () => askClose();
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
     q('[data-mic]').onclick = () => { };                                                           /* look only */
@@ -4449,8 +4448,26 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); } });
     el.send.onclick = sendMsg;
   }
+  const hasDraft = () => !!((el.in && el.in.value.trim()) || M.quote);
+  /* tap outside / minimize: a tab only for a nested Messenger; one opened from the bar button is simply hidden (nothing is cleared) */
+  function leave() { setMode(M.nested ? 'docked' : 'closed'); }
+  function discard() { el.in.value = ''; el.send.hidden = true; setQuote(''); }
+  const CF = { en: ['Are you sure? Some things are not saved.', 'Discard', 'Stay'], ar: ['هل أنت متأكد؟ هناك أشياء لم تُحفظ.', 'تجاهل', 'ابقَ'], eg: ['متأكد؟ فيه حاجات لسه ما اتحفظتش.', 'امسح وقفل', 'استنى'] };
+  function askClose() {
+    if (!hasDraft()) { M.nested = false; setMode('closed'); return; }
+    setMode('open');
+    const c = CF[(typeof lang === 'string' && lang) || 'en'] || CF.en;
+    const o = document.createElement('div');
+    o.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.7);padding:20px';
+    o.innerHTML = '<div style="background:#202c33;border-radius:16px;padding:18px;max-width:300px;text-align:center"><div dir="auto" style="font-weight:700;margin-bottom:14px"></div><div style="display:flex;gap:8px;justify-content:center"><button type="button" data-y class="mgr-ic" style="width:auto;padding:0 16px;font-size:13px;background:#b42318;color:#fff"></button><button type="button" data-n class="mgr-ic" style="width:auto;padding:0 16px;font-size:13px"></button></div></div>';
+    o.querySelector('div>div').textContent = c[0]; o.querySelector('[data-y]').textContent = c[1]; o.querySelector('[data-n]').textContent = c[2];
+    o.querySelector('[data-n]').onclick = () => o.remove();
+    o.querySelector('[data-y]').onclick = () => { o.remove(); discard(); M.nested = false; setMode('closed'); };
+    el.pop.appendChild(o);
+  }
   function setMode(m) {
     build(); M.mode = m;
+    const mn = el.pop.querySelector('[data-min]'); if (mn) mn.style.display = M.nested ? '' : 'none';   /* no minimize unless nested */
     el.veil.style.display = m === 'open' ? 'block' : 'none';
     el.pop.style.display = m === 'open' ? 'flex' : 'none';
     el.tab.style.display = m === 'docked' ? 'flex' : 'none';
@@ -4476,9 +4493,9 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.list.appendChild(b); el.list.scrollTop = el.list.scrollHeight;
     el.in.value = ''; el.send.hidden = true; setQuote('');                                          /* nothing is stored or sent */
   }
-  function openMessenger(quote) { setMode('open'); if (quote !== undefined) setQuote(quote); }
-  window.thMessenger = { open: openMessenger, dock: () => setMode('docked'), close: () => setMode('closed') };
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && M.mode === 'open') setMode('docked'); }, true);
+  function openMessenger(quote) { build(); M.nested = quote !== undefined; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* a quote only comes from Reply = nested */
+  window.thMessenger = { open: openMessenger, dock: () => setMode(M.nested ? 'docked' : 'closed'), close: () => askClose() };
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && M.mode === 'open') leave(); }, true);
 
   /* the Messenger button (message-in-a-bottle), right next to the Feed button: same box, icon on top and a label under it like the others */
   const LBL = { en: 'Messenger', ar: 'ميسنجر', eg: 'ميسنجر' };
@@ -4491,7 +4508,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     b.title = lbl(); b.setAttribute('aria-label', lbl());
     b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span>';
     b.querySelector('.thl').textContent = lbl();
-    b.onclick = e => { e.stopPropagation(); setMode(M.mode === 'open' ? 'docked' : 'open'); };
+    b.onclick = e => { e.stopPropagation(); build(); M.nested = false; setMode(M.mode === 'open' ? 'closed' : 'open'); };   /* from the bar: never a tab */
     f.insertAdjacentElement('afterend', b); return true;
   }
   { let n = 0; const iv = setInterval(() => { if (installDove() || ++n > 120) clearInterval(iv); }, 500); }
