@@ -2056,7 +2056,7 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed'];
+const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed', 'msgr'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
@@ -2112,7 +2112,7 @@ function placeFeed() {
     if (!drag) return;
     const it = drag.it; drag = null;
     it.style.transform = ''; it.classList.remove('lifting'); bar.classList.remove('dragging');
-    try { localStorage.setItem('thabit_bar_order', JSON.stringify(items().map(x => x.dataset.bk))); } catch (e) {}
+    try { const prev = barOrder(), vis = items().map(x => x.dataset.bk), q = vis.slice(); const full = prev.map(k => vis.includes(k) ? q.shift() : k); vis.forEach(k => { if (!full.includes(k)) full.push(k); }); localStorage.setItem('thabit_bar_order', JSON.stringify(full)); } catch (e) {}
     layoutBar(); swallow = true; setTimeout(() => { swallow = false; }, 400);
   }
   bar.addEventListener('pointerdown', e => {
@@ -4496,7 +4496,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   function installDove() {
     if (document.getElementById('mgrBtn')) return true;
     const f = document.getElementById('feedBtn'); if (!f) return false;
-    const b = f.cloneNode(false); b.id = 'mgrBtn'; b.removeAttribute('onclick'); b.removeAttribute('style'); b.type = 'button';
+    const b = f.cloneNode(false); b.id = 'mgrBtn'; b.dataset.bk = 'msgr'; b.removeAttribute('onclick'); b.removeAttribute('style'); b.type = 'button';
     b.className = (f.className || '').replace(/\b(upd|glow|live|empty|num|open)\b/g, '').trim();
     b.title = lbl(); b.setAttribute('aria-label', lbl());
     b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span>';
@@ -4559,13 +4559,14 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   st.textContent = `
 html body #mobileFloatingBar #floatBtnTheme,html body #mobileFloatingBar #profBtn{display:none!important}
 html body #mobileFloatingBar>[data-bk]:not(#z),html body #mobileFloatingBar #barEdit:not(#z),html body #mobileFloatingBar #mgrBtn:not(#z){
-  position:relative!important;box-sizing:border-box!important;height:58px!important;padding:0 0 16px!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+  position:relative!important;box-sizing:border-box!important;height:58px!important;padding:0 0 20px!important;margin:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
 html body #mobileFloatingBar>[data-bk]:not(#z):not(.lifting):not(.pk-on):not(.pk-hide):hover,html body #mobileFloatingBar #barEdit:not(#z):not(.pk-on):not(.pk-hide):hover,html body #mobileFloatingBar #mgrBtn:not(#z):hover{transform:none!important}
 html body #mobileFloatingBar>[data-bk]:not(#z)>i,html body #mobileFloatingBar>[data-bk]:not(#z)>svg,html body #mobileFloatingBar #barEdit>svg,html body #mobileFloatingBar #barEdit>i,html body #mobileFloatingBar #mgrBtn .mgr-ico{transition:transform .18s cubic-bezier(.2,.9,.3,1.4);transform-origin:50% 50%}
 @media(hover:hover){
 html body #mobileFloatingBar>[data-bk]:not(#z):hover>i,html body #mobileFloatingBar>[data-bk]:not(#z):hover>svg,html body #mobileFloatingBar #barEdit:hover>svg,html body #mobileFloatingBar #barEdit:hover>i,html body #mobileFloatingBar #mgrBtn:hover .mgr-ico{transform:scale(1.1)}}
 html body #mobileFloatingBar #mgrBtn .mgr-ico{width:26px!important;height:26px!important;flex:none}
-html body #mobileFloatingBar .thl,html body #mobileFloatingBar #mgrBtn .thl{position:absolute!important;left:0;right:0;bottom:4px;text-align:center;line-height:1.1}`;
+html body #mobileFloatingBar .thl,html body #mobileFloatingBar #mgrBtn .thl{position:absolute!important;left:0;right:0;bottom:10px;text-align:center;line-height:1.1}
+html body #mobileFloatingBar #feedBtn #feedNum{top:9px!important;left:calc(50% + 12px)!important;right:auto!important}`;
   document.head.appendChild(st);
 })();
 
