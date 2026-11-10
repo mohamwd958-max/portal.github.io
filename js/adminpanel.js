@@ -4367,3 +4367,92 @@ window.tzPick = async function (id, zone) {
   };
   setInterval(() => document.querySelectorAll('.tz-live').forEach(e => { e.textContent = tzLive(e.dataset.z); }), 20000);
 }
+
+
+
+
+
+/* ==========================================================
+   Patch: "Space" launcher + empty "Options" button (paste at the END of adminpanel.js)
+   - Space: a new launcher next to Dashboard, opens an EMPTY window (the shared space gets wired in later)
+   - Options: an empty button that appears on everything the trainer writes for the trainee:
+       Notification, Task, Monthly obligations, every wide text popup (Notes / TEFL / QOL ...), Tasks / Dandana slots
+     clicking it opens a small EMPTY popover (nothing inside yet)
+   ========================================================== */
+(function () {
+  if (window.__spaceOpts) return; window.__spaceOpts = 1;
+
+  const css = document.createElement('style'); css.id = 'spCss';
+  css.textContent = `
+#ws_space .ws-bd{min-height:260px}
+.sp-opt{display:inline-flex;align-items:center;gap:6px;margin-inline-end:8px}
+.sp-opt.sp-hd{margin-inline-start:10px;margin-inline-end:auto}
+.sp-opt.on{border-color:#f59e0b;color:#fbbf24}
+.sp-pop{position:fixed;z-index:2147483000;min-width:220px;max-width:min(320px,92vw);min-height:90px;background:#0f172a;border:1px solid rgba(245,158,11,.55);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px 10px}
+.sp-pop-h{display:flex;align-items:center;gap:8px;color:#fbbf24;font-size:13px;font-weight:700;margin-bottom:6px}`;
+  document.head.appendChild(css);
+
+  /* ---------- Space window + launcher ---------- */
+  WSD.space = { t: 'Space', i: 'fa-vector-square', w: 1 };
+
+  function spaceInstallBtn() {
+    if (document.querySelector('.ws-lb[data-ws="space"]')) return true;
+    const anchor = document.querySelector('.ws-lb[data-ws="dash"]') || document.querySelector('.ws-lb[data-ws="hl"]') || document.querySelector('.ws-lb');
+    if (!anchor) return false;
+    const b = anchor.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick');
+    b.setAttribute('data-ws', 'space'); b.classList.remove('on'); b.type = 'button';
+    b.innerHTML = '<i class="fa-solid fa-vector-square"></i> Space';
+    b.onclick = () => toggleWin('space');
+    anchor.insertAdjacentElement('afterend', b); return true;
+  }
+  {
+    let tries = 0; const iv = setInterval(() => { if (spaceInstallBtn() || ++tries > 120) clearInterval(iv); }, 500);
+    const prevOpenMainSp = openAdminMainPanel;
+    openAdminMainPanel = function () { const r = prevOpenMainSp.apply(this, arguments); spaceInstallBtn(); return r; };
+  }
+
+  /* ---------- Options button (empty for now) ---------- */
+  let pop = null;
+  function closePop() {
+    if (pop) { pop.remove(); pop = null; }
+    document.querySelectorAll('.sp-opt.on').forEach(b => b.classList.remove('on'));
+  }
+  function openPop(btn) {
+    const same = pop && pop._for === btn; closePop(); if (same) return;
+    pop = document.createElement('div'); pop.className = 'sp-pop'; pop._for = btn;
+    pop.setAttribute('data-where', btn.getAttribute('data-where') || '');
+    pop.innerHTML = '<div class="sp-pop-h"><i class="fa-solid fa-ellipsis"></i> Options</div><div data-opts></div>';
+    document.body.appendChild(pop); btn.classList.add('on');
+    window.SP_OPT_CTX = { where: btn.getAttribute('data-where') || '', btn, pop };   /* hook for later: which composer asked for options */
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    const left = Math.min(Math.max(8, r.left), Math.max(8, innerWidth - w - 8));
+    let top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('.sp-opt'); if (!b) return;
+    e.preventDefault(); e.stopPropagation(); openPop(b);
+  }, true);
+  document.addEventListener('mousedown', e => { if (pop && !pop.contains(e.target) && !(e.target.closest && e.target.closest('.sp-opt'))) closePop(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pop) { e.stopPropagation(); closePop(); } }, true);
+
+  const mk = where => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ds-b ghost sp-opt'; b.setAttribute('data-sp', '1'); b.setAttribute('data-where', where);
+    b.innerHTML = '<i class="fa-solid fa-ellipsis"></i> Options'; return b;
+  };
+  const has = el => { const p = el.previousElementSibling; return !!(p && p.hasAttribute('data-sp')); };
+  const put = (el, where, cls) => { if (!el || has(el)) return; const b = mk(where); if (cls) b.classList.add(cls); el.insertAdjacentElement('beforebegin', b); };
+
+  function scan() {
+    put(document.getElementById('ntSend'), 'notification');
+    put(document.getElementById('tkSend'), 'task');
+    put(document.getElementById('moSend'), 'monthly');
+    document.querySelectorAll('.ds-ov .ds-box [data-done]').forEach(d => put(d, 'text', 'sp-hd'));
+    document.querySelectorAll('button[onclick^="dsItemSave("]').forEach(d => put(d, 'slot'));
+  }
+  let q = 0;
+  const sched = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { scan(); } catch (e) { console.warn('[options]', e); } }); };
+  const start = () => { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); scan(); };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
