@@ -4345,35 +4345,31 @@ body.light-theme .upn{color:#92400e}
   };
 })();
 /* ==========================================================
-   Options (student side) - Part 1: Reply   (paste at the END of dashboard.js)
-   - a small round "Options" button on every task / dandana row, every notification and the Notes / TEFL / QOL pop-up
-   - press and HOLD it: the options fan out on a half circle, slide your finger to one and let go (a plain tap opens the same fan)
-   - Reply opens: Text (title + message) / Photo / Voice / Link, each with Normal or Urgent
-   - DEMO ONLY: nothing is saved or sent anywhere, no database calls. It just answers "Sent".
+   Options (student side) - icons under the content   (paste at the END of dashboard.js)
+   REPLACES the earlier "Options (student side) - Part 1" block: delete that block first, then paste this one.
+   - small icon-only buttons (no background, no text) right under the written content, above "Understood":
+       Reply (curved arrow) / Copy / Share
+   - on every notification, task / dandana row and the Notes / TEFL / QOL pop-up
+   - Copy and Share work for real on the device (no database). Reply opens Text / Photo / Voice / Link and only says "Sent" (demo, nothing stored).
    ========================================================== */
 (function () {
   if (window.__opx) return; window.__opx = 1;
 
   const L = {
-    en: { opt: 'Options', reply: 'Reply', how: 'How do you want to reply?', text: 'Text', photo: 'Photo', voice: 'Voice', link: 'Link', title: 'Title', msg: 'Message', url: 'Paste the link (https://...)', normal: 'Normal', urgent: 'Urgent', send: 'Send', back: 'Back', rec: 'Record', stop: 'Stop', again: 'Record again', pick: 'Choose a photo', pickA: 'Choose an audio file', needText: 'Write something first', needPhoto: 'Choose a photo first', needVoice: 'Record a voice note first', needLink: 'Paste a valid link (https://...)', sent: 'Sent ✓ (demo)', nomic: 'Microphone not available. Choose an audio file instead.' },
-    ar: { opt: 'خيارات', reply: 'رد', how: 'كيف تريد أن ترد؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'رابط', title: 'العنوان', msg: 'الرسالة', url: 'الصق الرابط (https://...)', normal: 'عادي', urgent: 'عاجل', send: 'إرسال', back: 'رجوع', rec: 'تسجيل', stop: 'إيقاف', again: 'إعادة التسجيل', pick: 'اختر صورة', pickA: 'اختر ملفًا صوتيًا', needText: 'اكتب شيئًا أولًا', needPhoto: 'اختر صورة أولًا', needVoice: 'سجّل رسالة صوتية أولًا', needLink: 'الصق رابطًا صحيحًا (https://...)', sent: 'تم الإرسال ✓ (تجريبي)', nomic: 'الميكروفون غير متاح. اختر ملفًا صوتيًا بدلًا منه.' },
-    eg: { opt: 'خيارات', reply: 'ريبلاي', how: 'عايز تردّ إزاي؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'لينك', title: 'العنوان', msg: 'الرسالة', url: 'الزق اللينك (https://...)', normal: 'عادي', urgent: 'مستعجل', send: 'ابعت', back: 'رجوع', rec: 'سجّل', stop: 'وقّف', again: 'سجّل تاني', pick: 'اختار صورة', pickA: 'اختار ملف صوت', needText: 'اكتب حاجة الأول', needPhoto: 'اختار صورة الأول', needVoice: 'سجّل صوت الأول', needLink: 'الزق لينك صحيح (https://...)', sent: 'اتبعت ✓ (تجريبي)', nomic: 'الميكروفون مش شغال. اختار ملف صوت بدل منه.' }
+    en: { reply: 'Reply', copy: 'Copy', share: 'Share', copied: 'Copied ✓', how: 'How do you want to reply?', text: 'Text', photo: 'Photo', voice: 'Voice', link: 'Link', title: 'Title', msg: 'Message', url: 'Paste the link (https://...)', normal: 'Normal', urgent: 'Urgent', send: 'Send', back: 'Back', rec: 'Record', stop: 'Stop', again: 'Record again', pick: 'Choose a photo', pickA: 'Choose an audio file', needText: 'Write something first', needPhoto: 'Choose a photo first', needVoice: 'Record a voice note first', needLink: 'Paste a valid link (https://...)', sent: 'Sent ✓ (demo)', nomic: 'Microphone not available. Choose an audio file instead.' },
+    ar: { reply: 'رد', copy: 'نسخ', share: 'مشاركة', copied: 'تم النسخ ✓', how: 'كيف تريد أن ترد؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'رابط', title: 'العنوان', msg: 'الرسالة', url: 'الصق الرابط (https://...)', normal: 'عادي', urgent: 'عاجل', send: 'إرسال', back: 'رجوع', rec: 'تسجيل', stop: 'إيقاف', again: 'إعادة التسجيل', pick: 'اختر صورة', pickA: 'اختر ملفًا صوتيًا', needText: 'اكتب شيئًا أولًا', needPhoto: 'اختر صورة أولًا', needVoice: 'سجّل رسالة صوتية أولًا', needLink: 'الصق رابطًا صحيحًا (https://...)', sent: 'تم الإرسال ✓ (تجريبي)', nomic: 'الميكروفون غير متاح. اختر ملفًا صوتيًا بدلًا منه.' },
+    eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', how: 'عايز تردّ إزاي؟', text: 'نص', photo: 'صورة', voice: 'صوت', link: 'لينك', title: 'العنوان', msg: 'الرسالة', url: 'الزق اللينك (https://...)', normal: 'عادي', urgent: 'مستعجل', send: 'ابعت', back: 'رجوع', rec: 'سجّل', stop: 'وقّف', again: 'سجّل تاني', pick: 'اختار صورة', pickA: 'اختار ملف صوت', needText: 'اكتب حاجة الأول', needPhoto: 'اختار صورة الأول', needVoice: 'سجّل صوت الأول', needLink: 'الزق لينك صحيح (https://...)', sent: 'اتبعت ✓ (تجريبي)', nomic: 'الميكروفون مش شغال. اختار ملف صوت بدل منه.' }
   };
   const T = () => L[(typeof lang === 'string' && lang) || 'en'] || L.en;
   const RTL = () => typeof lang === 'string' && lang !== 'en';
-  /* the one shared list: every Options button offers all of these (more get added here later) */
-  const OPTS = [{ id: 'reply', icon: 'fa-reply', label: () => T().reply }];
+  /* the one shared list (same order and ids as the admin panel's SP_OPTIONS) */
+  const OPTS = [{ id: 'reply', icon: 'fa-solid fa-reply' }, { id: 'copy', icon: 'fa-regular fa-copy' }, { id: 'share', icon: 'fa-solid fa-share-nodes' }];
 
   const css = document.createElement('style'); css.id = 'opxCss';
   css.textContent = `
-.opx-b{width:28px;height:28px;border-radius:50%;border:1px solid rgba(148,163,184,.5);background:rgba(15,23,42,.6);color:#e2e8f0;display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex:none;margin-inline-start:auto;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.opx-b:active{background:rgba(31,182,255,.35)}
-.opx-row{display:flex;justify-content:flex-end;margin-top:8px}
-.opx-fan{position:fixed;inset:0;z-index:2147483000;background:rgba(2,6,23,.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);touch-action:none}
-.opx-o{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(30,41,59,.92);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .12s,background .12s;animation:opxPop .16s ease-out}
-.opx-o small{font-size:9px;margin-top:1px;font-weight:700}
-.opx-o.hot{transform:scale(1.22);background:rgb(31,182,255);color:#06283d}
-@keyframes opxPop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.opx-bar{display:flex;align-items:center;gap:2px;margin-top:6px}
+.opx-i{background:none;border:0;padding:6px 10px;color:inherit;opacity:.7;font-size:16px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.opx-i:hover{opacity:1}.opx-i:active{opacity:1;transform:scale(.88)}
 .opx-sh{position:fixed;inset:0;z-index:2147483001;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;padding:14px}
 .opx-card{width:min(420px,100%);max-height:88vh;overflow:auto;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
 .opx-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -4404,64 +4400,37 @@ textarea.opx-in{min-height:110px;resize:vertical}
     const t = document.createElement('div'); t.className = 'opx-toast'; t.textContent = m; document.body.appendChild(t);
     setTimeout(() => t.remove(), 2200);
   }
-
-  /* ---------- the half-circle fan ---------- */
-  let fan = null, press = null;
-  function closeFan() { if (fan) { fan.remove(); fan = null; } }
+  const txt = el => el ? (el.innerText || el.textContent || '').trim() : '';
+  /* what the icons act on: the title + written content of the item / notification / pop-up they sit under */
   function ctxOf(btn) {
-    const it = btn.closest('.itm'); if (it) { const b = it.querySelector('.ith b'); return b ? b.textContent.trim() : ''; }
-    const nf = btn.closest('.pc.nf'); if (nf) { const h = nf.querySelector('.nth'); return h ? h.textContent.trim() : ''; }
-    const t = document.getElementById('mT'); return t && btn.closest('#mdl') ? t.textContent.trim() : '';
+    const it = btn.closest('.itm'); if (it) return { title: txt(it.querySelector('.ith b')), text: [txt(it.querySelector('.ith b')), txt(it.querySelector('.itd'))].filter(Boolean).join('\n') };
+    const nf = btn.closest('.pc.nf'); if (nf) return { title: txt(nf.querySelector('.nth')), text: [txt(nf.querySelector('.nth')), txt(nf.querySelector('.nfb .rich'))].filter(Boolean).join('\n') };
+    if (btn.closest('#mdl')) return { title: txt(document.getElementById('mT')), text: [txt(document.getElementById('mT')), txt(document.getElementById('mB'))].filter(Boolean).join('\n') };
+    return { title: '', text: '' };
   }
-  function showFan(btn) {
-    closeFan();
-    const r = btn.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, up = cy > 170, n = OPTS.length, R = 84;
-    fan = document.createElement('div'); fan.className = 'opx-fan'; fan._btn = btn; fan._ctx = ctxOf(btn);
-    OPTS.forEach((o, i) => {
-      const a = (n === 1 ? 90 : 20 + i * (140 / (n - 1))) * Math.PI / 180;
-      let x = cx + Math.cos(a) * R, y = cy + (up ? -1 : 1) * Math.sin(a) * R;
-      x = Math.min(Math.max(x, 34), innerWidth - 34); y = Math.min(Math.max(y, 34), innerHeight - 34);
-      const d = document.createElement('div'); d.className = 'opx-o'; d.setAttribute('data-id', o.id); d.setAttribute('role', 'button');
-      d.style.left = (x - 28) + 'px'; d.style.top = (y - 28) + 'px';
-      d.innerHTML = `<i class="fa-solid ${o.icon}"></i><small>${o.label()}</small>`;
-      fan.appendChild(d);
-    });
-    fan.addEventListener('pointerdown', e => { if (!e.target.closest('.opx-o')) closeFan(); });
-    fan.addEventListener('click', e => { const o = e.target.closest('.opx-o'); if (o) choose(o.getAttribute('data-id')); });
-    document.body.appendChild(fan);
+  async function copyText(s) {
+    try { await navigator.clipboard.writeText(s); return true; } catch (e) { }
+    try { const a = document.createElement('textarea'); a.value = s; a.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
   }
-  function hover(x, y) {
-    if (!fan) return null; let hit = null;
-    fan.querySelectorAll('.opx-o').forEach(o => {
-      const b = o.getBoundingClientRect(), on = Math.hypot(x - (b.left + 28), y - (b.top + 28)) < 40;
-      o.classList.toggle('hot', on); if (on) hit = o;
-    });
-    return hit;
+  async function act(id, btn) {
+    const c = ctxOf(btn);
+    if (id === 'reply') return openReply(c.title, btn);
+    if (id === 'copy') { if (await copyText(c.text)) toast(T().copied); return; }
+    if (id === 'share') {
+      if (navigator.share) { try { await navigator.share({ text: c.text }); } catch (e) { } return; }
+      if (await copyText(c.text)) toast(T().copied);
+    }
   }
-  function choose(id) { const c = fan ? fan._ctx : ''; closeFan(); if (id === 'reply') openReply(c); }
-
-  window.addEventListener('pointerdown', e => {
-    const b = e.target && e.target.closest && e.target.closest('.opx-b'); if (!b) return;
-    e.stopPropagation();
-    press = { btn: b, long: false, timer: setTimeout(() => { if (press) { press.long = true; showFan(b); } }, 380) };
+  /* capture phase: nothing underneath (notification fold, row check...) reacts to these icons */
+  window.addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('.opx-i'); if (!b) return;
+    e.preventDefault(); e.stopImmediatePropagation(); act(b.getAttribute('data-id'), b);
   }, true);
-  window.addEventListener('pointermove', e => { if (press && press.long) hover(e.clientX, e.clientY); }, true);
-  window.addEventListener('pointerup', e => {
-    if (!press) return; const p = press; press = null; clearTimeout(p.timer);
-    if (p.long) { const h = hover(e.clientX, e.clientY); if (h) choose(h.getAttribute('data-id')); }
-    else showFan(p.btn);                                   /* plain tap: same fan, tap an option */
-  }, true);
-  window.addEventListener('pointercancel', () => { if (press) { clearTimeout(press.timer); press = null; } }, true);
-  window.addEventListener('click', e => {                  /* nothing underneath (notification fold, row check...) reacts to the button */
-    if (e.target && e.target.closest && e.target.closest('.opx-b')) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, true);
-  window.addEventListener('contextmenu', e => { if (e.target && e.target.closest && e.target.closest('.opx-b')) e.preventDefault(); }, true);
-  window.addEventListener('keydown', e => { if (e.key === 'Escape') { if (fan) closeFan(); } }, true);
 
   /* ---------- Reply sheet (demo: nothing is stored) ---------- */
   let sheet = null, cleanup = null;
   function closeSheet() { if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; } if (sheet) { sheet.remove(); sheet = null; } }
-  function openReply(context) {
+  function openReply(context, srcBtn) {
     closeSheet();
     const t = T();
     let type = null, urg = 'normal', file = null, url = null, stream = null, mr = null, chunks = [], voice = null, secs = 0, tick = null;
@@ -4525,27 +4494,34 @@ textarea.opx-in{min-height:110px;resize:vertical}
         if (type === 'link' && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(card.querySelector('#opxLk').value.trim())) bad = t.needLink;
         if (bad) { toast(bad); return; }
         closeSheet(); toast(t.sent);                      /* demo: nothing is saved or sent */
+        /* replied to a notification = same as pressing "Understood": it goes away and stays away on this device */
+        const pc = srcBtn && srcBtn.closest && srcBtn.closest('.pc.nf');
+        if (pc && pc.isConnected && typeof thn_ackCard === 'function') setTimeout(() => { try { thn_ackCard(pc); } catch (e) { } }, 400);
       };
     }
     paint(); document.body.appendChild(ov);
   }
 
-  /* ---------- put the button everywhere the trainer's stuff shows ---------- */
-  const mk = () => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'opx-b';
-    b.setAttribute('aria-label', T().opt); b.title = T().opt; b.innerHTML = '<i class="fa-solid fa-ellipsis"></i>'; return b;
+  /* ---------- put the icon row under the written content, everywhere the trainer's stuff shows ---------- */
+  const bar = () => {
+    const w = document.createElement('div'); w.className = 'opx-bar';
+    w.innerHTML = OPTS.map(o => `<button type="button" class="opx-i" data-id="${o.id}" aria-label="${T()[o.id]}" title="${T()[o.id]}"><i class="${o.icon}"></i></button>`).join('');
+    return w;
   };
   function scan() {
-    document.querySelectorAll('.itm').forEach(it => { if (it.querySelector('.opx-b')) return; const h = it.querySelector('.ith'); if (h) h.appendChild(mk()); });
-    document.querySelectorAll('.pc.nf .nfb').forEach(nb => {
-      if (nb.querySelector('.opx-b')) return;
-      const w = document.createElement('div'); w.className = 'opx-row'; w.appendChild(mk()); nb.insertBefore(w, nb.querySelector('.ackb') || null);
+    document.querySelectorAll('.itm').forEach(it => {
+      if (it.querySelector('.opx-bar')) return;
+      const anchor = it.querySelector('.itd') || it.querySelector('.ith'); if (anchor && anchor.parentNode) anchor.insertAdjacentElement('afterend', bar());
     });
-    const m = document.getElementById('mdl'), mt = document.getElementById('mT');
-    if (m && mt && m.classList.contains('open') && !m.querySelector('.opx-b')) mt.insertAdjacentElement('afterend', mk());
+    document.querySelectorAll('.pc.nf .nfb').forEach(nb => {
+      if (nb.querySelector('.opx-bar')) return;
+      nb.insertBefore(bar(), nb.querySelector('.ackb') || null);          /* between the text and "Understood" */
+    });
+    const m = document.getElementById('mdl'), mb = document.getElementById('mB');
+    if (m && mb && !m.querySelector('.opx-bar')) mb.insertAdjacentElement('afterend', bar());
   }
   let q = 0;
   const sched = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { scan(); } catch (e) { console.warn('[options]', e); } }); };
-  const start = () => { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }); scan(); };
+  const start = () => { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); scan(); };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
