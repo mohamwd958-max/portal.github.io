@@ -2056,18 +2056,19 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed', 'msgr'];
+const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed', 'msgr', 'edit'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
 }
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
+  if (edit && !edit.dataset.bk) edit.dataset.bk = 'edit';   // the settings gear can be moved like the other buttons
   bar.querySelectorAll(':scope > [data-bk]').forEach(e => els[e.dataset.bk] = e);
   bar.querySelectorAll(':scope > .bar-divider').forEach(d => d.remove());
   const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden);
   list.forEach((e, i) => { bar.appendChild(e); if (i < list.length - 1) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); } });
-  const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit);
+  if (edit && !list.includes(edit)) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit); }
 }
 (function () {
   const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
@@ -4502,7 +4503,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span>';
     b.querySelector('.thl').textContent = lbl();
     b.onclick = e => { e.stopPropagation(); build(); M.nested = false; setMode(M.mode === 'open' ? 'closed' : 'open'); };   /* from the bar: never a tab */
-    f.insertAdjacentElement('afterend', b); return true;
+    f.insertAdjacentElement('afterend', b); try { if (typeof layoutBar === 'function') layoutBar(); } catch (e) { } return true;
   }
   { let n = 0; const iv = setInterval(() => { if (installDove() || ++n > 120) clearInterval(iv); }, 500); }
   setInterval(() => { const l = document.querySelector('#mgrBtn .thl'); if (l && l.textContent !== lbl()) { l.textContent = lbl(); const b = document.getElementById('mgrBtn'); b.title = lbl(); } }, 2000);
@@ -4728,4 +4729,92 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
 
   /* ---------- Theme / Language / Account buttons never show on the bar (inline !important beats every stylesheet) ---------- */
   setInterval(() => ['floatBtnTheme', 'profBtn', 'langBtn'].forEach(id => { const b = document.getElementById(id); if (b && b.style.getPropertyValue('display') !== 'none') b.style.setProperty('display', 'none', 'important'); }), 400);
+})();
+
+/* ===== Refresh skeleton: Reload button -> frozen screen, every card gets a "Thabit" box with a light sweeping left->right, the bar icons become small boxes that glow one after another; data reloads behind it, nothing moves ===== */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+html.thsk-on #mobileFloatingBar>*{visibility:hidden!important}
+#thSkShield{position:fixed;inset:0;z-index:2147483600;background:transparent;touch-action:none;-webkit-user-select:none;user-select:none}
+#thSkDoc{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483500;pointer-events:none}
+#thSkFix{position:fixed;left:0;top:0;width:0;height:0;z-index:2147483550;pointer-events:none}
+.thsk{position:absolute;box-sizing:border-box;overflow:hidden;direction:ltr;display:flex;align-items:center;justify-content:center;background:#262b31;color:#7b838c}
+.thsk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);animation:thskS 1.15s ease-in-out infinite}
+.thsk .thskL{position:relative;max-width:55%;max-height:46%;width:auto;height:auto;opacity:.38;filter:grayscale(1)}
+.thsk .thskT{position:relative;font-weight:800;font-size:clamp(18px,5vw,30px);line-height:1;opacity:.38}
+.thsk.thsk-bar{position:fixed;border-radius:9px}
+.thsk.thsk-bar::after{display:none}
+.thsk.thsk-bar{background:#2b3138;opacity:.28;animation:thskP var(--d,1.4s) ease-in-out infinite;animation-delay:var(--dl,0s)}
+html.thsk-l .thsk{background:#dde1e6;color:#8a929b}
+html.thsk-l .thsk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)}
+html.thsk-l .thsk.thsk-bar{background:#cdd3da}
+@keyframes thskS{to{transform:translateX(100%)}}
+@keyframes thskP{0%{opacity:.28;transform:scale(1);box-shadow:0 0 0 rgba(255,255,255,0)}9%{opacity:1;transform:scale(1.08);box-shadow:0 0 14px rgba(255,255,255,.4)}24%{opacity:.28;transform:scale(1);box-shadow:0 0 0 rgba(255,255,255,0)}100%{opacity:.28}}
+@media(prefers-reduced-motion:reduce){.thsk::after{animation-duration:2.4s}}`;
+  document.head.appendChild(st);
+
+  let busy = false, shield = null, docL = null, fixL = null, kd = null;
+  const isLight = () => document.body.classList.contains('light-theme');
+  const logoNode = () => {
+    const h = document.querySelector('.thHdr'); if (!h) return null;
+    const g = h.querySelector('img,svg'); if (!g) return null;
+    const c = g.cloneNode(true); c.removeAttribute('id'); c.removeAttribute('onclick'); c.removeAttribute('style'); c.removeAttribute('width'); c.removeAttribute('height'); c.classList.add('thskL'); return c;
+  };
+  const vis = el => { const r = el.getBoundingClientRect(); return r.width > 24 && r.height > 24 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('#mobileFloatingBar,#thDet,#pop,#asm,#dock,.thHdr'); };
+  function cards() {
+    const set = [...document.querySelectorAll('.thabit-card,.test-card,#kpis>*,#overall>*,#lists>*,#lists2>*')].filter(vis);
+    return set.filter(el => !set.some(o => o !== el && o.contains(el)));
+  }
+  function build() {
+    const R = document.documentElement, sx = scrollX, sy = scrollY, light = isLight();
+    R.classList.toggle('thsk-l', light);
+    docL = document.createElement('div'); docL.id = 'thSkDoc';
+    cards().forEach(el => {
+      const r = el.getBoundingClientRect(), b = document.createElement('div'); b.className = 'thsk';
+      b.style.cssText = `left:${r.left + sx}px;top:${r.top + sy}px;width:${r.width}px;height:${r.height}px;border-radius:${getComputedStyle(el).borderRadius || '14px'}`;
+      const lg = logoNode();
+      if (lg) b.appendChild(lg); else { const t = document.createElement('span'); t.className = 'thskT'; t.textContent = (typeof lang === 'string' && lang === 'en') ? 'Thabit' : 'ثابت'; b.appendChild(t); }
+      docL.appendChild(b);
+    });
+    fixL = document.createElement('div'); fixL.id = 'thSkFix';
+    const bar = $('mobileFloatingBar');
+    const its = bar ? [...bar.querySelectorAll(':scope > [data-bk]')].filter(e => !e.hidden && e.getBoundingClientRect().width > 4) : [];
+    const per = 0.17, dur = Math.max(1.3, its.length * per + 0.55);
+    its.forEach((e, i) => {
+      const r = e.getBoundingClientRect(), s = Math.min(26, r.width - 6, r.height - 6), b = document.createElement('div'); b.className = 'thsk thsk-bar';
+      b.style.cssText = `left:${r.left + (r.width - s) / 2}px;top:${r.top + (r.height - s) / 2}px;width:${s}px;height:${s}px;--d:${dur}s;--dl:${(i * per).toFixed(2)}s`;
+      fixL.appendChild(b);
+    });
+    shield = document.createElement('div'); shield.id = 'thSkShield';
+    const stop = e => { e.preventDefault(); e.stopPropagation(); };
+    ['touchmove', 'wheel', 'touchstart', 'pointerdown', 'click', 'contextmenu'].forEach(ev => shield.addEventListener(ev, stop, { passive: false }));
+    kd = e => { if (e.key !== 'F5' && !(e.ctrlKey || e.metaKey)) e.preventDefault(); };
+    document.addEventListener('keydown', kd, true);
+    R.appendChild(docL); R.appendChild(fixL); R.appendChild(shield);
+    R.classList.add('thsk-on');
+  }
+  function destroy() {
+    [docL, fixL, shield].forEach(n => n && n.remove()); docL = fixL = shield = null;
+    document.documentElement.classList.remove('thsk-on');
+    if (kd) { document.removeEventListener('keydown', kd, true); kd = null; }
+  }
+  async function refresh() {
+    if (busy) return; busy = true;
+    const t0 = Date.now(), keep = range, sy = scrollY, sx = scrollX;
+    try { build(); } catch (e) { console.error('[skeleton]', e); }
+    try {
+      await load();
+      if (typeof thManual !== 'undefined' && thManual && range !== keep && typeof thOpts === 'function' && thOpts().includes(keep)) { range = keep; render(); }   // the range he picked himself stays
+    } catch (e) { console.error('[refresh]', e); }
+    await new Promise(r => setTimeout(r, Math.max(0, 1400 - (Date.now() - t0))));
+    try { scrollTo(sx, sy); } catch (e) {}
+    destroy(); busy = false;
+  }
+  const bar = $('mobileFloatingBar');
+  if (bar) bar.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-bk="reload"]'); if (!b) return;
+    e.stopImmediatePropagation(); e.preventDefault(); refresh();
+  }, true);
+  window.thRefresh = refresh;
 })();
