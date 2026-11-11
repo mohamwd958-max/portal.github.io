@@ -4154,28 +4154,28 @@ body.light-theme #thPush{background:#fff;color:#0f172a;border-color:rgba(15,23,4
   const X = {
     en: { lib: 'Library', aud: 'Audio', img: 'Images', search: 'Search by task or day…', none: 'Nothing here yet', dl: 'Download', sh: 'Share', copied: 'Link copied ✓', fail: 'Could not load your library', loading: 'Loading…', task: 'Task',
           nImg: 'Important: the photo must be clear and every word readable. Mind the lighting and keep the writing sharp, because I will grade it from the photo.',
-          nAud: 'Make sure you record in a quiet place so your voice comes out 100% clear.', drag: 'Drag anything here' },
+          nAud: 'Make sure you record in a quiet place so your voice comes out 100% clear.', drag: 'Drag anything here', lnk: 'Links', dew: 'Dew Words', pend: 'Not sent yet', me: 'You', trn: 'Trainer', cp: 'Copy', cpd: 'Copied ✓' },
     ar: { lib: 'المكتبة', aud: 'الصوت', img: 'الصور', search: 'ابحث باسم المهمة أو اليوم…', none: 'لا يوجد شيء بعد', dl: 'تحميل', sh: 'مشاركة', copied: 'تم نسخ الرابط ✓', fail: 'تعذر تحميل المكتبة', loading: 'جاري التحميل…', task: 'مهمة',
           nImg: 'مهم: يجب أن تكون الصورة واضحة والكلام كله مقروء. راعِ الإضاءة وأن تظهر الكلمات بوضوح لأنني سأقيّمها من الصورة.',
-          nAud: 'تأكد أنك تسجل في مكان هادئ حتى يخرج صوتك واضحًا 100%.', drag: 'اسحب أي ملف هنا' },
+          nAud: 'تأكد أنك تسجل في مكان هادئ حتى يخرج صوتك واضحًا 100%.', drag: 'اسحب أي ملف هنا', lnk: 'الروابط', dew: 'Dew Words', pend: 'لم يُرسل بعد', me: 'أنت', trn: 'المدرب', cp: 'نسخ', cpd: 'تم النسخ ✓' },
     eg: { lib: 'المكتبة', aud: 'الصوت', img: 'الصور', search: 'دوّر باسم التاسك أو اليوم…', none: 'لسه مفيش حاجة', dl: 'تحميل', sh: 'مشاركة', copied: 'اللينك اتنسخ ✓', fail: 'معرفناش نحمّل المكتبة', loading: 'بيتحمّل…', task: 'تاسك',
           nImg: 'مهم: الصورة لازم تبقى واضحة والكلام كله مقروء. راعي الإضاءة وإن الكلمات تبان بوضوح عشان أنا اللي هقيّمها.',
-          nAud: 'اتأكد إنك بتسجل في مكان هادي عشان صوتك يطلع واضح 100%.', drag: 'اسحب أي حاجة هنا' }
+          nAud: 'اتأكد إنك بتسجل في مكان هادي عشان صوتك يطلع واضح 100%.', drag: 'اسحب أي حاجة هنا', lnk: 'اللينكات', dew: 'Dew Words', pend: 'لسه ما اتبعتش', me: 'أنت', trn: 'المدرب', cp: 'كوبي', cpd: 'اتنسخ ✓' }
   };
   const T = () => X[lang] || X.en;
   const LIB = { rows: [], tab: 'audio', q: '', view: [] };
 
   const st = document.createElement('style');
   st.textContent = `
-#thLib{position:fixed;inset:0;z-index:10090;display:none;align-items:center;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+#thLib{position:fixed;inset:0;z-index:2147483100;display:none;align-items:center;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(2,6,23,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 #thLib.open{display:flex}
 #thLib .lb{box-sizing:border-box;width:min(560px,100%);height:min(86vh,720px);display:flex;flex-direction:column;border-radius:22px;padding:14px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.16);box-shadow:0 20px 60px rgba(0,0,0,.5)}
 body.light-theme #thLib .lb{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
 #thLib .lh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 #thLib .lh b{flex:1;font-size:1.05rem}
 #thLib .lx{width:32px;height:32px;border-radius:50%;border:0;background:rgba(148,163,184,.2);color:inherit;font-size:1.2rem;cursor:pointer}
-#thLib .lt{display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(148,163,184,.14);margin-bottom:10px}
-#thLib .lt button{flex:1;padding:8px 4px;border:0;border-radius:999px;background:transparent;color:inherit;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer}
+#thLib .lt{display:flex;overflow-x:auto;gap:4px;padding:3px;border-radius:999px;background:rgba(148,163,184,.14);margin-bottom:10px}
+#thLib .lt button{flex:1 0 auto;white-space:nowrap;padding:8px 10px;border:0;border-radius:999px;background:transparent;color:inherit;font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer}
 #thLib .lt button.on{background:#fbbf24;color:#111}
 #thLib .lq{width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.4);background:rgba(148,163,184,.1);color:inherit;font:500 .9rem Inter,Cairo,sans-serif;outline:0}
 #thLib .ll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
@@ -4190,7 +4190,7 @@ body.light-theme #thLib .lb{background:#fff;color:#0f172a;border-color:rgba(15,2
 #thLib .lg button{position:relative;aspect-ratio:1;padding:0;border:1px solid rgba(148,163,184,.3);border-radius:12px;overflow:hidden;background:rgba(148,163,184,.1);cursor:pointer}
 #thLib .lg img{width:100%;height:100%;object-fit:cover;display:block}
 #thLib .le{text-align:center;opacity:.6;padding:30px 0;font-size:.85rem}
-#thLibV{position:fixed;inset:0;z-index:10095;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px;background:rgba(2,6,23,.92)}
+#thLibV{position:fixed;inset:0;z-index:2147483101;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px;background:rgba(2,6,23,.92)}
 #thLibV.open{display:flex}
 #thLibV img{max-width:100%;max-height:76vh;border-radius:12px;object-fit:contain}
 #thLibV .la{display:flex;gap:8px;color:#f1f5f9}
@@ -4215,10 +4215,35 @@ body.light-theme .upn{color:#92400e}
   const timeLbl = r => { try { return new Date(r.created_at).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'ar-EG', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Cairo' }); } catch (e) { return ''; } };
   const ext = r => (String(r.path).match(/\.([a-z0-9]+)$/i) || [0, r.kind === 'audio' ? 'webm' : 'jpg'])[1];
 
+  function paintText(tab, q, t) {
+    let rows = [];
+    if (tab === 'links') {
+      const seen = new Set();
+      ((window.thMessenger && thMessenger.msgs && thMessenger.msgs()) || []).forEach(m => {
+        const body = String(m.body || ''), urls = m.kind === 'link' ? [body.trim()] : (body.match(/https?:\/\/[^\s<>"']+/gi) || []);
+        urls.forEach(u => { if (!/^https?:\/\//i.test(u)) return; const k = m.id + '|' + u; if (seen.has(k)) return; seen.add(k); rows.push({ created_at: m.created_at, text: u, url: u, who: m.sender === 'trainer' ? t.trn : t.me }); });
+      });
+    } else rows = ((window.thDew && thDew.rows && thDew.rows()) || []).map(r => ({ created_at: r.created_at, text: r.text, source: r.source, pending: r.pending }));
+    rows = rows.filter(r => !q || `${r.text} ${r.source || ''} ${dayKey(r)} ${dayLbl(dayKey(r))}`.toLowerCase().includes(q))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    LIB.view = rows;
+    if (!rows.length) { $l('.ll').innerHTML = `<div class="le">${esc(t.none)}</div>`; return; }
+    let html = '', cur = '';
+    rows.forEach((r, i) => {
+      const k = dayKey(r); if (k !== cur) { cur = k; html += `<div class="ld">${esc(dayLbl(k))}</div>`; }
+      if (tab === 'links') html += `<div class="lc"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" dir="auto" style="color:#53bdeb;overflow-wrap:anywhere">${esc(r.text)}</a><br><small>${esc(r.who)} · ${esc(timeLbl(r))}</small></div>`;
+      else html += `<div class="lc"><b dir="auto" style="font-weight:600;line-height:1.7">${esc(r.text)}</b><small>${esc(timeLbl(r))}${r.source ? ' · ' + esc(r.source) : ''}${r.pending ? ' · ⏳ ' + esc(t.pend) : ''}</small>`
+        + `<div class="la"><button type="button" data-a="dcopy" data-i="${i}"><i class="fa-regular fa-copy"></i> ${esc(t.cp)}</button></div></div>`;
+    });
+    $l('.ll').innerHTML = html;
+  }
   function paint() {
-    const t = T(), kind = LIB.tab === 'audio' ? 'audio' : 'image', q = LIB.q.trim().toLowerCase();
+    const t = T(), tab = LIB.tab, q = LIB.q.trim().toLowerCase();
     $l('.lh b').textContent = t.lib; $l('.lq').placeholder = t.search;
-    $l('.lt').innerHTML = `<button type="button" data-t="audio" class="${LIB.tab === 'audio' ? 'on' : ''}"><i class="fa-solid fa-microphone"></i> ${t.aud}</button><button type="button" data-t="image" class="${LIB.tab === 'image' ? 'on' : ''}"><i class="fa-solid fa-image"></i> ${t.img}</button>`;
+    const tabs = [['audio', 'fa-microphone', t.aud], ['image', 'fa-image', t.img], ['links', 'fa-link', t.lnk], ['dew', 'fa-ear-listen', t.dew]];
+    $l('.lt').innerHTML = tabs.map(([k, ic, lb]) => `<button type="button" data-t="${k}" class="${tab === k ? 'on' : ''}"><i class="fa-solid ${ic}"></i> ${esc(lb)}</button>`).join('');
+    if (tab === 'links' || tab === 'dew') return paintText(tab, q, t);
+    const kind = tab === 'audio' ? 'audio' : 'image';
     LIB.view = LIB.rows.filter(r => r.kind === kind && (!q || `${r.title || ''} ${dayKey(r)} ${dayLbl(dayKey(r))}`.toLowerCase().includes(q)))
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     if (!LIB.view.length) { $l('.ll').innerHTML = `<div class="le">${esc(t.none)}</div>`; return; }
@@ -4264,23 +4289,26 @@ body.light-theme .upn{color:#92400e}
     const tb = e.target.closest('.lt [data-t]'); if (tb) { LIB.tab = tb.dataset.t; paint(); return; }
     const a = e.target.closest('[data-a]'); if (!a) return;
     const r = LIB.view[+a.dataset.i]; if (!r) return;
-    if (a.dataset.a === 'dl') dl(r); else if (a.dataset.a === 'sh') share(r); else showImg(+a.dataset.i);
+    if (a.dataset.a === 'dcopy') { try { navigator.clipboard.writeText(r.text); itToast(T().cpd); } catch (e) { } }
+    else if (a.dataset.a === 'dl') dl(r); else if (a.dataset.a === 'sh') share(r); else showImg(+a.dataset.i);
   });
   $l('.lq').addEventListener('input', e => { LIB.q = e.target.value; paint(); });
-  function closeLib() { ov.classList.remove('open'); vw.classList.remove('open'); ov.querySelectorAll('audio').forEach(a => { try { a.pause(); } catch (e) {} }); document.documentElement.style.overflow = ''; }
+  function closeLib() { ov.classList.remove('open'); vw.classList.remove('open'); ov.querySelectorAll('audio').forEach(a => { try { a.pause(); } catch (e) {} }); if (!document.body.classList.contains('thfp-open')) document.documentElement.style.overflow = ''; }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (vw.classList.contains('open')) vw.classList.remove('open'); else if (ov.classList.contains('open')) closeLib(); } });
 
-  async function openLib() {
+  async function openLib(tab) {
+    if (typeof tab === 'string') LIB.tab = tab;
     ov.classList.add('open'); document.documentElement.style.overflow = 'hidden';
     $l('.lq').value = LIB.q; paint(); $l('.ll').innerHTML = `<div class="le">${esc(T().loading)}</div>`;
+    if (window.thDew) thDew.refresh().then(() => { if (ov.classList.contains('open') && LIB.tab === 'dew') paint(); }).catch(() => { });
     try {
       const a = await rpc('trainee_library', { p_token: tok() });
       if (!Array.isArray(a)) throw new Error('bad');
       LIB.rows = a;
-    } catch (e) { $l('.ll').innerHTML = `<div class="le">${esc(T().fail)}</div>`; return; }
+    } catch (e) { if (LIB.tab === 'audio' || LIB.tab === 'image') { $l('.ll').innerHTML = `<div class="le">${esc(T().fail)}</div>`; return; } LIB.rows = []; }
     paint();
   }
-  window.openLibrary = openLib;
+  window.openLibrary = openLib; window.closeLibrary = closeLib;
 
   /* ---------- an item in the + menu ---------- */
   const _op = window.openPlus;
@@ -4367,6 +4395,8 @@ body.light-theme .upn{color:#92400e}
     eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', msgr: 'ميسنجر', ph: 'اكتب رسالة', rto: 'رد على', photo: 'صورة', link: 'لينك', shot: 'سكرين شوت', video: 'فيديو', min: 'تصغير', close: 'قفل' }
   };
   const T = () => L[(typeof lang === 'string' && lang) || 'en'] || L.en;
+  const LIBL = () => ({ en: 'Library', ar: 'المكتبة', eg: 'المكتبة' }[(typeof lang === 'string' && lang) || 'en'] || 'Library');
+  const LIBSVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
   const OPTS = [{ id: 'reply', icon: 'fa-solid fa-reply' }, { id: 'copy', icon: 'fa-regular fa-copy' }, { id: 'share', icon: 'fa-solid fa-share-nodes' }];
 
   const css = document.createElement('style'); css.id = 'opxCss';
@@ -4421,7 +4451,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="mgr-hb mgr-lib" data-lib aria-label="${LIBL()}" title="${LIBL()}">${LIBSVG}</button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
@@ -4443,6 +4473,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
+    q('[data-lib]').onclick = () => { if (window.openLibrary) window.openLibrary(); };
     el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
@@ -4671,7 +4702,9 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     back: () => { if (M.view === 'chat') { M.nested = false; setView('list'); } },      /* chat -> the list */
     hide: () => { M.nested = false; setMode('closed'); },                              /* closes it, the typed draft stays */
     suspend: on => { if (!el.pop) return; if (on && M.mode === 'open') { M.susp = true; el.pop.style.display = 'none'; } else if (M.susp) { M.susp = false; if (M.mode === 'open') el.pop.style.display = 'flex'; } },
-    name: () => TN()
+    name: () => TN(),
+    msgs: () => M.msgs.slice(),
+    visible: () => M.mode === 'open' && !M.susp
   };
   /* presence: any sign of life (touch, mouse, key, scroll, copy...) in the last 10s = online. Never from the admin "view as" page. */
   let lastAct = Date.now();
@@ -4900,10 +4933,19 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
       d.lastChild.style.fontSize = (13 * f) + 'px'; d.lastChild.textContent = tr('This is how the text will look', 'هكذا سيبدو النص', 'كده شكل الكلام');
       return d;
     };
-    const opt = (key, val, label, icon) => ({ icon: icon || '', label, pick: () => { P[key] = val; }, selected: () => P[key] === val });
+    /* every change is applied and saved the moment it is picked (no Save button); a small message tells the student it was applied */
+    const applyNow = key => {
+      try {
+        if (key === 'theme') { if ((P.theme === 'light') !== isLight()) toggleTheme(); }
+        else if (key === 'size') { const o = { zoom: FS[P.size], bri: 1 }; try { localStorage.setItem(UI_KEY, JSON.stringify(o)); } catch (e) { } uiApply(o); }
+        else if (key === 'lang') { if (P.lang !== curLang()) setLanguage(P.lang); }
+        itToast(tr('Change applied ✓', 'تم تطبيق التغيير ✓', 'التغيير اتطبق ✓'));
+      } catch (e) { console.warn('[settings]', e); }
+    };
+    const opt = (key, val, label, icon) => ({ icon: icon || '', label, pick: () => { if (P[key] === val) return; P[key] = val; applyNow(key); }, selected: () => P[key] === val });
     panel({
       title: tr('Settings', 'الإعدادات', 'الإعدادات'), icon: '<i class="fa-solid fa-gear"></i>',
-      dirty: () => P.theme !== base.theme || P.lang !== base.lang || P.size !== base.size,
+      dirty: () => false,   /* nothing waits for a Save any more */
       discard: () => { },
       save: () => {
         if (P.theme !== base.theme) toggleTheme();
@@ -5002,6 +5044,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (on('rqn') || on('rqo')) k.push('rq2');
     if (on('thSet')) k.push('set');
     if (on('thCal')) k.push('cal');
+    if (on('thLib')) k.push('lib');
     return k;
   }
   function refresh() { const cur = openKeys(); order = order.filter(k => cur.includes(k)).concat(cur.filter(k => !order.includes(k))); }
@@ -5014,6 +5057,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
       else if (k === 'rq2') rqBack();
       else if (k === 'rq1') closeRq();
       else if (k === 'cal') window.closeCal && window.closeCal();
+      else if (k === 'lib') window.closeLibrary && window.closeLibrary();
       else if (k === 'set') { const x = document.querySelector('#thSet .tsx'); if (x) x.click(); }
     } catch (e) { console.warn('[fullpage] close', k, e); }
   }
@@ -5040,7 +5084,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
   let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thFpBar'];
+  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thFpBar', 'thLib', 'thLibV'];
   const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
   const hasKeep = e => !!e.querySelector('#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thFpBar,.mgr-pop');
   function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
@@ -5055,7 +5099,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     const top = order[order.length - 1], ph = PH();
     document.body.classList.toggle('thfp-open', ph && order.length > 0);
     lockPage(ph && order.length > 0);
-    if (window.thMessenger && thMessenger.suspend) thMessenger.suspend(ph && order.includes('mgr') && top !== 'mgr' && top !== 'mgrchat');
+    if (window.thMessenger && thMessenger.suspend) thMessenger.suspend(ph && order.includes('mgr') && top !== 'mgr' && top !== 'mgrchat' && top !== 'lib');
     if (!ph) return;
     const t = bar.querySelector('b'), tt = title(top); if (t.textContent !== tt) t.textContent = tt;
     const want = order.length + 1;
@@ -5165,4 +5209,294 @@ html.th-skel body #mobileFloatingBar>:nth-child(1){--sk:0}html.th-skel body #mob
     const k = page + '|' + name; if (k === last) return; last = k;
     const r = document.documentElement; r.classList.toggle('th-page', page); r.classList.toggle('th-name', name);
   }, 120);
+})();
+
+/* ==========================================================
+   Smart text selection + Dew Words (the ear button)      (appended at the END of dashboard.js)
+   - press and hold a word inside any text (notes, TEFL / QOL / FAQ pop-ups, task descriptions): it is selected
+   - two green handles: drag either one to stretch the selection (it snaps to whole words)
+   - while dragging, a small loupe above the finger shows exactly what is selected, from the first word to the last
+   - options appear next to the selection: Reply (opens the Messenger with the text quoted), Copy, Ear (sends it to Dew Words)
+   - Ear = saved for the trainer (admin panel > Dew Words) and for the student (Library > Dew Words)
+   - computers (mouse): the normal selection is kept, only the options bar appears
+   ========================================================== */
+(function () {
+  if (window.__thSel) return; window.__thSel = 1;
+
+  const lg = () => (typeof lang === 'string' && lang) || 'en';
+  const tr = (a, b, c) => { const l = lg(); return l === 'en' ? a : (l === 'ar' ? b : c); };
+  const say = m => { try { itToast(m); } catch (e) { } };
+  const ROOTS = ['#mB', '.pc.nf .rich', '.itm .itd'];
+  const SKIP = 'button,a,input,textarea,select,audio,video,.opx-bar,.earbar,.ear,[contenteditable="true"]';
+  const rootOf = n => { const e = n && (n.nodeType === 1 ? n : n.parentElement); if (!e || !e.closest) return null; for (const s of ROOTS) { const r = e.closest(s); if (r) return r; } return null; };
+  const coarse = () => matchMedia('(pointer:coarse)').matches;
+
+  const css = document.createElement('style'); css.id = 'thSelCss';
+  css.textContent = `
+@media (pointer:coarse){#mB,.pc.nf .rich,.itm .itd{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+#mB ::selection,.pc.nf .rich ::selection,.itm .itd ::selection{background:rgba(52,211,153,.35)}
+.thsel-ui{position:fixed;z-index:2147483200;-webkit-tap-highlight-color:transparent}
+.thsel-bar{z-index:2147483205}
+.thsel-hl{position:fixed;z-index:2147483190;pointer-events:none;background:rgba(52,211,153,.32);border-radius:3px;display:none}
+.thsel-h{width:44px;height:54px;touch-action:none;cursor:grab;display:none;flex-direction:column;align-items:center}
+.thsel-h i{display:block;width:2px;height:10px;background:#10b981}
+.thsel-h b{display:block;width:22px;height:22px;border-radius:50%;background:#10b981;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);box-sizing:border-box}
+.thsel-bar{display:none;align-items:center;gap:2px;padding:4px 6px;border-radius:14px;background:rgba(15,23,42,.97);color:#f1f5f9;border:1px solid rgba(255,255,255,.18);box-shadow:0 8px 24px rgba(0,0,0,.45);direction:ltr}
+.thsel-bar button{width:44px;height:38px;border:0;background:none;color:inherit;opacity:.85;font-size:16px;cursor:pointer;border-radius:10px}
+.thsel-bar button:active{opacity:1;background:rgba(255,255,255,.12)}
+body.light-theme .thsel-bar{background:rgba(255,255,255,.98);color:#0f172a;border-color:rgba(15,23,42,.16)}
+.thsel-loupe{position:fixed;z-index:2147483210;pointer-events:none;display:none;max-width:min(320px,88vw);box-sizing:border-box;padding:8px 12px;border-radius:14px;background:rgba(15,23,42,.98);color:#f1f5f9;border:2px solid #10b981;box-shadow:0 10px 30px rgba(0,0,0,.5);font:600 14px/1.5 Cairo,Inter,sans-serif;overflow-wrap:anywhere;text-align:start}
+.thsel-loupe mark{background:none;color:#34d399;font-weight:800;text-decoration:underline}
+body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
+.mgr-lib{display:flex;align-items:center;justify-content:center}
+.ittoast{z-index:2147483600!important}`;
+  document.head.appendChild(css);
+
+  /* ---------- words of a text area, in reading order ---------- */
+  const RTLRE = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+  const WORD = /[\p{L}\p{N}\p{M}]+(?:['’\-][\p{L}\p{N}\p{M}]+)*/gu;
+  function indexWords(root) {
+    const out = [], tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement && n.parentElement.closest(SKIP)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    let n;
+    while ((n = tw.nextNode())) {
+      const d = n.data; WORD.lastIndex = 0; let m;
+      while ((m = WORD.exec(d))) out.push({ n, s: m.index, e: m.index + m[0].length, rtl: RTLRE.test(m[0]), rc: null });
+    }
+    return out;
+  }
+  const rg = w => { const r = document.createRange(); r.setStart(w.n, w.s); r.setEnd(w.n, w.e); return r; };
+  const rectsOf = w => [...rg(w).getClientRects()].filter(r => r.width > 0 && r.height > 0);
+  function nearest(words, x, y, maxD) {
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < words.length; i++) {
+      const rs = words[i].rc || (words[i].rc = rectsOf(words[i]));
+      for (const r of rs) {
+        const dx = x < r.left ? r.left - x : (x > r.right ? x - r.right : 0), dy = y < r.top ? r.top - y : (y > r.bottom ? y - r.bottom : 0);
+        const d = Math.hypot(dx, dy * 2.5);
+        if (d < bd) { bd = d; best = i; if (d === 0) return best; }
+      }
+    }
+    return bd <= maxD ? best : -1;
+  }
+
+  /* ---------- state + the little pieces on screen ---------- */
+  let S = null, lp = null, swallow = 0, barEl = null, h0 = null, h1 = null, loupe = null;
+  const hlEls = [];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const textOf = () => {
+    if (!S) return ''; if (S.native) return S.text;
+    const w1 = S.words[S.a], w2 = S.words[S.b], r = document.createRange(); r.setStart(w1.n, w1.s); r.setEnd(w2.n, w2.e);
+    return r.toString().replace(/\s+/g, ' ').trim();
+  };
+
+  function mkHandle() {
+    const d = document.createElement('div'); d.className = 'thsel-ui thsel-h'; d.innerHTML = '<i></i><b></b>'; document.body.appendChild(d);
+    d.addEventListener('pointerdown', e => {
+      if (!S || S.native) return; e.preventDefault(); e.stopPropagation();
+      try { d.setPointerCapture(e.pointerId); } catch (x) { }
+      S.words.forEach(w => { w.rc = null; });
+      const side = S.hs[0] === d ? 'start' : 'end', anchor = side === 'start' ? S.b : S.a;
+      const w = S.words[side === 'start' ? S.a : S.b], rr = rectsOf(w), r = side === 'start' ? rr[0] : rr[rr.length - 1];
+      S.drag = { el: d, side, anchor, y0: e.clientY, mid: r ? (r.top + r.bottom) / 2 : e.clientY };
+      if (barEl) barEl.style.display = 'none';
+      layout(); showLoupe(e.clientX, e.clientY);
+    });
+    d.addEventListener('pointermove', e => {
+      if (!S || !S.drag || S.drag.el !== d) return; e.preventDefault();
+      const i = nearest(S.words, e.clientX, S.drag.mid + (e.clientY - S.drag.y0), Infinity);
+      if (i >= 0) { const a = S.drag.anchor; S.a = Math.min(i, a); S.b = Math.max(i, a); if (i < a) S.drag.side = 'start'; else if (i > a) S.drag.side = 'end'; layout(); }
+      showLoupe(e.clientX, e.clientY);
+    });
+    const end = () => { if (!S || !S.drag || S.drag.el !== d) return; S.drag = null; if (loupe) loupe.style.display = 'none'; layout(); };
+    d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+    return d;
+  }
+  function ensureUI() {
+    if (barEl) return;
+    barEl = document.createElement('div'); barEl.className = 'thsel-ui thsel-bar';
+    barEl.innerHTML = '<button type="button" data-k="reply"><i class="fa-solid fa-reply"></i></button><button type="button" data-k="copy"><i class="fa-regular fa-copy"></i></button><button type="button" data-k="ear"><i class="fa-solid fa-ear-listen"></i></button>';
+    barEl.addEventListener('mousedown', e => e.preventDefault());   /* keeps a mouse selection alive while the bar is used */
+    barEl.addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && S) act(b.dataset.k); });
+    /* touch: act on release too, so a quick tap right after dragging a handle is never lost (the click that follows finds nothing left to do) */
+    let dn = null;
+    barEl.addEventListener('pointerdown', e => { dn = e.target.closest && e.target.closest('button[data-k]'); });
+    barEl.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('button[data-k]'); if (e.pointerType !== 'mouse' && b && b === dn && S) act(b.dataset.k); dn = null; });
+    document.body.appendChild(barEl);
+    h0 = mkHandle(); h1 = mkHandle();
+  }
+  function clearSel() {
+    S = null; lp = null;
+    hlEls.forEach(d => { d.style.display = 'none'; });
+    if (barEl) barEl.style.display = 'none';
+    if (h0) { h0.style.display = 'none'; h1.style.display = 'none'; }
+    if (loupe) loupe.style.display = 'none';
+  }
+  function showLoupe(x, y) {
+    if (!S || !S.drag) return;
+    if (!loupe) { loupe = document.createElement('div'); loupe.className = 'thsel-loupe'; document.body.appendChild(loupe); }
+    const ws = textOf().split(' '), L = ws.length > 14 ? ws.slice(0, 6).concat(['…'], ws.slice(-6)) : ws, mi = S.drag.side === 'end' ? L.length - 1 : 0;
+    loupe.textContent = ''; loupe.dir = 'auto';
+    L.forEach((w, i) => { const el = document.createElement(i === mi ? 'mark' : 'span'); el.textContent = w + (i < L.length - 1 ? ' ' : ''); loupe.appendChild(el); });
+    loupe.style.display = 'block';
+    const w = loupe.offsetWidth, h = loupe.offsetHeight;
+    loupe.style.left = clamp(x - w / 2, 8, innerWidth - w - 8) + 'px';
+    loupe.style.top = (y - h - 70 < 8 ? y + 70 : y - h - 70) + 'px';
+  }
+
+  function lineRects() {
+    const rs = []; for (let i = S.a; i <= S.b; i++) rectsOf(S.words[i]).forEach(r => rs.push(r));
+    const out = [];
+    rs.forEach(r => {
+      const l = out[out.length - 1];
+      if (l && Math.abs(l.top - r.top) < 4 && Math.abs(l.bottom - r.bottom) < 6 && (r.left - l.right < 14 || l.left - r.right < 14)) { l.left = Math.min(l.left, r.left); l.right = Math.max(l.right, r.right); l.top = Math.min(l.top, r.top); l.bottom = Math.max(l.bottom, r.bottom); }
+      else out.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+    });
+    return out;
+  }
+  function placeBar(left, right, top, bottom) {
+    ensureUI(); barEl.style.display = 'flex';
+    const L = { reply: tr('Reply', 'رد', 'ريبلاي'), copy: tr('Copy', 'نسخ', 'كوبي'), ear: tr('Send to Dew Words', 'إرسال إلى Dew Words', 'ابعت لـ Dew Words') };
+    barEl.querySelectorAll('button').forEach(b => { b.title = L[b.dataset.k]; b.setAttribute('aria-label', L[b.dataset.k]); });
+    const w = barEl.offsetWidth, cx = (left + right) / 2, below = top - 56 < 8;
+    barEl.style.left = clamp(cx - w / 2, 8, innerWidth - w - 8) + 'px';
+    barEl.style.top = (below ? bottom + (S && S.native ? 8 : 62) : top - 52) + 'px';
+  }
+  function layout() {
+    if (!S) return;
+    if (S.native) {
+      const rc = S.range.getBoundingClientRect(); if (!rc.width && !rc.height) return clearSel();
+      placeBar(rc.left, rc.right, rc.top, rc.bottom); return;
+    }
+    if (!S.root.isConnected || !S.words[S.a].n.isConnected || !S.words[S.b].n.isConnected) return clearSel();
+    const lr = lineRects();
+    if (!lr.length) { hlEls.forEach(d => { d.style.display = 'none'; }); if (barEl) barEl.style.display = 'none'; h0.style.display = h1.style.display = 'none'; return; }
+    while (hlEls.length < lr.length) { const d = document.createElement('div'); d.className = 'thsel-hl'; document.body.appendChild(d); hlEls.push(d); }
+    hlEls.forEach((d, i) => { const r = lr[i]; if (!r) { d.style.display = 'none'; return; } d.style.cssText = `display:block;left:${r.left - 1}px;top:${r.top}px;width:${r.right - r.left + 2}px;height:${r.bottom - r.top}px`; });
+    /* which handle sits where (while dragging, the dragged one always stays on the side being moved) */
+    if (S.drag) { const o = S.drag.el === h0 ? h1 : h0; S.hs = S.drag.side === 'start' ? [S.drag.el, o] : [o, S.drag.el]; }
+    const fw = S.words[S.a], lw = S.words[S.b], fr = rectsOf(fw)[0], lrr = rectsOf(lw).slice(-1)[0];
+    if (fr && lrr) {
+      const sx = fw.rtl ? fr.right : fr.left, ex = lw.rtl ? lrr.left : lrr.right;
+      const put = (el, x, y) => { el.style.display = (y < -10 || y > innerHeight) ? 'none' : 'flex'; el.style.left = (x - 22) + 'px'; el.style.top = (y - 2) + 'px'; };
+      put(S.hs[0], sx, fr.bottom); put(S.hs[1], ex, lrr.bottom);
+    }
+    if (!S.drag) {
+      ensureUI();
+      placeBar(Math.min(...lr.map(r => r.left)), Math.max(...lr.map(r => r.right)), lr[0].top, lr[lr.length - 1].bottom);
+    }
+  }
+  let raf = 0; const soon = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; try { layout(); } catch (e) { } }); };
+  window.addEventListener('scroll', soon, true); window.addEventListener('resize', soon);
+  setInterval(() => { if (S) soon(); }, 400);
+
+  /* ---------- press and hold = select the word under the finger ---------- */
+  function fire() {
+    if (!lp) return; const { x, y, root } = lp; lp = null;
+    const words = indexWords(root); if (!words.length) return;
+    const i = nearest(words, x, y, 30); if (i < 0) return;
+    clearSel(); ensureUI();
+    S = { root, words, a: i, b: i, hs: [h0, h1], drag: null };
+    swallow = Infinity; try { navigator.vibrate && navigator.vibrate(12); } catch (e) { }
+    layout();
+  }
+  const cancelLp = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
+  document.addEventListener('pointerdown', e => {
+    if (e.target.closest && e.target.closest('.thsel-ui')) return;
+    cancelLp(); if (S) clearSel();
+    if (e.pointerType === 'mouse') return;
+    const root = rootOf(e.target); if (!root || (e.target.closest && e.target.closest(SKIP))) return;
+    lp = { x: e.clientX, y: e.clientY, root, t: setTimeout(fire, 430) };
+  }, true);
+  document.addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) cancelLp(); }, true);
+  ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { cancelLp(); if (swallow === Infinity) swallow = Date.now() + 500; }, true));
+  document.addEventListener('scroll', cancelLp, true);
+  /* the tap that ends a long press must not also open a word / play a recording underneath */
+  document.addEventListener('click', e => { if (Date.now() < swallow && !(e.target.closest && e.target.closest('.thsel-ui'))) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  document.addEventListener('contextmenu', e => { if (coarse() && rootOf(e.target)) e.preventDefault(); }, true);
+
+  /* ---------- computers: normal mouse selection, only the options bar is added ---------- */
+  document.addEventListener('pointerup', e => {
+    if (e.pointerType !== 'mouse') return;
+    setTimeout(() => {
+      const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+      const r = sel.getRangeAt(0), root = rootOf(r.commonAncestorContainer); if (!root) return;
+      const text = sel.toString().replace(/\s+/g, ' ').trim(); if (!text) return;
+      clearSel(); ensureUI(); S = { native: true, root, text, range: r.cloneRange() }; layout();
+    }, 0);
+  }, true);
+  document.addEventListener('selectionchange', () => { if (S && S.native) { const sel = window.getSelection(); if (!sel || sel.isCollapsed) clearSel(); } });
+
+  /* ---------- the options ---------- */
+  async function copyText(s) {
+    try { await navigator.clipboard.writeText(s); return true; } catch (e) { }
+    try { const a = document.createElement('textarea'); a.value = s; a.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
+  }
+  function sourceOf(root) {
+    const t = e => e ? String(e.innerText || e.textContent || '').trim() : '';
+    let s = '';
+    if (root.matches && root.matches('#mB')) s = t(document.getElementById('mT'));
+    else { const nf = root.closest('.pc.nf'); if (nf) s = t(nf.querySelector('.nth')); else { const it = root.closest('.itm'); if (it) s = t(it.querySelector('.ith b')); } }
+    return s.slice(0, 120);
+  }
+  async function act(k) {
+    if (!S) return;
+    const text = textOf(), src = sourceOf(S.root); clearSel();
+    if (!text) return;
+    if (k === 'reply') { if (window.thMessenger && thMessenger.open) thMessenger.open(text.length > 300 ? text.slice(0, 297) + '…' : text); }
+    else if (k === 'copy') { if (await copyText(text)) say(tr('Copied ✓', 'تم النسخ ✓', 'اتنسخ ✓')); }
+    else if (k === 'ear') { if (window.thDew) window.thDew.add(text, src); }
+  }
+
+  /* ---------- Dew Words: saved for the trainer (admin panel) and for the student (Library) ---------- */
+  const DK = 'thabit_dew_q';
+  const dq = () => { try { const a = JSON.parse(localStorage.getItem(DK) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  const dqSet = a => { try { localStorage.setItem(DK, JSON.stringify(a.slice(-100))); } catch (e) { } };
+  const DW = { rows: [], busy: false };
+  const viewOnly = () => { try { return !!VIEW; } catch (e) { return false; } };
+  async function flush() {
+    if (DW.busy) return false; DW.busy = true;
+    try {
+      if (viewOnly() || !tok()) return false;
+      for (const x of dq()) {
+        const r = await rpc('trainee_dew_save', { p_token: tok(), p_text: x.text, p_source: x.source || null, p_client_id: x.id }).catch(() => null);
+        if (!(r && r.ok)) return false;
+        dqSet(dq().filter(y => y.id !== x.id));
+        DW.rows.push({ id: r.id || x.id, client_id: x.id, text: x.text, source: x.source, created_at: r.created_at || x.at });
+      }
+      return true;
+    } finally { DW.busy = false; }
+  }
+  window.thDew = {
+    add: async (text, source) => {
+      text = String(text || '').trim().slice(0, 1000); if (!text) return;
+      if (viewOnly()) { say(tr('Preview mode: nothing was sent', 'وضع المعاينة: لم يُرسل شيء', 'وضع المعاينة: مفيش حاجة اتبعتت')); return; }
+      dqSet(dq().concat([{ id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), text, source: String(source || '').slice(0, 120), at: new Date().toISOString() }]));
+      const ok = await flush();
+      say(ok ? tr('Sent to Dew Words ✓', 'تم الإرسال إلى Dew Words ✓', 'اتبعتت لـ Dew Words ✓')
+        : tr('Saved here, it will be sent when the connection is back', 'تم الحفظ هنا وسيُرسل عند عودة الاتصال', 'اتحفظت هنا وهتتبعت أول ما الاتصال يرجع'));
+    },
+    rows: () => { const have = new Set(DW.rows.map(r => r.client_id).filter(Boolean)); return DW.rows.concat(dq().filter(x => !have.has(x.id)).map(x => ({ client_id: x.id, text: x.text, source: x.source, created_at: x.at, pending: true }))); },
+    refresh: async () => {
+      if (viewOnly() || !tok()) return; await flush();
+      const r = await rpc('trainee_dew_list', { p_token: tok() }).catch(() => null);
+      if (r && r.ok && Array.isArray(r.rows)) DW.rows = r.rows.map(x => ({ id: x.id, client_id: x.client_id, text: x.text, source: x.source, created_at: x.created_at }));
+    },
+    flush
+  };
+  setTimeout(flush, 4000); setInterval(flush, 60000); window.addEventListener('online', flush);
+
+  /* ---------- phone: the Library button on the top bar (three upright bars), only while the Messenger is the open page ---------- */
+  const LIBSVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
+  setInterval(() => {
+    const bar = document.getElementById('thFpBar'); if (!bar) return;
+    let b = bar.querySelector('[data-lib]');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.dataset.lib = '1'; b.innerHTML = LIBSVG; b.style.display = 'none';
+      b.onclick = () => { if (window.openLibrary) window.openLibrary(); };
+      const back = bar.querySelector('[data-b]'); if (back) back.insertAdjacentElement('afterend', b); else bar.appendChild(b);
+    }
+    const L = tr('Library', 'المكتبة', 'المكتبة'); if (b.title !== L) { b.title = L; b.setAttribute('aria-label', L); }
+    const show = !!(window.thMessenger && thMessenger.visible && thMessenger.visible()) && document.body.classList.contains('thfp-open');
+    const want = show ? 'flex' : 'none'; if (b.style.display !== want) b.style.display = want;
+  }, 300);
 })();
