@@ -40,6 +40,67 @@
   } };
   try { var tr = JSON.parse(ls('currentTrainee') || 'null'); if (tr) Thabit.setProfile(tr.trainee || tr.name || tr.full_name || tr.username); } catch (e) {}
 
+
+  /* ---- refresh skeleton (dashboard only): shown on EVERY load / refresh: F5, Ctrl+R, Ctrl+Shift+R, browser reload, pull down at the top.
+     A full-screen layer of empty boxes (big ones carry the Thabit logo + a light sweep, the 3 bar buttons light up one after another) for at least ~1.5s;
+     dashboard.js hides it once the data is in (thSkelOv.hide()). The layout follows the section the trainee was standing on. ---- */
+  if (/dashboard/i.test(location.pathname)) (function () {
+    var SS = function (k, v) { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) {} return null; };
+    var light = ls('thabit_theme') === 'light', el = null, t0 = 0, kill = null, going = false;
+    var css2 = document.createElement('style');
+    css2.textContent = 'html{overscroll-behavior-y:contain}' +
+      '#thSkOv{position:fixed;inset:0;z-index:2147483000;background:' + (light ? '#f4f6f9' : '#0b0e13') + ';color:' + (light ? '#0f172a' : '#e2e8f0') + ';overflow:hidden;transition:opacity .35s}#thSkOv.out{opacity:0;pointer-events:none}' +
+      '#thSkOv .skw{box-sizing:border-box;width:min(100%,1000px);margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 84px) 22px 100px;display:flex;flex-direction:column;gap:14px}' +
+      '#thSkOv .skg{display:grid;grid-template-columns:1fr 1fr;gap:14px}' +
+      '#thSkOv .skc{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}' +
+      '#thSkOv .skc::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,' + (light ? '.7' : '.14') + ') 50%,transparent 70%);transform:translateX(-100%);animation:thSkSw 1.5s ease-in-out infinite}' +
+      '#thSkOv .skc::after{content:"";position:absolute;left:50%;top:50%;width:min(64px,40%);aspect-ratio:1;transform:translate(-50%,-50%);background:currentColor;opacity:.14;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat}' +
+      '@keyframes thSkSw{to{transform:translateX(100%)}}' +
+      '#thSkOv .skb{position:fixed;left:0;right:0;bottom:0;margin:0 auto;width:min(100%,520px);height:calc(54px + env(safe-area-inset-bottom,0px));box-sizing:border-box;padding:0 8px env(safe-area-inset-bottom,0px);display:flex;justify-content:space-around;align-items:center;background:' + (light ? '#eef1f5' : '#181c20') + ';border-radius:16px 16px 0 0;border:1px solid rgba(148,163,184,.14);border-bottom:0}' +
+      '#thSkOv .skt{width:28px;height:28px;border-radius:9px;background:rgba(148,163,184,.25);animation:thSkTl 1.5s ease-in-out infinite}#thSkOv .skt:nth-child(2){animation-delay:.5s}#thSkOv .skt:nth-child(3){animation-delay:1s}' +
+      '@keyframes thSkTl{0%,34%,100%{background:rgba(148,163,184,.22);transform:scale(1);box-shadow:none}10%{background:rgba(125,211,252,.6);transform:scale(1.2);box-shadow:0 0 14px rgba(125,211,252,.55)}}' +
+      'html.thsk-on #thBrand{z-index:2147483004!important}' +
+      '@media(prefers-reduced-motion:reduce){#thSkOv .skc::before,#thSkOv .skt{animation:none}}';
+    document.head.appendChild(css2);
+    var cards = function (n, h) { var o = ''; for (var i = 0; i < n; i++) o += '<div class="skc" style="height:' + h + 'px"></div>'; return o; };
+    var body = function (idx) {   /* order of the sections: 0 tasks + dandana, 1 notes / TEFL / QOL, 2 chart */
+      var vh = innerHeight;
+      if (idx === 2) return cards(1, Math.round(Math.min(vh * .46, 380)));
+      if (idx === 1) return '<div class="skg">' + cards(4, 130) + '</div>';
+      return '<div class="skg">' + cards(2, 170) + '</div>' + cards(1, 120);
+    };
+    function cur() {
+      try { var a = [].slice.call(document.querySelectorAll('.thsec')).filter(function (e) { return !e.hidden; }), bi = 0, bd = 1e9; a.forEach(function (e, i) { var d = Math.abs(e.getBoundingClientRect().top); if (d < bd) { bd = d; bi = i; } }); return a.length ? bi : -1; } catch (e) { return -1; }
+    }
+    function show() {
+      if (el) return; var live = cur(), idx = live >= 0 ? live : (+SS('thSkSec') || 0); SS('thSkSec', String(idx));
+      el = document.createElement('div'); el.id = 'thSkOv'; el.setAttribute('aria-hidden', 'true');
+      el.innerHTML = '<div class="skw">' + body(idx) + '</div><div class="skb"><i class="skt"></i><i class="skt"></i><i class="skt"></i></div>';
+      (document.body || document.documentElement).appendChild(el); document.documentElement.classList.add('thsk-on'); t0 = Date.now();
+      clearTimeout(kill); kill = setTimeout(hide, 15000);                     /* safety: never stays forever */
+    }
+    function hide() {
+      if (!el) return; var w = Math.max(0, 1500 - (Date.now() - t0));
+      setTimeout(function () { if (!el) return; var e = el; el = null; e.classList.add('out'); document.documentElement.classList.remove('thsk-on'); setTimeout(function () { e.remove(); }, 400); }, w);
+    }
+    function reload() { if (going) return; going = true; show(); setTimeout(function () { location.reload(); }, 400); }
+    window.thSkelOv = { show: show, hide: hide, reload: reload };
+    show();                                                                   /* every load starts with the skeleton */
+    window.addEventListener('keydown', function (e) {
+      var k = String(e.key || '').toLowerCase();
+      if (k === 'f5' || ((e.ctrlKey || e.metaKey) && k === 'r')) { e.preventDefault(); reload(); }
+    }, true);
+    window.addEventListener('beforeunload', function () { show(); });         /* browser reload button / restart: the frozen screen shows the skeleton */
+    window.addEventListener('pagehide', function () { show(); });
+    /* pull down hard at the top = refresh (phone). A flick up the page is a normal scroll, so it is not treated as refresh. */
+    var sy = 0, sx = 0, armed = false;
+    document.addEventListener('touchstart', function (e) { var t = e.touches[0]; sy = t.clientY; sx = t.clientX; armed = (window.scrollY || document.documentElement.scrollTop || 0) <= 2 && !document.body.classList.contains('thfp-open'); }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!armed || going) return; var t = e.touches[0], dy = t.clientY - sy, dx = Math.abs(t.clientX - sx);
+      if (dy > 120 && dy > dx * 1.6) { armed = false; reload(); }
+    }, { passive: true });
+  })();
+
   /* ---- intro: only where data-intro is set, and not for signed-in visitors ---- */
   var want = s && s.hasAttribute('data-intro') && !ls('thabit_trainee_token') && !(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches);
   if (!want) return;
