@@ -27,7 +27,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -2056,19 +2056,18 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed', 'msgr', 'edit'];
+const THB_BAR_DEF = ['reload', 'assist', 'lang', 'theme', 'logout', 'feed', 'msgr'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
 }
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
-  if (edit && !edit.dataset.bk) edit.dataset.bk = 'edit';   // the settings gear can be moved like the other buttons
   bar.querySelectorAll(':scope > [data-bk]').forEach(e => els[e.dataset.bk] = e);
   bar.querySelectorAll(':scope > .bar-divider').forEach(d => d.remove());
   const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden);
   list.forEach((e, i) => { bar.appendChild(e); if (i < list.length - 1) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); } });
-  if (edit && !list.includes(edit)) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit); }
+  const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit);
 }
 (function () {
   const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
@@ -4411,8 +4410,8 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     setTimeout(() => t.remove(), 2200);
   }
 
-  /* ---------- Messenger (look only) ---------- */
-  const M = { mode: 'closed', built: false, quote: '', lastDay: '', nested: false };   /* nested = opened from inside something (Reply): only then it may park as a tab */
+  /* ---------- Messenger ---------- */
+  const M = { mode: 'closed', built: false, quote: '', lastDay: '', nested: false, msgs: [], sig: '', loaded: false, busy: false, sending: false, timer: null };   /* nested = opened from inside something (Reply): only then it may park as a tab */
   const el = {};
   function build() {
     if (M.built) return; M.built = true; const t = T();
@@ -4461,31 +4460,86 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     o.querySelector('[data-y]').onclick = () => { o.remove(); discard(); M.nested = false; setMode('closed'); };
     el.pop.appendChild(o);
   }
+  /* ---------- Messages are stored in Supabase (trainee_messages), shown WhatsApp-style, in the trainee's own country time ---------- */
+  const MX = {
+    en: { today: 'Today', yest: 'Yesterday', fail: 'Could not send, try again', voice: 'Voice message', photo: 'Photo' },
+    ar: { today: 'اليوم', yest: 'أمس', fail: 'تعذر الإرسال، حاول مرة أخرى', voice: 'رسالة صوتية', photo: 'صورة' },
+    eg: { today: 'النهاردة', yest: 'امبارح', fail: 'معرفناش نبعت، جرب تاني', voice: 'رسالة صوتية', photo: 'صورة' }
+  };
+  const MXT = () => MX[(typeof lang === 'string' && lang) || 'en'] || MX.en;
+  const mTz = () => { try { return traineeZone().tz; } catch (e) { return 'Africa/Cairo'; } };
+  const mLoc = () => (typeof lang === 'string' && lang === 'en') ? 'en-GB' : 'ar-EG';
+  const mDayKey = iso => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: mTz() }).format(new Date(iso)); } catch (e) { return String(iso).slice(0, 10); } };
+  function mDayLabel(iso) {
+    const k = mDayKey(iso), now = Date.now(), t = MXT();
+    if (k === mDayKey(new Date(now).toISOString())) return t.today;
+    if (k === mDayKey(new Date(now - 864e5).toISOString())) return t.yest;
+    try { return new Date(iso).toLocaleDateString(mLoc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: mTz() }); } catch (e) { return k; }
+  }
+  const mTime = iso => { try { return new Date(iso).toLocaleTimeString(mLoc(), { hour: '2-digit', minute: '2-digit', timeZone: mTz() }); } catch (e) { return ''; } };
+  (function () { const s = document.createElement('style'); s.textContent = '.mgr-b.in{align-self:flex-start;background:#202c33;border-radius:10px 10px 10px 2px}.mgr-b a{color:#53bdeb;text-decoration:underline;overflow-wrap:anywhere}.mgr-send:disabled{opacity:.5}'; document.head.appendChild(s); })();
+
+  function mBubble(m) {
+    const b = document.createElement('div'), mine = m.sender !== 'trainer', t = MXT();
+    b.className = 'mgr-b' + (mine ? '' : ' in') + (mine && m.read_at ? ' seen' : ''); b.dataset.id = m.id;
+    if (m.quote) { const qq = document.createElement('div'); qq.className = 'mgr-q'; qq.dir = 'auto'; qq.textContent = m.quote; b.appendChild(qq); }
+    const tx = document.createElement('div'); tx.className = 'mgr-t'; tx.dir = 'auto';
+    if (m.kind === 'link' || m.kind === 'audio' || m.kind === 'image') {
+      const u = m.kind === 'link' ? m.body : m.url;
+      if (/^https?:\/\//i.test(u || '')) { const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = m.kind === 'link' ? u : (m.kind === 'audio' ? t.voice : t.photo); tx.appendChild(a); }
+      else tx.textContent = m.body || '';
+    } else tx.textContent = m.body || '';
+    b.appendChild(tx);
+    const mm = document.createElement('div'); mm.className = 'mgr-m';
+    mm.innerHTML = '<span></span>' + (mine ? '<i class="fa-solid ' + (m.read_at ? 'fa-check-double' : 'fa-check') + ' mgr-tk"></i>' : '');
+    mm.firstChild.textContent = mTime(m.created_at); b.appendChild(mm);
+    return b;
+  }
+  function mRender() {
+    const l = el.list, atEnd = l.scrollHeight - l.scrollTop - l.clientHeight < 80 || !M.loaded; let day = '';
+    l.innerHTML = '';
+    M.msgs.forEach(m => {
+      const k = mDayKey(m.created_at);
+      if (k !== day) { day = k; const d = document.createElement('div'); d.className = 'mgr-day'; d.textContent = mDayLabel(m.created_at); l.appendChild(d); }
+      l.appendChild(mBubble(m));
+    });
+    M.loaded = true; if (atEnd) l.scrollTop = l.scrollHeight;
+  }
+  const mSig = a => a.map(x => x.id + ':' + (x.read_at ? 1 : 0)).join(',');
+  async function mLoad() {
+    if (M.busy || !tok()) return; M.busy = true;
+    try {
+      const r = await rpc('trainee_msg_list', { p_token: tok(), p_after: 0 }).catch(() => null);
+      if (r && r.ok && Array.isArray(r.messages)) {
+        const sig = mSig(r.messages);
+        if (sig !== M.sig || !M.loaded) { M.msgs = r.messages; M.sig = sig; mRender(); }
+        if (!VIEW && r.messages.some(x => x.sender === 'trainer' && !x.read_at)) rpc('trainee_msg_mark_read', { p_token: tok() }).catch(() => null);
+      }
+    } finally { M.busy = false; }
+  }
   function setMode(m) {
-    build(); M.mode = m;
+    build(); const was = M.mode; M.mode = m;
     el.veil.style.display = m === 'open' ? 'block' : 'none';
     el.pop.style.display = m === 'open' ? 'flex' : 'none';
-    if (m !== 'open') el.att.hidden = true;
-    if (m === 'open') { el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); }
+    if (m !== 'open') { el.att.hidden = true; clearInterval(M.timer); M.timer = null; }
+    if (m === 'open') {
+      el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60);
+      if (was !== 'open') { mLoad(); clearInterval(M.timer); M.timer = setInterval(() => { if (!document.hidden) mLoad(); }, 10000); }
+    }
   }
   function setQuote(s) {
     M.quote = s || ''; el.quote.hidden = !M.quote; el.quote.querySelector('span').textContent = M.quote;
   }
-  function sendMsg() {
-    const v = el.in.value.trim(); if (!v) return;
-    const now = new Date(), loc = (typeof lang === 'string' && lang === 'en') ? 'en-GB' : 'ar-EG', dayKey = now.toDateString();
-    if (M.lastDay !== dayKey) {
-      M.lastDay = dayKey; const d = document.createElement('div'); d.className = 'mgr-day';
-      try { d.textContent = now.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { d.textContent = dayKey; }
-      el.list.appendChild(d);
-    }
-    const b = document.createElement('div'); b.className = 'mgr-b';
-    if (M.quote) { const qq = document.createElement('div'); qq.className = 'mgr-q'; qq.dir = 'auto'; qq.textContent = M.quote; b.appendChild(qq); }
-    const tx = document.createElement('div'); tx.className = 'mgr-t'; tx.dir = 'auto'; tx.textContent = v; b.appendChild(tx);
-    let tm = ''; try { tm = now.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }); } catch (e) { tm = now.toTimeString().slice(0, 5); }
-    const m = document.createElement('div'); m.className = 'mgr-m'; m.innerHTML = '<span></span><i class="fa-solid fa-check-double mgr-tk"></i>'; m.firstChild.textContent = tm; b.appendChild(m);
-    el.list.appendChild(b); el.list.scrollTop = el.list.scrollHeight;
-    el.in.value = ''; el.send.hidden = true; setQuote('');                                          /* nothing is stored or sent */
+  async function sendMsg() {
+    if (M.sending) return; const v = el.in.value.trim(); if (!v) return;
+    M.sending = true; el.send.disabled = true;
+    const r = await rpc('trainee_msg_send', { p_token: tok(), p_kind: 'text', p_body: v, p_quote: M.quote || null }).catch(() => null);
+    M.sending = false; el.send.disabled = false;
+    if (r && r.ok && r.message) {
+      if (!M.msgs.some(x => x.id === r.message.id)) M.msgs.push(r.message);
+      M.sig = mSig(M.msgs); M.loaded = false; mRender();          /* stored in Supabase; the bubble shows only after the server accepted it */
+      el.in.value = ''; el.send.hidden = true; setQuote('');
+    } else itToast(MXT().fail);                                   /* the text stays in the box so nothing is lost */
   }
   function openMessenger(quote) { build(); M.nested = quote !== undefined; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* a quote only comes from Reply = nested */
   window.thMessenger = { open: openMessenger, dock: () => leave(), close: () => askClose() };
@@ -4503,7 +4557,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span>';
     b.querySelector('.thl').textContent = lbl();
     b.onclick = e => { e.stopPropagation(); build(); M.nested = false; setMode(M.mode === 'open' ? 'closed' : 'open'); };   /* from the bar: never a tab */
-    f.insertAdjacentElement('afterend', b); try { if (typeof layoutBar === 'function') layoutBar(); } catch (e) { } return true;
+    f.insertAdjacentElement('afterend', b); return true;
   }
   { let n = 0; const iv = setInterval(() => { if (installDove() || ++n > 120) clearInterval(iv); }, 500); }
   setInterval(() => { const l = document.querySelector('#mgrBtn .thl'); if (l && l.textContent !== lbl()) { l.textContent = lbl(); const b = document.getElementById('mgrBtn'); b.title = lbl(); } }, 2000);
@@ -4729,92 +4783,4 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
 
   /* ---------- Theme / Language / Account buttons never show on the bar (inline !important beats every stylesheet) ---------- */
   setInterval(() => ['floatBtnTheme', 'profBtn', 'langBtn'].forEach(id => { const b = document.getElementById(id); if (b && b.style.getPropertyValue('display') !== 'none') b.style.setProperty('display', 'none', 'important'); }), 400);
-})();
-
-/* ===== Refresh skeleton: Reload button -> frozen screen, every card gets a "Thabit" box with a light sweeping left->right, the bar icons become small boxes that glow one after another; data reloads behind it, nothing moves ===== */
-(function () {
-  const st = document.createElement('style');
-  st.textContent = `
-html.thsk-on #mobileFloatingBar>*{visibility:hidden!important}
-#thSkShield{position:fixed;inset:0;z-index:2147483600;background:transparent;touch-action:none;-webkit-user-select:none;user-select:none}
-#thSkDoc{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483500;pointer-events:none}
-#thSkFix{position:fixed;left:0;top:0;width:0;height:0;z-index:2147483550;pointer-events:none}
-.thsk{position:absolute;box-sizing:border-box;overflow:hidden;direction:ltr;display:flex;align-items:center;justify-content:center;background:#262b31;color:#7b838c}
-.thsk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);animation:thskS 1.15s ease-in-out infinite}
-.thsk .thskL{position:relative;max-width:55%;max-height:46%;width:auto;height:auto;opacity:.38;filter:grayscale(1)}
-.thsk .thskT{position:relative;font-weight:800;font-size:clamp(18px,5vw,30px);line-height:1;opacity:.38}
-.thsk.thsk-bar{position:fixed;border-radius:9px}
-.thsk.thsk-bar::after{display:none}
-.thsk.thsk-bar{background:#2b3138;opacity:.28;animation:thskP var(--d,1.4s) ease-in-out infinite;animation-delay:var(--dl,0s)}
-html.thsk-l .thsk{background:#dde1e6;color:#8a929b}
-html.thsk-l .thsk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)}
-html.thsk-l .thsk.thsk-bar{background:#cdd3da}
-@keyframes thskS{to{transform:translateX(100%)}}
-@keyframes thskP{0%{opacity:.28;transform:scale(1);box-shadow:0 0 0 rgba(255,255,255,0)}9%{opacity:1;transform:scale(1.08);box-shadow:0 0 14px rgba(255,255,255,.4)}24%{opacity:.28;transform:scale(1);box-shadow:0 0 0 rgba(255,255,255,0)}100%{opacity:.28}}
-@media(prefers-reduced-motion:reduce){.thsk::after{animation-duration:2.4s}}`;
-  document.head.appendChild(st);
-
-  let busy = false, shield = null, docL = null, fixL = null, kd = null;
-  const isLight = () => document.body.classList.contains('light-theme');
-  const logoNode = () => {
-    const h = document.querySelector('.thHdr'); if (!h) return null;
-    const g = h.querySelector('img,svg'); if (!g) return null;
-    const c = g.cloneNode(true); c.removeAttribute('id'); c.removeAttribute('onclick'); c.removeAttribute('style'); c.removeAttribute('width'); c.removeAttribute('height'); c.classList.add('thskL'); return c;
-  };
-  const vis = el => { const r = el.getBoundingClientRect(); return r.width > 24 && r.height > 24 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('#mobileFloatingBar,#thDet,#pop,#asm,#dock,.thHdr'); };
-  function cards() {
-    const set = [...document.querySelectorAll('.thabit-card,.test-card,#kpis>*,#overall>*,#lists>*,#lists2>*')].filter(vis);
-    return set.filter(el => !set.some(o => o !== el && o.contains(el)));
-  }
-  function build() {
-    const R = document.documentElement, sx = scrollX, sy = scrollY, light = isLight();
-    R.classList.toggle('thsk-l', light);
-    docL = document.createElement('div'); docL.id = 'thSkDoc';
-    cards().forEach(el => {
-      const r = el.getBoundingClientRect(), b = document.createElement('div'); b.className = 'thsk';
-      b.style.cssText = `left:${r.left + sx}px;top:${r.top + sy}px;width:${r.width}px;height:${r.height}px;border-radius:${getComputedStyle(el).borderRadius || '14px'}`;
-      const lg = logoNode();
-      if (lg) b.appendChild(lg); else { const t = document.createElement('span'); t.className = 'thskT'; t.textContent = (typeof lang === 'string' && lang === 'en') ? 'Thabit' : 'ثابت'; b.appendChild(t); }
-      docL.appendChild(b);
-    });
-    fixL = document.createElement('div'); fixL.id = 'thSkFix';
-    const bar = $('mobileFloatingBar');
-    const its = bar ? [...bar.querySelectorAll(':scope > [data-bk]')].filter(e => !e.hidden && e.getBoundingClientRect().width > 4) : [];
-    const per = 0.17, dur = Math.max(1.3, its.length * per + 0.55);
-    its.forEach((e, i) => {
-      const r = e.getBoundingClientRect(), s = Math.min(26, r.width - 6, r.height - 6), b = document.createElement('div'); b.className = 'thsk thsk-bar';
-      b.style.cssText = `left:${r.left + (r.width - s) / 2}px;top:${r.top + (r.height - s) / 2}px;width:${s}px;height:${s}px;--d:${dur}s;--dl:${(i * per).toFixed(2)}s`;
-      fixL.appendChild(b);
-    });
-    shield = document.createElement('div'); shield.id = 'thSkShield';
-    const stop = e => { e.preventDefault(); e.stopPropagation(); };
-    ['touchmove', 'wheel', 'touchstart', 'pointerdown', 'click', 'contextmenu'].forEach(ev => shield.addEventListener(ev, stop, { passive: false }));
-    kd = e => { if (e.key !== 'F5' && !(e.ctrlKey || e.metaKey)) e.preventDefault(); };
-    document.addEventListener('keydown', kd, true);
-    R.appendChild(docL); R.appendChild(fixL); R.appendChild(shield);
-    R.classList.add('thsk-on');
-  }
-  function destroy() {
-    [docL, fixL, shield].forEach(n => n && n.remove()); docL = fixL = shield = null;
-    document.documentElement.classList.remove('thsk-on');
-    if (kd) { document.removeEventListener('keydown', kd, true); kd = null; }
-  }
-  async function refresh() {
-    if (busy) return; busy = true;
-    const t0 = Date.now(), keep = range, sy = scrollY, sx = scrollX;
-    try { build(); } catch (e) { console.error('[skeleton]', e); }
-    try {
-      await load();
-      if (typeof thManual !== 'undefined' && thManual && range !== keep && typeof thOpts === 'function' && thOpts().includes(keep)) { range = keep; render(); }   // the range he picked himself stays
-    } catch (e) { console.error('[refresh]', e); }
-    await new Promise(r => setTimeout(r, Math.max(0, 1400 - (Date.now() - t0))));
-    try { scrollTo(sx, sy); } catch (e) {}
-    destroy(); busy = false;
-  }
-  const bar = $('mobileFloatingBar');
-  if (bar) bar.addEventListener('click', e => {
-    const b = e.target.closest && e.target.closest('[data-bk="reload"]'); if (!b) return;
-    e.stopImmediatePropagation(); e.preventDefault(); refresh();
-  }, true);
-  window.thRefresh = refresh;
 })();
