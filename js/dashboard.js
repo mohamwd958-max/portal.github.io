@@ -4485,9 +4485,9 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
 .mgr-t{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
 .mgr-m{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:2px;font-size:10px;color:rgba(233,237,239,.6)}
 .mgr-tk{font-size:11px;color:#8696a0}.mgr-b.seen .mgr-tk{color:#53bdeb}
-.mgr-q{border-inline-start:3px solid rgb(31,182,255);background:rgba(0,0,0,.22);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;color:#c5d0d6;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mgr-quote{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#182229;color:#aebac1;font-size:12px}
-.mgr-quote span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mgr-q{border-inline-start:3px solid rgb(31,182,255);background:rgba(0,0,0,.22);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;color:#c5d0d6;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+.mgr-quote{display:flex;align-items:flex-start;gap:8px;padding:6px 12px;background:#182229;color:#aebac1;font-size:12px}
+.mgr-quote span{flex:1;min-width:0;max-height:34vh;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45}
 .mgr-att{display:flex;justify-content:space-around;padding:10px 8px;background:#182229;border-top:1px solid rgba(255,255,255,.06)}
 .mgr-ab{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;color:#aebac1;font-size:10px;cursor:pointer}
 .mgr-ab i{width:42px;height:42px;border-radius:50%;background:#2a3942;display:flex;align-items:center;justify-content:center;font-size:17px;color:rgb(31,182,255)}
@@ -4547,7 +4547,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     el.send.onclick = sendMsg;
     /* auto-grow */
-    window.fitIn = () => { el.in.style.height = 'auto'; el.in.style.height = Math.min(el.in.scrollHeight, 120) + 'px'; };
+    window.fitIn = () => { const mx = Math.round(((window.visualViewport && visualViewport.height) || innerHeight) * 0.4); el.in.style.height = 'auto'; el.in.style.height = Math.min(Math.max(el.in.scrollHeight, 40), mx) + 'px'; el.in.style.overflowY = el.in.scrollHeight > mx ? 'auto' : 'hidden'; };
     /* restore the draft (like WhatsApp) */
     { const dv = mDraft(); if (dv) { el.in.value = dv; el.send.hidden = false; fitIn(); } }
     /* new-line button: tap = one line, hold = a new line every ~0.3s */
@@ -4696,7 +4696,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   const EMO = '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😎 🤩 🥳 😏 😒 😔 😢 😭 😤 😡 🤯 😱 😮 😴 🤔 🙄 😬 🤗 🤝 👍 👎 👏 🙌 🙏 💪 👌 ✌️ 🤞 👀 ❤️ 🧡 💛 💚 💙 💜 🖤 💔 💯 🔥 ✨ ⭐ 🎉 ✅ ❌ ❓ ❗ 💡 📌 📚 📝 ⏰ 🎯 🚀 ☕ 🌹'.split(' ');
   function closeAct() { const o = el.pop && el.pop.querySelector('.mgr-ov'); if (o) o.remove(); }
   function mkReact(m, e) { const cur = mkOf(m.id).rt; if (cur === e) { mkSet(m.id, { rt: '', rtAt: Date.now() }); mkSend('unreact', m.id); } else { mkSet(m.id, { rt: e, rtAt: Date.now() }); mkSend('react', m.id, e); } closeAct(); mRender(); }
-  function mkReply(m) { closeAct(); const q = (m.kind === 'audio' ? MXT().voice : m.kind === 'image' ? MXT().photo : (m.body || '')).slice(0, 160); setQuote(q); try { el.in.focus({ preventScroll: true }); } catch (e) { } }
+  function mkReply(m) { closeAct(); const q = (m.kind === 'audio' ? MXT().voice : m.kind === 'image' ? MXT().photo : (m.body || '')); setQuote(q); try { el.in.focus({ preventScroll: true }); } catch (e) { } }
   function mkDelete(m) {
     const a = AX(), mine = m.sender !== 'trainer', ov = el.pop.querySelector('.mgr-ov'); if (!ov) return;
     ov.innerHTML = '';
@@ -4926,7 +4926,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   }
   async function act(id, btn) {
     const c = ctxOf(btn);
-    if (id === 'reply') return openMessenger(c.title || c.text.split('\n')[0] || '');
+    if (id === 'reply') return openMessenger(c.text || c.title || '');
     if (id === 'copy') { if (await copyText(c.text)) toast(T().copied); return; }
     if (id === 'share') {
       if (navigator.share) { try { await navigator.share({ text: c.text }); } catch (e) { } return; }
@@ -5616,7 +5616,7 @@ body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
     if (!S) return;
     const text = textOf(), src = sourceOf(S.root); clearSel();
     if (!text) return;
-    if (k === 'reply') { if (window.thMessenger && thMessenger.open) thMessenger.open(text.length > 300 ? text.slice(0, 297) + '…' : text); }
+    if (k === 'reply') { if (window.thMessenger && thMessenger.open) thMessenger.open(text); }
     else if (k === 'copy') { if (await copyText(text)) say(tr('Copied ✓', 'تم النسخ ✓', 'اتنسخ ✓')); }
     else if (k === 'ear') { if (window.thDew) window.thDew.add(text, src); }
   }
@@ -5832,18 +5832,21 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   const FAR = () => Math.round(innerHeight * 0.4), MAXD = () => Math.round(innerHeight * 0.5), EDGE = 3;
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
-#thPull{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:10030;width:44px;height:44px;margin-left:-22px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(40px) scale(.4);background:rgba(15,23,42,.96);color:#34d399;border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 22px rgba(0,0,0,.45)}
-body.light-theme #thPull{background:#fff;color:#059669;border-color:rgba(15,23,42,.14);box-shadow:0 8px 22px rgba(15,23,42,.18)}
+#thPull{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:10030;width:48px;height:48px;margin-left:-24px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(40px) scale(.5);background:#fff;color:#111;box-shadow:0 4px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.2)}
 #thPull.back{transition:transform .28s cubic-bezier(.3,1.2,.5,1),opacity .28s}
-#thPull svg{width:24px;height:24px;display:block;transform:rotate(var(--r,0deg))}
-#thPull svg path{fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-#thPull.spin svg{animation:thPullSpin .8s linear infinite}
+#thPull svg{width:28px;height:28px;display:block;overflow:visible}
+#thPull .ac{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
+#thPull .ah{fill:currentColor}
+#thPull.spin svg{animation:thPullSpin .85s linear infinite}
 @keyframes thPullSpin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){#thPull.spin svg{animation:none}}`;
   document.head.appendChild(st);
   const el = document.createElement('div'); el.id = 'thPull';
-  el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg>';
+  el.innerHTML = '<svg viewBox="0 0 28 28" aria-hidden="true"><circle class="ac" cx="14" cy="14" r="10"/><g class="ag"><polygon class="ah" points="20.8,12.2 27.2,12.2 24,17.6"/></g></svg>';
   document.body.appendChild(el);
+  const AC = el.querySelector('.ac'), AG = el.querySelector('.ag'), CIRC = 2 * Math.PI * 10;
+  function setArc(p) { const a0 = -90 + p * 200, sw = 24 + 276 * p; AC.style.strokeDasharray = (CIRC * sw / 360) + ' ' + CIRC; AC.style.transform = 'rotate(' + a0 + 'deg)'; AG.setAttribute('transform', 'rotate(' + (a0 + sw + 90) + ' 14 14)'); }
+  setArc(0);
 
   const PH = () => matchMedia('(pointer:coarse)').matches;
   const atEnd = () => { const d = document.documentElement; return (window.scrollY || d.scrollTop || 0) + innerHeight >= Math.max(d.scrollHeight, document.body.scrollHeight) - EDGE; };
@@ -5860,14 +5863,14 @@ body.light-theme #thPull{background:#fff;color:#059669;border-color:rgba(15,23,4
   let g = null, busy = false, crossed = false;
   const prog = () => Math.min(1, g.d / FAR());
   function paint() {
-    const p = prog(), r = g.d > 0 ? Math.min(g.d, MAXD()) : 0;
-    el.style.opacity = String(Math.min(1, p * 1.6));
-    el.style.transform = `translateY(${40 - Math.min(1, g.d / MAXD()) * 40}px) scale(${0.4 + 0.6 * Math.min(1, p * 1.3)})`;
-    el.style.setProperty('--r', (p * 360) + 'deg');
+    const p = prog(), f = Math.min(1, g.d / MAXD()), y = 40 - f * (0.22 * innerHeight + 40);
+    el.style.opacity = String(Math.min(1, p * 2.2));
+    el.style.transform = `translateY(${y}px) scale(${0.5 + 0.5 * Math.min(1, p * 1.6)})`;
+    setArc(p);                                                                       /* the arc grows and turns with the finger, and shrinks again when you go back */
   }
-  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = 'translateY(40px) scale(.4)'; el.style.setProperty('--r', '0deg'); setTimeout(() => el.classList.remove('back'), 320); }
+  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = 'translateY(40px) scale(.5)'; setArc(0); setTimeout(() => el.classList.remove('back'), 320); }
   async function refresh() {
-    busy = true; el.classList.remove('back'); el.style.opacity = '1'; el.style.transform = 'translateY(0) scale(1)'; el.classList.add('spin');
+    busy = true; el.classList.remove('back'); setArc(1); el.style.opacity = '1'; el.style.transform = `translateY(${40 - (0.22 * innerHeight + 40) * 0.8}px) scale(1)`; el.classList.add('spin');
     const t0 = Date.now();
     try { if (window.thSkel) window.thSkel(true); await load(); } catch (e) { console.warn('[pull refresh]', e); }
     const wait = Math.max(0, 700 - (Date.now() - t0));
@@ -5949,7 +5952,7 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
 (function () {
   const c = document.createElement('style'); c.id = 'thMgrCss';
   c.textContent = `.mgr-comp{align-items:flex-end!important}
-.mgr-in{height:auto!important;min-height:40px;max-height:120px;padding:10px 14px!important;line-height:20px;resize:none;overflow-y:auto;box-sizing:border-box;border-radius:20px!important;display:block}
+.mgr-in{min-height:40px;max-height:40vh;padding:10px 14px!important;line-height:20px;resize:none;overflow-y:auto;box-sizing:border-box;border-radius:20px!important;display:block}
 .mgr-ic{flex:none}
 .mgr-nl{touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .mgr-dr{font-style:normal;color:#25d366;font-weight:700}`;
