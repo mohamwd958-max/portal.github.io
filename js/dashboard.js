@@ -4416,9 +4416,11 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   function build() {
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
-    el.pop = document.createElement('div'); el.pop.className = 'mgr-pop';
-    el.pop.innerHTML = `<div class="mgr-h"><span class="mgr-av"><i class="fa-solid fa-dove"></i></span><b>${t.msgr}</b>
+    el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="mgr-cells" data-cells></div>
+      <div class="mgr-chat">
       <div class="mgr-list" data-list></div>
       <div class="mgr-quote" data-quote hidden><i class="fa-solid fa-reply"></i><span dir="auto"></span><button type="button" class="mgr-hb" data-qx aria-label="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-att" data-att hidden>
@@ -4429,12 +4431,15 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
       <div class="mgr-comp"><button type="button" class="mgr-ic" data-mic aria-label="record"><i class="fa-solid fa-microphone"></i></button>
         <input class="mgr-in" data-in dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off">
         <button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
-        <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>`;
+        <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>
+      </div>`;
     document.body.append(el.veil, el.pop);
     const q = s => el.pop.querySelector(s);
     el.list = q('[data-list]'); el.in = q('[data-in]'); el.send = q('[data-send]'); el.att = q('[data-att]'); el.quote = q('[data-quote]');
+    el.title = q('[data-title]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
+    el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
     q('[data-mic]').onclick = () => { };                                                           /* look only */
@@ -4449,7 +4454,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   function discard() { el.in.value = ''; el.send.hidden = true; setQuote(''); }
   const CF = { en: ['Are you sure? Some things are not saved.', 'Discard', 'Stay'], ar: ['هل أنت متأكد؟ هناك أشياء لم تُحفظ.', 'تجاهل', 'ابقَ'], eg: ['متأكد؟ فيه حاجات لسه ما اتحفظتش.', 'امسح وقفل', 'استنى'] };
   function askClose() {
-    if (!hasDraft()) { M.nested = false; setQuote(''); setMode('closed'); return; }
+    if (!hasDraft()) { M.nested = false; M.view = 'list'; setQuote(''); setMode('closed'); return; }
     setMode('open');
     const c = CF[(typeof lang === 'string' && lang) || 'en'] || CF.en;
     const o = document.createElement('div');
@@ -4457,7 +4462,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     o.innerHTML = '<div style="background:#202c33;border-radius:16px;padding:18px;max-width:300px;text-align:center"><div dir="auto" style="font-weight:700;margin-bottom:14px"></div><div style="display:flex;gap:8px;justify-content:center"><button type="button" data-y class="mgr-ic" style="width:auto;padding:0 16px;font-size:13px;background:#b42318;color:#fff"></button><button type="button" data-n class="mgr-ic" style="width:auto;padding:0 16px;font-size:13px"></button></div></div>';
     o.querySelector('div>div').textContent = c[0]; o.querySelector('[data-y]').textContent = c[1]; o.querySelector('[data-n]').textContent = c[2];
     o.querySelector('[data-n]').onclick = () => o.remove();
-    o.querySelector('[data-y]').onclick = () => { o.remove(); discard(); M.nested = false; setMode('closed'); };
+    o.querySelector('[data-y]').onclick = () => { o.remove(); discard(); M.nested = false; M.view = 'list'; setMode('closed'); };
     el.pop.appendChild(o);
   }
   /* ---------- Messages are stored in Supabase (trainee_messages), shown WhatsApp-style, in the trainee's own country time ---------- */
@@ -4478,7 +4483,59 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
   }
   const mTime = iso => { try { return new Date(iso).toLocaleTimeString(mLoc(), { hour: '2-digit', minute: '2-digit', timeZone: mTz() }); } catch (e) { return ''; } };
   (function () { const s = document.createElement('style'); s.textContent = '.mgr-b.in{align-self:flex-start;background:#202c33;border-radius:10px 10px 10px 2px}.mgr-b a{color:#53bdeb;text-decoration:underline;overflow-wrap:anywhere}.mgr-send:disabled{opacity:.5}'; document.head.appendChild(s); })();
+  (function () {
+    const s = document.createElement('style'); s.id = 'mgrCss2'; s.textContent = `
+.mgr-pop [hidden]{display:none!important}
+.mgr-chat{flex:1;min-height:0;display:flex;flex-direction:column}
+.mgr-pop[data-view=list] .mgr-chat{display:none}
+.mgr-pop[data-view=chat] .mgr-cells{display:none}
+.mgr-cells{flex:1;overflow:auto;padding:6px 0;background:#0b141a}
+.mgr-cell{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:11px 14px;border:0;background:transparent;color:#e9edef;font:inherit;text-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mgr-cell:active{background:rgba(255,255,255,.06)}
+.mgr-cell.soon{cursor:default;opacity:.7;border-top:1px solid rgba(255,255,255,.06)}
+.mgr-cell.soon:active{background:transparent}
+.mgr-ca{width:46px;height:46px;flex:none;border-radius:50%;background:#2a3942;color:#8696a0;display:flex;align-items:center;justify-content:center;font-size:19px}
+.mgr-cell.soon .mgr-ca{background:transparent;border:1.5px dashed #54656f}
+.mgr-cb{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mgr-c1,.mgr-c2{display:flex;align-items:center;gap:6px;min-width:0}
+.mgr-c1 b{flex:1;min-width:0;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mgr-c1 em{font-style:normal;font-size:11px;color:#8696a0;flex:none}
+.mgr-cp{flex:1;min-width:0;font-size:13px;color:#8696a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mgr-cp.wrap{white-space:normal;line-height:1.45}
+.mgr-cell.unr .mgr-c1 b,.mgr-cell.unr .mgr-cp{font-weight:800;color:#fff}
+.mgr-cell.unr .mgr-c1 em{font-weight:800;color:#2dd4bf}
+.mgr-cn{flex:none;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:999px;background:#2dd4bf;color:#06283d;font:800 11px/20px Inter,Cairo,sans-serif;text-align:center}
+.mgr-dots{display:inline-flex;align-items:center;gap:3px;flex:none}
+.mgr-dots i{display:block;width:7px;height:7px;border-radius:50%;background:#8696a0}
+.mgr-dots.green i{background:#22c55e}
+.mgr-dots.red i{background:#ef4444}
+.mgr-m .mgr-dots{margin-inline-start:2px}
+#mgrNum{display:none;position:absolute!important;top:9px;left:calc(50% + 12px);z-index:5;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;-webkit-text-fill-color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px #181c20,0 2px 6px rgba(239,68,68,.55);pointer-events:none}
+#mgrNum.on{display:block}
+#mgrNum.l2{font-size:8px}
+#mgrNum.bump{animation:mgrBump .4s cubic-bezier(.3,1.7,.5,1)}
+@keyframes mgrBump{0%{transform:scale(.4)}100%{transform:scale(1)}}
+body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.55)}`;
+    document.head.appendChild(s);
+  })();
 
+  /* texts of the new list view */
+  const MY = {
+    en: { title: 'Thabit Messenger', more: 'You can add more members', soon: 'You can chat with other trainees from here later. Soon, God willing.' },
+    ar: { title: 'ثابت ميسنجر', more: 'تقدر تضيف أعضاء آخرين', soon: 'تقدر تتواصل مع متدربين آخرين من هنا لاحقًا. قريبًا إن شاء الله' },
+    eg: { title: 'ثابت ميسنجر', more: 'تقدر تضيف ناس تانية', soon: 'هتقدر تكلم متدربين تانيين من هنا بعدين. قريب إن شاء الله' }
+  };
+  const MYT = () => MY[(typeof lang === 'string' && lang) || 'en'] || MY.en;
+  /* the name shown for the trainer (set window.TH_TRAINER_NAME to change it) */
+  const TN = () => window.TH_TRAINER_NAME || ({ en: 'Trainer', ar: 'المدرب', eg: 'المدرب' }[(typeof lang === 'string' && lang) || 'en'] || 'Trainer');
+  const mIsUnread = x => x.sender === 'trainer' && !x.read_at;
+  const mUnreadList = () => M.msgs.filter(mIsUnread);
+
+  /* read marks: two grey dots = reached the database, two green dots = the trainer read it, one red dot = did not reach us */
+  function mDots(m) {
+    const st = m._st === 'fail' ? 'red' : m._st === 'pending' ? (Date.now() - new Date(m.created_at).getTime() > 1500 ? 'red' : 'gray1') : (m.read_at ? 'green' : 'gray');
+    return '<span class="mgr-dots ' + st + '">' + ((st === 'red' || st === 'gray1') ? '<i></i>' : '<i></i><i></i>') + '</span>';
+  }
   function mBubble(m) {
     const b = document.createElement('div'), mine = m.sender !== 'trainer', t = MXT();
     b.className = 'mgr-b' + (mine ? '' : ' in') + (mine && m.read_at ? ' seen' : ''); b.dataset.id = m.id;
@@ -4491,11 +4548,13 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     } else tx.textContent = m.body || '';
     b.appendChild(tx);
     const mm = document.createElement('div'); mm.className = 'mgr-m';
-    mm.innerHTML = '<span></span>' + (mine ? '<i class="fa-solid ' + (m.read_at ? 'fa-check-double' : 'fa-check') + ' mgr-tk"></i>' : '');
+    mm.innerHTML = '<span></span>' + (mine ? mDots(m) : '');
     mm.firstChild.textContent = mTime(m.created_at); b.appendChild(mm);
+    if (m._st === 'fail') { b.style.cursor = 'pointer'; b.onclick = () => { m._st = 'pending'; m.created_at = new Date().toISOString(); mRender(); mPost(m); }; }   /* tap a red message = try again */
     return b;
   }
   function mRender() {
+    if (!el.list) return;
     const l = el.list, atEnd = l.scrollHeight - l.scrollTop - l.clientHeight < 80 || !M.loaded; let day = '';
     l.innerHTML = '';
     M.msgs.forEach(m => {
@@ -4505,17 +4564,61 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     });
     M.loaded = true; if (atEnd) l.scrollTop = l.scrollHeight;
   }
-  const mSig = a => a.map(x => x.id + ':' + (x.read_at ? 1 : 0)).join(',');
+  /* the number on the Messenger button = how many PEOPLE sent something not read yet (not how many messages) */
+  function mBadge() {
+    const b = document.getElementById('mgrNum'); if (!b) return;
+    const n = new Set(mUnreadList().map(x => x.sender_id || 'trainer')).size;
+    const txt = n > 99 ? '99+' : (n ? String(n) : '');
+    if (b.textContent !== txt) { b.textContent = txt; b.classList.remove('bump'); void b.offsetWidth; if (n) b.classList.add('bump'); }
+    b.classList.toggle('on', n > 0); b.classList.toggle('l2', txt.length > 1);
+  }
+  function mCellTime(iso) {
+    const k = mDayKey(iso), now = Date.now();
+    if (k === mDayKey(new Date(now).toISOString())) return mTime(iso);
+    if (k === mDayKey(new Date(now - 864e5).toISOString())) return MXT().yest;
+    try { return new Date(iso).toLocaleDateString(mLoc(), { day: 'numeric', month: 'numeric', year: '2-digit', timeZone: mTz() }); } catch (e) { return k; }
+  }
+  /* the list: the trainer first (bold when something is unread), then a "soon" cell */
+  function lRender() {
+    if (!el.cells) return; const t = MYT(), last = M.msgs[M.msgs.length - 1], un = mUnreadList().length;
+    let prev = '', tm = '';
+    if (last) { prev = last.kind === 'audio' ? MXT().voice : last.kind === 'image' ? MXT().photo : (last.body || ''); tm = mCellTime(last.created_at); }
+    el.cells.dir = (typeof lang === 'string' && lang === 'en') ? 'ltr' : 'rtl';
+    el.cells.innerHTML = `<button type="button" class="mgr-cell${un ? ' unr' : ''}" data-open>
+        <span class="mgr-ca"><i class="fa-solid fa-user-tie"></i></span>
+        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(TN())}</b><em>${esc(tm)}</em></span>
+          <span class="mgr-c2">${last && last.sender !== 'trainer' ? mDots(last) : ''}<span class="mgr-cp" dir="auto">${esc(prev)}</span>${un ? `<span class="mgr-cn">${un}</span>` : ''}</span></span></button>
+      <div class="mgr-cell soon"><span class="mgr-ca"><i class="fa-solid fa-user-plus"></i></span>
+        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.more)}</b></span><span class="mgr-c2"><span class="mgr-cp wrap" dir="auto">${esc(t.soon)}</span></span></span></div>`;
+    el.cells.querySelector('[data-open]').onclick = () => setView('chat');
+  }
+  const mRenderAll = () => { mBadge(); lRender(); mRender(); };
+  const mSig = a => a.filter(x => !x._st).map(x => x.id + ':' + (x.read_at ? 1 : 0)).join(',');
+  /* the trainer's messages count as read only while his conversation is really open on screen */
+  function mMarkRead() {
+    if (VIEW || !tok() || M.mode !== 'open' || M.view !== 'chat') return;
+    const un = mUnreadList(); if (!un.length) return;
+    rpc('trainee_msg_mark_read', { p_token: tok() }).then(r => {
+      if (r && r.ok === false) return;
+      const now = new Date().toISOString(); un.forEach(x => { x.read_at = now; }); M.sig = mSig(M.msgs); mRenderAll();
+    }).catch(() => null);
+  }
   async function mLoad() {
     if (M.busy || !tok()) return; M.busy = true;
     try {
       const r = await rpc('trainee_msg_list', { p_token: tok(), p_after: 0 }).catch(() => null);
       if (r && r.ok && Array.isArray(r.messages)) {
         const sig = mSig(r.messages);
-        if (sig !== M.sig || !M.loaded) { M.msgs = r.messages; M.sig = sig; mRender(); }
-        if (!VIEW && r.messages.some(x => x.sender === 'trainer' && !x.read_at)) rpc('trainee_msg_mark_read', { p_token: tok() }).catch(() => null);
+        if (sig !== M.sig || !M.fetched) { M.msgs = r.messages.concat(M.msgs.filter(x => x._st)); M.sig = sig; M.fetched = true; mRenderAll(); }
+        mMarkRead();
       }
     } finally { M.busy = false; }
+  }
+  function setView(v) {
+    M.view = v; if (!el.pop) return; el.pop.dataset.view = v;
+    el.title.textContent = v === 'chat' ? TN() : MYT().title; el.back.hidden = v !== 'chat';
+    if (v === 'chat') { mRender(); el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); mMarkRead(); }
+    else lRender();
   }
   function setMode(m) {
     build(); const was = M.mode; M.mode = m;
@@ -4523,26 +4626,33 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.pop.style.display = m === 'open' ? 'flex' : 'none';
     if (m !== 'open') { el.att.hidden = true; clearInterval(M.timer); M.timer = null; }
     if (m === 'open') {
-      el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60);
-      if (was !== 'open') { mLoad(); clearInterval(M.timer); M.timer = setInterval(() => { if (!document.hidden) mLoad(); }, 10000); }
+      setView(M.view || 'list');
+      if (was !== 'open') { mLoad(); clearInterval(M.timer); M.timer = setInterval(() => { if (!document.hidden) mLoad(); }, 5000); }
     }
   }
   function setQuote(s) {
     M.quote = s || ''; el.quote.hidden = !M.quote; el.quote.querySelector('span').textContent = M.quote;
   }
-  async function sendMsg() {
-    if (M.sending) return; const v = el.in.value.trim(); if (!v) return;
-    M.sending = true; el.send.disabled = true;
-    const r = await rpc('trainee_msg_send', { p_token: tok(), p_kind: 'text', p_body: v, p_quote: M.quote || null }).catch(() => null);
-    M.sending = false; el.send.disabled = false;
-    if (r && r.ok && r.message) {
-      if (!M.msgs.some(x => x.id === r.message.id)) M.msgs.push(r.message);
-      M.sig = mSig(M.msgs); M.loaded = false; mRender();          /* stored in Supabase; the bubble shows only after the server accepted it */
-      el.in.value = ''; el.send.hidden = true; setQuote('');
-    } else itToast(MXT().fail);                                   /* the text stays in the box so nothing is lost */
+  async function mPost(tmp) {
+    const r = await rpc('trainee_msg_send', { p_token: tok(), p_kind: 'text', p_body: tmp.body, p_quote: tmp.quote || null }).catch(() => null);
+    const i = M.msgs.indexOf(tmp);
+    if (r && r.ok && r.message) { if (i >= 0) M.msgs.splice(i, 1); if (!M.msgs.some(x => x.id === r.message.id)) M.msgs.push(r.message); }
+    else { tmp._st = 'fail'; itToast(MXT().fail); }          /* stays in the chat with a red dot; tap it to send again */
+    M.sig = mSig(M.msgs); M.loaded = false; mRenderAll();
   }
-  function openMessenger(quote) { build(); M.nested = quote !== undefined; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* a quote only comes from Reply = nested */
+  function sendMsg() {
+    const v = el.in.value.trim(); if (!v) return;
+    const tmp = { id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), sender: 'trainee', kind: 'text', body: v, quote: M.quote || null, created_at: new Date().toISOString(), _st: 'pending' };
+    M.msgs.push(tmp); el.in.value = ''; el.send.hidden = true; setQuote(''); M.loaded = false; mRenderAll();
+    setTimeout(() => { if (tmp._st === 'pending') mRender(); }, 1600);   /* still not sent after 1.6s -> the dot turns red */
+    mPost(tmp);
+  }
+  function openMessenger(quote) { build(); M.nested = quote !== undefined; if (quote !== undefined) M.view = 'chat'; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* Reply goes straight into the chat with the quote */
   window.thMessenger = { open: openMessenger, dock: () => leave(), close: () => askClose() };
+  /* background check: the number on the button stays right even while the pop-up is closed */
+  setTimeout(() => { if (!document.hidden) mLoad(); }, 1500);
+  setInterval(() => { if (!document.hidden && M.mode !== 'open') mLoad(); }, 10000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) mLoad(); });
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && M.mode === 'open') leave(); }, true);
 
   /* the Messenger button (message-in-a-bottle), right next to the Feed button: same box, icon on top and a label under it like the others */
@@ -4554,10 +4664,10 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     const b = f.cloneNode(false); b.id = 'mgrBtn'; b.dataset.bk = 'msgr'; b.removeAttribute('onclick'); b.removeAttribute('style'); b.type = 'button';
     b.className = (f.className || '').replace(/\b(upd|glow|live|empty|num|open)\b/g, '').trim();
     b.title = lbl(); b.setAttribute('aria-label', lbl());
-    b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span>';
+    b.innerHTML = '<span class="mgr-ico"></span><span class="thl"></span><span id="mgrNum"></span>';
     b.querySelector('.thl').textContent = lbl();
     b.onclick = e => { e.stopPropagation(); build(); M.nested = false; setMode(M.mode === 'open' ? 'closed' : 'open'); };   /* from the bar: never a tab */
-    f.insertAdjacentElement('afterend', b); return true;
+    f.insertAdjacentElement('afterend', b); mBadge(); return true;
   }
   { let n = 0; const iv = setInterval(() => { if (installDove() || ++n > 120) clearInterval(iv); }, 500); }
   setInterval(() => { const l = document.querySelector('#mgrBtn .thl'); if (l && l.textContent !== lbl()) { l.textContent = lbl(); const b = document.getElementById('mgrBtn'); b.title = lbl(); } }, 2000);
