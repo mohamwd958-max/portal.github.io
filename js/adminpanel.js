@@ -4505,3 +4505,167 @@ window.tzPick = async function (id, zone) {
   const start = () => new MutationObserver(sched).observe(document.body, { childList: true, subtree: true });
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
+
+/* ==========================================================
+   Contact Center > Inbound: trainee Messenger
+   - a strip of small cells (one per ACTIVE trainee, unread first) above the reports; tap a name = that conversation opens
+   - send / receive, everything is stored in Supabase (trainee_messages). Close it and open another trainee any time.
+   - opening a conversation marks the trainee's messages as read (the trainee then sees blue ticks)
+   - needs 10_messenger_admin.sql (admin permissions on trainee_messages)
+   ========================================================== */
+(function () {
+  if (document.getElementById('mgAdCss')) return;
+  const s = document.createElement('style'); s.id = 'mgAdCss';
+  s.textContent = `
+#ccMsgBar{border:1px solid #1e293b;border-radius:14px;background:#0b1220;padding:8px;margin-bottom:10px}
+#ccMsgBar .mg-t{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#fbbf24;margin-bottom:8px}
+#ccMsgBar .mg-t small{font-size:10px;padding:1px 7px;border-radius:999px;background:#ef4444;color:#fff}
+.mg-cells{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow:auto}
+.mg-cell{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;font-size:12px;font-weight:700;cursor:pointer}
+.mg-cell:hover{border-color:#f59e0b}
+.mg-cell.un{border-color:#22c55e;color:#fff;background:rgba(34,197,94,.14)}
+.mg-cell.on{background:#f59e0b;border-color:#f59e0b;color:#0f172a}
+.mg-cell em{font-style:normal;min-width:16px;padding:0 5px;border-radius:999px;background:#22c55e;color:#04231a;font-size:10px;font-weight:900;text-align:center}
+#mgWin{position:fixed;right:16px;bottom:16px;z-index:200020;width:min(380px,94vw);height:min(540px,82vh);display:none;flex-direction:column;background:#0b141a;color:#e9edef;border:1px solid rgba(255,255,255,.14);border-radius:18px;overflow:hidden;box-shadow:0 18px 54px rgba(0,0,0,.6);direction:ltr}
+#mgWin.open{display:flex}
+#mgWin .mgh{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#202c33}
+#mgWin .mgh .av{width:32px;height:32px;border-radius:50%;background:#1e293b;color:#fbbf24;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}
+#mgWin .mgh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+#mgWin .mgh button{width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:#aebac1;cursor:pointer}
+#mgWin .mgl{flex:1;overflow:auto;padding:12px 10px;display:flex;flex-direction:column;gap:4px}
+#mgWin .mgd{align-self:center;margin:8px 0;padding:3px 10px;border-radius:8px;background:#182229;color:#8696a0;font-size:11px}
+#mgWin .mgb{align-self:flex-start;max-width:82%;padding:6px 8px 4px;border-radius:10px 10px 10px 2px;background:#202c33}
+#mgWin .mgb.me{align-self:flex-end;background:#005c4b;border-radius:10px 10px 2px 10px}
+#mgWin .mgt{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+#mgWin .mgt a{color:#53bdeb;text-decoration:underline}
+#mgWin .mgt img{max-width:100%;border-radius:8px;display:block}
+#mgWin .mgt audio{max-width:100%}
+#mgWin .mgq{border-inline-start:3px solid #f59e0b;background:rgba(0,0,0,.22);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;color:#c5d0d6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mgWin .mgm{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:2px;font-size:10px;color:rgba(233,237,239,.6)}
+#mgWin .mgm i{font-size:11px;color:#8696a0}#mgWin .mgm i.rd{color:#53bdeb}
+#mgWin .mgc{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#202c33}
+#mgWin .mgc input{flex:1;min-width:0;height:40px;border-radius:20px;border:0;outline:0;padding:0 14px;background:#2a3942;color:#e9edef;font:inherit;font-size:14px}
+#mgWin .mgc button{width:40px;height:40px;flex:none;border-radius:50%;border:0;background:#22c55e;color:#04231a;font-size:16px;cursor:pointer}
+#mgWin .mgc button:disabled{opacity:.5}
+#mgWin .mge{margin:auto;color:#8696a0;font-size:12px}`;
+  document.head.appendChild(s);
+})();
+
+const mg = { msgs: new Map(), act: [], open: null, timer: null, loading: false, sending: false };
+const mgUrl = m => m.media_path ? `${SUPABASE_URL}/storage/v1/object/public/${m.media_bucket || 'messenger'}/${String(m.media_path).split('/').map(enc).join('/')}` : '';
+const mgUnread = name => (mg.msgs.get(name) || []).filter(m => m.sender === 'trainee' && !m.read_at).length;
+
+async function mgLoad(withProfiles) {
+  if (mg.loading) return; mg.loading = true;
+  try {
+    const [rows, studs] = await Promise.all([
+      fetchAllRows('trainee_messages?select=*&order=id.asc'),
+      (withProfiles || !mg.act.length) ? fetchAllRows(`${PROFILES_TABLE}?select=*`) : Promise.resolve(null)
+    ]);
+    const m = new Map(); rows.forEach(r => { if (!m.has(r.trainee)) m.set(r.trainee, []); m.get(r.trainee).push(r); });
+    mg.msgs = m;
+    if (studs) mg.act = studs.filter(r => r.trainee && mpStatus(r) === 'active').map(r => ({ id: r.id, name: String(r.trainee) }));
+  } finally { mg.loading = false; }
+  mgBar(); if (mg.open) mgPaintChat(true);
+}
+
+function mgBar() {
+  const el = $id('ccMsgBar'); if (!el) return;
+  el.style.display = cc.tab === 'in' ? '' : 'none';
+  const q = cc.q.trim().toLowerCase();
+  const cells = mg.act.map(r => { const a = mg.msgs.get(r.name) || []; return { name: r.name, un: mgUnread(r.name), last: a.length ? String(a[a.length - 1].created_at) : '' }; })
+    .filter(c => !q || c.name.toLowerCase().includes(q))
+    .sort((a, b) => (b.un > 0) - (a.un > 0) || b.last.localeCompare(a.last) || a.name.localeCompare(b.name));
+  const total = cells.reduce((n, c) => n + c.un, 0);
+  el.querySelector('.mg-t').innerHTML = `<i class="fa-regular fa-comments"></i> Messenger <span style="color:#94a3b8;font-weight:600">· ${cells.length} طالب</span>${total ? `<small>${total} جديدة</small>` : ''}`;
+  el.querySelector('.mg-cells').innerHTML = cells.length
+    ? cells.map(c => `<button type="button" class="mg-cell${c.un ? ' un' : ''}${mg.open === c.name ? ' on' : ''}" data-n="${esc(c.name)}" onclick="mgOpen(this.dataset.n)"><span dir="auto">${esc(c.name)}</span>${c.un ? `<em>${c.un}</em>` : ''}</button>`).join('')
+    : '<div class="tha-note">مفيش طلاب Active.</div>';
+}
+
+function mgWinEnsure() {
+  let w = $id('mgWin'); if (w) return w;
+  w = document.createElement('div'); w.id = 'mgWin';
+  w.innerHTML = `<div class="mgh"><div class="av"></div><b dir="auto"></b><button type="button" data-x title="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="mgl"></div><div class="mgc"><input dir="auto" placeholder="اكتب رسالة" enterkeyhint="send" autocomplete="off"><button type="button" data-s title="إرسال"><i class="fa-solid fa-paper-plane"></i></button></div>`;
+  document.body.appendChild(w);
+  w.querySelector('[data-x]').onclick = mgClose;
+  w.querySelector('[data-s]').onclick = mgSend;
+  w.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); mgSend(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && w.classList.contains('open') && document.activeElement && w.contains(document.activeElement)) mgClose(); });
+  return w;
+}
+function mgBubble(m) {
+  const me = m.sender === 'trainer', b = document.createElement('div'); b.className = 'mgb' + (me ? ' me' : '');
+  let h = '';
+  if (m.quote) h += `<div class="mgq" dir="auto">${esc(m.quote)}</div>`;
+  if (m.kind === 'link' && /^https?:\/\//i.test(m.body || '')) h += `<div class="mgt"><a href="${esc(m.body)}" target="_blank" rel="noopener noreferrer">${esc(m.body)}</a></div>`;
+  else if (m.kind === 'audio' && mgUrl(m)) h += `<div class="mgt"><audio controls preload="none" src="${esc(mgUrl(m))}"></audio></div>`;
+  else if (m.kind === 'image' && mgUrl(m)) h += `<div class="mgt"><a href="${esc(mgUrl(m))}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(mgUrl(m))}" alt=""></a>${m.body ? `<div dir="auto">${esc(m.body)}</div>` : ''}</div>`;
+  else h += `<div class="mgt" dir="auto">${esc(m.body || '')}</div>`;
+  h += `<div class="mgm"><span>${esc(ccTime(m.created_at))}</span>${me ? `<i class="fa-solid ${m.read_at ? 'fa-check-double rd' : 'fa-check'}"></i>` : ''}</div>`;
+  b.innerHTML = h; return b;
+}
+function mgPaintChat(keepScroll) {
+  const w = $id('mgWin'); if (!w || !mg.open) return;
+  const l = w.querySelector('.mgl'), a = mg.msgs.get(mg.open) || [], atEnd = !keepScroll || l.scrollHeight - l.scrollTop - l.clientHeight < 90;
+  w.querySelector('.mgh b').textContent = mg.open; w.querySelector('.av').textContent = mg.open.trim().charAt(0).toUpperCase() || '?';
+  l.innerHTML = ''; let day = '';
+  if (!a.length) l.innerHTML = '<div class="mge">مفيش رسائل لسه. ابدأ إنت.</div>';
+  a.forEach(m => {
+    const k = ccDayKey(m.created_at);
+    if (k !== day) { day = k; const d = document.createElement('div'); d.className = 'mgd'; d.textContent = ccDayLabel(k); l.appendChild(d); }
+    l.appendChild(mgBubble(m));
+  });
+  if (atEnd) l.scrollTop = l.scrollHeight;
+}
+async function mgMarkRead(name) {
+  const a = (mg.msgs.get(name) || []).filter(m => m.sender === 'trainee' && !m.read_at); if (!a.length) return;
+  try {
+    const now = new Date().toISOString();
+    await sbFetch(`trainee_messages?trainee=eq.${enc(name)}&sender=eq.trainee&read_at=is.null`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ read_at: now }) });
+    a.forEach(m => { m.read_at = now; }); mgBar();
+  } catch (e) { showToast('تعذّر تعليم الرسائل كمقروءة: ' + e.message, true); }
+}
+window.mgOpen = async function (name) {
+  mg.open = name; const w = mgWinEnsure(); w.classList.add('open'); mgPaintChat(false); mgBar();
+  setTimeout(() => { try { w.querySelector('input').focus(); } catch (e) { } }, 50);
+  await mgMarkRead(name);
+};
+function mgClose() { mg.open = null; const w = $id('mgWin'); if (w) w.classList.remove('open'); mgBar(); }
+async function mgSend() {
+  const w = $id('mgWin'); if (!w || !mg.open || mg.sending) return;
+  const inp = w.querySelector('input'), v = inp.value.trim(); if (!v) return;
+  mg.sending = true; w.querySelector('[data-s]').disabled = true;
+  try {
+    const res = await sbFetch('trainee_messages', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ trainee: mg.open, sender: 'trainer', kind: 'text', body: v }) });
+    const rows = await res.json(), row = Array.isArray(rows) ? rows[0] : rows;
+    if (row) { if (!mg.msgs.has(mg.open)) mg.msgs.set(mg.open, []); mg.msgs.get(mg.open).push(row); }
+    inp.value = ''; mgPaintChat(false); mgBar();
+  } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 10_messenger_admin.sql لو لسه)', true); }
+  mg.sending = false; w.querySelector('[data-s]').disabled = false;
+}
+function mgEnsureBar() {
+  if ($id('ccMsgBar') || !$id('ccList')) return;
+  const el = document.createElement('div'); el.id = 'ccMsgBar'; el.innerHTML = '<div class="mg-t"></div><div class="mg-cells"></div>';
+  $id('ccList').insertAdjacentElement('beforebegin', el);
+}
+{
+  const prevRender = ccRender;
+  ccRender = async function () {
+    const r = await prevRender.apply(this, arguments);
+    mgEnsureBar(); mgBar();
+    await mgLoad(true).catch(e => showToast('تعذّر تحميل الرسائل: ' + e.message + ' (شغّل 10_messenger_admin.sql لو لسه)', true));
+    return r;
+  };
+  const prevPaint = ccPaint;
+  ccPaint = function () { const r = prevPaint.apply(this, arguments); mgBar(); return r; };
+  window.ccPaint = ccPaint;
+  /* new messages arrive by themselves while the Contact Center or a conversation is open */
+  setInterval(() => {
+    const w = WSE.cc, shown = w && w.el.style.display !== 'none';
+    if (document.hidden || !(shown || mg.open) || !$id('ccMsgBar')) return;
+    mgLoad(false).catch(() => { });
+    if (mg.open) mgMarkRead(mg.open);
+  }, 10000);
+}
