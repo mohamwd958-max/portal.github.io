@@ -4972,6 +4972,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 #asm iframe,#asFrame{width:100%!important;height:100%!important;border:0!important}
 #rqm .ssbox,#rqn .ssbox,#rqo .ssbox{width:min(440px,100%)!important;max-height:none!important}
 #rqm .ssh,#rqn .ssh,#rqo .ssh,#thSet .tsh,.mgr-h{display:none!important}
+#asm .asx{display:none!important}
 .mgr-veil{display:none!important}
 .mgr-pop{left:0!important;top:0!important;transform:none!important;width:100%!important;max-width:none!important;height:100%!important;height:100dvh!important;border-radius:0!important;border:0!important;box-shadow:none!important;padding-top:calc(52px + env(safe-area-inset-top))!important;box-sizing:border-box!important;background:rgba(11,20,26,.68)!important;-webkit-backdrop-filter:blur(7px) saturate(1.15);backdrop-filter:blur(7px) saturate(1.15)}
 .mgr-cells,.mgr-list{background:transparent!important}
