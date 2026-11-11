@@ -31,7 +31,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -3277,6 +3277,13 @@ html #mobileFloatingBar>.feed,#feedBtn{position:relative!important;background:tr
   const fmt = (d, o) => d.toLocaleDateString(loc(), Object.assign({ timeZone: 'UTC' }, o));
   const num = n => n.toLocaleString(loc(), { useGrouping: false });
   let view = 'week', cur = null;
+  const isOff = d => { const w = d.getUTCDay(); return w === 4 || w === 5; };          // Thursday + Friday = days off (default)
+  const CZ = () => ({
+    en: { off: 'This day is a day off', cust: 'Customize', apology: 'Apologize', resched: 'Request a time change', other: 'Other', ph: 'Describe exactly what you want...', send: 'Send', need: 'Please write what you want first', sent: 'Sent ✓', fail: 'Could not send, try again', prev: 'Preview mode: nothing was sent' },
+    ar: { off: 'هذا اليوم إجازة', cust: 'تخصيص', apology: 'تقديم اعتذار', resched: 'طلب تغيير موعد', other: 'أخرى', ph: 'اوصف ما تريده بالضبط...', send: 'إرسال', need: 'اكتب ما تريده أولاً', sent: 'تم الإرسال ✓', fail: 'لم يتم الإرسال، حاول مرة أخرى', prev: 'وضع المعاينة: لم يُرسل شيء' },
+    eg: { off: 'اليوم ده إجازة', cust: 'تخصيص', apology: 'تقديم اعتذار', resched: 'طلب تغيير ميعاد', other: 'أخرى', ph: 'اوصفلي اللي انت عايزه بالظبط...', send: 'إرسال', need: 'اكتب اللي انت عايزه الأول', sent: 'اتبعت ✓', fail: 'ما اتبعتش، حاول تاني', prev: 'وضع المعاينة: مفيش حاجة اتبعتت' }
+  }[lang] || {});
+  let cz = { d: '', step: 'closed', opt: '' };
 
   const st = document.createElement('style');
   st.textContent = `
@@ -3315,7 +3322,26 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
 #thCal .cx{margin-top:12px;display:flex;flex-direction:column;gap:8px}
 #thCal .cl{padding:10px 12px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08);border-inline-start:3px solid #34d399}
 #thCal .cl b{font-size:.88rem}#thCal .cl span{display:block;font-size:.76rem;opacity:.7;margin-top:2px}
-#thCal .ce{text-align:center;font-size:.8rem;opacity:.6;padding:6px 0}`;
+#thCal .ce{text-align:center;font-size:.8rem;opacity:.6;padding:6px 0}
+#thCal .cd.off{color:#ef4444;background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.4)}
+#thCal .cg.wk .cd.off{background:rgba(239,68,68,.14)}
+#thCal .cd.sel.off,#thCal .cg.wk .cd.sel.off{background:#ef4444;color:#fff;border-color:#ef4444}
+#thCal .cm .mn.of{color:#ef4444}
+#thCal .cl.off{border-inline-start-color:#ef4444;background:rgba(239,68,68,.1);text-align:center}
+#thCal .cl.off b{color:#ef4444}
+#thCal .czb{width:100%;margin-top:10px;padding:11px;border:0;border-radius:14px;background:rgba(148,163,184,.16);color:inherit;font:800 .86rem Cairo,Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+#thCal .czb.on{background:#fbbf24;color:#111}
+#thCal .czo{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+#thCal .czo button{padding:11px 12px;border:0;border-radius:12px;background:rgba(148,163,184,.12);color:inherit;font:700 .84rem Cairo,Inter,sans-serif;cursor:pointer;text-align:center}
+#thCal .czo button:disabled{opacity:.35;cursor:default}
+#thCal .czf{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+#thCal .czt{text-align:center;font-weight:800;font-size:.86rem}
+#thCal .czta{width:100%;box-sizing:border-box;min-height:96px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:rgba(148,163,184,.08);color:inherit;font:600 .86rem Cairo,Inter,sans-serif;resize:vertical}
+#thCal .czerr{color:#f43f5e;font-size:.76rem;font-weight:700;text-align:center}
+#thCal .czr{display:flex;gap:8px}
+#thCal .czr button{padding:11px 14px;border:0;border-radius:12px;background:rgba(148,163,184,.16);color:inherit;font:800 .84rem Cairo,Inter,sans-serif;cursor:pointer}
+#thCal .czr .czs{flex:1;background:#34d399;color:#04231a}
+#thCal .czr button:disabled{opacity:.6}`;
   document.head.appendChild(st);
 
   const box = document.createElement('div'); box.id = 'thCal';
@@ -3333,10 +3359,24 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
   }
   function cell(d, S, today, extra) {
     const k = Y(d), has = S[k];
-    return `<button type="button" class="cd${k === Y(cur) ? ' sel' : ''}${k === today ? ' td' : ''}${extra || ''}" data-d="${k}">${view === 'week' ? `<small>${fmt(d, { weekday: 'short' })}</small>` : ''}<span>${num(d.getUTCDate())}</span><i class="dt2${has ? '' : ' no'}"></i></button>`;
+    return `<button type="button" class="cd${k === Y(cur) ? ' sel' : ''}${k === today ? ' td' : ''}${extra || ''}${isOff(d) ? ' off' : ''}" data-d="${k}">${view === 'week' ? `<small>${fmt(d, { weekday: 'short' })}</small>` : ''}<span>${num(d.getUTCDate())}</span><i class="dt2${has ? '' : ' no'}"></i></button>`;
   }
   function weekHead() { const a = WS(P('2024-01-06')); return Array.from({ length: 7 }, (_, i) => `<div class="cw">${fmt(AD(a, i), { weekday: 'short' })}</div>`).join(''); }
-  function details(S) {
+  function details(S) { return czWrap(details0(S)); }
+  function czWrap(html) {
+    const c = CZ(), k = Y(cur), today = itToday(), lastOk = Y(AD(WS(P(today)), 13));   // this week + next week
+    const off = isOff(cur), ok = !off && k >= today && k <= lastOk;
+    if (cz.d !== k) cz = { d: k, step: 'closed', opt: '' };
+    let pre = off ? `<div class="cx"><div class="cl off"><b>${esc(c.off)}</b></div></div>` : '', post = '';
+    if (ok) {
+      post = `<button type="button" class="czb${cz.step !== 'closed' ? ' on' : ''}" data-cz="toggle"><i class="fa-solid fa-sliders"></i>${esc(c.cust)}</button>`;
+      if (cz.step === 'opts') post += `<div class="czo"><button type="button" data-cz="opt:apology">${esc(c.apology)}</button><button type="button" data-cz="opt:reschedule">${esc(c.resched)}</button><button type="button" data-cz="opt:other">${esc(c.other)}</button><button type="button" disabled>—</button></div>`;
+      if (cz.step === 'form') { const nm = { apology: c.apology, reschedule: c.resched, other: c.other }[cz.opt] || '';
+        post += `<div class="czf"><div class="czt">${esc(nm)}</div><textarea class="czta" rows="4" maxlength="1500" placeholder="${esc(c.ph)}"></textarea><div class="czerr" hidden></div><div class="czr"><button type="button" data-cz="back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button><button type="button" class="czs" data-cz="send">${esc(c.send)}</button></div></div>`; }
+    }
+    return pre + html + post;
+  }
+  function details0(S) {
     const t = T3(), rows = S[Y(cur)] || [], hm5 = v => v ? String(v).slice(0, 5) : '';
     return `<div class="cx">` + (rows.length ? rows.map(r => `<div class="cl"><b dir="auto">${esc(t.sess)} #${esc(r.session_number == null ? '' : r.session_number)}${r.session_title ? ' · ' + esc(r.session_title) : ''}</b>${r.sub_title ? `<span dir="auto">${esc(r.sub_title)}</span>` : ''}${r.start_time || r.end_time ? `<span>${esc(hm5(r.start_time))}–${esc(hm5(r.end_time))}</span>` : ''}</div>`).join('') : `<div class="ce">${t.none}</div>`) + `</div>`;
   }
@@ -3354,7 +3394,7 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
       const y = cur.getUTCFullYear();
       h += `<div class="cy">${Array.from({ length: 12 }, (_, m) => {
         const first = new Date(Date.UTC(y, m, 1)), st0 = WS(first), rows = Math.ceil(((first - st0) / 864e5 + dim(y, m)) / 7);
-        const cells = Array.from({ length: rows * 7 }, (_, i) => { const d = AD(st0, i), k = Y(d); return d.getUTCMonth() === m ? `<div class="cd mn${S[k] ? ' s' : ''}${k === today ? ' t' : ''}">${num(d.getUTCDate())}</div>` : '<div></div>'; }).join('');
+        const cells = Array.from({ length: rows * 7 }, (_, i) => { const d = AD(st0, i), k = Y(d); return d.getUTCMonth() === m ? `<div class="cd mn${S[k] ? ' s' : ''}${k === today ? ' t' : ''}${isOff(d) ? ' of' : ''}">${num(d.getUTCDate())}</div>` : '<div></div>'; }).join('');
         return `<button type="button" class="cm${m === cur.getUTCMonth() ? ' cur' : ''}" data-m="${m}"><b>${fmt(first, { month: 'long' })}</b><div class="cg">${cells}</div></button>`;
       }).join('')}</div>`;
     }
@@ -3373,10 +3413,33 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
     else if (d) { cur = P(d.dataset.d); render(); }
     else if (m) { cur = new Date(Date.UTC(cur.getUTCFullYear(), +m.dataset.m, Math.min(cur.getUTCDate(), dim(cur.getUTCFullYear(), +m.dataset.m)))); view = 'month'; render(); }
   });
+  body.addEventListener('click', async e => {
+    const z = e.target.closest('[data-cz]'); if (!z) return;
+    const a = z.dataset.cz, c = CZ();
+    if (a === 'toggle') { cz.step = cz.step === 'closed' ? 'opts' : 'closed'; render(); }
+    else if (a.startsWith('opt:')) { cz.opt = a.slice(4); cz.step = 'form'; render(); const t = body.querySelector('.czta'); if (t) t.focus(); }
+    else if (a === 'back') { cz.step = 'opts'; render(); }
+    else if (a === 'send') {
+      const ta = body.querySelector('.czta'), er = body.querySelector('.czerr'), txt = ta ? ta.value.trim() : '';
+      if (!txt) { er.textContent = c.need; er.hidden = false; return; }
+      if (typeof VIEW !== 'undefined' && VIEW) { try { itToast(c.prev); } catch (x) { } return; }
+      z.disabled = true; er.hidden = true;
+      const date = cz.d, kind = cz.opt, good = r => r === true || (r && r.ok === true);
+      let ok = good(await rpc('trainee_day_request', { p_token: tok(), p_date: date, p_kind: kind, p_text: txt.slice(0, 1500) }).catch(() => null));
+      if (!ok) {   // the new table is not there yet: the same message still reaches the trainer as a normal request + report
+        const title = `[DAY ${kind.toUpperCase()}] ${date}`;
+        ok = (await rpc('trainee_send_request', { p_token: tok(), p_type: 'other', p_message: `${title}\n${txt}`.slice(0, 2000) }).catch(() => null)) === true;
+        if (ok) rpc('trainee_submit_report', { p_token: tok(), p_type: 'other', p_title: title.slice(0, 140), p_details: txt.slice(0, 1500), p_follow: date }).catch(() => null);
+      }
+      if (ok) { cz = { d: date, step: 'closed', opt: '' }; render(); try { itToast(c.sent); } catch (x) { } }
+      else { z.disabled = false; er.textContent = c.fail; er.hidden = false; }
+    }
+  });
   /* swipe left / right = next / previous */
   let sx = 0, sy = 0;
   body.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
   body.addEventListener('touchend', e => {
+    if (e.target.closest && e.target.closest('.czf,.czo')) return;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step((dx < 0) !== (document.documentElement.dir === 'rtl') ? 1 : -1);
   }, { passive: true });
@@ -5086,7 +5149,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
   let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV'];
+  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
   const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
   const hasKeep = e => !!e.querySelector('#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
   function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
@@ -5646,15 +5709,6 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   function close() { if (!root) return; root.classList.remove('open'); root.innerHTML = ''; }
   function toggle() { if (root && root.classList.contains('open')) close(); else open(); }
 
-  /* keep the pinned card fresh while the page is open (language change, session starts, new data); the ticking clock itself is not a change */
-  const norm = h => String(h).replace(/(\d\d|--):(\d\d|--):(\d\d|--)/g, '').replace(/\s+/g, ' ');
-  setInterval(() => {
-    if (!root || !root.classList.contains('open')) return;
-    const el = G('dysCard'); if (!el) { draw(); return; }
-    let h = ''; try { h = card(); } catch (e) { return; }
-    if (norm(el.innerHTML) !== norm(h)) el.innerHTML = h;
-  }, 2000);
-
   window.thDays = { open, close, toggle, count };
 })();
 
@@ -5735,4 +5789,48 @@ body.light-theme #thPull{background:#fff;color:#059669;border-color:rgba(15,23,4
   const end = () => { if (!g) return; const go = g.on && g.d >= FAR; const on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', () => { if (g && g.on) reset(); g = null; }, { passive: true });
+})();
+
+
+/* ==========================================================
+   Pages (phones): the top bar holds ONLY the logo.
+   - the back arrow is gone from the top; every page except the Messenger gets a small back button at the bottom
+   - the Messenger has no back button at all (phone back gesture still steps back); its Library button is now a
+     borderless full-width cell right under the logo, Library icon at the left start
+   Appended at the END of dashboard.js. Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (window.__thBot) return; window.__thBot = 1;
+  const tr = (a, b, c) => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? a : (l === 'ar' ? b : c); };
+  const PH = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
+  const css = document.createElement('style'); css.id = 'thBotCss';
+  css.textContent = `
+#thFpBar [data-b],#thFpBar [data-lib]{display:none!important}
+#thBackB,#thLibCell{display:none}
+@media (max-width:820px) and (pointer:coarse){
+#thBackB{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));margin-left:-24px;z-index:2147483003;width:48px;height:48px;border:0;border-radius:50%;background:rgba(30,41,59,.92);color:#f1f5f9;font-size:18px;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4);-webkit-tap-highlight-color:transparent;cursor:pointer}
+body.light-theme #thBackB{background:rgba(255,255,255,.95);color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.2)}
+#thBackB:active{transform:scale(.92)}
+body.thb-back #thBackB{display:flex}
+#thLibCell{position:fixed;left:0;right:0;top:calc(52px + env(safe-area-inset-top));height:46px;z-index:2147483003;box-sizing:border-box;padding:0 14px;align-items:center;justify-content:flex-start;gap:10px;direction:ltr;border:0;background:transparent;color:inherit;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+body.light-theme #thLibCell{color:#0f172a}
+#thLibCell svg{width:22px;height:22px;flex:none}
+body.thb-lib #thLibCell{display:flex}
+body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!important}
+}`;
+  document.head.appendChild(css);
+  const back = document.createElement('button'); back.type = 'button'; back.id = 'thBackB'; back.setAttribute('aria-label', 'Back'); back.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+  back.onclick = () => { const b = document.querySelector('#thFpBar [data-b]'); if (b) b.click(); };
+  const lib = document.createElement('button'); lib.type = 'button'; lib.id = 'thLibCell';
+  lib.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg><span></span>';
+  lib.onclick = () => { if (window.openLibrary) window.openLibrary(); };
+  document.body.appendChild(back); document.body.appendChild(lib);
+  setInterval(() => {
+    const b = document.body, ph = PH() && b.classList.contains('thfp-open');
+    const mgr = !!(window.thMessenger && thMessenger.visible && thMessenger.visible());
+    const libOpen = !!document.querySelector('#thLib.open');
+    b.classList.toggle('thb-back', ph && !mgr);
+    b.classList.toggle('thb-lib', ph && mgr && !libOpen);
+    const sp = lib.querySelector('span'), t = tr('Library', 'المكتبة', 'المكتبة'); if (sp.textContent !== t) sp.textContent = t;
+  }, 200);
 })();
