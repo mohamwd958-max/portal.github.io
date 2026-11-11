@@ -4763,7 +4763,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     if (m !== 'open') { el.att.hidden = true; clearInterval(M.timer); M.timer = null; }
     if (m === 'open') {
       setView(M.view || 'list');
-      if (was !== 'open') { mLoad(); clearInterval(M.timer); M.timer = setInterval(() => { if (!document.hidden) mLoad(); }, 5000); }
+      if (was !== 'open') { mLoad(); clearInterval(M.timer); M.timer = setInterval(() => { if (document.hidden) return; const gap = M.view === 'chat' ? 1500 : 5000; if (Date.now() - (M.lastPoll || 0) >= gap - 50) { M.lastPoll = Date.now(); mLoad(); } }, 500); }   /* chat open = a check every 1.5s (a new message shows up almost at once); the list = every 5s */
     }
   }
   function setQuote(s) {
@@ -4805,6 +4805,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     }).catch(() => null);
   };
   setTimeout(ping, 2000); setInterval(ping, 10000);
+  setInterval(() => { if (M.mode === 'open' && M.view === 'chat') ping(); }, 3000);   /* chat open: online / read status refreshes every 3s instead of 10s */
   /* background check: the number on the button stays right even while the pop-up is closed */
   setTimeout(() => { if (!document.hidden) mLoad(); }, 1500);
   setInterval(() => { if (!document.hidden && M.mode !== 'open') mLoad(); }, 10000);
