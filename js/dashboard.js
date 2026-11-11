@@ -4527,13 +4527,14 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
         <button type="button" class="mgr-ab"><i class="fa-solid fa-video"></i>${t.video}</button></div>
       <div class="mgr-comp"><button type="button" class="mgr-ic" data-mic aria-label="record"><i class="fa-solid fa-microphone"></i></button>
         <textarea class="mgr-in" data-in rows="1" dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off" autocapitalize="sentences"></textarea>
-        <button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
-        <button type="button" class="mgr-ic mgr-nl" data-nl aria-label="new line"><i class="fa-solid fa-turn-down fa-rotate-90"></i></button>
+        <span class="mgr-sc"><button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
+        <button type="button" class="mgr-ic mgr-nl" data-nl aria-label="new line"><i class="fa-solid fa-turn-down fa-rotate-90"></i></button></span>
         <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>
       </div>`;
     document.body.append(el.veil, el.pop);
     const q = s => el.pop.querySelector(s);
     el.list = q('[data-list]'); el.in = q('[data-in]'); el.send = q('[data-send]'); el.att = q('[data-att]'); el.quote = q('[data-quote]');
+    el.list.addEventListener('click', e => { if (!e.target.closest('.mgr-b,.mgr-eri')) mkClose(); });   /* tap anywhere else = the emoji bar goes and the spacing is back */
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
@@ -4547,7 +4548,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     el.send.onclick = sendMsg;
     /* auto-grow */
-    window.fitIn = () => { const mx = Math.round(((window.visualViewport && visualViewport.height) || innerHeight) * 0.4); el.in.style.height = 'auto'; el.in.style.height = Math.min(Math.max(el.in.scrollHeight, 40), mx) + 'px'; el.in.style.overflowY = el.in.scrollHeight > mx ? 'auto' : 'hidden'; };
+    window.fitIn = () => { const mx = Math.round(((window.visualViewport && visualViewport.height) || innerHeight) * 0.4); el.in.style.setProperty('height', 'auto', 'important'); el.in.style.setProperty('height', Math.min(Math.max(el.in.scrollHeight, 40), mx) + 'px', 'important'); el.in.style.overflowY = el.in.scrollHeight > mx ? 'auto' : 'hidden'; };
     /* restore the draft (like WhatsApp) */
     { const dv = mDraft(); if (dv) { el.in.value = dv; el.send.hidden = false; fitIn(); } }
     /* new-line button: tap = one line, hold = a new line every ~0.3s */
@@ -4666,9 +4667,9 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   }
   /* ---------- message actions: tap = reactions + Reply / Delete, swipe right = Reply, Delete for me / for everyone ---------- */
   const AXT = {
-    en: { del: 'This message was deleted', reply: 'Reply', delete: 'Delete', ttl: 'Delete message?', forMe: 'Delete for me', forAll: 'Delete for everyone', cancel: 'Cancel' },
-    ar: { del: 'تم حذف هذه الرسالة', reply: 'رد', delete: 'حذف', ttl: 'حذف الرسالة؟', forMe: 'حذف لدي', forAll: 'حذف للجميع', cancel: 'إلغاء' },
-    eg: { del: 'الرسالة دي اتمسحت', reply: 'رد', delete: 'مسح', ttl: 'تمسح الرسالة؟', forMe: 'مسح عندي', forAll: 'مسح للكل', cancel: 'إلغاء' }
+    en: { edited: 'edited', del: 'This message was deleted', reply: 'Reply', delete: 'Delete', ttl: 'Delete message?', forMe: 'Delete for me', forAll: 'Delete for everyone', cancel: 'Cancel' },
+    ar: { edited: 'معدّلة', del: 'تم حذف هذه الرسالة', reply: 'رد', delete: 'حذف', ttl: 'حذف الرسالة؟', forMe: 'حذف لدي', forAll: 'حذف للجميع', cancel: 'إلغاء' },
+    eg: { edited: 'معدّلة', del: 'الرسالة دي اتمسحت', reply: 'رد', delete: 'مسح', ttl: 'تمسح الرسالة؟', forMe: 'مسح عندي', forAll: 'مسح للكل', cancel: 'إلغاء' }
   };
   const AX = () => AXT[(typeof lang === 'string' && lang) || 'en'] || AXT.en;
   const MKK = () => 'thabit_mmk:' + String(tok() || 'x').slice(0, 16);
@@ -4676,30 +4677,32 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   const mkOf = id => mkAll()[String(id)] || {};
   const mkSave = () => { try { localStorage.setItem(MKK(), JSON.stringify(M.mk)); } catch (e) { } };
   const mkSet = (id, patch) => { const a = mkAll(); a[String(id)] = Object.assign({}, a[String(id)] || {}, patch); mkSave(); };
-  const mkSend = (kind, id, emoji) => { if (VIEW) return; rpc('trainee_msg_mark', { p_token: tok(), p_message_id: String(id), p_kind: kind, p_emoji: emoji || null }).catch(() => null); };
+  const mkSend = (kind, id, emoji, text) => { if (VIEW) return; const a = { p_token: tok(), p_message_id: String(id), p_kind: kind, p_emoji: emoji || null }; if (kind === 'edit') a.p_text = String(text || '').slice(0, 4000); rpc('trainee_msg_mark', a).catch(() => null); };
   /* the database is the master copy: deletions and the trainer's reactions come from there; nothing is ever erased from it */
   async function mkPull() {
     if (VIEW || !tok() || Date.now() < (M.mkOff || 0) || Date.now() - (M.mkAt || 0) < 2900) return; M.mkAt = Date.now();
     const r = await rpc('trainee_msg_marks_list', { p_token: tok() }).catch(() => null);
     if (!(r && r.ok && Array.isArray(r.marks))) { M.mkOff = Date.now() + 60000; return; }
     const srv = {}; r.marks.forEach(x => { const id = String(x.message_id), o = srv[id] = srv[id] || {};
-      if (x.kind === 'del_all') o.all = 1; else if (x.kind === 'del_me' && x.side !== 'trainer') o.me = 1; else if (x.kind === 'react') { if (x.side === 'trainer') o.rr = x.emoji; else o.rt = x.emoji; } });
+      if (x.kind === 'del_all') o.all = 1; else if (x.kind === 'del_me' && x.side !== 'trainer') o.me = 1; else if (x.kind === 'react') { if (x.side === 'trainer') o.rr = x.emoji; else o.rt = x.emoji; } else if (x.kind === 'edit') o.ed = x.body; });
     const all = mkAll(); let ch = false;
     new Set([...Object.keys(all), ...Object.keys(srv)]).forEach(id => {
       const l = all[id] || {}, v = srv[id] || {}, n = Object.assign({}, l);
-      n.all = l.all || v.all || 0; n.me = l.me || v.me || 0; n.rr = v.rr || '';
+      n.all = l.all || v.all || 0; n.me = l.me || v.me || 0; n.rr = v.rr || ''; n.ed = (l.edAt && Date.now() - l.edAt < 10000) ? l.ed : (v.ed || l.ed || '');
       if (!(l.rtAt && Date.now() - l.rtAt < 10000)) n.rt = v.rt || '';
       if (JSON.stringify(n) !== JSON.stringify(l)) { all[id] = n; ch = true; }
     });
     if (ch) { mkSave(); mRender(); lRender(); }
   }
   const EMO = '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😎 🤩 🥳 😏 😒 😔 😢 😭 😤 😡 🤯 😱 😮 😴 🤔 🙄 😬 🤗 🤝 👍 👎 👏 🙌 🙏 💪 👌 ✌️ 🤞 👀 ❤️ 🧡 💛 💚 💙 💜 🖤 💔 💯 🔥 ✨ ⭐ 🎉 ✅ ❌ ❓ ❗ 💡 📌 📚 📝 ⏰ 🎯 🚀 ☕ 🌹'.split(' ');
-  function closeAct() { const o = el.pop && el.pop.querySelector('.mgr-ov'); if (o) o.remove(); }
+  function closeOv() { const o = el.pop && el.pop.querySelector('.mgr-ov'); if (o) o.remove(); }
+  function ovNew() { closeOv(); const ov = document.createElement('div'); ov.className = 'mgr-ov'; ov.addEventListener('pointerdown', e => { if (e.target === ov) closeOv(); }); el.pop.appendChild(ov); return ov; }
+  function mkClose() { closeOv(); const tb = el.pop && el.pop.querySelector('.mgr-tb'); if (tb) tb.remove(); document.body.classList.remove('thb-act'); const had = M.erId != null || M.selId != null; M.erId = null; M.selId = null; if (had) mRender(); }
+  function closeAct() { mkClose(); }
   function mkReact(m, e) { const cur = mkOf(m.id).rt; if (cur === e) { mkSet(m.id, { rt: '', rtAt: Date.now() }); mkSend('unreact', m.id); } else { mkSet(m.id, { rt: e, rtAt: Date.now() }); mkSend('react', m.id, e); } closeAct(); mRender(); }
-  function mkReply(m) { closeAct(); const q = (m.kind === 'audio' ? MXT().voice : m.kind === 'image' ? MXT().photo : (m.body || '')); setQuote(q); try { el.in.focus({ preventScroll: true }); } catch (e) { } }
+  function mkReply(m) { closeAct(); const q = (m.kind === 'audio' ? MXT().voice : m.kind === 'image' ? MXT().photo : (mkOf(m.id).ed || m.body || '')); setQuote(q); try { el.in.focus({ preventScroll: true }); } catch (e) { } }
   function mkDelete(m) {
-    const a = AX(), mine = m.sender !== 'trainer', ov = el.pop.querySelector('.mgr-ov'); if (!ov) return;
-    ov.innerHTML = '';
+    const a = AX(), mine = m.sender !== 'trainer', ov = ovNew();
     const sh = document.createElement('div'); sh.className = 'mgr-ds';
     const h = document.createElement('div'); h.className = 'mgr-dt'; h.textContent = a.ttl; sh.appendChild(h);
     const add = (label, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls || ''; b.textContent = label; b.onclick = fn; sh.appendChild(b); };
@@ -4709,38 +4712,64 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     ov.appendChild(sh);
   }
   function mkPicker(m) {
-    const ov = el.pop.querySelector('.mgr-ov'); if (!ov) return; ov.innerHTML = '';
+    const ov = ovNew();
     const pk = document.createElement('div'); pk.className = 'mgr-pk';
     EMO.forEach(e => { const b = document.createElement('button'); b.type = 'button'; b.textContent = e; b.onclick = () => mkReact(m, e); pk.appendChild(b); });
     ov.appendChild(pk);
   }
-  function mActions(m, b) {
-    if (VIEW || m._st || mkOf(m.id).all) return; closeAct();
-    const mine = m.sender !== 'trainer', a = AX(), mk = mkOf(m.id), pr = el.pop.getBoundingClientRect(), br = b.getBoundingClientRect();
-    const ov = document.createElement('div'); ov.className = 'mgr-ov'; ov.addEventListener('pointerdown', e => { if (e.target === ov) closeAct(); });
-    const bar = document.createElement('div'); bar.className = 'mgr-eb';
-    ['👍', '❤️', '😂', '😮', '😢', '🙏'].forEach(e => { const x = document.createElement('button'); x.type = 'button'; x.textContent = e; if (mk.rt === e) x.className = 'on'; x.onclick = () => mkReact(m, e); bar.appendChild(x); });
-    const pl = document.createElement('button'); pl.type = 'button'; pl.className = 'pl'; pl.innerHTML = '<i class="fa-solid fa-plus"></i>'; pl.onclick = () => mkPicker(m); bar.appendChild(pl);
-    const menu = document.createElement('div'); menu.className = 'mgr-am';
-    const mi = (icon, label, fn) => { const x = document.createElement('button'); x.type = 'button'; x.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>'; x.lastChild.textContent = label; x.onclick = fn; menu.appendChild(x); };
-    mi('fa-reply', a.reply, () => mkReply(m)); mi('fa-trash', a.delete, () => mkDelete(m));
-    ov.append(bar, menu); el.pop.appendChild(ov);
-    bar.style[mine ? 'right' : 'left'] = '12px'; menu.style[mine ? 'right' : 'left'] = '12px';
-    bar.style.top = Math.max(8, br.top - pr.top - bar.offsetHeight - 8) + 'px';
-    menu.style.top = Math.max(8, Math.min(pr.height - menu.offsetHeight - 8, br.bottom - pr.top + 8)) + 'px';
+  /* tap = the reactions bar right under that message (no blur, the messages below simply move down) */
+  function mkBar(m) {
+    const mine = m.sender !== 'trainer', mk = mkOf(m.id), bar = document.createElement('div'); bar.className = 'mgr-eri'; bar.style.alignSelf = mine ? 'flex-end' : 'flex-start';
+    ['👍', '❤️', '😂', '😮', '😢', '🙏'].forEach(e => { const x = document.createElement('button'); x.type = 'button'; x.textContent = e; if (mk.rt === e) x.className = 'on'; x.onclick = ev => { ev.stopPropagation(); mkReact(m, e); }; bar.appendChild(x); });
+    const pl = document.createElement('button'); pl.type = 'button'; pl.className = 'pl'; pl.innerHTML = '<i class="fa-solid fa-plus"></i>'; pl.onclick = ev => { ev.stopPropagation(); mkPicker(m); }; bar.appendChild(pl);
+    return bar;
+  }
+  /* long press = the top bar: a pencil (edit, only your own messages) and a bin */
+  function mkTop(m) {
+    mkClose(); M.selId = m.id; const mine = m.sender !== 'trainer';
+    const tb = document.createElement('div'); tb.className = 'mgr-tb';
+    const bt = (icon, fn, cls) => { const x = document.createElement('button'); x.type = 'button'; x.className = cls || ''; x.innerHTML = '<i class="fa-solid ' + icon + '"></i>'; x.onclick = fn; return x; };
+    const L = document.createElement('div'); L.appendChild(bt('fa-xmark', mkClose));
+    const R = document.createElement('div');
+    if (mine && (!m.kind || m.kind === 'text')) R.appendChild(bt('fa-pen', () => mkEdit(m)));
+    R.appendChild(bt('fa-trash', () => mkDelete(m), 'rd'));
+    tb.append(L, R); el.pop.appendChild(tb); document.body.classList.add('thb-act'); mRender();
+  }
+  function mkEdit(m) {
+    const cur = mkOf(m.id).ed || m.body || ''; mkClose();
+    if (M.prevDraft == null) M.prevDraft = el.in.value;
+    M.editId = m.id; el.in.value = cur; el.send.hidden = !cur.trim(); fitIn();
+    el.quote.hidden = false; el.quote.querySelector('span').textContent = '✎ ' + cur;
+    try { el.in.focus({ preventScroll: true }); } catch (e) { }
+  }
+  function mkApplyEdit() {
+    const v = el.in.value.trim(); if (!v) return; const id = M.editId;
+    mkSet(id, { ed: v, edAt: Date.now() }); mkSend('edit', id, null, v);
+    el.in.value = M.prevDraft || ''; M.prevDraft = null; M.editId = null; el.send.hidden = !el.in.value.trim(); fitIn(); setQuote(''); mRender(); lRender();
   }
   function mAttach(b, m, mk) {
+    if (String(M.selId) === String(m.id)) b.classList.add('sel');
     if (mk.rt || mk.rr) { const rx = document.createElement('div'); rx.className = 'mgr-rx'; rx.textContent = (mk.rr || '') + (mk.rt || ''); b.appendChild(rx); b.classList.add('hasrx'); }
-    if (m._st) return;
-    let sx = 0, sy = 0, dx = 0, on = false, mv = false;
-    b.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; on = true; mv = false; b.style.transition = 'none'; }, { passive: true });
-    b.addEventListener('touchmove', e => { if (!on) return; const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!mv && Math.abs(y) > Math.abs(x)) { on = false; return; } if (x <= 0) { dx = 0; if (mv) b.style.transform = ''; return; } if (x > 8) mv = true; dx = Math.min(x, 90); if (mv) b.style.transform = 'translateX(' + dx + 'px)'; }, { passive: true });
-    b.addEventListener('touchend', () => { if (!on && !mv) return; on = false; b.style.transition = 'transform .2s'; b.style.transform = ''; if (mv) { b.dataset.sw = '1'; setTimeout(() => { delete b.dataset.sw; }, 450); } if (dx >= 60 && !mkOf(m.id).all) mkReply(m); dx = 0; mv = false; }, { passive: true });
-    b.addEventListener('click', e => { if (b.dataset.sw) return; if (e.target.closest && e.target.closest('a')) return; mActions(m, b); });
+    if (m._st || VIEW) return;
+    let sx = 0, sy = 0, dx = 0, on = false, mv = false, lt = null;
+    const lp = () => { b.dataset.lp = '1'; setTimeout(() => { delete b.dataset.lp; }, 600); mkTop(m); };
+    b.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; on = true; mv = false; b.style.transition = 'none'; clearTimeout(lt); lt = setTimeout(lp, 480); }, { passive: true });
+    b.addEventListener('touchmove', e => { if (!on) return; const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (Math.abs(x) > 8 || Math.abs(y) > 8) clearTimeout(lt); if (!mv && Math.abs(y) > Math.abs(x)) { on = false; return; } if (x <= 0) { dx = 0; if (mv) b.style.transform = ''; return; } if (x > 8) mv = true; dx = Math.min(x, 90); if (mv) b.style.transform = 'translateX(' + dx + 'px)'; }, { passive: true });
+    b.addEventListener('touchend', () => { clearTimeout(lt); if (!on && !mv) return; on = false; b.style.transition = 'transform .2s'; b.style.transform = ''; if (mv) { b.dataset.sw = '1'; setTimeout(() => { delete b.dataset.sw; }, 450); } if (dx >= 60 && !mkOf(m.id).all) mkReply(m); dx = 0; mv = false; }, { passive: true });
+    b.addEventListener('touchcancel', () => { clearTimeout(lt); on = false; }, { passive: true });
+    b.addEventListener('contextmenu', e => { e.preventDefault(); if (!b.dataset.lp) lp(); });
+    b.addEventListener('click', e => {
+      if (b.dataset.sw || b.dataset.lp) return; if (e.target.closest && e.target.closest('a')) return;
+      const now = Date.now();
+      if (M.lastTap && String(M.lastTap.id) === String(m.id) && now - M.lastTap.t < 320) { M.lastTap = null; if (mkOf(m.id).rt !== '👌') mkReact(m, '👌'); else mkClose(); return; }   /* double tap = OK 👌 */
+      M.lastTap = { id: m.id, t: now };
+      const was = String(M.erId) === String(m.id); mkClose(); if (was) return;
+      M.erId = m.id; mRender(); const br = el.list.querySelector('.mgr-eri'); if (br && br.scrollIntoView) br.scrollIntoView({ block: 'nearest' });
+    });
   }
   function mBubble(m) {
     const b = document.createElement('div'), mine = m.sender !== 'trainer', t = MXT(), mk0 = mkOf(m.id);
-    if (mk0.all) {
+    if (mk0.all || mk0.me) {
       b.className = 'mgr-b del' + (mine ? '' : ' in'); b.dataset.id = m.id;
       const tx0 = document.createElement('div'); tx0.className = 'mgr-t'; tx0.dir = 'auto'; tx0.innerHTML = '<i class="fa-solid fa-ban"></i> <span></span>'; tx0.lastChild.textContent = AX().del; b.appendChild(tx0);
       const mm0 = document.createElement('div'); mm0.className = 'mgr-m'; mm0.innerHTML = '<span></span>'; mm0.firstChild.textContent = mTime(m.created_at); b.appendChild(mm0);
@@ -4754,10 +4783,11 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
       if (/^https?:\/\//i.test(u || '')) { const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = m.kind === 'link' ? u : (m.kind === 'audio' ? t.voice : t.photo); tx.appendChild(a); }
       else tx.textContent = m.body || '';
     } else tx.textContent = m.body || '';
+    if (mk0.ed && (!m.kind || m.kind === 'text')) tx.textContent = mk0.ed;
     b.appendChild(tx);
     const mm = document.createElement('div'); mm.className = 'mgr-m';
     mm.innerHTML = '<span></span>' + (mine ? mDots(m) : '');
-    mm.firstChild.textContent = mTime(m.created_at); b.appendChild(mm);
+    mm.firstChild.textContent = mTime(m.created_at) + (mk0.ed ? ' · ' + AX().edited : ''); b.appendChild(mm);
     mAttach(b, m, mk0);
     if (m._st === 'fail') { b.style.cursor = 'pointer'; b.onclick = () => { m._st = 'pending'; m.created_at = new Date().toISOString(); mRender(); mPost(m); }; }   /* tap a red message = try again */
     return b;
@@ -4767,10 +4797,10 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     const l = el.list, atEnd = l.scrollHeight - l.scrollTop - l.clientHeight < 80 || !M.loaded; let day = '';
     l.innerHTML = '';
     M.msgs.forEach(m => {
-      if (mkOf(m.id).me) return;   /* deleted for me: gone from this chat, still in the database */
       const k = mDayKey(m.created_at);
       if (k !== day) { day = k; const d = document.createElement('div'); d.className = 'mgr-day'; d.textContent = mDayLabel(m.created_at); l.appendChild(d); }
       l.appendChild(mBubble(m));
+      if (String(M.erId) === String(m.id)) l.appendChild(mkBar(m));
     });
     M.loaded = true; if (atEnd) l.scrollTop = l.scrollHeight;
   }
@@ -4790,10 +4820,10 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   }
   /* the list: the trainer first (bold when something is unread), then a "soon" cell */
   function lRender() {
-    if (!el.cells) return; const t = MYT(), last = M.msgs.filter(x => !mkOf(x.id).me).slice(-1)[0], un = mUnreadList().length;
+    if (!el.cells) return; const t = MYT(), last = M.msgs[M.msgs.length - 1], un = mUnreadList().length;
     let prev = '', tm = '';
     if (last) { prev = last.kind === 'audio' ? MXT().voice : last.kind === 'image' ? MXT().photo : (last.body || ''); tm = mCellTime(last.created_at); }
-    if (last && mkOf(last.id).all) prev = AX().del;
+    if (last && (mkOf(last.id).all || mkOf(last.id).me)) prev = AX().del;
     const dr = mDraft(); if (dr) { prev = dr.replace(/\s+/g, ' '); tm = ''; }
     el.cells.dir = (typeof lang === 'string' && lang === 'en') ? 'ltr' : 'rtl';
     el.cells.innerHTML = `<button type="button" class="mgr-cell${un ? ' unr' : ''}" data-open>
@@ -4850,6 +4880,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     }
   }
   function setQuote(s) {
+    if (!s && M.editId) { M.editId = null; if (M.prevDraft != null) { el.in.value = M.prevDraft; M.prevDraft = null; fitIn(); el.send.hidden = !el.in.value.trim(); } }
     M.quote = s || ''; el.quote.hidden = !M.quote; el.quote.querySelector('span').textContent = M.quote;
   }
   async function mPost(tmp) {
@@ -4860,6 +4891,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     M.sig = mSig(M.msgs); M.loaded = false; mRenderAll();
   }
   function sendMsg() {
+    if (M.editId) return mkApplyEdit();
     const v = el.in.value.trim(); if (!v) return;
     const tmp = { id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), sender: 'trainee', kind: 'text', body: v, quote: M.quote || null, created_at: new Date().toISOString(), _st: 'pending' };
     M.msgs.push(tmp); el.in.value = ''; el.send.hidden = true; mDraftSet(''); fitIn(); setQuote(''); M.loaded = false; mRenderAll();
@@ -5968,7 +6000,21 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
 .mgr-rx{position:absolute;bottom:-13px;inset-inline-end:10px;padding:1px 6px;border-radius:12px;background:#202c33;border:1px solid #0b141a;font-size:13px;line-height:18px}
 .mgr-b.del{cursor:default}
 .mgr-b.del .mgr-t{font-style:italic;opacity:.65;font-size:13px}
-.mgr-ov{position:absolute;inset:0;z-index:7;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.mgr-ov{position:absolute;inset:0;z-index:7;background:rgba(0,0,0,.4)}
+.mgr-eri{display:flex;align-items:center;gap:2px;padding:4px 8px;margin:2px 6px 8px;border-radius:24px;background:#202c33;box-shadow:0 4px 14px rgba(0,0,0,.45);animation:mgrEri .16s ease-out}
+@keyframes mgrEri{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.mgr-eri button{width:36px;height:36px;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mgr-eri button:active{transform:scale(1.25)}
+.mgr-eri button.on{background:rgba(255,255,255,.16)}
+.mgr-eri button.pl{background:#2a3942;color:#aebac1;font-size:14px;margin-inline-start:4px}
+.mgr-b.sel{box-shadow:0 0 0 2px rgba(31,182,255,.85)}
+.mgr-tb{position:absolute;left:0;right:0;top:0;height:52px;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:0 10px;background:#202c33;direction:ltr}
+.mgr-tb>div{display:flex;gap:6px}
+.mgr-tb button{width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:#e9edef;font-size:18px;cursor:pointer}
+.mgr-tb button.rd{color:#f87171}
+.mgr-sc{display:flex;flex-direction:column;gap:6px;align-self:flex-end;flex:none}
+@media (max-width:820px) and (pointer:coarse){.mgr-tb{top:calc(52px + env(safe-area-inset-top));height:46px}}
+body.thb-act #thLibCell{display:none!important}
 .mgr-eb{position:absolute;display:flex;align-items:center;gap:2px;padding:5px 8px;border-radius:26px;background:#202c33;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .mgr-eb button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .mgr-eb button:active{transform:scale(1.25)}
