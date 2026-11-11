@@ -4526,8 +4526,9 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
         <button type="button" class="mgr-ab"><i class="fa-solid fa-camera"></i>${t.shot}</button>
         <button type="button" class="mgr-ab"><i class="fa-solid fa-video"></i>${t.video}</button></div>
       <div class="mgr-comp"><button type="button" class="mgr-ic" data-mic aria-label="record"><i class="fa-solid fa-microphone"></i></button>
-        <input class="mgr-in" data-in dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off">
+        <textarea class="mgr-in" data-in rows="1" dir="auto" placeholder="${t.ph}" enterkeyhint="send" autocomplete="off" autocapitalize="sentences"></textarea>
         <button type="button" class="mgr-ic mgr-send" data-send hidden aria-label="send"><i class="fa-solid fa-paper-plane"></i></button>
+        <button type="button" class="mgr-ic mgr-nl" data-nl aria-label="new line"><i class="fa-solid fa-turn-down fa-rotate-90"></i></button>
         <button type="button" class="mgr-ic" data-clip aria-label="attach"><i class="fa-solid fa-paperclip"></i></button></div>
       </div>`;
     document.body.append(el.veil, el.pop);
@@ -4542,17 +4543,40 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
     q('[data-mic]').onclick = () => { };                                                           /* look only */
     q('[data-qx]').onclick = () => setQuote('');
-    el.in.addEventListener('input', () => { el.send.hidden = !el.in.value.trim(); });
-    el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); } });
+    el.in.addEventListener('input', () => { el.send.hidden = !el.in.value.trim(); mDraftSet(el.in.value); fitIn(); });
+    el.in.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     el.send.onclick = sendMsg;
+    /* auto-grow */
+    window.fitIn = () => { el.in.style.height = 'auto'; el.in.style.height = Math.min(el.in.scrollHeight, 120) + 'px'; };
+    /* restore the draft (like WhatsApp) */
+    { const dv = mDraft(); if (dv) { el.in.value = dv; el.send.hidden = false; fitIn(); } }
+    /* new-line button: tap = one line, hold = a new line every ~0.3s */
+    { const nl = q('[data-nl]'); let tm = null, iv = null;
+      const ins = () => { const a = el.in, st = a.selectionStart == null ? a.value.length : a.selectionStart, en = a.selectionEnd == null ? st : a.selectionEnd; a.setRangeText('\n', st, en, 'end'); a.dispatchEvent(new Event('input')); a.scrollTop = a.scrollHeight; };
+      const stop = () => { clearTimeout(tm); clearInterval(iv); tm = iv = null; };
+      nl.addEventListener('pointerdown', e => { e.preventDefault(); try { nl.setPointerCapture(e.pointerId); } catch (x) { } stop(); ins(); tm = setTimeout(() => { iv = setInterval(ins, 320); }, 450); });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => nl.addEventListener(ev, stop));
+      nl.addEventListener('contextmenu', e => e.preventDefault()); }
+    /* phone keyboard: only when you tap the field; the field rides on top of the keyboard, the newest message stays right above it */
+    { const vv = window.visualViewport;
+      const fitVV = () => { if (!mgrPhone() || !vv || el.pop.style.display === 'none') return; el.pop.style.setProperty('height', vv.height + 'px', 'important'); el.pop.style.setProperty('top', vv.offsetTop + 'px', 'important'); if (document.activeElement === el.in) el.list.scrollTop = el.list.scrollHeight; };
+      if (vv) { vv.addEventListener('resize', fitVV); vv.addEventListener('scroll', () => { window.scrollTo(0, 0); fitVV(); }); }
+      el.in.addEventListener('focus', () => setTimeout(() => { fitVV(); el.list.scrollTop = el.list.scrollHeight; }, 250));
+      el.in.addEventListener('blur', () => setTimeout(fitVV, 250));
+      let ty = 0; el.list.addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
+      el.list.addEventListener('touchmove', e => { if (document.activeElement === el.in && e.touches[0].clientY - ty > 14) el.in.blur(); }, { passive: true }); }   /* pull the messages down to read older ones = the keyboard goes away */
   }
+  const DK = () => 'thabit_mdraft:' + String(tok() || 'x').slice(0, 16);
+  const mDraft = () => { try { return (typeof VIEW !== 'undefined' && VIEW) ? '' : (localStorage.getItem(DK()) || ''); } catch (e) { return ''; } };
+  const mDraftSet = v => { try { if (typeof VIEW !== 'undefined' && VIEW) return; v && v.trim() ? localStorage.setItem(DK(), v) : localStorage.removeItem(DK()); } catch (e) { } };
+  const DLB = () => ({ en: 'Draft', ar: 'مسودة', eg: 'مسودة' }[(typeof lang === 'string' && lang) || 'en'] || 'Draft');
   const hasDraft = () => !!(el.in && el.in.value.trim());   /* only what the student typed counts as a change */
   /* tap outside / minimize: a tab only for a nested Messenger; one opened from the bar button is simply hidden (nothing is cleared) */
   function leave() { if (M.nested) askClose(); else setMode('closed'); }   /* no tabs anywhere: nested = same as X (asks only if something was typed); from the bar = just hides, the draft stays */
-  function discard() { el.in.value = ''; el.send.hidden = true; setQuote(''); }
+  function discard() { el.in.value = ''; el.send.hidden = true; mDraftSet(''); fitIn(); setQuote(''); }
   const CF = { en: ['Are you sure? Some things are not saved.', 'Discard', 'Stay'], ar: ['هل أنت متأكد؟ هناك أشياء لم تُحفظ.', 'تجاهل', 'ابقَ'], eg: ['متأكد؟ فيه حاجات لسه ما اتحفظتش.', 'امسح وقفل', 'استنى'] };
   function askClose() {
-    if (!hasDraft()) { M.nested = false; M.view = 'list'; setQuote(''); setMode('closed'); return; }
+    if (true) { M.nested = false; M.view = 'list'; setQuote(''); setMode('closed'); return; }
     setMode('open');
     const c = CF[(typeof lang === 'string' && lang) || 'en'] || CF.en;
     const o = document.createElement('div');
@@ -4687,11 +4711,12 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     if (!el.cells) return; const t = MYT(), last = M.msgs[M.msgs.length - 1], un = mUnreadList().length;
     let prev = '', tm = '';
     if (last) { prev = last.kind === 'audio' ? MXT().voice : last.kind === 'image' ? MXT().photo : (last.body || ''); tm = mCellTime(last.created_at); }
+    const dr = mDraft(); if (dr) { prev = dr.replace(/\s+/g, ' '); tm = ''; }
     el.cells.dir = (typeof lang === 'string' && lang === 'en') ? 'ltr' : 'rtl';
     el.cells.innerHTML = `<button type="button" class="mgr-cell${un ? ' unr' : ''}" data-open>
         <span class="mgr-ca mgr-logo"></span>
         <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(TN())}</b><em>${esc(tm)}</em></span>
-          <span class="mgr-c2">${last && last.sender !== 'trainer' ? mDots(last) : ''}<span class="mgr-cp" dir="auto">${esc(prev)}</span>${un ? `<span class="mgr-cn">${un}</span>` : ''}</span></span></button>
+          <span class="mgr-c2">${!dr && last && last.sender !== 'trainer' ? mDots(last) : ''}<span class="mgr-cp" dir="auto">${dr ? `<i class="mgr-dr">${DLB()}: </i>` : ''}${esc(prev)}</span>${un ? `<span class="mgr-cn">${un}</span>` : ''}</span></span></button>
       <button type="button" class="mgr-cell" data-req><span class="mgr-ca" style="color:#38bdf8"><i class="fa-solid fa-paper-plane"></i></span>
         <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.req)}</b></span><span class="mgr-c2"><span class="mgr-cp" dir="auto">${esc(t.reqSub)}</span></span></span></button>
       <button type="button" class="mgr-cell" data-as><span class="mgr-ca" style="color:#34d399"><i class="fa-solid fa-microphone-lines"></i></span>
@@ -4728,7 +4753,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   function setView(v) {
     M.view = v; if (!el.pop) return; el.pop.dataset.view = v;
     el.title.textContent = v === 'chat' ? TN() : MYT().title; el.back.hidden = v !== 'chat'; el.hav.hidden = v !== 'chat';
-    if (v === 'chat') { mRender(); el.list.scrollTop = el.list.scrollHeight; setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); mMarkRead(); }
+    if (v === 'chat') { mRender(); el.list.scrollTop = el.list.scrollHeight; if (!mgrPhone()) setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); mMarkRead(); }
     else lRender();
   }
   function setMode(m) {
@@ -4754,7 +4779,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   function sendMsg() {
     const v = el.in.value.trim(); if (!v) return;
     const tmp = { id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), sender: 'trainee', kind: 'text', body: v, quote: M.quote || null, created_at: new Date().toISOString(), _st: 'pending' };
-    M.msgs.push(tmp); el.in.value = ''; el.send.hidden = true; setQuote(''); M.loaded = false; mRenderAll();
+    M.msgs.push(tmp); el.in.value = ''; el.send.hidden = true; mDraftSet(''); fitIn(); setQuote(''); M.loaded = false; mRenderAll();
     setTimeout(() => { if (tmp._st === 'pending') mRender(); }, 1600);   /* still not sent after 1.6s -> the dot turns red */
     mPost(tmp);
   }
@@ -5720,7 +5745,7 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
    ========================================================== */
 (function () {
   if (window.__thPull) return; window.__thPull = 1;
-  const FAR = 90, MAXD = 150, EDGE = 3;
+  const FAR = () => Math.round(innerHeight * 0.4), MAXD = () => Math.round(innerHeight * 0.5), EDGE = 3;
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
 #thPull{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:10030;width:44px;height:44px;margin-left:-22px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(40px) scale(.4);background:rgba(15,23,42,.96);color:#34d399;border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 22px rgba(0,0,0,.45)}
@@ -5749,11 +5774,11 @@ body.light-theme #thPull{background:#fff;color:#059669;border-color:rgba(15,23,4
     return false;
   }
   let g = null, busy = false, crossed = false;
-  const prog = () => Math.min(1, g.d / FAR);
+  const prog = () => Math.min(1, g.d / FAR());
   function paint() {
-    const p = prog(), r = g.d > 0 ? Math.min(g.d, MAXD) : 0;
+    const p = prog(), r = g.d > 0 ? Math.min(g.d, MAXD()) : 0;
     el.style.opacity = String(Math.min(1, p * 1.6));
-    el.style.transform = `translateY(${40 - Math.min(1, g.d / MAXD) * 40}px) scale(${0.4 + 0.6 * Math.min(1, p * 1.3)})`;
+    el.style.transform = `translateY(${40 - Math.min(1, g.d / MAXD()) * 40}px) scale(${0.4 + 0.6 * Math.min(1, p * 1.3)})`;
     el.style.setProperty('--r', (p * 360) + 'deg');
   }
   function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = 'translateY(40px) scale(.4)'; el.style.setProperty('--r', '0deg'); setTimeout(() => el.classList.remove('back'), 320); }
@@ -5780,13 +5805,13 @@ body.light-theme #thPull{background:#fff;color:#059669;border-color:rgba(15,23,4
       if (!atEnd()) { g = null; return; }
       g.on = true; el.classList.remove('back');
     }
-    g.d = Math.max(0, dy) * 0.6;                                                     /* a little resistance, like a real spring */
+    g.d = Math.max(0, dy) * 0.9;                                                     /* a little resistance, like a real spring */
     if (e.cancelable) e.preventDefault();
     paint();
-    if (g.d >= FAR && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) { } }
-    else if (g.d < FAR) crossed = false;
+    if (g.d >= FAR() && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) { } }
+    else if (g.d < FAR()) crossed = false;
   }, { passive: false });
-  const end = () => { if (!g) return; const go = g.on && g.d >= FAR; const on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
+  const end = () => { if (!g) return; const go = g.on && g.d >= FAR(); const on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', () => { if (g && g.on) reset(); g = null; }, { passive: true });
 })();
@@ -5833,4 +5858,16 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
     b.classList.toggle('thb-lib', ph && mgr && !libOpen);
     const sp = lib.querySelector('span'), t = tr('Library', 'المكتبة', 'المكتبة'); if (sp.textContent !== t) sp.textContent = t;
   }, 200);
+})();
+
+
+/* Messenger composer look: a growing text box, borderless newline button, Draft label in the list */
+(function () {
+  const c = document.createElement('style'); c.id = 'thMgrCss';
+  c.textContent = `.mgr-comp{align-items:flex-end!important}
+.mgr-in{height:auto!important;min-height:40px;max-height:120px;padding:10px 14px!important;line-height:20px;resize:none;overflow-y:auto;box-sizing:border-box;border-radius:20px!important;display:block}
+.mgr-ic{flex:none}
+.mgr-nl{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.mgr-dr{font-style:normal;color:#25d366;font-weight:700}`;
+  document.head.appendChild(c);
 })();
