@@ -5109,9 +5109,14 @@ const TH_LOGO = 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAA
 html :is(#pop,.ssm,#thCal,#thExc,#thLib,#thMenu,#thRov,#thDet,#tpk,#thDisp,#thPush,#thSet,#asm,.mgr-veil){-webkit-backdrop-filter:blur(48px) saturate(1.6)!important;backdrop-filter:blur(48px) saturate(1.6)!important;background-color:rgba(8,12,20,.5)!important}
 body.light-theme :is(#pop,.ssm,#thCal,#thExc,#thLib,#thMenu,#thRov,#thDet,#tpk,#thDisp,#thSet,#asm,.mgr-veil){background-color:rgba(238,242,248,.52)!important}
 /* full pages (phone rules): much stronger blur, nearly opaque, so only blurred glows remain */
-html :is(#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,.mgr-pop){-webkit-backdrop-filter:blur(70px) saturate(1.6)!important;backdrop-filter:blur(70px) saturate(1.6)!important;background:rgba(8,12,20,.68)!important}
-body.light-theme :is(#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,.mgr-pop){background:rgba(238,242,248,.72)!important}
-.mgr-pop{background:rgba(11,20,26,.74)!important}
+html :is(#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thLib.open,.ssm.open,.mgr-pop){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#000!important}
+body.light-theme :is(#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thLib.open,.ssm.open,.mgr-pop){background:#f4f6f9!important}
+html .mgr-pop :is(.mgr-h,.mgr-cells,.mgr-list){background:transparent!important}
+/* a page is open: header = only the logo (no background, no name, never moves); bar hidden; arrow sits right of the logo */
+html.th-page body #thBrand,html.th-page body.light-theme #thBrand{visibility:visible!important;background:none!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;pointer-events:none!important;z-index:2147483003!important}
+html.th-page :is(#mobileFloatingBar,#dock,#thHint,#feedBtn,#mgrBtn){visibility:hidden!important}
+html.th-page #thFpBar,html.th-page .thbk{padding-left:64px!important}
+html.th-page #thFpBar button{margin-top:-9px}
 #pop .pc{-webkit-backdrop-filter:blur(30px) saturate(1.6)!important;backdrop-filter:blur(30px) saturate(1.6)!important}
 /* the calendar is a full page too (like Settings) and sits above it, so Back returns to Settings */
 #thCal{z-index:10060!important}
@@ -5150,4 +5155,19 @@ html.th-skel body #mobileFloatingBar>:nth-child(1){--sk:0}html.th-skel body #mob
   document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#mobileFloatingBar [data-bk="reload"]')) thSkel(true); }, true);
   const _l = load;
   load = async function () { const t0 = Date.now(); thSkel(true); try { await _l(); } finally { setTimeout(() => thSkel(false), Math.max(0, 1500 - (Date.now() - t0))); } };
+})();
+
+/* which page is open -> html.th-page (header = logo only) and html.th-name (name shows only on the main page and inside Account) */
+(function () {
+  const on = id => { const e = document.getElementById(id); return !!(e && e.classList.contains('open')); };
+  let last = '';
+  setInterval(() => {
+    const asm = document.getElementById('asm'), asmOpen = !!(asm && !asm.hidden), prof = document.getElementById('pp-profile'), profOpen = asmOpen && !!(prof && !prof.hidden);
+    const mgr = [...document.querySelectorAll('.mgr-pop')].some(e => getComputedStyle(e).display !== 'none');
+    const page = on('pop') || asmOpen || on('rqm') || on('rqn') || on('rqo') || on('thSet') || on('thCal') || on('thLib') || !!document.querySelector('.ssm.open') || mgr;
+    const acct = [...document.querySelectorAll('#thSet .tsl.op>.tsr .tst')].some(e => /^(Account|الحساب)$/.test(e.textContent.trim()));
+    const name = !page || profOpen || on('thCal') || (on('thSet') && acct);
+    const k = page + '|' + name; if (k === last) return; last = k;
+    const r = document.documentElement; r.classList.toggle('th-page', page); r.classList.toggle('th-name', name);
+  }, 120);
 })();
