@@ -1,6 +1,6 @@
 (function () {   /* old bar buttons (Add / Language / Theme / Profile) never show: hidden at once, and any saved old order is erased */
   try { const h = document.createElement('style'); h.id = 'thNoOld'; h.textContent = '#plusBtn,#floatBtnTheme,#profBtn,#langBtn,[data-bk="assist"],[data-bk="lang"],[data-bk="theme"],[data-bk="logout"]{display:none!important}'; (document.head || document.documentElement).appendChild(h); } catch (e) { }
-  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
+  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
 })();
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
 console.info('[dashboard] build 2026-11-08 feed-restored-v5');
@@ -1269,7 +1269,7 @@ function feedCards() {
   const s = nxState(), bs = billState();
   const nts = thn_noteList().map(thn_noteCardN);
   if (bs) nts.unshift(billCard(bs));
-  return [...(s ? [nextCard(s)] : []), ...nts];   // the feed holds ONLY the next session + notifications (Dandana / Assistant words are not here); only notification cards (cnt) are counted
+  return [...nts];   // the next session now lives in the Days page (thDays), not here   // the feed holds ONLY the next session + notifications (Dandana / Assistant words are not here); only notification cards (cnt) are counted
 }
 /* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
    Next session + Assistant words have no X, so they always count. */
@@ -2060,7 +2060,7 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'feed', 'msgr'];
+const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
@@ -4962,7 +4962,6 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
           opt('size', 'small', tr('Small', 'صغير', 'صغير')), opt('size', 'normal', tr('Normal', 'عادي', 'عادي')), opt('size', 'large', tr('Large', 'كبير', 'كبير'))], preview },
         { icon: '<i class="fa-regular fa-user"></i>', label: tr('Account', 'الحساب', 'الحساب'), children: () => [
           { icon: '<i class="fa-regular fa-user"></i>', label: tr('Profile', 'ملفي', 'ملفي'), keep: 1, on: () => Panels.open('profile') },
-          { icon: '<i class="fa-regular fa-calendar"></i>', label: tr('Calendar', 'التقويم', 'التقويم'), keep: 1, on: () => window.openCal && window.openCal() },
           { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: tr('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }] }
       ]
     });
@@ -5043,6 +5042,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (on('rqm') || on('rqn') || on('rqo')) k.push('rq1');
     if (on('rqn') || on('rqo')) k.push('rq2');
     if (on('thSet')) k.push('set');
+    if (on('thDays')) k.push('days');
     if (on('thCal')) k.push('cal');
     if (on('thLib')) k.push('lib');
     return k;
@@ -5057,6 +5057,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
       else if (k === 'rq2') rqBack();
       else if (k === 'rq1') closeRq();
       else if (k === 'cal') window.closeCal && window.closeCal();
+      else if (k === 'days') window.thDays && window.thDays.close();
       else if (k === 'lib') window.closeLibrary && window.closeLibrary();
       else if (k === 'set') { const x = document.querySelector('#thSet .tsx'); if (x) x.click(); }
     } catch (e) { console.warn('[fullpage] close', k, e); }
@@ -5067,6 +5068,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (k === 'pop') return tr('Notifications', 'الإشعارات', 'الإشعارات');
     if (k === 'asm') { const p = G('pp-profile'); return p && !p.hidden ? tr('Profile', 'ملفي', 'ملفي') : tr('Assistant', 'المساعد', 'المساعد'); }
     if (k === 'rq1' || k === 'rq2') return tr('Requests', 'الطلبات', 'الطلبات');
+    if (k === 'days') return tr('Days', 'الأيام', 'الأيام');
     if (k === 'set') { const b = document.querySelector('#thSet .tsh b'); return (b && b.textContent) || tr('Settings', 'الإعدادات', 'الإعدادات'); }
     return '';
   }
@@ -5084,9 +5086,9 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
   let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thFpBar', 'thLib', 'thLibV'];
+  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV'];
   const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
-  const hasKeep = e => !!e.querySelector('#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thFpBar,.mgr-pop');
+  const hasKeep = e => !!e.querySelector('#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
   function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
   function lockPage(on) {
     if (on === locked) return; locked = on;
@@ -5129,7 +5131,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
   bar.querySelector('[data-b]').onclick = () => { refresh(); if (order.length) closeLayer(order[order.length - 1]); sync(); };
 
   /* nothing behind a full page reacts to taps: a tap on the empty edge of a screen never closes it */
-  const ROOTS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal'];
+  const ROOTS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays'];
   ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, e => {
     if (PH() && e.target && e.target.id && ROOTS.includes(e.target.id)) e.stopImmediatePropagation();
   }, true));
@@ -5203,7 +5205,7 @@ html.th-skel body #mobileFloatingBar>:nth-child(1){--sk:0}html.th-skel body #mob
   setInterval(() => {
     const asm = document.getElementById('asm'), asmOpen = !!(asm && !asm.hidden), prof = document.getElementById('pp-profile'), profOpen = asmOpen && !!(prof && !prof.hidden);
     const mgr = [...document.querySelectorAll('.mgr-pop')].some(e => getComputedStyle(e).display !== 'none');
-    const page = on('pop') || asmOpen || on('rqm') || on('rqn') || on('rqo') || on('thSet') || on('thCal') || on('thLib') || !!document.querySelector('.ssm.open') || mgr;
+    const page = on('pop') || asmOpen || on('rqm') || on('rqn') || on('rqo') || on('thSet') || on('thCal') || on('thDays') || on('thLib') || !!document.querySelector('.ssm.open') || mgr;
     const acct = [...document.querySelectorAll('#thSet .tsl.op>.tsr .tst')].some(e => /^(Account|الحساب)$/.test(e.textContent.trim()));
     const name = !page || profOpen || on('thCal') || (on('thSet') && acct);
     const k = page + '|' + name; if (k === last) return; last = k;
@@ -5499,4 +5501,159 @@ body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
     const show = !!(window.thMessenger && thMessenger.visible && thMessenger.visible()) && document.body.classList.contains('thfp-open');
     const want = show ? 'flex' : 'none'; if (b.style.display !== want) b.style.display = want;
   }, 300);
+})();
+
+
+/* ==========================================================
+   DAYS button (next to Notifications / Messenger / Settings) + Days page
+   - button: small calendar icon with TODAY's number inside, label "Days", red number badge like Notifications
+   - page: the "Next session" card (moved here from Notifications, same card, always pinned) + Calendar
+   - opens like the other pages: full page on phones, centred box on computers
+   Appended at the END of dashboard.js. Delete this block to remove it.
+   ========================================================== */
+(function () {
+  if (window.__thDays) return; window.__thDays = 1;
+  const tr = (a, b, c) => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? a : (l === 'ar' ? b : c); };
+  const G = id => document.getElementById(id);
+  const SEEN = 'thabit_days_seen';
+  const todayStr = () => { try { return itToday(); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  const dayNum = () => String(parseInt(todayStr().slice(8, 10), 10));
+
+  const css = document.createElement('style'); css.id = 'thDaysCss';
+  css.textContent = `
+#daysBtn{background:transparent!important;border:0!important;box-shadow:none!important;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fbbf24}
+html body #mobileFloatingBar #daysBtn>svg.dys{width:28px!important;height:28px!important;display:block;flex:none;overflow:visible}
+#daysBtn .dys .fr{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+#daysBtn .dys .rg{stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+#daysBtn .dys text{fill:currentColor;font:800 11px/1 Inter,Cairo,sans-serif;text-anchor:middle}
+body.light-theme #daysBtn{color:#d97706}
+#daysNum{display:none;position:absolute!important;top:9px;left:calc(50% + 12px);z-index:5;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;-webkit-text-fill-color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px #181c20,0 2px 6px rgba(239,68,68,.55);pointer-events:none}
+#daysNum.on{display:block}
+#daysNum.l2{font-size:8px}
+#daysNum.bump{animation:mgrBump .4s cubic-bezier(.3,1.7,.5,1)}
+body.light-theme #daysNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.55)}
+html.th-page #daysBtn{visibility:hidden!important}
+
+#thDays{position:fixed;inset:0;z-index:10040;display:none;justify-content:center;align-items:flex-start;padding:max(14px,env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);overflow:auto;box-sizing:border-box}
+#thDays.open{display:flex}
+#thDays .tsc{position:relative;width:min(440px,100%);margin:auto 0;padding:12px;border-radius:22px;background:rgba(15,23,42,.97);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 50px rgba(0,0,0,.55);box-sizing:border-box;font-family:Cairo,Inter,sans-serif}
+body.light-theme #thDays .tsc{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.14)}
+#thDays .tsh{display:flex;direction:ltr;align-items:center;gap:10px;padding:4px 6px 12px}
+#thDays .tsh .tsi{width:30px;text-align:center;font-size:20px;flex:none;color:#fbbf24}
+#thDays .tsh b{flex:1;text-align:center;font-size:1.02rem;font-weight:800}
+#thDays .tsx{width:30px;height:30px;flex:none;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;font-size:14px}
+#thDays .dcard{margin-bottom:10px;padding:14px;border-radius:16px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.24);box-shadow:0 3px 0 rgba(0,0,0,.22),0 6px 14px rgba(0,0,0,.18)}
+body.light-theme #thDays .dcard{background:#f1f5f9;border-color:rgba(15,23,42,.12);box-shadow:0 2px 0 rgba(15,23,42,.1),0 5px 12px rgba(15,23,42,.08)}
+#thDays .dcard .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
+#thDays .dcard .nxc{flex:none;display:flex;align-items:center;justify-content:center}
+#thDays .dcard .nxtx{flex:1;min-width:0}
+#thDays .dcard .nxtx h3{margin:0 0 4px;font-size:1rem}
+#thDays .dcard .sm{font-size:.78rem;opacity:.7;margin-top:4px}
+#thDays .dcard .cdn{font-weight:800;font-size:1.25rem;letter-spacing:.02em}
+#thDays .dcard.none{text-align:center;opacity:.75;font-weight:700;font-size:.9rem}
+#thDays .drow{display:flex;direction:ltr;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;cursor:pointer;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.24);box-shadow:0 3px 0 rgba(0,0,0,.22),0 6px 14px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;user-select:none}
+body.light-theme #thDays .drow{background:#f1f5f9;border-color:rgba(15,23,42,.12);box-shadow:0 2px 0 rgba(15,23,42,.1),0 5px 12px rgba(15,23,42,.08)}
+#thDays .drow .tsi{width:26px;text-align:center;font-size:18px;flex:none}
+#thDays .drow .tst{flex:1;text-align:center;font-weight:700;font-size:.9rem}
+#thDays .drow .tsv{width:26px;text-align:center;font-size:12px;opacity:.6;flex:none}
+html.th-page #thDays .tsh{display:none}
+@media (max-width:820px) and (pointer:coarse){
+#thDays.open{position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;border-radius:0!important;padding:calc(60px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#000!important;display:flex}
+body.light-theme #thDays.open{background:#f4f6f9!important}
+#thDays .tsh{display:none!important}
+#thDays .tsc{width:min(480px,100%);background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 auto auto}
+}`;
+  document.head.appendChild(css);
+
+  /* ---------- the button ---------- */
+  const SVG = () => `<svg class="dys" viewBox="0 0 28 28" aria-hidden="true"><rect class="fr" x="3.5" y="5.5" width="21" height="19" rx="4.5"/><path class="rg" d="M9.5 3v5M18.5 3v5"/><path class="fr" d="M3.5 11h21"/><text x="14" y="21.2" id="dysTxt">${dayNum()}</text></svg>`;
+  const LBL = () => tr('Days', 'الأيام', 'الأيام');
+  function install() {
+    if (G('daysBtn')) return true;
+    const bar = G('mobileFloatingBar'), anchor = G('mgrBtn') || G('feedBtn');
+    if (!bar || !anchor) return false;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'daysBtn'; b.dataset.bk = 'days';
+    b.className = (G('feedBtn').className || '').replace(/\b(upd|glow|live|empty|num|open|done)\b/g, '').trim();
+    b.title = LBL(); b.setAttribute('aria-label', LBL());
+    b.innerHTML = SVG() + '<span class="thl"></span><span id="daysNum"></span>';
+    b.querySelector('.thl').textContent = LBL();
+    b.onclick = e => { e.stopPropagation(); toggle(); };
+    anchor.insertAdjacentElement('afterend', b);
+    try { if (typeof layoutBar === 'function') layoutBar(); } catch (e) { }
+    return true;
+  }
+  { let n = 0; const iv = setInterval(() => { if (install() || ++n > 120) clearInterval(iv); }, 500); }
+
+  /* today's number + label follow the Cairo date and the language */
+  setInterval(() => {
+    const t = G('dysTxt'); if (t && t.textContent !== dayNum()) t.textContent = dayNum();
+    const l = document.querySelector('#daysBtn .thl'); if (l && l.textContent !== LBL()) { l.textContent = LBL(); const b = G('daysBtn'); b.title = LBL(); b.setAttribute('aria-label', LBL()); }
+  }, 2000);
+
+  /* ---------- the badge: a number on the button when there is something new ----------
+     Right now: a session day that has not been looked at yet = 1.  Change thDays.count() to add more kinds of updates. */
+  function count() {
+    try {
+      if (typeof VIEW !== 'undefined' && VIEW) return 0;
+      if (typeof D === 'undefined' || !D) return 0;
+      const s = nxState(); if (!s) return 0;
+      let n = 0;
+      if ((s.st === 'count' || s.st === 'started') && localStorage.getItem(SEEN) !== todayStr()) n++;
+      return n;
+    } catch (e) { return 0; }
+  }
+  function badge() {
+    const el = G('daysNum'); if (!el) return;
+    const n = count(), txt = n > 99 ? '99+' : String(n || '');
+    if (!n) { el.classList.remove('on'); el.textContent = ''; return; }
+    if (el.textContent !== txt) { el.textContent = txt; el.classList.toggle('l2', txt.length > 1); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    el.classList.add('on');
+  }
+  setInterval(badge, 3000); setTimeout(badge, 1500);
+
+  /* ---------- the page ---------- */
+  let root = null;
+  function ensure() {
+    if (root) return;
+    root = document.createElement('div'); root.id = 'thDays'; document.body.appendChild(root);
+    root.addEventListener('pointerdown', e => { if (e.target === root) close(); });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || !root.classList.contains('open')) return;
+      if (document.querySelector('#thCal.open')) return;
+      e.stopImmediatePropagation(); close();
+    }, true);
+  }
+  function card() {
+    let h = '';
+    try { const s = (typeof D !== 'undefined' && D) ? nxState() : null; if (s) h = nextCard(s).html; } catch (e) { console.warn('[days] next session', e); }
+    return h ? `<div class="dcard pc nxt">${h}</div>` : `<div class="dcard none">${esc(tr('No upcoming session yet', 'لا توجد جلسة قادمة بعد', 'مفيش سيشن جاية لسه'))}</div>`;
+  }
+  function draw() {
+    if (!root || !root.classList.contains('open')) return;
+    const cal = tr('Calendar', 'التقويم', 'التقويم');
+    root.innerHTML = `<div class="tsc"><div class="tsh"><span class="tsi"><i class="fa-regular fa-calendar-days"></i></span><b>${esc(LBL())}</b><button type="button" class="tsx" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>`
+      + `<div id="dysCard">${card()}</div>`
+      + `<div class="drow" role="button" tabindex="0" id="dysCal"><span class="tsi"><i class="fa-regular fa-calendar"></i></span><span class="tst">${esc(cal)}</span><span class="tsv"><i class="fa-solid fa-chevron-right"></i></span></div></div>`;
+    root.querySelector('.tsx').onclick = close;
+    const c = G('dysCal'); c.onclick = () => { if (window.openCal) window.openCal(); };
+    c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); } };
+  }
+  function open() {
+    ensure();
+    try { if (!(typeof VIEW !== 'undefined' && VIEW)) localStorage.setItem(SEEN, todayStr()); } catch (e) { }
+    root.classList.add('open'); draw(); badge();
+  }
+  function close() { if (!root) return; root.classList.remove('open'); root.innerHTML = ''; }
+  function toggle() { if (root && root.classList.contains('open')) close(); else open(); }
+
+  /* keep the pinned card fresh while the page is open (language change, session starts, new data); the ticking clock itself is not a change */
+  const norm = h => String(h).replace(/(\d\d|--):(\d\d|--):(\d\d|--)/g, '').replace(/\s+/g, ' ');
+  setInterval(() => {
+    if (!root || !root.classList.contains('open')) return;
+    const el = G('dysCard'); if (!el) { draw(); return; }
+    let h = ''; try { h = card(); } catch (e) { return; }
+    if (norm(el.innerHTML) !== norm(h)) el.innerHTML = h;
+  }, 2000);
+
+  window.thDays = { open, close, toggle, count };
 })();
