@@ -31,7 +31,7 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 if (VIEW) document.documentElement.classList.add('viewmode');
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_msg_mark', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
@@ -4664,8 +4664,88 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     else { st = 'gray'; if (!(m.delivered_at || M.peerOnline)) n = 1; }   /* saved, but the other side has not opened the app: one dot */
     return '<span class="mgr-dots ' + st + '">' + (n === 1 ? '<i></i>' : '<i></i><i></i>') + '</span>';
   }
+  /* ---------- message actions: tap = reactions + Reply / Delete, swipe right = Reply, Delete for me / for everyone ---------- */
+  const AXT = {
+    en: { del: 'This message was deleted', reply: 'Reply', delete: 'Delete', ttl: 'Delete message?', forMe: 'Delete for me', forAll: 'Delete for everyone', cancel: 'Cancel' },
+    ar: { del: 'تم حذف هذه الرسالة', reply: 'رد', delete: 'حذف', ttl: 'حذف الرسالة؟', forMe: 'حذف لدي', forAll: 'حذف للجميع', cancel: 'إلغاء' },
+    eg: { del: 'الرسالة دي اتمسحت', reply: 'رد', delete: 'مسح', ttl: 'تمسح الرسالة؟', forMe: 'مسح عندي', forAll: 'مسح للكل', cancel: 'إلغاء' }
+  };
+  const AX = () => AXT[(typeof lang === 'string' && lang) || 'en'] || AXT.en;
+  const MKK = () => 'thabit_mmk:' + String(tok() || 'x').slice(0, 16);
+  const mkAll = () => { if (!M.mk) { try { M.mk = JSON.parse(localStorage.getItem(MKK()) || '{}') || {}; } catch (e) { M.mk = {}; } } return M.mk; };
+  const mkOf = id => mkAll()[String(id)] || {};
+  const mkSave = () => { try { localStorage.setItem(MKK(), JSON.stringify(M.mk)); } catch (e) { } };
+  const mkSet = (id, patch) => { const a = mkAll(); a[String(id)] = Object.assign({}, a[String(id)] || {}, patch); mkSave(); };
+  const mkSend = (kind, id, emoji) => { if (VIEW) return; rpc('trainee_msg_mark', { p_token: tok(), p_message_id: String(id), p_kind: kind, p_emoji: emoji || null }).catch(() => null); };
+  /* the database is the master copy: deletions and the trainer's reactions come from there; nothing is ever erased from it */
+  async function mkPull() {
+    if (VIEW || !tok() || Date.now() < (M.mkOff || 0) || Date.now() - (M.mkAt || 0) < 2900) return; M.mkAt = Date.now();
+    const r = await rpc('trainee_msg_marks_list', { p_token: tok() }).catch(() => null);
+    if (!(r && r.ok && Array.isArray(r.marks))) { M.mkOff = Date.now() + 60000; return; }
+    const srv = {}; r.marks.forEach(x => { const id = String(x.message_id), o = srv[id] = srv[id] || {};
+      if (x.kind === 'del_all') o.all = 1; else if (x.kind === 'del_me' && x.side !== 'trainer') o.me = 1; else if (x.kind === 'react') { if (x.side === 'trainer') o.rr = x.emoji; else o.rt = x.emoji; } });
+    const all = mkAll(); let ch = false;
+    new Set([...Object.keys(all), ...Object.keys(srv)]).forEach(id => {
+      const l = all[id] || {}, v = srv[id] || {}, n = Object.assign({}, l);
+      n.all = l.all || v.all || 0; n.me = l.me || v.me || 0; n.rr = v.rr || '';
+      if (!(l.rtAt && Date.now() - l.rtAt < 10000)) n.rt = v.rt || '';
+      if (JSON.stringify(n) !== JSON.stringify(l)) { all[id] = n; ch = true; }
+    });
+    if (ch) { mkSave(); mRender(); lRender(); }
+  }
+  const EMO = '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😎 🤩 🥳 😏 😒 😔 😢 😭 😤 😡 🤯 😱 😮 😴 🤔 🙄 😬 🤗 🤝 👍 👎 👏 🙌 🙏 💪 👌 ✌️ 🤞 👀 ❤️ 🧡 💛 💚 💙 💜 🖤 💔 💯 🔥 ✨ ⭐ 🎉 ✅ ❌ ❓ ❗ 💡 📌 📚 📝 ⏰ 🎯 🚀 ☕ 🌹'.split(' ');
+  function closeAct() { const o = el.pop && el.pop.querySelector('.mgr-ov'); if (o) o.remove(); }
+  function mkReact(m, e) { const cur = mkOf(m.id).rt; if (cur === e) { mkSet(m.id, { rt: '', rtAt: Date.now() }); mkSend('unreact', m.id); } else { mkSet(m.id, { rt: e, rtAt: Date.now() }); mkSend('react', m.id, e); } closeAct(); mRender(); }
+  function mkReply(m) { closeAct(); const q = (m.kind === 'audio' ? MXT().voice : m.kind === 'image' ? MXT().photo : (m.body || '')).slice(0, 160); setQuote(q); try { el.in.focus({ preventScroll: true }); } catch (e) { } }
+  function mkDelete(m) {
+    const a = AX(), mine = m.sender !== 'trainer', ov = el.pop.querySelector('.mgr-ov'); if (!ov) return;
+    ov.innerHTML = '';
+    const sh = document.createElement('div'); sh.className = 'mgr-ds';
+    const h = document.createElement('div'); h.className = 'mgr-dt'; h.textContent = a.ttl; sh.appendChild(h);
+    const add = (label, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls || ''; b.textContent = label; b.onclick = fn; sh.appendChild(b); };
+    add(a.forMe, 'd', () => { mkSet(m.id, { me: 1 }); mkSend('del_me', m.id); closeAct(); mRender(); lRender(); });
+    if (mine) add(a.forAll, 'd', () => { mkSet(m.id, { all: 1 }); mkSend('del_all', m.id); closeAct(); mRender(); lRender(); });   /* only YOUR messages can be deleted for everyone */
+    add(a.cancel, '', closeAct);
+    ov.appendChild(sh);
+  }
+  function mkPicker(m) {
+    const ov = el.pop.querySelector('.mgr-ov'); if (!ov) return; ov.innerHTML = '';
+    const pk = document.createElement('div'); pk.className = 'mgr-pk';
+    EMO.forEach(e => { const b = document.createElement('button'); b.type = 'button'; b.textContent = e; b.onclick = () => mkReact(m, e); pk.appendChild(b); });
+    ov.appendChild(pk);
+  }
+  function mActions(m, b) {
+    if (VIEW || m._st || mkOf(m.id).all) return; closeAct();
+    const mine = m.sender !== 'trainer', a = AX(), mk = mkOf(m.id), pr = el.pop.getBoundingClientRect(), br = b.getBoundingClientRect();
+    const ov = document.createElement('div'); ov.className = 'mgr-ov'; ov.addEventListener('pointerdown', e => { if (e.target === ov) closeAct(); });
+    const bar = document.createElement('div'); bar.className = 'mgr-eb';
+    ['👍', '❤️', '😂', '😮', '😢', '🙏'].forEach(e => { const x = document.createElement('button'); x.type = 'button'; x.textContent = e; if (mk.rt === e) x.className = 'on'; x.onclick = () => mkReact(m, e); bar.appendChild(x); });
+    const pl = document.createElement('button'); pl.type = 'button'; pl.className = 'pl'; pl.innerHTML = '<i class="fa-solid fa-plus"></i>'; pl.onclick = () => mkPicker(m); bar.appendChild(pl);
+    const menu = document.createElement('div'); menu.className = 'mgr-am';
+    const mi = (icon, label, fn) => { const x = document.createElement('button'); x.type = 'button'; x.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>'; x.lastChild.textContent = label; x.onclick = fn; menu.appendChild(x); };
+    mi('fa-reply', a.reply, () => mkReply(m)); mi('fa-trash', a.delete, () => mkDelete(m));
+    ov.append(bar, menu); el.pop.appendChild(ov);
+    bar.style[mine ? 'right' : 'left'] = '12px'; menu.style[mine ? 'right' : 'left'] = '12px';
+    bar.style.top = Math.max(8, br.top - pr.top - bar.offsetHeight - 8) + 'px';
+    menu.style.top = Math.max(8, Math.min(pr.height - menu.offsetHeight - 8, br.bottom - pr.top + 8)) + 'px';
+  }
+  function mAttach(b, m, mk) {
+    if (mk.rt || mk.rr) { const rx = document.createElement('div'); rx.className = 'mgr-rx'; rx.textContent = (mk.rr || '') + (mk.rt || ''); b.appendChild(rx); b.classList.add('hasrx'); }
+    if (m._st) return;
+    let sx = 0, sy = 0, dx = 0, on = false, mv = false;
+    b.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; on = true; mv = false; b.style.transition = 'none'; }, { passive: true });
+    b.addEventListener('touchmove', e => { if (!on) return; const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!mv && Math.abs(y) > Math.abs(x)) { on = false; return; } if (x <= 0) { dx = 0; if (mv) b.style.transform = ''; return; } if (x > 8) mv = true; dx = Math.min(x, 90); if (mv) b.style.transform = 'translateX(' + dx + 'px)'; }, { passive: true });
+    b.addEventListener('touchend', () => { if (!on && !mv) return; on = false; b.style.transition = 'transform .2s'; b.style.transform = ''; if (mv) { b.dataset.sw = '1'; setTimeout(() => { delete b.dataset.sw; }, 450); } if (dx >= 60 && !mkOf(m.id).all) mkReply(m); dx = 0; mv = false; }, { passive: true });
+    b.addEventListener('click', e => { if (b.dataset.sw) return; if (e.target.closest && e.target.closest('a')) return; mActions(m, b); });
+  }
   function mBubble(m) {
-    const b = document.createElement('div'), mine = m.sender !== 'trainer', t = MXT();
+    const b = document.createElement('div'), mine = m.sender !== 'trainer', t = MXT(), mk0 = mkOf(m.id);
+    if (mk0.all) {
+      b.className = 'mgr-b del' + (mine ? '' : ' in'); b.dataset.id = m.id;
+      const tx0 = document.createElement('div'); tx0.className = 'mgr-t'; tx0.dir = 'auto'; tx0.innerHTML = '<i class="fa-solid fa-ban"></i> <span></span>'; tx0.lastChild.textContent = AX().del; b.appendChild(tx0);
+      const mm0 = document.createElement('div'); mm0.className = 'mgr-m'; mm0.innerHTML = '<span></span>'; mm0.firstChild.textContent = mTime(m.created_at); b.appendChild(mm0);
+      return b;
+    }
     b.className = 'mgr-b' + (mine ? '' : ' in') + (mine && m.read_at ? ' seen' : ''); b.dataset.id = m.id;
     if (m.quote) { const qq = document.createElement('div'); qq.className = 'mgr-q'; qq.dir = 'auto'; qq.textContent = m.quote; b.appendChild(qq); }
     const tx = document.createElement('div'); tx.className = 'mgr-t'; tx.dir = 'auto';
@@ -4678,6 +4758,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     const mm = document.createElement('div'); mm.className = 'mgr-m';
     mm.innerHTML = '<span></span>' + (mine ? mDots(m) : '');
     mm.firstChild.textContent = mTime(m.created_at); b.appendChild(mm);
+    mAttach(b, m, mk0);
     if (m._st === 'fail') { b.style.cursor = 'pointer'; b.onclick = () => { m._st = 'pending'; m.created_at = new Date().toISOString(); mRender(); mPost(m); }; }   /* tap a red message = try again */
     return b;
   }
@@ -4686,6 +4767,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     const l = el.list, atEnd = l.scrollHeight - l.scrollTop - l.clientHeight < 80 || !M.loaded; let day = '';
     l.innerHTML = '';
     M.msgs.forEach(m => {
+      if (mkOf(m.id).me) return;   /* deleted for me: gone from this chat, still in the database */
       const k = mDayKey(m.created_at);
       if (k !== day) { day = k; const d = document.createElement('div'); d.className = 'mgr-day'; d.textContent = mDayLabel(m.created_at); l.appendChild(d); }
       l.appendChild(mBubble(m));
@@ -4708,9 +4790,10 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   }
   /* the list: the trainer first (bold when something is unread), then a "soon" cell */
   function lRender() {
-    if (!el.cells) return; const t = MYT(), last = M.msgs[M.msgs.length - 1], un = mUnreadList().length;
+    if (!el.cells) return; const t = MYT(), last = M.msgs.filter(x => !mkOf(x.id).me).slice(-1)[0], un = mUnreadList().length;
     let prev = '', tm = '';
     if (last) { prev = last.kind === 'audio' ? MXT().voice : last.kind === 'image' ? MXT().photo : (last.body || ''); tm = mCellTime(last.created_at); }
+    if (last && mkOf(last.id).all) prev = AX().del;
     const dr = mDraft(); if (dr) { prev = dr.replace(/\s+/g, ' '); tm = ''; }
     el.cells.dir = (typeof lang === 'string' && lang === 'en') ? 'ltr' : 'rtl';
     el.cells.innerHTML = `<button type="button" class="mgr-cell${un ? ' unr' : ''}" data-open>
@@ -4746,7 +4829,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
       if (r && r.ok && Array.isArray(r.messages)) {
         const sig = mSig(r.messages);
         if (sig !== M.sig || !M.fetched) { M.msgs = r.messages.concat(M.msgs.filter(x => x._st)); M.sig = sig; M.fetched = true; mRenderAll(); }
-        mMarkRead();
+        mMarkRead(); mkPull();
       }
     } finally { M.busy = false; }
   }
@@ -5870,5 +5953,35 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
 .mgr-ic{flex:none}
 .mgr-nl{touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .mgr-dr{font-style:normal;color:#25d366;font-weight:700}`;
+  document.head.appendChild(c);
+})();
+
+
+/* Messenger message actions look */
+(function () {
+  const c = document.createElement('style'); c.id = 'thMgrAct';
+  c.textContent = `.mgr-b{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y;cursor:pointer;transition:transform .2s}
+.mgr-b.hasrx{margin-bottom:14px}
+.mgr-rx{position:absolute;bottom:-13px;inset-inline-end:10px;padding:1px 6px;border-radius:12px;background:#202c33;border:1px solid #0b141a;font-size:13px;line-height:18px}
+.mgr-b.del{cursor:default}
+.mgr-b.del .mgr-t{font-style:italic;opacity:.65;font-size:13px}
+.mgr-ov{position:absolute;inset:0;z-index:7;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.mgr-eb{position:absolute;display:flex;align-items:center;gap:2px;padding:5px 8px;border-radius:26px;background:#202c33;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.mgr-eb button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;font-size:23px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mgr-eb button:active{transform:scale(1.25)}
+.mgr-eb button.on{background:rgba(255,255,255,.16)}
+.mgr-eb button.pl{background:#2a3942;color:#aebac1;font-size:15px;margin-inline-start:4px}
+.mgr-am{position:absolute;min-width:180px;border-radius:14px;background:#202c33;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden}
+.mgr-am button{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border:0;background:transparent;color:#e9edef;font:600 14px Cairo,Inter,sans-serif;cursor:pointer;text-align:start}
+.mgr-am button+button{border-top:1px solid rgba(255,255,255,.07)}
+.mgr-am button i{width:18px;text-align:center;color:#8696a0}
+.mgr-am button:last-child{color:#f87171}.mgr-am button:last-child i{color:#f87171}
+.mgr-ds{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,86%);padding:14px;border-radius:18px;background:#202c33;display:flex;flex-direction:column;gap:8px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+.mgr-dt{text-align:center;font-weight:800;font-size:14px;color:#e9edef;padding:2px 0 6px}
+.mgr-ds button{padding:12px;border:0;border-radius:12px;background:#2a3942;color:#e9edef;font:700 13.5px Cairo,Inter,sans-serif;cursor:pointer}
+.mgr-ds button.d{background:rgba(248,113,113,.16);color:#f87171}
+.mgr-pk{position:absolute;left:10px;right:10px;bottom:10px;max-height:52%;overflow:auto;padding:8px;border-radius:18px;background:#202c33;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.mgr-pk button{aspect-ratio:1;border:0;background:transparent;font-size:22px;cursor:pointer;border-radius:10px}
+.mgr-pk button:active{background:rgba(255,255,255,.12)}`;
   document.head.appendChild(c);
 })();
