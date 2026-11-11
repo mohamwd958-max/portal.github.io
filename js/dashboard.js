@@ -4523,9 +4523,9 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
 
   /* texts of the new list view */
   const MY = {
-    en: { title: 'Thabit Messenger', more: 'You can add more members', soon: 'You can chat with other trainees from here later. Soon, God willing.' },
-    ar: { title: 'ثابت ميسنجر', more: 'تقدر تضيف أعضاء آخرين', soon: 'تقدر تتواصل مع متدربين آخرين من هنا لاحقًا. قريبًا إن شاء الله' },
-    eg: { title: 'ثابت ميسنجر', more: 'تقدر تضيف ناس تانية', soon: 'هتقدر تكلم متدربين تانيين من هنا بعدين. قريب إن شاء الله' }
+    en: { title: 'Thabit Messenger', req: 'Requests', reqSub: 'Send a request or a report', asst: 'Assistant', asstSub: 'Your words and practice', more: 'You can add more members', soon: 'You can chat with other trainees from here later. Soon, God willing.' },
+    ar: { title: 'ثابت ميسنجر', req: 'الطلبات', reqSub: 'ابعت طلب أو تقرير', asst: 'المساعد', asstSub: 'كلماتك وتدريبك', more: 'تقدر تضيف أعضاء آخرين', soon: 'تقدر تتواصل مع متدربين آخرين من هنا لاحقًا. قريبًا إن شاء الله' },
+    eg: { title: 'ثابت ميسنجر', req: 'الطلبات', reqSub: 'ابعت طلب أو تقرير', asst: 'المساعد', asstSub: 'كلماتك وتدريبك', more: 'تقدر تضيف ناس تانية', soon: 'هتقدر تكلم متدربين تانيين من هنا بعدين. قريب إن شاء الله' }
   };
   const MYT = () => MY[(typeof lang === 'string' && lang) || 'en'] || MY.en;
   /* the name shown for the trainer (set window.TH_TRAINER_NAME to change it) */
@@ -4594,10 +4594,17 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
         <span class="mgr-ca mgr-logo"></span>
         <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(TN())}</b><em>${esc(tm)}</em></span>
           <span class="mgr-c2">${last && last.sender !== 'trainer' ? mDots(last) : ''}<span class="mgr-cp" dir="auto">${esc(prev)}</span>${un ? `<span class="mgr-cn">${un}</span>` : ''}</span></span></button>
-      <div class="mgr-cell soon"><span class="mgr-ca"><i class="fa-solid fa-user-plus"></i></span>
-        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.more)}</b></span><span class="mgr-c2"><span class="mgr-cp wrap" dir="auto">${esc(t.soon)}</span></span></span></div>`;
+      <button type="button" class="mgr-cell" data-req><span class="mgr-ca" style="color:#38bdf8"><i class="fa-solid fa-paper-plane"></i></span>
+        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.req)}</b></span><span class="mgr-c2"><span class="mgr-cp" dir="auto">${esc(t.reqSub)}</span></span></span></button>
+      <button type="button" class="mgr-cell" data-as><span class="mgr-ca" style="color:#34d399"><i class="fa-solid fa-microphone-lines"></i></span>
+        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.asst)}</b></span><span class="mgr-c2"><span class="mgr-cp" dir="auto">${esc(t.asstSub)}</span></span></span></button>`;
     el.cells.querySelector('[data-open]').onclick = () => setView('chat');
+    /* Requests / Assistant: the Messenger steps aside (phone: stays underneath so Back returns to it) and the other screen opens */
+    const away = () => { if (mgrPhone()) { M.susp = true; el.pop.style.display = 'none'; } else setMode('closed'); };
+    el.cells.querySelector('[data-req]').onclick = () => { if (typeof openRq !== 'function') return; away(); openRq(); };
+    el.cells.querySelector('[data-as]').onclick = () => { if (!window.Panels) return; away(); Panels.open('assistant'); };
   }
+  const mgrPhone = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
   const mRenderAll = () => { mBadge(); lRender(); mRender(); };
   const mSig = a => a.filter(x => !x._st).map(x => x.id + ':' + (x.read_at ? 1 : 0) + (x.delivered_at ? 1 : 0)).join(',') + '|' + (M.peerOnline ? 1 : 0);
   /* the trainer's messages count as read only while his conversation is really open on screen */
@@ -4614,7 +4621,6 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     try {
       const r = await rpc('trainee_msg_list', { p_token: tok(), p_after: 0 }).catch(() => null);
       if (r && r.ok && Array.isArray(r.messages)) {
-        M.peerOnline = !!(r.trainer_online || (r.trainer_seen_at && Date.now() - new Date(r.trainer_seen_at).getTime() < 25000));
         const sig = mSig(r.messages);
         if (sig !== M.sig || !M.fetched) { M.msgs = r.messages.concat(M.msgs.filter(x => x._st)); M.sig = sig; M.fetched = true; mRenderAll(); }
         mMarkRead();
@@ -4628,7 +4634,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     else lRender();
   }
   function setMode(m) {
-    build(); const was = M.mode; M.mode = m;
+    build(); const was = M.mode; M.mode = m; M.susp = false;
     el.veil.style.display = m === 'open' ? 'block' : 'none';
     el.pop.style.display = m === 'open' ? 'flex' : 'none';
     if (m !== 'open') { el.att.hidden = true; clearInterval(M.timer); M.timer = null; }
@@ -4655,11 +4661,24 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     mPost(tmp);
   }
   function openMessenger(quote) { build(); M.nested = quote !== undefined; if (quote !== undefined) M.view = 'chat'; setMode('open'); if (quote !== undefined) setQuote(quote); }   /* Reply goes straight into the chat with the quote */
-  window.thMessenger = { open: openMessenger, dock: () => leave(), close: () => askClose() };
+  window.thMessenger = {
+    open: openMessenger, dock: () => leave(), close: () => askClose(),
+    state: () => ({ open: M.mode === 'open', chat: M.view === 'chat' }),
+    back: () => { if (M.view === 'chat') { M.nested = false; setView('list'); } },      /* chat -> the list */
+    hide: () => { M.nested = false; setMode('closed'); },                              /* closes it, the typed draft stays */
+    suspend: on => { if (!el.pop) return; if (on && M.mode === 'open') { M.susp = true; el.pop.style.display = 'none'; } else if (M.susp) { M.susp = false; if (M.mode === 'open') el.pop.style.display = 'flex'; } },
+    name: () => TN()
+  };
   /* presence: any sign of life (touch, mouse, key, scroll, copy...) in the last 10s = online. Never from the admin "view as" page. */
   let lastAct = Date.now();
   ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'keydown', 'scroll', 'wheel', 'click', 'input', 'copy', 'paste', 'focus'].forEach(ev => window.addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true, capture: true }));
-  const ping = () => { if (VIEW || !tok() || document.hidden || Date.now() - lastAct > 10500) return; rpc('trainee_presence_ping', { p_token: tok() }).catch(() => null); };
+  /* every 10s: tell the server whether the student is active, and learn whether the trainer is online */
+  const ping = () => {
+    if (VIEW || !tok() || document.hidden) return;
+    rpc('trainee_presence_ping', { p_token: tok(), p_active: Date.now() - lastAct <= 10500 }).then(r => {
+      if (r && r.ok) { const on = !!r.trainer_online; if (on !== M.peerOnline) { M.peerOnline = on; mRenderAll(); } }
+    }).catch(() => null);
+  };
   setTimeout(ping, 2000); setInterval(ping, 10000);
   /* background check: the number on the button stays right even while the pop-up is closed */
   setTimeout(() => { if (!document.hidden) mLoad(); }, 1500);
@@ -4904,5 +4923,149 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
   };
 
   /* ---------- Theme / Language / Account buttons never show on the bar (inline !important beats every stylesheet) ---------- */
-  setInterval(() => ['floatBtnTheme', 'profBtn', 'langBtn'].forEach(id => { const b = document.getElementById(id); if (b && b.style.getPropertyValue('display') !== 'none') b.style.setProperty('display', 'none', 'important'); }), 400);
+  setInterval(() => ['floatBtnTheme', 'profBtn', 'langBtn', 'plusBtn'].forEach(id => { const b = document.getElementById(id); if (b && b.style.getPropertyValue('display') !== 'none') b.style.setProperty('display', 'none', 'important'); }), 400);
+})();
+
+/* ==========================================================
+   PHONE ONLY (touch + narrow screen): every option opens as a FULL PAGE instead of a pop-up.
+   - Notifications, Messenger (and its Chat / Requests / Assistant), Settings, Requests, Assistant, Profile
+   - nothing behind can be tapped; leave with the X, the Back button, or the phone's back gesture / button
+   - while a page is open the main page options (bottom bar, top logo, tabs) are hidden
+   - back gesture = one step back (chat -> messenger list -> main page). On the main page: the first pull asks
+     "sure you want to exit?", a second pull within 3.5 s leaves. The student stays signed in.
+   Computers are not touched at all.
+   ========================================================== */
+(function () {
+  if (window.__thfp) return; window.__thfp = 1;
+  const PH = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
+  const tr = (a, b, c) => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? a : (l === 'ar' ? b : c); };
+  const G = id => document.getElementById(id);
+
+  const st = document.createElement('style'); st.id = 'thFpCss';
+  st.textContent = `
+#plusBtn,[data-bk="plus"],html body #mobileFloatingBar #plusBtn,html body #mobileFloatingBar [data-bk="assist"]{display:none!important}
+#thFpBar{display:none}
+.thfp-toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2147483004;max-width:88vw;text-align:center;background:rgba(15,23,42,.96);color:#fff;border:1px solid rgba(255,255,255,.2);padding:11px 16px;border-radius:16px;font:700 13px/1.4 Cairo,Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+@media (max-width:820px) and (pointer:coarse){
+:root{--fp-bg:#12161b;--fp-fg:#e9edef}
+body.light-theme{--fp-bg:#f4f6f9;--fp-fg:#0f172a}
+#thFpBar{position:fixed;top:0;left:0;right:0;z-index:2147483002;height:calc(52px + env(safe-area-inset-top));box-sizing:border-box;padding:env(safe-area-inset-top) 8px 0;align-items:center;gap:8px;direction:ltr;background:var(--fp-bg);color:var(--fp-fg);border-bottom:1px solid rgba(148,163,184,.22)}
+body.thfp-open #thFpBar{display:flex}
+#thFpBar b{flex:1;min-width:0;text-align:center;font:800 15px Cairo,Inter,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#thFpBar button{width:40px;height:40px;flex:none;border:0;border-radius:50%;background:rgba(148,163,184,.16);color:inherit;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+#thFpBar button:active{transform:scale(.92)}
+/* the main page options disappear while a page is open */
+body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,body.thfp-open #mgrBtn{visibility:hidden!important}
+/* every screen = the whole page */
+#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open{position:fixed!important;inset:0!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;border-radius:0!important;transform:none!important;box-sizing:border-box!important;background:var(--fp-bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:calc(60px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom))!important;overflow:auto!important;-webkit-overflow-scrolling:touch}
+#asm:not([hidden]){padding:calc(52px + env(safe-area-inset-top)) 0 0!important;overflow:hidden!important}
+#asm>*,#asm #pp-assistant,#asm #pp-profile{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;border-radius:0!important;box-shadow:none!important;margin:0!important}
+#asm #pp-profile{overflow:auto}
+#asm iframe,#asFrame{width:100%!important;height:100%!important;border:0!important}
+#rqm .ssbox,#rqn .ssbox,#rqo .ssbox{width:100%!important;max-width:none!important;max-height:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;border:0!important}
+#rqm .ssh,#rqn .ssh,#rqo .ssh,#thSet .tsh,.mgr-h{display:none!important}
+#thSet .tsc{width:100%!important;margin:0!important}
+.mgr-veil{display:none!important}
+.mgr-pop{left:0!important;top:0!important;transform:none!important;width:100%!important;max-width:none!important;height:100%!important;height:100dvh!important;border-radius:0!important;border:0!important;box-shadow:none!important;padding-top:calc(52px + env(safe-area-inset-top))!important;box-sizing:border-box!important;background:#0b141a!important}
+.mgr-comp{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
+}`;
+  document.head.appendChild(st);
+
+  const bar = document.createElement('div'); bar.id = 'thFpBar';
+  bar.innerHTML = '<button type="button" data-b aria-label="Back"><i class="fa-solid fa-chevron-left"></i></button><b dir="auto"></b><button type="button" data-x aria-label="Close"><i class="fa-solid fa-xmark"></i></button>';
+  document.body.appendChild(bar);
+
+  function toast(m) {
+    document.querySelectorAll('.thfp-toast').forEach(x => x.remove());
+    const t = document.createElement('div'); t.className = 'thfp-toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
+  }
+
+  /* which screens are open right now, in the order they were opened */
+  let order = [];
+  function openKeys() {
+    const k = [], m = window.thMessenger && thMessenger.state ? thMessenger.state() : { open: false };
+    if (m.open) { k.push('mgr'); if (m.chat) k.push('mgrchat'); }
+    const on = id => { const e = G(id); return !!(e && e.classList.contains('open')); };
+    if (on('pop')) k.push('pop');
+    const a = G('asm'); if (a && !a.hidden) k.push('asm');
+    if (on('rqm') || on('rqn') || on('rqo')) k.push('rq1');
+    if (on('rqn') || on('rqo')) k.push('rq2');
+    if (on('thSet')) k.push('set');
+    return k;
+  }
+  function refresh() { const cur = openKeys(); order = order.filter(k => cur.includes(k)).concat(cur.filter(k => !order.includes(k))); }
+  function closeLayer(k) {
+    try {
+      if (k === 'mgrchat') thMessenger.back();
+      else if (k === 'mgr') thMessenger.hide();
+      else if (k === 'pop') closePop();
+      else if (k === 'asm') Panels.min();
+      else if (k === 'rq2') rqBack();
+      else if (k === 'rq1') closeRq();
+      else if (k === 'set') { const x = document.querySelector('#thSet .tsx'); if (x) x.click(); }
+    } catch (e) { console.warn('[fullpage] close', k, e); }
+  }
+  function title(k) {
+    if (k === 'mgr') return tr('Thabit Messenger', 'ثابت ميسنجر', 'ثابت ميسنجر');
+    if (k === 'mgrchat') return (window.thMessenger && thMessenger.name && thMessenger.name()) || '';
+    if (k === 'pop') return tr('Notifications', 'الإشعارات', 'الإشعارات');
+    if (k === 'asm') { const p = G('pp-profile'); return p && !p.hidden ? tr('Profile', 'ملفي', 'ملفي') : tr('Assistant', 'المساعد', 'المساعد'); }
+    if (k === 'rq1' || k === 'rq2') return tr('Requests', 'الطلبات', 'الطلبات');
+    if (k === 'set') { const b = document.querySelector('#thSet .tsh b'); return (b && b.textContent) || tr('Settings', 'الإعدادات', 'الإعدادات'); }
+    return '';
+  }
+
+  /* history: [root] [guard] [screen 1] [screen 2] ... -> the phone's back gesture / button steps back one screen */
+  let pos = 1, prog = false, armed = false, armT = 0;
+  (function init() {
+    if (!PH()) return;
+    try {
+      const h = history.state;
+      if (h && h.thfp) { pos = h.i; if (pos === 0) { history.pushState({ thfp: 1, i: 1 }, ''); pos = 1; } }
+      else { history.replaceState({ thfp: 1, i: 0 }, ''); history.pushState({ thfp: 1, i: 1 }, ''); pos = 1; }
+    } catch (e) { }
+  })();
+
+  function sync() {
+    refresh();
+    const top = order[order.length - 1], ph = PH();
+    document.body.classList.toggle('thfp-open', ph && order.length > 0);
+    if (window.thMessenger && thMessenger.suspend) thMessenger.suspend(ph && order.includes('mgr') && top !== 'mgr' && top !== 'mgrchat');
+    if (!ph) return;
+    const t = bar.querySelector('b'), tt = title(top); if (t.textContent !== tt) t.textContent = tt;
+    const want = order.length + 1;
+    try {
+      if (want > pos) { for (let i = pos + 1; i <= want; i++) history.pushState({ thfp: 1, i }, ''); pos = want; }
+      else if (want < pos && !prog) { prog = true; setTimeout(() => { prog = false; }, 700); history.go(want - pos); }
+    } catch (e) { }
+  }
+  window.addEventListener('popstate', e => {
+    if (!PH()) return;
+    const i = e.state && e.state.thfp ? e.state.i : 0;
+    if (prog) { prog = false; pos = i; return; }
+    pos = i;
+    if (i === 0) {                                               /* pulled back past the main page = wants to leave */
+      refresh(); let n = 0; while (order.length && n++ < 8) { closeLayer(order[order.length - 1]); refresh(); }
+      if (armed && Date.now() - armT < 3500) { armed = false; history.back(); return; }
+      armed = true; armT = Date.now();
+      toast(tr('Are you sure you want to exit? Swipe back once more to leave.', 'متأكد إنك عايز تخرج؟ اسحب مرة كمان للخروج.', 'متأكد إنك عايز تطلع؟ شد مرة كمان عشان تطلع.'));
+      try { history.pushState({ thfp: 1, i: 1 }, ''); pos = 1; } catch (er) { }
+      return;
+    }
+    refresh(); let n = 0;
+    while (order.length > i - 1 && n++ < 8) { const before = order.length; closeLayer(order[order.length - 1]); refresh(); if (order.length === before) break; }
+    sync();                                                      /* a screen that refused to close (unsaved Settings) gets its history step back */
+  });
+
+  bar.querySelector('[data-b]').onclick = () => { refresh(); if (order.length) closeLayer(order[order.length - 1]); sync(); };
+  bar.querySelector('[data-x]').onclick = () => { refresh(); let n = 0; while (order.length && n++ < 8) { const before = order.length; closeLayer(order[order.length - 1]); refresh(); if (order.length === before) break; } sync(); };
+
+  /* nothing behind a full page reacts to taps: a tap on the empty edge of a screen never closes it */
+  const ROOTS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet'];
+  ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, e => {
+    if (PH() && e.target && e.target.id && ROOTS.includes(e.target.id)) e.stopImmediatePropagation();
+  }, true));
+
+  setInterval(sync, 150);
+  window.thFpSync = sync;
 })();
