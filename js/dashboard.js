@@ -5143,18 +5143,13 @@ html.th-skel body #mobileFloatingBar>:nth-child(1){--sk:0}html.th-skel body #mob
 @media(prefers-reduced-motion:reduce){.th-sk::before{animation:none}}`.replace('__LOGO_URL__', TH_LOGO);
   document.head.appendChild(st);
 
-  const SEL = '.thabit-card,.test-card,.tkcell,.cap,.scrt,.dnr,.itc,.tkdot,.ear,.thrb,.tharr';
-  let iv = null;
-  const inject = () => document.querySelectorAll(SEL).forEach(e => { if (!e.querySelector(':scope>.th-sk')) { const d = document.createElement('div'); d.className = 'th-sk'; e.appendChild(d); } });
-  window.thSkel = function (on) {
-    const r = document.documentElement;
-    if (on) { r.classList.add('th-skel'); inject(); clearInterval(iv); iv = setInterval(inject, 250); }
-    else { r.classList.remove('th-skel'); clearInterval(iv); document.querySelectorAll('.th-sk').forEach(e => e.remove()); }
-  };
-  thSkel(true);
-  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#mobileFloatingBar [data-bk="reload"]')) thSkel(true); }, true);
+  /* the skeleton is a full-screen layer drawn by brand.js (thSkelOv): it covers every load / refresh (F5, Ctrl+R, Ctrl+Shift+R, browser reload, pull down at the top) */
+  window.thSkel = function (on) { if (!window.thSkelOv) return; if (on) thSkelOv.show(); else thSkelOv.hide(); };
   const _l = load;
-  load = async function () { const t0 = Date.now(); thSkel(true); try { await _l(); } finally { setTimeout(() => thSkel(false), Math.max(0, 1500 - (Date.now() - t0))); } };
+  load = async function () { try { await _l(); } finally { if (window.thSkelOv) thSkelOv.hide(); } };
+  /* the refresh button is gone: pull down / F5 / the browser refresh do the job */
+  const killReload = () => document.querySelectorAll('#mobileFloatingBar [data-bk="reload"]').forEach(e => { e.hidden = true; e.remove(); });
+  killReload(); setInterval(killReload, 500);
 })();
 
 /* which page is open -> html.th-page (header = logo only) and html.th-name (name shows only on the main page and inside Account) */
