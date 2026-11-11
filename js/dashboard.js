@@ -5855,16 +5855,16 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
 
 
 /* ==========================================================
-   Pull-up refresh (phones): when the page is already scrolled to the very end, keep pulling up from anywhere
-   above the bottom quarter of the screen. A round arrow grows and turns with your finger; pull far enough and let go = refresh,
-   let go early (or move back) = it winds back. Appended at the END of dashboard.js. Delete this block to remove it.
+   Pull-down refresh (phones): when the page is at the very top, pull down from anywhere. A round white button comes down from
+   under the top, an arc grows and turns with your finger; pull far enough and let go = refresh, let go early (or move back) = it winds back up. Appended at the END of dashboard.js. Delete this block to remove it.
    ========================================================== */
 (function () {
   if (window.__thPull) return; window.__thPull = 1;
-  const FAR = () => Math.round(innerHeight * 0.4), MAXD = () => Math.round(innerHeight * 0.5), EDGE = 3;
+  const FAR = () => Math.round(innerHeight * 0.4), MAXD = () => Math.round(innerHeight * 0.5), EDGE = 2;
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
-#thPull{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:10030;width:48px;height:48px;margin-left:-24px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(40px) scale(.5);background:#fff;color:#111;box-shadow:0 4px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.2)}
+html,body{overscroll-behavior-y:contain}
+#thPull{position:fixed;left:50%;top:0;z-index:10030;width:48px;height:48px;margin-left:-24px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(-70px) scale(.5);background:#fff;color:#111;box-shadow:0 4px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.2)}
 #thPull.back{transition:transform .28s cubic-bezier(.3,1.2,.5,1),opacity .28s}
 #thPull svg{width:28px;height:28px;display:block;overflow:visible}
 #thPull .ac{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
@@ -5881,28 +5881,29 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   setArc(0);
 
   const PH = () => matchMedia('(pointer:coarse)').matches;
-  const atEnd = () => { const d = document.documentElement; return (window.scrollY || d.scrollTop || 0) + innerHeight >= Math.max(d.scrollHeight, document.body.scrollHeight) - EDGE; };
+  const atTop = () => (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0) <= EDGE;
   const pageOpen = () => document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')
     || !!document.querySelector('#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thDays.open,#thLib.open,.ssm.open,#wp,.mgr-pop');
-  /* a scrollable box under the finger that can still move down keeps the touch for itself */
+  /* a scrollable box under the finger that is not at its own top keeps the touch for itself */
   function innerScroll(t) {
     for (let e = t; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
-      if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.scrollTop + e.clientHeight < e.scrollHeight - 2) return true;
+      if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.scrollTop > 2) return true;
     }
     return false;
   }
   let g = null, busy = false, crossed = false;
+  const HIDE = -70, REST = () => 70 + Math.round(innerHeight * 0.12);
   const prog = () => Math.min(1, g.d / FAR());
   function paint() {
-    const p = prog(), f = Math.min(1, g.d / MAXD()), y = 40 - f * (0.22 * innerHeight + 40);
+    const p = prog(), f = Math.min(1, g.d / MAXD()), y = HIDE + f * (REST() - HIDE);      /* comes down from under the top, following the finger */
     el.style.opacity = String(Math.min(1, p * 2.2));
     el.style.transform = `translateY(${y}px) scale(${0.5 + 0.5 * Math.min(1, p * 1.6)})`;
-    setArc(p);                                                                       /* the arc grows and turns with the finger, and shrinks again when you go back */
+    setArc(p);                                                                           /* the arc grows and turns with the finger, and shrinks again when you go back */
   }
-  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = 'translateY(40px) scale(.5)'; setArc(0); setTimeout(() => el.classList.remove('back'), 320); }
+  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = `translateY(${HIDE}px) scale(.5)`; setArc(0); setTimeout(() => el.classList.remove('back'), 320); }
   async function refresh() {
-    busy = true; el.classList.remove('back'); setArc(1); el.style.opacity = '1'; el.style.transform = `translateY(${40 - (0.22 * innerHeight + 40) * 0.8}px) scale(1)`; el.classList.add('spin');
+    busy = true; el.classList.remove('back'); setArc(1); el.style.opacity = '1'; el.style.transform = `translateY(${Math.round(REST() * 0.8)}px) scale(1)`; el.classList.add('spin');
     const t0 = Date.now();
     try { if (window.thSkel) window.thSkel(true); await load(); } catch (e) { console.warn('[pull refresh]', e); }
     const wait = Math.max(0, 700 - (Date.now() - t0));
@@ -5911,20 +5912,20 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   document.addEventListener('touchstart', e => {
     g = null;
     if (busy || !PH() || e.touches.length !== 1 || pageOpen()) return;
-    const t = e.touches[0]; if (t.clientY > innerHeight * 0.75) return;          /* the bottom quarter is the bar's area */
+    const t = e.touches[0];
     if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui')) return;
-    if (!atEnd() || innerScroll(e.target)) return;
+    if (!atTop() || innerScroll(e.target)) return;
     g = { y: t.clientY, x: t.clientX, d: 0, on: false }; crossed = false;
   }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!g) return;
-    const t = e.touches[0], dy = g.y - t.clientY;                                  /* finger going up = positive */
+    const t = e.touches[0], dy = t.clientY - g.y;                                      /* finger going DOWN = positive */
     if (!g.on) {
       if (dy < 6 || Math.abs(t.clientX - g.x) > Math.abs(dy)) { if (dy < -6) g = null; return; }
-      if (!atEnd()) { g = null; return; }
+      if (!atTop()) { g = null; return; }
       g.on = true; el.classList.remove('back');
     }
-    g.d = Math.max(0, dy) * 0.9;                                                     /* a little resistance, like a real spring */
+    g.d = Math.max(0, dy) * 0.9;
     if (e.cancelable) e.preventDefault();
     paint();
     if (g.d >= FAR() && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) { } }
