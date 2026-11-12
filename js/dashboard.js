@@ -5873,6 +5873,7 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
 html,body{overscroll-behavior-y:none}
+html{touch-action:pan-x pan-y}
 #thPull{position:fixed;left:50%;top:0;z-index:2147483002;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
 body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.22),0 0 0 1px rgba(15,23,42,.08)}
 #thPull.back{transition:transform .3s cubic-bezier(.3,1.1,.5,1),opacity .25s}
@@ -5932,7 +5933,9 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
     if (!g) return;
     const t = e.touches[0], dy = t.clientY - g.y;
     if (!g.on) {
-      if (dy < 4 || Math.abs(t.clientX - g.x) > Math.abs(dy)) { if (dy < -6) g = null; return; }
+      /* decide on the very first move: any downward move at the top takes over the gesture at once (a late preventDefault is ignored by the browser, which then cancels the touch = the circle vanishes) */
+      if (dy < -8) { g = null; return; }
+      if (dy <= 0 || Math.abs(t.clientX - g.x) > dy * 1.5 + 6) { return; }
       if (!atTop()) { g = null; return; }
       g.on = true;
     }
