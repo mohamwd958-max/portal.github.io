@@ -2103,6 +2103,7 @@ function placeFeed() {
   }
   function move(ev) {
     const it = drag.it, ax = drag.ax, p = ax === 'x' ? ev.clientX : ev.clientY;
+    it.style.removeProperty('--lift');
     it.style.transform = '';
     const sib = items().filter(x => x !== it); let before = 0;
     sib.forEach(x => { if (ctr(x, ax) < p) before++; });
@@ -5872,7 +5873,7 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
 html,body{overscroll-behavior-y:none}
-#thPull{position:fixed;left:50%;top:0;z-index:10030;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
+#thPull{position:fixed;left:50%;top:0;z-index:2147483002;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
 body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.22),0 0 0 1px rgba(15,23,42,.08)}
 #thPull.back{transition:transform .3s cubic-bezier(.3,1.1,.5,1),opacity .25s}
 #thPull svg{width:34px;height:34px;display:block;overflow:visible}
@@ -5891,10 +5892,11 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
   const draw = p => { SP.style.strokeDashoffset = String(1 - Math.max(0, Math.min(1, p))); };
   draw(0);
 
-  const PH = () => matchMedia('(pointer:coarse)').matches;
+  const PH = () => matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
   const atTop = () => Math.max(window.scrollY || 0, document.documentElement.scrollTop || 0, document.body.scrollTop || 0) <= EDGE;
+  const vis = e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   const pageOpen = () => document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')
-    || !!document.querySelector('#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thDays.open,#thLib.open,.ssm.open,#wp,.mgr-pop');
+    || [...document.querySelectorAll('#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thDays.open,#thLib.open,.ssm.open,#wp,.mgr-pop')].some(vis);
   function innerScroll(t) {
     for (let e = t; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
@@ -6117,6 +6119,9 @@ html body #mobileFloatingBar #daysBtn .dys text{font-weight:600!important;font-s
 html body .thsec.th-first:not(#z){justify-content:flex-start!important;padding-top:calc(56px + env(safe-area-inset-top,0px))!important}
 html body .thsec.th-first>.top{margin-top:0!important}}
 html,body{overscroll-behavior-y:none!important}
+html body #thBrand:not(#z),html body .thHdr:not(#z){background:#181c20!important;background-image:none!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.07)!important;box-shadow:none!important}
+html body.light-theme #thBrand:not(#z),html body.light-theme .thHdr:not(#z){background:#f4f6f9!important;border-bottom-color:rgba(15,23,42,.12)!important}
+html body #thBrand .thb-n:not(#z){display:none!important}
 
 /* bars: plain solid grey, no dots */
 html body #mobileFloatingBar:not(#z),html body .thHdr:not(#z),html body #thBrand:not(#z),
