@@ -6087,6 +6087,28 @@ body:not(.light-theme) #thSpace{background:#17171b}
     }
     box.classList.add('open');
     if (window.thFpSync) thFpSync();
+    probe();
+  }
+  /* If Space cannot load, say exactly why on screen (missing file, or the server function is missing / rejected the token) */
+  let probed = false;
+  async function probe() {
+    if (probed) return; probed = true;
+    const bad = [];
+    for (const u of ['board.html', 'Css/board.css', 'js/board.js']) {
+      try { const r = await fetch(u, { method: 'HEAD', cache: 'no-store' }); if (!r.ok) bad.push(u + '  ->  HTTP ' + r.status); } catch (e) { bad.push(u + '  ->  ' + e.message); }
+    }
+    try {
+      const t = tok();
+      if (!t) bad.push('no trainee token on this device (log in again)');
+      else { const r = await rpc('trainee_space_list', { p_token: t }); if (r && !Array.isArray(r) && (r.message || r.code)) bad.push('trainee_space_list  ->  ' + (r.message || r.code) + (r.hint ? ' (' + r.hint + ')' : '')); }
+    } catch (e) { bad.push('trainee_space_list  ->  ' + e.message); }
+    if (!bad.length) return;
+    console.warn('[space] problems:', bad);
+    const d = document.createElement('div');
+    d.style.cssText = 'position:absolute;left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:5;padding:12px 14px;border-radius:14px;background:rgba(127,29,29,.92);color:#fff;font:600 12px/1.5 Inter,Cairo,sans-serif;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-word';
+    d.textContent = 'Space problem:\n' + bad.join('\n') + '\n(tap to close)';
+    d.onclick = () => d.remove();
+    box.appendChild(d);
   }
   function close() {
     try { fr && fr.contentWindow.ThabitBoard && fr.contentWindow.ThabitBoard.flush(); } catch (e) { }   /* saves by itself, nothing to ask */
