@@ -6175,3 +6175,119 @@ html body #mobileFloatingBar .lifting:not(#a):not(#b):not(#c){transform:var(--li
   const start = () => { fix(); const e = document.getElementById('barEdit'); if (e) new MutationObserver(fix).observe(e, { childList: true }); [200, 800, 2000, 4000].forEach(t => setTimeout(fix, t)); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+/* ==========================================================
+   Facebook-style phone shell (appended at the END of dashboard.js, delete this block to go back)
+   1) No header: only the logo (one colour, no animation) pinned top-left inside a small circle; not tappable, never moves.
+   2) Bottom bar icons are plain grey. The open tab's icon gets its own colour (Notifications red, Messenger blue,
+      Days green, Space orange). The bar stays visible under the open tab page.
+   3) Swipe left / right on a tab page = go to the neighbour tab in the bar (like Facebook).
+   ========================================================== */
+(function () {
+  if (window.__thTabs) return; window.__thTabs = 1;
+  const G = id => document.getElementById(id);
+  const PH = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
+  const COL = { feed: '#f43f5e', msgr: '#3b82f6', days: '#22c55e', space: '#f97316' };
+  const BTN = { feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn' };
+  const GREY = '#8a94a0';
+  const cls = id => { const e = G(id); return !!(e && e.classList.contains('open')); };
+  const isOpen = {
+    feed: () => cls('pop'),
+    msgr: () => { try { return !!thMessenger.state().open; } catch (e) { return false; } },
+    days: () => cls('thDays'),
+    space: () => cls('thSpace')
+  };
+  const closeTab = {
+    feed: () => { try { closePop(); } catch (e) { } },
+    msgr: () => { try { thMessenger.hide(); } catch (e) { } },
+    days: () => { try { thDays.close(); } catch (e) { } },
+    space: () => { try { thSpace.close(); } catch (e) { } }
+  };
+  const nested = () => {
+    try { if (thMessenger.state().chat) return true; } catch (e) { }
+    return !!document.querySelector('#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thLib.open,#asm:not([hidden]),.ssm.open');
+  };
+  const cur = () => { for (const k of Object.keys(isOpen)) if (isOpen[k]()) return k; return null; };
+  const tabs = () => Object.keys(BTN).filter(k => { const b = G(BTN[k]); return b && !b.hidden && b.getClientRects().length; })
+    .sort((a, b) => G(BTN[a]).getBoundingClientRect().left - G(BTN[b]).getBoundingClientRect().left);
+
+  const st = document.createElement('style'); st.id = 'thTabsCss';
+  let css = `@media (max-width:820px) and (pointer:coarse){
+/* 1) header = only the logo in a small circle */
+html body #thBrand:not(#z){visibility:visible!important;position:fixed!important;left:10px!important;right:auto!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;width:36px!important;height:36px!important;padding:0!important;gap:0!important;
+  justify-content:center!important;align-items:center!important;border-radius:50%!important;border:1.5px solid rgba(233,237,239,.55)!important;background:rgba(24,28,32,.88)!important;background-image:none!important;box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#e9edef!important;pointer-events:none!important;z-index:2147483003!important;transform:none!important}
+html body.light-theme #thBrand:not(#z){border-color:rgba(15,23,42,.45)!important;background:rgba(244,246,249,.92)!important;color:#0f172a!important}
+html body #thBrand:not(#z)>*:not(.thb-l){display:none!important}
+html body #thBrand .thb-l:not(#z){width:20px!important;height:20px!important;background:currentColor!important;background-image:none!important;animation:none!important;filter:none!important;margin:0!important}
+/* 2) bar: grey icons, the open tab is coloured; bar stays above the tab page */
+html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on),html body #mobileFloatingBar:not(#z) #barEdit{color:${GREY}!important}
+html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on) :is(i,svg,.fstar,.fdp){color:${GREY}!important;filter:grayscale(1)!important}
+html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on) .mgr-ico{background-color:${GREY}!important}
+html body #mobileFloatingBar:not(#z) #barEdit :is(i,svg){color:${GREY}!important;filter:grayscale(1)!important}
+html body #mobileFloatingBar:not(#z) .tab-on :is(i,svg,.fstar,.fdp){color:inherit!important;filter:none!important}
+body.th-tab #mobileFloatingBar:not(#z){visibility:visible!important;z-index:2147483003!important}
+body.th-tab #thBackB{display:none!important}
+html body.th-tab #pop.open,html body.th-tab #thSpace.open,html body.th-tab #thDays.open,html body.th-tab .mgr-pop{bottom:var(--thTabH,64px)!important;height:auto!important;max-height:none!important;inset-block-end:var(--thTabH,64px)!important}
+}`;
+  Object.keys(COL).forEach(k => {
+    const id = '#' + BTN[k];
+    css += `\nhtml body #mobileFloatingBar ${id}.tab-on:not(#z){color:${COL[k]}!important}\nhtml body #mobileFloatingBar ${id}.tab-on .mgr-ico{background-color:${COL[k]}!important}`;
+  });
+  st.textContent = css; document.head.appendChild(st);
+
+  function go(from, to) {
+    if (!to || to === from) return;
+    closeTab[from]();
+    setTimeout(() => { const b = G(BTN[to]); if (b) b.click(); }, 130);
+  }
+
+  /* keep colours / bar visibility in step with whatever is open */
+  function sync() {
+    const ph = PH(), c = ph ? cur() : null, tab = !!c && !nested();
+    document.body.classList.toggle('th-tab', tab);
+    Object.keys(BTN).forEach(k => { const b = G(BTN[k]); if (b) b.classList.toggle('tab-on', ph && c === k); });
+    const bar = G('mobileFloatingBar');
+    if (bar) {
+      if (tab) {                                                  /* the page lock makes the bar inert; give it back so it can switch tabs */
+        bar.removeAttribute('inert'); bar.classList.remove('thfp-dead');
+        const h = Math.round(bar.getBoundingClientRect().height); if (h > 30) document.documentElement.style.setProperty('--thTabH', h + 'px');
+      }
+    }
+  }
+  setInterval(sync, 120);
+
+  /* tap on a tab icon while a tab page is open = switch tab (tapping the open one does nothing) */
+  const barTap = e => {
+    if (!PH() || !document.body.classList.contains('th-tab')) return;
+    const b = e.target.closest && e.target.closest('[data-bk]'); if (!b) return;
+    const k = Object.keys(BTN).find(x => BTN[x] === b.id); if (!k) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if (e.type === 'click') { const c = cur(); if (c && c !== k) go(c, k); }
+  };
+  const barEl = G('mobileFloatingBar') || document.body;
+  ['click'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('#mobileFloatingBar')) barTap(e); }, true));
+
+  /* swipe */
+  let s = null;
+  const BLOCK = 'input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.mgr-b,.tptl,.tvw,.thsel-ui,.aswrap,[data-nosw]';
+  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 4) return true; } return false; };
+  document.addEventListener('touchstart', e => {
+    s = null;
+    if (!PH() || e.touches.length !== 1 || !document.body.classList.contains('th-tab')) return;
+    if (e.target.closest && e.target.closest(BLOCK)) return;
+    if (hScroll(e.target)) return;
+    const c = cur(); if (!c) return; const t = e.touches[0]; s = { x: t.clientX, y: t.clientY, c, on: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!s) return; const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (!s.on) { if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { s = null; return; } if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.3) s.on = true; }
+    s.dx = dx;
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    const q = s; s = null; if (!q || !q.on || Math.abs(q.dx || 0) < 60) return;
+    const list = tabs(), i = list.indexOf(q.c); if (i < 0) return;
+    go(q.c, list[q.dx < 0 ? i + 1 : i - 1]);                      /* finger moves left -> tab on the right, like Facebook */
+  }, { passive: true });
+  document.addEventListener('touchcancel', () => { s = null; }, { passive: true });
+})();
