@@ -7,13 +7,16 @@
   const Q = new URLSearchParams(location.search);
   const SESSION_KEY = 'thabit_admin_session';
   const hasSession = () => { try { const x = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); return !!(x && x.refresh_token); } catch { return false; } };
-  if (!Q.has('admin') && !hasSession()) return;
-  if (!window.ThabitBoard) { console.error('[board-admin] board.js لازم يتحمّل الأول'); return; }
+  /* EMBED: لو الصفحة هي adminpanel.html نفسها (الأدمن موجود فيها أصلًا)، بنحمّل اللوحة جواها */
+  const EMBED = !!document.getElementById('adminModalOverlay');
+  if (!EMBED && !Q.has('admin') && !hasSession()) return;
+  if (!EMBED && !window.ThabitBoard) { console.error('[board-admin] board.js لازم يتحمّل الأول'); return; }
 
   /* لو ملفاتك في أماكن تانية، عدّلها قبل تحميل السكريبت: window.THABIT_ADMIN = { page:'...', css:[...], js:[...] } */
   const CFG = Object.assign({
     page: 'adminpanel.html',
-    css: ['Css/adminpanel.css', 'Css/richtext.css', 'board-admin.css'],
+    board: 'board.html',          /* بنقرا منها عناصر اللوحة وملفات الـ css والـ js بتاعتها (في وضع adminpanel.html) */
+    css: ['Css/adminpanel.css', 'Css/richtext.css'],
     js: ['js/adminpanel.js', 'js/adminpanelmaint.js', 'js/adminvoicenote.js'],
     tailwind: 'https://cdn.tailwindcss.com',
     fa: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
@@ -33,6 +36,102 @@
     d.style.cssText = 'position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:100001;background:#7f1d1d;color:#fff;padding:10px 16px;border-radius:10px;font:600 13px Cairo,sans-serif;direction:rtl;max-width:90vw';
     d.textContent = 'لوحة الأدمن: ' + msg; document.body.appendChild(d);
   }
+
+  const BA_CSS = `/* Thabit Space: لوحة الأدمن فوق اللوحة اللانهائية.
+   كل القواعد هنا !important عشان تغلب Css/adminpanel.css والـ inline styles بتاعت adminpanel.js */
+
+/* الخلفية (شعار Thabit) تتخفي، اللوحة هي الخلفية */
+#thabitBg { display: none !important; }
+
+/* الأوفرلاي الأساسي شفاف ومش بيمنع اللمس: اللوحة تحته شغالة بالكامل */
+#adminModalOverlay {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  pointer-events: none !important;
+  display: none !important;
+  z-index: 90 !important;
+}
+#adminModalOverlay.open:not(.ba-hidden) { display: block !important; }
+#adminPanel {
+  display: contents !important;
+}
+#adminPanel .tha-h { display: none !important; }
+#adminViewStore { display: none !important; }
+
+/* شريط الأزرار: صف في الأعلى، والزرار المسحوب بيطلع منه ويتثبت (fixed) */
+#adminLauncher {
+  position: fixed !important;
+  top: 56px; left: 70px; right: 70px;
+  display: flex !important; flex-wrap: wrap; justify-content: center; gap: 8px;
+  background: transparent !important; border: 0 !important; padding: 0 !important; margin: 0 !important;
+  pointer-events: none !important;
+  z-index: 95;
+}
+#adminLauncher .ws-lb {
+  pointer-events: auto !important;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab;
+  background: #0f172a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+#adminLauncher .ws-lb.on { background: #f59e0b; }
+#adminLauncher .ws-lb.ba-free { position: fixed !important; z-index: 96; }
+#adminLauncher .ws-lb.ba-drag { cursor: grabbing; opacity: .92; }
+
+/* النوافذ: عايمة وتتسحب وتتغير مقاساتها */
+#adminWs {
+  position: fixed !important; inset: 0 !important;
+  display: block !important;
+  pointer-events: none !important;
+  z-index: 100;
+}
+#adminWs .ws-w {
+  position: absolute !important;
+  pointer-events: auto !important;
+  flex: none !important;
+  width: 380px; min-width: 260px; max-width: 96vw; max-height: 88vh;
+  resize: both; overflow: hidden !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+}
+#adminWs .ws-w.ws-2 { width: 640px; }
+#adminWs .ws-w.ws-3 { width: 860px; }
+#adminWs .ws-w .ws-h { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+#adminWs .ws-w.ba-drag .ws-h { cursor: grabbing; }
+#adminWs .ws-w .ws-bd { flex: 1 1 auto; min-height: 0; max-height: none !important; }
+#adminWs .ws-w.ws-fold { height: auto !important; resize: none; }
+
+/* أزرار التحكم الصغيرة (حفظ الأماكن / رجوع / إخفاء / خروج) */
+#baCtl {
+  position: fixed; left: 0; right: 0; bottom: 12px;
+  display: flex; justify-content: center; gap: 6px;
+  pointer-events: none; z-index: 97;
+}
+#baCtl button {
+  pointer-events: auto;
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid #475569; background: #0f172a; color: #e2e8f0;
+  font-size: 14px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+#baCtl button:hover { border-color: #fbbf24; color: #fbbf24; }
+#baCtl button.on { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
+#baCtl.ba-off { display: none; }
+#baShow {
+  position: fixed; bottom: 12px; left: 70px; z-index: 97;
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid #475569; background: #0f172a; color: #fbbf24; cursor: pointer;
+}
+#baShow[hidden] { display: none; }
+
+/* شاشة الدخول فوق كل حاجة */
+#thaAuth { z-index: 100000 !important; }
+@media (max-width: 700px) {
+  #adminLauncher { left: 8px; right: 8px; top: 52px; }
+  #adminWs .ws-w { max-width: calc(100vw - 16px); }
+}
+`;
+  (function () { if (document.getElementById('baCss')) return; const st = document.createElement('style'); st.id = 'baCss'; st.textContent = BA_CSS; document.head.appendChild(st); })();
 
   /* ---------------- state ---------------- */
   let saved = { buttons: {}, windows: {} };     /* المحفوظ في Supabase */
@@ -185,18 +284,32 @@
   }
 
   /* ---------------- boot ---------------- */
+  /* وضع adminpanel.html: نجيب عناصر اللوحة + css + js من board.html ونحطها جوه الصفحة دي */
+  async function loadBoardIntoAdminPage() {
+    const html = await (await fetch(CFG.board, { cache: 'no-cache' })).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('link[rel="stylesheet"]').forEach(l => { const h = l.getAttribute('href'); if (h && !/fonts\.googleapis/.test(h)) loadCss(h); });
+    const frag = document.createDocumentFragment();
+    [...doc.body.children].forEach(n => { if (n.tagName !== 'SCRIPT') frag.appendChild(document.importNode(n, true)); });
+    document.body.insertBefore(frag, document.body.firstChild);
+    const srcs = [...doc.querySelectorAll('script[src]')].map(s => s.getAttribute('src')).filter(s => !/boardadmin|board-admin/.test(s));
+    for (const src of srcs) await loadJs(src);
+    if (!window.ThabitBoard) throw new Error('board.js اتحمّل بس ThabitBoard مش موجود. اتأكد إنه النسخة الجديدة');
+  }
+
   async function boot() {
-    CFG.css.forEach(h => { if (!/board-admin\.css$/.test(h)) loadCss(h); });
+    if (EMBED) await loadBoardIntoAdminPage();
+    else {
+    CFG.css.forEach(h => loadCss(h));
     loadCss(CFG.fa);
     const html = await (await fetch(CFG.page, { cache: 'no-cache' })).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     ['generalToast', 'thaAuth', 'adminModalOverlay', 'floatingWindowsRoot'].forEach(id => {
       const n = doc.getElementById(id); if (n && !$(id)) document.body.appendChild(document.importNode(n, true));
     });
-    /* لازم يتحمّل بعد كل ستايلات الأدمن عشان يغلبها */
-    CFG.css.filter(h => /board-admin\.css$/.test(h)).forEach(h => loadCss(h));
     await loadJs(CFG.tailwind).catch(() => { });
     for (const src of CFG.js) await loadJs(src);
+    }
 
     /* ----- تعديلات بعد تحميل كود الأدمن وقبل ما يبدأ ----- */
     const showView = window.showAdminView;
@@ -204,8 +317,10 @@
     const openMain = window.openAdminMainPanel;
     window.openAdminMainPanel = function () { const r = openMain.apply(this, arguments); startCloud(); return r; };
     window.toggleAdminPanel = function () { const o = $('adminModalOverlay'); setHidden(!(o && o.classList.contains('ba-hidden'))); };
-    window.goToPortal = function () { location.replace(location.pathname); };
-    window.adminLogout = async function () {
+    if (!EMBED) window.goToPortal = function () { location.replace(location.pathname); };
+    const logout0 = window.adminLogout;
+    if (EMBED) window.adminLogout = async function () { try { await window.ThabitBoard.flush(); } catch { } return logout0.apply(this, arguments); };
+    else window.adminLogout = async function () {
       try { await window.ThabitBoard.flush(); } catch { }
       try { if (window.SB_ACCESS_TOKEN) await fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: sbHeaders() }); } catch { }
       clearAdminSession(); location.replace(location.pathname);
@@ -240,7 +355,11 @@
     };
     document.body.addEventListener('keydown', guard); document.body.addEventListener('paste', guard);
 
-    window.dispatchEvent(new Event('DOMContentLoaded'));   /* adminpanel.js بيشتغل على الحدث ده */
+    if (EMBED) {
+      /* كود الأدمن اشتغل قبلنا: لو الجلسة شغالة بالفعل نبدأ السحابة، ونقفل نافذة Dashboard اللي اتفتحت تلقائي */
+      const o = $('adminModalOverlay');
+      if (o && o.classList.contains('open')) { try { if (window.WSE && WSE.dash) window.closeWin('dash'); } catch { } startCloud(); }
+    } else window.dispatchEvent(new Event('DOMContentLoaded'));   /* adminpanel.js بيشتغل على الحدث ده */
   }
   boot().catch(e => fail(e.message || e));
 })();
