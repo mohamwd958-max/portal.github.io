@@ -6369,6 +6369,10 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     e.stopPropagation(); e.preventDefault(); go(k);
   }, true);
 
+  let sx = 0, sy = 0, st0 = 0, ok = false;
+  const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
+  const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
+  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.position === 'fixed') break; if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
   /* ---------- swipe: the page follows the finger, the next page slides in beside it ---------- */
   const elOf = k => k === 'feed' ? $q('#pop') : k === 'days' ? $q('#thDays') : k === 'space' ? $q('#thSpace') : k === 'msgr' ? $q('.mgr-pop') : k === 'edit' ? $q('#thMenu') : null;
   function opn(k) {
