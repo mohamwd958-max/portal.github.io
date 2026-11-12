@@ -6374,7 +6374,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
   const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.position === 'fixed') break; if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
   /* ---------- swipe: the page follows the finger, the next page slides in beside it ---------- */
-  const elOf = k => k === 'feed' ? $q('#pop') : k === 'days' ? $q('#thDays') : k === 'space' ? $q('#thSpace') : k === 'msgr' ? $q('.mgr-pop') : k === 'edit' ? $q('#thMenu') : null;
+  const elOf = k => k === 'feed' ? $q('#pop') : k === 'days' ? $q('#thDays') : k === 'space' ? $q('#thSpace') : k === 'msgr' ? $q('.mgr-pop') : k === 'edit' ? ($q('#thSet') || $q('#thMenu')) : null;   /* More = the #thSet page */
   function opn(k) {
     try {
       if (k === 'feed') openFeed($('feedBtn'));
@@ -6390,7 +6390,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
       else if (k === 'days') thDays.close();
       else if (k === 'space') thSpace.close();
       else if (k === 'msgr') thMessenger.hide();
-      else if (k === 'edit') { const m = $q('#thMenu.open'); if (m) m.classList.remove('open'); }
+      else if (k === 'edit') { const x = $q('#thSet.open .tsx'); if (x) x.click(); const m = $q('#thMenu.open'); if (m) m.classList.remove('open'); }
     } catch (e) { }
   }
   const put = (el, x, ms) => { if (!el) return; el.style.setProperty('transition', ms ? 'transform ' + ms + 'ms cubic-bezier(.2,.8,.25,1)' : 'none', 'important'); el.style.setProperty('transform', 'translate3d(' + x + 'px,0,0)', 'important'); };
