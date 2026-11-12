@@ -6478,12 +6478,11 @@ html body.light-theme .thHdr:not(#z):not(#y):not(#w){
   background:rgba(255,255,255,.38)!important;background-color:rgba(255,255,255,.38)!important;background-image:none!important}
 html body #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w){font-size:0!important;color:transparent!important;z-index:2147483004!important}
 html body #thBrand:not(#z):not(#y):not(#w) *{display:none!important}
-/* the feed page: no side gaps, no rounded frame; the limit at the top is the header, at the bottom the bar; cards slide under the glass */
+/* the feed page: separate rounded cards with a gap between them (as before), a bit narrower from the sides; the limit at the top is the header, at the bottom the bar; cards slide under the glass */
 html body #pop.open:not(#z){position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;
   padding:var(--th-hd,calc(58px + env(safe-area-inset-top,0px))) 0 var(--th-bar,calc(96px + env(safe-area-inset-bottom,0px)))!important;
   overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;align-items:stretch!important;border-radius:0!important}
-html body #pop.open:not(#z) .pcs{margin:0!important;padding:0!important;width:100%!important;max-width:none!important;gap:0!important}
-html body #pop:not(#z) .pc{margin:0!important;border-radius:0!important;border-width:0 0 1px 0!important;box-shadow:none!important;width:100%;box-sizing:border-box}`;
+html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;width:100%!important;max-width:none!important;gap:10px!important;box-sizing:border-box!important}`;
   document.head.appendChild(st);
   /* real heights of the header and the bar, so the feed starts / ends exactly at them */
   function measure() {
