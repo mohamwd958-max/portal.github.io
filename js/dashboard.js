@@ -1284,7 +1284,7 @@ function feedCards() {
   const s = nxState(), bs = billState();
   const nts = thn_noteList().map(thn_noteCardN);
   if (bs) nts.unshift(billCard(bs));
-  return [...nts];   // the next session now lives in the Days page (thDays), not here   // the feed holds ONLY the next session + notifications (Dandana / Assistant words are not here); only notification cards (cnt) are counted
+  return [...nts].sort((a, b) => (b.cnt ? 1 : 0) - (a.cnt ? 1 : 0));   /* unread on top, read below (stable: newest first inside each group) */   // the next session now lives in the Days page (thDays), not here   // the feed holds ONLY the next session + notifications (Dandana / Assistant words are not here); only notification cards (cnt) are counted
 }
 /* The X on a card = "I read it": only then it stops counting. Closing the pop-up by tapping outside does NOT mark anything as read.
    Next session + Assistant words have no X, so they always count. */
@@ -3212,7 +3212,7 @@ html #mobileFloatingBar>.feed,#feedBtn{position:relative!important;background:tr
 #feedBtn .fdp{position:static!important;display:contents!important}
 #feedBtn .fdw,#feedBtn .fdg,#feedBtn .fdb{display:none!important}
 #feedBtn .fstar{width:30px;height:30px;display:block;overflow:visible;transform:rotate(-13deg)}
-#feedBtn .fstar path{fill:none;stroke:#ef4444;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+#feedBtn .fstar path{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
 #feedBtn #feedNum{position:absolute!important;inset:auto!important;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;display:block;
  background:#ef4444!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
  font:800 10px/16px Inter,Cairo,sans-serif!important;text-align:center;opacity:0;transform:none!important;animation:none!important}
@@ -6270,6 +6270,8 @@ html body.light-theme #mobileFloatingBar:not(#z):not(#y){border:0!important;bord
 html.th-tabs body #mobileFloatingBar>[data-bk]:not(.th-on):not(#z),html.th-tabs body #mobileFloatingBar>#feedBtn:not(.th-on):not(#z),html.th-tabs body #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#fff!important;opacity:1!important}
 html.th-tabs body.light-theme #mobileFloatingBar>[data-bk]:not(.th-on):not(#z),html.th-tabs body.light-theme #mobileFloatingBar>#feedBtn:not(.th-on):not(#z),html.th-tabs body.light-theme #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#0f172a!important}
 html body #mobileFloatingBar #feedNum,html body #mobileFloatingBar #mgrNum,html body #mobileFloatingBar #daysNum,html body #mobileFloatingBar .fdb{opacity:1!important;filter:none!important}
+/* Feed star = same as the other icons: white, and green only while it is the open page. The red number circle is untouched. */
+html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
 @media (max-width:820px) and (pointer:coarse){
 #thDays.open,#pop.open,#thSet.open{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
 #thSpace{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
@@ -6367,22 +6369,90 @@ html body #mobileFloatingBar #feedNum,html body #mobileFloatingBar #mgrNum,html 
     e.stopPropagation(); e.preventDefault(); go(k);
   }, true);
 
-  /* ---------- swipe left / right = previous / next page ---------- */
-  let sx = 0, sy = 0, st0 = 0, ok = false;
-  const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
-  const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
-  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.position === 'fixed') break; if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
+  /* ---------- swipe: the page follows the finger, the next page slides in beside it ---------- */
+  const elOf = k => k === 'feed' ? $q('#pop') : k === 'days' ? $q('#thDays') : k === 'space' ? $q('#thSpace') : k === 'msgr' ? $q('.mgr-pop') : k === 'edit' ? $q('#thMenu') : null;
+  function opn(k) {
+    try {
+      if (k === 'feed') openFeed($('feedBtn'));
+      else if (k === 'msgr') thMessenger.open();
+      else if (k === 'days') thDays.open();
+      else if (k === 'space') thSpace.open();
+      else if (k === 'edit') window.openStar && window.openStar();
+    } catch (e) { console.warn('[nav]', k, e); }
+  }
+  function shut(k) {   /* closes ONE page (closeAll closes everything) */
+    try {
+      if (k === 'feed') { if ($q('#pop.open')) closePop(); }
+      else if (k === 'days') thDays.close();
+      else if (k === 'space') thSpace.close();
+      else if (k === 'msgr') thMessenger.hide();
+      else if (k === 'edit') { const m = $q('#thMenu.open'); if (m) m.classList.remove('open'); }
+    } catch (e) { }
+  }
+  const put = (el, x, ms) => { if (!el) return; el.style.setProperty('transition', ms ? 'transform ' + ms + 'ms cubic-bezier(.2,.8,.25,1)' : 'none', 'important'); el.style.setProperty('transform', 'translate3d(' + x + 'px,0,0)', 'important'); };
+  const clr = el => { if (!el) return; ['transform', 'transition', 'z-index', 'will-change'].forEach(p => el.style.removeProperty(p)); };
+  const DRAG_START = 10;     /* px of horizontal movement before the page starts to follow the finger (was 70) */
+  const COMMIT = 0.22;       /* share of the screen width you must pass to switch page (a quick flick also switches) */
+  let dg = null, lx = 0, lt = 0, vx = 0;
+  function dragStart(dx) {
+    const ps = pages(), i = ps.indexOf(curKey()); if (i < 0 || ps.length < 2) return null;
+    const n = ((dx < 0) !== SWAP) ? i + 1 : i - 1; if (n < 0 || n >= ps.length) return null;
+    const ck = ps[i], nk = ps[n], ce = elOf(ck), side = dx < 0 ? 1 : -1, w = innerWidth;
+    if (ck !== 'home' && !ce) return null;
+    let ne = null;
+    if (nk !== 'home') {
+      opn(nk); ne = elOf(nk);
+      if (!ne || getComputedStyle(ne).display === 'none') { shut(nk); return null; }
+    }
+    [ce, ne].forEach(el => { if (el) { el.style.setProperty('will-change', 'transform', 'important'); } });
+    if (ce) ce.style.setProperty('z-index', '2147482000', 'important');
+    if (ne) ne.style.setProperty('z-index', '2147482001', 'important');
+    put(ne, side * w, 0);
+    return { ck, nk, ce, ne, side, w };
+  }
+  function dragMove(dx) {
+    dx = dg.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
+    put(dg.ce, dx, 0); put(dg.ne, dg.side * dg.w + dx, 0);
+    return dx;
+  }
+  function dragEnd(dx) {
+    const d = dg; dg = null; if (!d) return;
+    dx = d.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
+    const go1 = Math.abs(dx) > d.w * COMMIT || (Math.abs(vx) > 0.45 && Math.abs(dx) > 24 && Math.sign(vx) === Math.sign(dx));
+    if (go1) {
+      put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230);
+      setTimeout(() => { shut(d.ck); clr(d.ce); clr(d.ne); if (window.thFpSync) thFpSync(); sync(); }, 245);
+    } else {
+      put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200);
+      setTimeout(() => { shut(d.nk); clr(d.ce); clr(d.ne); if (window.thFpSync) thFpSync(); sync(); }, 215);
+    }
+  }
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
-    ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
-    if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now();
+    ok = e.touches.length === 1 && !dg && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
+    if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now(); lx = sx; lt = st0; vx = 0;
   }, { passive: true, capture: true });
+  window.addEventListener('touchmove', e => {
+    if (!ok || !e.touches[0]) return;
+    const x = e.touches[0].clientX, dx = x - sx, dy = e.touches[0].clientY - sy, now = Date.now();
+    if (now > lt) vx = (x - lx) / (now - lt); lx = x; lt = now;
+    if (!dg) {
+      if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { ok = false; return; }   /* it is a vertical scroll */
+      if (Math.abs(dx) < DRAG_START || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      dg = dragStart(dx); if (!dg) { ok = false; return; }
+    }
+    if (e.cancelable) e.preventDefault();
+    dragMove(dx);
+  }, { passive: false, capture: true });
   document.addEventListener('touchend', e => {
     if (!ok) return; ok = false;
-    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - st0 > 700) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (dg) { dragEnd(dx); return; }
+    /* quick flick that finished before the page started following the finger */
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.4 || Date.now() - st0 > 700) return;
     const ps = pages(), i = ps.indexOf(curKey()); if (i < 0 || ps.length < 2) return;
     const n = ((dx < 0) !== SWAP) ? i + 1 : i - 1;
     if (n < 0 || n >= ps.length) return;
     go(ps[n]);
   }, { passive: true });
+  document.addEventListener('touchcancel', () => { if (dg) { ok = false; dragEnd(0); } }, { passive: true });
 })();
