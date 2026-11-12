@@ -6187,7 +6187,7 @@ html body #mobileFloatingBar .lifting:not(#a):not(#b):not(#c){transform:var(--li
   if (window.__thTabs) return; window.__thTabs = 1;
   const G = id => document.getElementById(id);
   const PH = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
-  const COL = { feed: '#f43f5e', msgr: '#3b82f6', days: '#22c55e', space: '#f97316' };
+  const G1 = '#22c55e', COL = { feed: G1, msgr: G1, days: G1, space: G1 };   /* one colour for whichever tab is open */
   const BTN = { feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn' };
   const GREY = '#8a94a0';
   const cls = id => { const e = G(id); return !!(e && e.classList.contains('open')); };
@@ -6236,15 +6236,34 @@ html body.th-tab #pop.open,html body.th-tab #thSpace.open,html body.th-tab #thDa
   });
   st.textContent = css; document.head.appendChild(st);
 
-  function go(from, to) {
-    if (!to || to === from) return;
-    closeTab[from]();
-    setTimeout(() => { const b = G(BTN[to]); if (b) b.click(); }, 130);
+  let lock = null;
+  const pageEl = k => k === 'feed' ? G('pop') : k === 'msgr' ? [...document.querySelectorAll('.mgr-pop')].find(e => e.getClientRects().length) : k === 'days' ? G('thDays') : G('thSpace');
+  const W = () => innerWidth;
+  function go(from, to, dx0) {
+    if (!to || to === from || lock) return;
+    const list = tabs(), dir = list.indexOf(to) > list.indexOf(from) ? 1 : -1;   /* +1 = the next tab is on the right */
+    lock = from;
+    const out = pageEl(from), t0 = Date.now();
+    const b = G(BTN[to]); if (b) b.click();                       /* open the neighbour first, then close this one: keeps the back-history in step */
+    const wait = () => {
+      const inn = isOpen[to]() ? pageEl(to) : null;
+      if (!inn && Date.now() - t0 < 900) return requestAnimationFrame(wait);
+      lock = to;
+      const D = 230, ez = 'cubic-bezier(.2,.8,.2,1)', anims = [];
+      if (out) anims.push(out.animate([{ translate: (dx0 || 0) + 'px 0' }, { translate: (-dir * W()) + 'px 0' }], { duration: D, easing: ez, fill: 'forwards' }));
+      if (inn) anims.push(inn.animate([{ translate: (dir * W()) + 'px 0' }, { translate: '0px 0' }], { duration: D, easing: ez, fill: 'both' }));
+      setTimeout(() => {
+        closeTab[from](); if (out) out.style.translate = '';
+        anims.forEach(x => { try { x.cancel(); } catch (e) { } }); lock = null; sync();
+      }, D + 20);
+    };
+    requestAnimationFrame(wait);
   }
 
   /* keep colours / bar visibility in step with whatever is open */
   function sync() {
-    const ph = PH(), c = ph ? cur() : null, tab = !!c && !nested();
+    const ph = PH(), c = ph ? (lock || cur()) : null, tab = !!c && !nested();
+    document.body.classList.toggle('th-tab-feed', c === 'feed');
     document.body.classList.toggle('th-tab', tab);
     Object.keys(BTN).forEach(k => { const b = G(BTN[k]); if (b) b.classList.toggle('tab-on', ph && c === k); });
     const bar = G('mobileFloatingBar');
@@ -6268,26 +6287,70 @@ html body.th-tab #pop.open,html body.th-tab #thSpace.open,html body.th-tab #thDa
   const barEl = G('mobileFloatingBar') || document.body;
   ['click'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('#mobileFloatingBar')) barTap(e); }, true));
 
-  /* swipe */
-  let s = null;
-  const BLOCK = 'input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.mgr-b,.tptl,.tvw,.thsel-ui,.aswrap,[data-nosw]';
+  /* swipe: the page follows the finger, lets go -> slides to the neighbour tab (or springs back) */
+  let q = null;
+  const BLOCK = 'input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.tptl,.tvw,.thsel-ui,.aswrap,[data-nosw]';
   const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 4) return true; } return false; };
+  const nb = (c, dx) => { const l = tabs(), i = l.indexOf(c); return i < 0 ? null : l[dx < 0 ? i + 1 : i - 1] || null; };
   document.addEventListener('touchstart', e => {
-    s = null;
-    if (!PH() || e.touches.length !== 1 || !document.body.classList.contains('th-tab')) return;
+    q = null;
+    if (lock || !PH() || e.touches.length !== 1 || !document.body.classList.contains('th-tab')) return;
     if (e.target.closest && e.target.closest(BLOCK)) return;
     if (hScroll(e.target)) return;
-    const c = cur(); if (!c) return; const t = e.touches[0]; s = { x: t.clientX, y: t.clientY, c, on: false };
+    const c = cur(); if (!c) return; const t = e.touches[0];
+    q = { x: t.clientX, y: t.clientY, c, on: false, dx: 0, t: Date.now(), row: !!(e.target.closest && e.target.closest('.mgr-b')) };
   }, { passive: true });
   document.addEventListener('touchmove', e => {
-    if (!s) return; const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (!s.on) { if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { s = null; return; } if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.3) s.on = true; }
-    s.dx = dx;
-  }, { passive: true });
+    if (!q) return; const t = e.touches[0], dx = t.clientX - q.x, dy = t.clientY - q.y;
+    if (!q.on) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { q = null; return; } if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3) q.on = true; else return; }
+    q.dx = dx; q.v = dx / Math.max(1, Date.now() - q.t);
+    if (q.row) return;                                              /* on a message row: its own swipe options win unless the flick is fast */
+    if (e.cancelable) e.preventDefault();
+    const el = pageEl(q.c); if (!el) return;
+    el.style.translate = (nb(q.c, dx) ? dx : dx * 0.25) + 'px 0';
+  }, { passive: false });
   document.addEventListener('touchend', () => {
-    const q = s; s = null; if (!q || !q.on || Math.abs(q.dx || 0) < 60) return;
-    const list = tabs(), i = list.indexOf(q.c); if (i < 0) return;
-    go(q.c, list[q.dx < 0 ? i + 1 : i - 1]);                      /* finger moves left -> tab on the right, like Facebook */
+    const z = q; q = null; if (!z || !z.on) return;
+    const dx = z.dx, v = Math.abs(dx) / Math.max(1, Date.now() - z.t), to = nb(z.c, dx), el = pageEl(z.c);
+    const fast = v > 0.55 && Math.abs(dx) > (z.row ? 80 : 40), far = Math.abs(dx) > W() * 0.3;
+    if (to && (z.row ? fast : (fast || far))) { go(z.c, to, z.row ? 0 : dx); return; }
+    if (el && el.style.translate) { const a = el.animate([{ translate: dx + 'px 0' }, { translate: '0px 0' }], { duration: 160, easing: 'ease-out' }); a.onfinish = a.oncancel = () => { el.style.translate = ''; }; el.style.translate = ''; }
   }, { passive: true });
-  document.addEventListener('touchcancel', () => { s = null; }, { passive: true });
+  document.addEventListener('touchcancel', () => { if (q) { const el = pageEl(q.c); if (el) el.style.translate = ''; } q = null; }, { passive: true });
+
+  /* the star / icons take the tab colour from the button (their own strokes were hard-coded) */
+  const st2 = document.createElement('style');
+  st2.textContent = `@media (max-width:820px) and (pointer:coarse){
+html body #mobileFloatingBar:not(#z) [data-bk] svg :is(path,circle,rect,line,polyline,ellipse){stroke:currentColor!important}
+html body #mobileFloatingBar:not(#z) #daysBtn svg text{fill:currentColor!important}
+html body.th-tab-feed #thFpBar b{font-size:0!important}
+html body.th-tab-feed #thFpBar b::after{content:var(--thFeedT,"Feed");font-size:15px}}`;
+  document.head.appendChild(st2);
+  const feedName = () => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? 'Feed' : 'الفيد'; };
+  setInterval(() => document.documentElement.style.setProperty('--thFeedT', JSON.stringify(feedName())), 500);
+
+  /* Messenger icon: a small carrier dove, same thin line as the other icons (replaces the old bottle) */
+  const DOVE = '<svg class="mgco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 15.7C7 14.6 10 14 12.5 12.2c2-1.4 3.1-2.6 3.7-3.8.2-1.5 1.4-2.4 2.7-2.1.7.2 1.1.6 1.3 1.1L22 8.2l-1.8.7c-.2 1.5-.8 3.1-2 4.5-2.2 2.6-6.2 4-10.2 3.9-1.4-.1-2.6-.5-3.4-1.6z"/><path d="M11.2 13.4C9.8 9.2 11.2 5 15.6 2.4c.6 3.8-.4 7.6-2.8 10"/><path d="M9.4 14C6.8 11.2 6.6 7.6 8.8 4.4c1.6 2.4 2 5.2 1.6 8"/><path d="M4.8 16L1.8 16.6M5.3 17.1L2.6 19"/></svg>';
+  const st3 = document.createElement('style');
+  st3.textContent = `html body #mobileFloatingBar #mgrBtn .mgr-ico{display:none!important}
+html body #mobileFloatingBar #mgrBtn svg.mgco{width:25px!important;height:25px!important;display:block;flex:none}
+html body #mobileFloatingBar:not(#z) [data-bk].tab-on:not(#y) svg :is(path,circle,rect,line,polyline,ellipse){stroke-width:1.5!important}
+html body #mobileFloatingBar:not(#z) [data-bk].tab-on:not(#y) :is(i,.fstar path){font-weight:900}`;
+  document.head.appendChild(st3);
+  setInterval(() => { const b = G('mgrBtn'); if (b && !b.querySelector('svg.mgco')) { const o = b.querySelector('.mgr-ico'); if (o) o.insertAdjacentHTML('beforebegin', DOVE); } }, 300);
+
+  /* default landing: the Feed if it has anything, otherwise Days */
+  (function () {
+    let n = 0;
+    const iv = setInterval(() => {
+      if (!PH() || ++n > 60) return clearInterval(iv);
+      try {
+        if (typeof D === 'undefined' || !D || (typeof INTRO !== 'undefined' && INTRO.hold)) return;
+        if (cur() || document.body.classList.contains('thfp-open')) return clearInterval(iv);
+        clearInterval(iv);
+        const fb = G('feedBtn');
+        if (fb && !fb.hidden && feedCards().length) fb.click(); else { const d = G('daysBtn'); if (d) d.click(); }
+      } catch (e) { }
+    }, 500);
+  })();
 })();
