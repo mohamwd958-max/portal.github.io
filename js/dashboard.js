@@ -3790,7 +3790,7 @@ html .lgi:hover{transform:scale(1.12)}
       seen.add(e.target.id);
       const cards = [...e.target.querySelectorAll('.thabit-card,.test-card')];
       cards.forEach(c => c.classList.add('lit1'));
-      setTimeout(() => cards.forEach(c => c.classList.remove('lit1')), 2800);
+      setTimeout(() => cards.forEach(c => c.classList.remove('lit1')), 1800);
     }), { threshold: [0, 0.35] });
     document.querySelectorAll('.thsec').forEach(s => io.observe(s));
   }
@@ -5871,7 +5871,7 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   const TRIG = () => Math.max(140, Math.round(innerHeight * 0.27)), EDGE = 2, SZ = 46;
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
-html,body{overscroll-behavior-y:contain}
+html,body{overscroll-behavior-y:none}
 #thPull{position:fixed;left:50%;top:0;z-index:10030;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
 body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.22),0 0 0 1px rgba(15,23,42,.08)}
 #thPull.back{transition:transform .3s cubic-bezier(.3,1.1,.5,1),opacity .25s}
@@ -5892,7 +5892,7 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
   draw(0);
 
   const PH = () => matchMedia('(pointer:coarse)').matches;
-  const atTop = () => (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0) <= EDGE;
+  const atTop = () => Math.max(window.scrollY || 0, document.documentElement.scrollTop || 0, document.body.scrollTop || 0) <= EDGE;
   const pageOpen = () => document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')
     || !!document.querySelector('#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thDays.open,#thLib.open,.ssm.open,#wp,.mgr-pop');
   function innerScroll(t) {
@@ -5903,10 +5903,10 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
     return false;
   }
   let g = null, busy = false, crossed = false;
-  const top = dist => { const T = TRIG(), x = dist <= T ? dist : T + (dist - T) * 0.25; return x - SZ - 6 + Math.round(innerHeight * 0.02) + 0; };   /* the button rides just under the finger, slows down after the line */
+  const top = dist => Math.min(dist, TRIG()) - SZ - 10;   /* same distance as the finger, stops at the line */
   function paint() {
-    const p = g.d / TRIG();
-    el.style.opacity = String(Math.min(1, g.d / 28));
+    const p = Math.min(1, g.d / TRIG());
+    el.style.opacity = String(Math.min(1, g.d / 20));
     el.style.transform = `translate3d(0,${top(g.d)}px,0) scale(${0.7 + 0.3 * Math.min(1, p * 2)})`;
     draw(p);                                                   /* 0 at the start, complete at the line, un-draws when you go back */
     SVG.style.transform = `rotate(${Math.round(Math.min(1, p) * 160)}deg)`;
@@ -5937,8 +5937,7 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
     g.d = Math.max(0, dy);                                     /* 1:1 with the finger, no extra pull needed */
     if (e.cancelable) e.preventDefault();
     paint();
-    if (g.d >= TRIG() && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(10); } catch (x) { } }
-    else if (g.d < TRIG()) crossed = false;
+    if (g.d >= TRIG()) { try { navigator.vibrate && navigator.vibrate(10); } catch (x) { } g = null; refresh(); }   /* circle complete = refresh, right away */
   }, { passive: false });
   const end = () => { if (!g) return; const go = g.on && g.d >= TRIG(), on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
   document.addEventListener('touchend', end, { passive: true });
@@ -6107,6 +6106,17 @@ html body #mobileFloatingBar #feedBtn .fstar path{stroke-width:1!important}
 html body #mobileFloatingBar #spaceBtn svg.spco{width:25px!important;height:25px!important;display:block;flex:none}
 html body #mobileFloatingBar #barEdit svg.plusout{width:25px!important;height:25px!important;display:block;flex:none}
 html body #mobileFloatingBar #barEdit svg.plusout path{fill:none!important;stroke:currentColor;stroke-width:1.1;stroke-linejoin:round}
+html body #mobileFloatingBar #spaceBtn svg.spco *{stroke-width:1.1!important}
+html body #mobileFloatingBar #daysBtn>svg.dys{width:25px!important;height:25px!important}
+html body #mobileFloatingBar #daysBtn .dys .fr{stroke-width:1.1!important}
+html body #mobileFloatingBar #daysBtn .dys .rg{stroke-width:1.2!important}
+html body #mobileFloatingBar #daysBtn .dys text{font-weight:600!important;font-size:10px!important}
+
+/* first floor (Tasks / Applications): starts right under the header, no empty gap above the first card */
+@media(max-width:700px){
+html body .thsec.th-first:not(#z){justify-content:flex-start!important;padding-top:calc(56px + env(safe-area-inset-top,0px))!important}
+html body .thsec.th-first>.top{margin-top:0!important}}
+html,body{overscroll-behavior-y:none!important}
 
 /* bars: plain solid grey, no dots */
 html body #mobileFloatingBar:not(#z),html body .thHdr:not(#z),html body #thBrand:not(#z),
@@ -6116,11 +6126,17 @@ html body.light-theme #mobileFloatingBar:not(#z),html body.light-theme .thHdr:no
 html:has(body:not(.light-theme)),html body:not(.light-theme){background-color:#050506!important;background-image:none!important}
 
 /* glass cards: soft blur + a thin bright edge */
-html body :is(.thabit-card,.test-card,.dcard){-webkit-backdrop-filter:blur(16px) saturate(1.25)!important;backdrop-filter:blur(16px) saturate(1.25)!important}
+html body :is(.thabit-card,.test-card,.dcard){-webkit-backdrop-filter:blur(24px) saturate(1.3)!important;backdrop-filter:blur(24px) saturate(1.3)!important}
 html body:not(.light-theme) :is(.thabit-card,.test-card,.dcard){background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 10px 30px rgba(0,0,0,.45)!important}
 html body.light-theme :is(.thabit-card,.test-card,.dcard){box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(15,23,42,.1)!important}
 /* the one light pass (class lit1 is added by the section watcher, once per visit) */
-html .thabit-card.lit1::before,html .test-card.lit1::before{opacity:.4!important;animation:thabitCardSwipeSlow 1.9s ease-in-out 1!important}
+/* no light at all except ONE slow pass, left -> right, 1.5s, then gone */
+html body .thabit-card:not(.lit1)::before,html body .test-card:not(.lit1)::before{animation:none!important;opacity:0!important;display:none!important}
+html body .thabit-card.lit1::before,html body .test-card.lit1::before{content:""!important;display:block!important;position:absolute!important;inset:0!important;width:auto!important;height:auto!important;transform:none!important;border-radius:inherit!important;pointer-events:none!important;opacity:1!important;
+  background:linear-gradient(105deg,transparent 0%,transparent 38%,rgba(255,255,255,.17) 50%,transparent 62%,transparent 100%) 100% 0/300% 100% no-repeat!important;
+  animation:thShine 1.5s ease-in-out 1 forwards!important}
+@keyframes thShine{from{background-position:100% 0}to{background-position:0% 0}}
+html body.light-theme .thabit-card.lit1::before,html body.light-theme .test-card.lit1::before{background-image:linear-gradient(105deg,transparent 0%,transparent 38%,rgba(255,255,255,.75) 50%,transparent 62%,transparent 100%)!important}
 
 /* long-press move: the icon follows the finger, nothing slows it or pins it */
 html body #mobileFloatingBar>[data-bk]{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -6134,6 +6150,20 @@ html body #mobileFloatingBar .lifting:not(#a):not(#b):not(#c){transform:var(--li
     const old = e.querySelector(':scope>svg.gear') || e.querySelector(':scope>i');
     if (old) old.replaceWith(PLUS()); else e.insertBefore(PLUS(), e.firstChild);
   }
+  /* closed outline with softly rounded corners */
+  const rp = (pts, rf) => { const n = pts.length; let d = ''; for (let i = 0; i < n; i++) { const p = pts[i], a = pts[(i + n - 1) % n], b = pts[(i + 1) % n], r = rf(i);
+    const t = (q) => { const dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy), k = Math.min(r, l / 2) / l; return [p[0] + dx * k, p[1] + dy * k]; }, s = t(a), e = t(b);
+    d += (i ? 'L' : 'M') + s[0].toFixed(2) + ' ' + s[1].toFixed(2) + 'Q' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ' ' + e[0].toFixed(2) + ' ' + e[1].toFixed(2); } return d + 'Z'; };
+  const w = 2.9, L = 8.6, c = 12, PL = [[c - w, c - L], [c + w, c - L], [c + w, c - w], [c + L, c - w], [c + L, c + w], [c + w, c + w], [c + w, c + L], [c - w, c + L], [c - w, c + w], [c - L, c + w], [c - L, c - w], [c - w, c - w]];
+  const PLUS_D = rp(PL, i => (i === 2 || i === 5 || i === 8 || i === 11) ? 1.5 : 2.6);
+  const PEN_D = rp([[4, 20], [5.2, 15.26], [13.9, 6.56], [17.44, 10.1], [8.74, 18.8]], i => i === 0 ? 0.9 : 1.9) + 'M11.07 9.39L14.61 12.93';
+  function roundIcons() {
+    document.querySelectorAll('#barEdit svg.plusout path').forEach(p => { if (p.getAttribute('d') !== PLUS_D) p.setAttribute('d', PLUS_D); });
+    document.querySelectorAll('#spaceBtn svg.spco').forEach(s => { if (s.dataset.r) return; s.dataset.r = 1; s.innerHTML = '<path d="' + PEN_D + '"/>'; s.setAttribute('stroke-linejoin', 'round'); });
+    const f = [...document.querySelectorAll('.thsec')].filter(e => !e.hidden)[0];
+    document.querySelectorAll('.thsec.th-first').forEach(x => { if (x !== f) x.classList.remove('th-first'); }); if (f) f.classList.add('th-first');
+  }
+  setInterval(roundIcons, 800); roundIcons();
   const start = () => { fix(); const e = document.getElementById('barEdit'); if (e) new MutationObserver(fix).observe(e, { childList: true }); [200, 800, 2000, 4000].forEach(t => setTimeout(fix, t)); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
