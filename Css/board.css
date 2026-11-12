@@ -1,0 +1,93 @@
+/* Thabit Space: لوحة الأدمن فوق اللوحة اللانهائية.
+   كل القواعد هنا !important عشان تغلب Css/adminpanel.css والـ inline styles بتاعت adminpanel.js */
+
+/* الخلفية (شعار Thabit) تتخفي، اللوحة هي الخلفية */
+#thabitBg { display: none !important; }
+
+/* الأوفرلاي الأساسي شفاف ومش بيمنع اللمس: اللوحة تحته شغالة بالكامل */
+#adminModalOverlay {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  pointer-events: none !important;
+  display: none !important;
+  z-index: 90 !important;
+}
+#adminModalOverlay.open:not(.ba-hidden) { display: block !important; }
+#adminPanel {
+  display: contents !important;
+}
+#adminPanel .tha-h { display: none !important; }
+#adminViewStore { display: none !important; }
+
+/* شريط الأزرار: صف في الأعلى، والزرار المسحوب بيطلع منه ويتثبت (fixed) */
+#adminLauncher {
+  position: fixed !important;
+  top: 56px; left: 70px; right: 70px;
+  display: flex !important; flex-wrap: wrap; justify-content: center; gap: 8px;
+  background: transparent !important; border: 0 !important; padding: 0 !important; margin: 0 !important;
+  pointer-events: none !important;
+  z-index: 95;
+}
+#adminLauncher .ws-lb {
+  pointer-events: auto !important;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab;
+  background: #0f172a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+#adminLauncher .ws-lb.on { background: #f59e0b; }
+#adminLauncher .ws-lb.ba-free { position: fixed !important; z-index: 96; }
+#adminLauncher .ws-lb.ba-drag { cursor: grabbing; opacity: .92; }
+
+/* النوافذ: عايمة وتتسحب وتتغير مقاساتها */
+#adminWs {
+  position: fixed !important; inset: 0 !important;
+  display: block !important;
+  pointer-events: none !important;
+  z-index: 100;
+}
+#adminWs .ws-w {
+  position: absolute !important;
+  pointer-events: auto !important;
+  flex: none !important;
+  width: 380px; min-width: 260px; max-width: 96vw; max-height: 88vh;
+  resize: both; overflow: hidden !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+}
+#adminWs .ws-w.ws-2 { width: 640px; }
+#adminWs .ws-w.ws-3 { width: 860px; }
+#adminWs .ws-w .ws-h { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+#adminWs .ws-w.ba-drag .ws-h { cursor: grabbing; }
+#adminWs .ws-w .ws-bd { flex: 1 1 auto; min-height: 0; max-height: none !important; }
+#adminWs .ws-w.ws-fold { height: auto !important; resize: none; }
+
+/* أزرار التحكم الصغيرة (حفظ الأماكن / رجوع / إخفاء / خروج) */
+#baCtl {
+  position: fixed; left: 0; right: 0; bottom: 12px;
+  display: flex; justify-content: center; gap: 6px;
+  pointer-events: none; z-index: 97;
+}
+#baCtl button {
+  pointer-events: auto;
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid #475569; background: #0f172a; color: #e2e8f0;
+  font-size: 14px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+#baCtl button:hover { border-color: #fbbf24; color: #fbbf24; }
+#baCtl button.on { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
+#baCtl.ba-off { display: none; }
+#baShow {
+  position: fixed; bottom: 12px; left: 70px; z-index: 97;
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid #475569; background: #0f172a; color: #fbbf24; cursor: pointer;
+}
+#baShow[hidden] { display: none; }
+
+/* شاشة الدخول فوق كل حاجة */
+#thaAuth { z-index: 100000 !important; }
+@media (max-width: 700px) {
+  #adminLauncher { left: 8px; right: 8px; top: 52px; }
+  #adminWs .ws-w { max-width: calc(100vw - 16px); }
+}
