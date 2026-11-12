@@ -1,6 +1,6 @@
 (function () {   /* old bar buttons (Add / Language / Theme / Profile) never show: hidden at once, and any saved old order is erased */
   try { const h = document.createElement('style'); h.id = 'thNoOld'; h.textContent = '#plusBtn,#floatBtnTheme,#profBtn,#langBtn,[data-bk="assist"],[data-bk="lang"],[data-bk="theme"],[data-bk="logout"]{display:none!important}'; (document.head || document.documentElement).appendChild(h); } catch (e) { }
-  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days', 'space'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
+  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days', 'space', 'edit'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
 })();
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
 console.info('[dashboard] build 2026-11-08 feed-restored-v5');
@@ -2060,18 +2060,18 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days', 'space'];
+const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days', 'space', 'edit'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
 }
 function layoutBar() {
-  const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit');
+  const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit'); if (edit) edit.dataset.bk = 'edit';
   bar.querySelectorAll(':scope > [data-bk]').forEach(e => els[e.dataset.bk] = e);
   bar.querySelectorAll(':scope > .bar-divider').forEach(d => d.remove());
   const list = barOrder().map(k => els[k]).filter(e => e && !e.hidden);
   list.forEach((e, i) => { bar.appendChild(e); if (i < list.length - 1) { const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); } });
-  const d = document.createElement('div'); d.className = 'bar-divider'; bar.appendChild(d); bar.appendChild(edit);
+  /* More (+) is now an ordinary icon in the order, so it can be moved too */
 }
 (function () {
   const bar = $('mobileFloatingBar'), mq = window.matchMedia('(max-width:600px)');
@@ -2109,19 +2109,19 @@ function placeFeed() {
     const di = drag.rev ? sib.length - before : before;
     if (sib.length) { const ref = di < sib.length ? sib[di] : sib[sib.length - 1].nextSibling; if (it.nextSibling !== ref && it !== ref) bar.insertBefore(it, ref); }
     const d = p - ctr(it, ax);
-    it.style.transform = (ax === 'x' ? 'translateX(' : 'translateY(') + d + 'px) scale(1.15)';
+    const tf = (ax === 'x' ? 'translateX(' : 'translateY(') + d + 'px) scale(1.15)'; it.style.transform = tf; it.style.setProperty('--lift', tf);
   }
   function end() {
     clearTimeout(timer);
     if (!drag) return;
     const it = drag.it; drag = null;
-    it.style.transform = ''; it.classList.remove('lifting'); bar.classList.remove('dragging');
+    it.style.transform = ''; it.style.removeProperty('--lift'); it.classList.remove('lifting'); bar.classList.remove('dragging');
     try { const prev = barOrder(), vis = items().map(x => x.dataset.bk), q = vis.slice(); const full = prev.map(k => vis.includes(k) ? q.shift() : k); vis.forEach(k => { if (!full.includes(k)) full.push(k); }); localStorage.setItem('thabit_bar_order', JSON.stringify(full)); } catch (e) {}
     layoutBar(); swallow = true; setTimeout(() => { swallow = false; }, 400);
   }
   bar.addEventListener('pointerdown', e => {
     const it = e.target.closest && e.target.closest('[data-bk]'); if (!it || it.parentNode !== bar || it.id === 'floatBtnTheme') return;   /* theme button: a plain tap button, can't be lifted or moved */
-    sx = e.clientX; sy = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it, e), 450);
+    sx = e.clientX; sy = e.clientY; clearTimeout(timer); timer = setTimeout(() => begin(it, e), 380);
   });
   document.addEventListener('pointermove', e => { if (drag) { move(e); return; } if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(timer); timer = null; } });   // listeners on the document: moving the icon in the DOM must not end the drag
   ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, end));
@@ -3786,12 +3786,12 @@ html .lgi:hover{transform:scale(1.12)}
   function watchSections() {
     if (!('IntersectionObserver' in window)) return;
     const io = new IntersectionObserver(es => es.forEach(e => {
-      if (!e.isIntersecting || seen.has(e.target.id)) return;
+      if (!e.isIntersecting) { seen.delete(e.target.id); return; } if (seen.has(e.target.id)) return;
       seen.add(e.target.id);
       const cards = [...e.target.querySelectorAll('.thabit-card,.test-card')];
       cards.forEach(c => c.classList.add('lit1'));
       setTimeout(() => cards.forEach(c => c.classList.remove('lit1')), 2800);
-    }), { threshold: 0.35 });
+    }), { threshold: [0, 0.35] });
     document.querySelectorAll('.thsec').forEach(s => io.observe(s));
   }
   setTimeout(watchSections, 800);
@@ -6087,8 +6087,53 @@ body:not(.light-theme) #thSpace{background:#17171b}
 
   const b = document.createElement('button');
   b.type = 'button'; b.id = 'spaceBtn'; b.dataset.bk = 'space'; b.className = 'circle-badge-btn'; b.title = 'Space'; b.setAttribute('aria-label', 'Space');
-  b.style.color = '#38bdf8'; b.innerHTML = '<i class="fa-solid fa-pen-ruler text-sm"></i>';
+  b.style.color = '#38bdf8'; b.innerHTML = '<svg class="spco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-3.8L16.2 4a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L7.8 20z"/><path d="M13.6 6.7l3.7 3.7"/></svg>';
   b.onclick = open;
   bar.appendChild(b);
   try { layoutBar(); } catch (e) { }
+})();
+
+
+/* ==========================================================
+   v3 (end of dashboard.js): thinner Space + Feed, More = hollow plus, no dots on bars, coal-black page,
+   glass cards, bar icons movable (incl. More). Delete this block to go back.
+   ========================================================== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thV3';
+  st.textContent = `
+/* thin line icons, same visual size */
+html body #mobileFloatingBar #feedBtn .fstar{width:25px!important;height:25px!important}
+html body #mobileFloatingBar #feedBtn .fstar path{stroke-width:1!important}
+html body #mobileFloatingBar #spaceBtn svg.spco{width:25px!important;height:25px!important;display:block;flex:none}
+html body #mobileFloatingBar #barEdit svg.plusout{width:25px!important;height:25px!important;display:block;flex:none}
+html body #mobileFloatingBar #barEdit svg.plusout path{fill:none!important;stroke:currentColor;stroke-width:1.1;stroke-linejoin:round}
+
+/* bars: plain solid grey, no dots */
+html body #mobileFloatingBar:not(#z),html body .thHdr:not(#z),html body #thBrand:not(#z),
+html body.light-theme #mobileFloatingBar:not(#z),html body.light-theme .thHdr:not(#z),html body.light-theme #thBrand:not(#z),html body.light-theme~#thBrand:not(#z){background-image:none!important}
+
+/* coal-black page (dark theme) */
+html:has(body:not(.light-theme)),html body:not(.light-theme){background-color:#050506!important;background-image:none!important}
+
+/* glass cards: soft blur + a thin bright edge */
+html body :is(.thabit-card,.test-card,.dcard){-webkit-backdrop-filter:blur(16px) saturate(1.25)!important;backdrop-filter:blur(16px) saturate(1.25)!important}
+html body:not(.light-theme) :is(.thabit-card,.test-card,.dcard){background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 10px 30px rgba(0,0,0,.45)!important}
+html body.light-theme :is(.thabit-card,.test-card,.dcard){box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(15,23,42,.1)!important}
+/* the one light pass (class lit1 is added by the section watcher, once per visit) */
+html .thabit-card.lit1::before,html .test-card.lit1::before{opacity:.4!important;animation:thabitCardSwipeSlow 1.9s ease-in-out 1!important}
+
+/* long-press move: the icon follows the finger, nothing slows it or pins it */
+html body #mobileFloatingBar>[data-bk]{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html body #mobileFloatingBar .lifting:not(#a):not(#b):not(#c){transform:var(--lift,none)!important;transition:none!important;z-index:9;opacity:.95}`;
+  document.head.appendChild(st);
+
+  /* More: hollow plus outline instead of the gear (a plus-shaped outline, same family as the Feed star) */
+  const PLUS = () => { const t = document.createElement('template'); t.innerHTML = '<svg class="gear plusout" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M9.3 3.4h5.4v5.9h5.9v5.4h-5.9v5.9H9.3v-5.9H3.4V9.3h5.9z"/></svg>'; return t.content.firstChild; };
+  function fix() {
+    const e = document.getElementById('barEdit'); if (!e || e.querySelector('svg.plusout')) return;
+    const old = e.querySelector(':scope>svg.gear') || e.querySelector(':scope>i');
+    if (old) old.replaceWith(PLUS()); else e.insertBefore(PLUS(), e.firstChild);
+  }
+  const start = () => { fix(); const e = document.getElementById('barEdit'); if (e) new MutationObserver(fix).observe(e, { childList: true }); [200, 800, 2000, 4000].forEach(t => setTimeout(fix, t)); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
