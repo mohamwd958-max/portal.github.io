@@ -1,6 +1,6 @@
 (function () {   /* old bar buttons (Add / Language / Theme / Profile) never show: hidden at once, and any saved old order is erased */
   try { const h = document.createElement('style'); h.id = 'thNoOld'; h.textContent = '#plusBtn,#floatBtnTheme,#profBtn,#langBtn,[data-bk="assist"],[data-bk="lang"],[data-bk="theme"],[data-bk="logout"]{display:none!important}'; (document.head || document.documentElement).appendChild(h); } catch (e) { }
-  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days', 'space', 'edit'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
+  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['home', 'reload', 'feed', 'msgr', 'days', 'space', 'edit'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
 })();
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
 console.info('[dashboard] build 2026-11-08 feed-restored-v5');
@@ -2060,10 +2060,10 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days', 'space', 'edit'];
+const THB_BAR_DEF = ['home', 'reload', 'feed', 'msgr', 'days', 'space', 'edit'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
-  o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
+  o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); const hadHome = o.includes('home'); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); if (!hadHome) { o = o.filter(k => k !== 'home'); o.unshift('home'); } return o;   /* Home = leftmost by default */
 }
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit'); if (edit) edit.dataset.bk = 'edit';
@@ -5297,7 +5297,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
   let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['thSpace', 'pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
+  const KEEP_IDS = ['mobileFloatingBar', 'thSpace', 'pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
   const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
   const hasKeep = e => !!e.querySelector('#thSpace,#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
   function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
@@ -6185,7 +6185,7 @@ html body #mobileFloatingBar:not(#z):not(#y),
 html.th-page body #mobileFloatingBar:not(#z):not(#y),
 html.adj-on body #mobileFloatingBar:not(#z):not(#y),
 body.thfp-open #mobileFloatingBar:not(#z):not(#y){
-  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;z-index:10015!important}
+  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;z-index:2147483010!important}
 html body #mobileFloatingBar:not(#z):not(#y)>*{visibility:visible}
 html body #mobileFloatingBar:not(#z):not(#y)>.pk-hide{visibility:hidden}
 
@@ -6224,7 +6224,22 @@ html.th-tabs body #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#9aa3ad!i
 html body #mobileFloatingBar>.th-on:not(#z){color:#34d399!important;opacity:1!important}
 html body #mobileFloatingBar>.th-on:not(#z) svg,html body #mobileFloatingBar>.th-on:not(#z) i{color:#34d399!important}
 html body #mobileFloatingBar>#feedBtn.th-on:not(#z){border-color:#34d399!important}
-html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar>.feed{transition:color .25s,opacity .25s,border-color .25s}`;
+html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar>.feed{transition:color .25s,opacity .25s,border-color .25s}
+
+/* ---------- v5: Home + page tabs ---------- */
+html body #mobileFloatingBar:not(#z):not(#y){direction:ltr!important}
+html body #mobileFloatingBar:not(#z):not(#y)>[data-bk]:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#feedBtn:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#mgrBtn:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#daysBtn:not(.pk-hide):not(#z){visibility:visible!important}
+html body #mobileFloatingBar .thl{color:inherit!important;opacity:1!important}
+html body #mobileFloatingBar>[data-bk]:not(.th-on):not(#z) :is(svg,i,.mgr-ico,.fdp){filter:grayscale(1)}
+html body #mobileFloatingBar>#feedBtn.th-on:not(#z) .fdw path{stroke:#34d399!important}
+#homeBtn svg.hmo{width:24px;height:24px;fill:none!important;stroke:currentColor!important;stroke-width:1.7}
+html #thMenu,html #langPop{z-index:2147483020!important}
+#thBackB{display:none!important}
+@media (max-width:820px) and (pointer:coarse){
+#thDays.open,#pop.open{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
+#thSpace{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+.mgr-pop{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
+}`;
   document.head.appendChild(st);
 
   /* tag the header (same rule the file already uses) */
@@ -6238,41 +6253,98 @@ html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar>.feed{transi
   }
   [200, 800, 2000, 4000, 8000].forEach(t => setTimeout(tagHdr, t)); window.addEventListener('load', tagHdr);
 
-  /* ---------- green = the panel that is open now ---------- */
-  const $q = s => document.querySelector(s), vis = s => { const e = $q(s); return !!e && !e.hidden && getComputedStyle(e).display !== 'none'; };
-  function activeKey() {
-    if (vis('#pp-assistant') && $q('#asm') && !$q('#asm').hidden) return 'plusBtn';
-    if (vis('#pp-profile') && $q('#asm') && !$q('#asm').hidden) return 'profBtn';
-    if ($q('#langPop.open')) return 'langBtn';
-    if ($q('#pop.open')) return 'feedBtn';
-    if ($q('#spaceBox.open,#thSpace.open,.thspace.open')) return 'spaceBtn';
-    if ($q('#thMenu.open')) return 'barEdit';
-    if (document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')) return 'mgrBtn';
-    return '';
+  /* ---------- v5: Home button + pages (Home, Notifications, Messenger, Days, Space) ---------- */
+  const PAGES = ['home', 'feed', 'msgr', 'days', 'space'];
+  const BTN = { home: 'homeBtn', feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn', edit: 'barEdit' };
+  const SWAP = false;   /* false: finger moves right -> left = next page (the one on the right in the bar). true = reversed */
+  const $q = s => document.querySelector(s);
+  const HL = () => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? 'Home' : 'الرئيسية'; };
+
+  function installHome() {
+    const bar = $q('#mobileFloatingBar'); if (!bar) return;
+    let b = document.getElementById('homeBtn');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.id = 'homeBtn'; b.dataset.bk = 'home'; b.className = 'circle-badge-btn';
+      b.setAttribute('aria-label', 'Home');
+      b.innerHTML = '<svg class="hmo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.5 9.6v9.6a.8.8 0 0 0 .8.8h11.4a.8.8 0 0 0 .8-.8V9.6"/><path d="M9.8 20v-5a.8.8 0 0 1 .8-.8h2.8a.8.8 0 0 1 .8.8v5"/></svg><span class="thl"></span>';
+      bar.appendChild(b);
+      try { layoutBar(); } catch (e) { }
+    }
+    const l = b.querySelector('.thl'); if (l && l.textContent !== HL()) { l.textContent = HL(); b.title = HL(); }
+  }
+  installHome(); setInterval(installHome, 1000);
+
+  /* which page is on screen now */
+  function curKey() {
+    if ($q('#thMenu.open')) return 'edit';
+    if ($q('#thSpace.open')) return 'space';
+    if ($q('#thDays.open')) return 'days';
+    if (window.thMessenger && thMessenger.visible && thMessenger.visible()) return 'msgr';
+    if ($q('#pop.open')) return 'feed';
+    if ($q('#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thLib.open')) return 'edit';
+    return 'home';
+  }
+  /* the pages in the order of the bar (the user's own order; Home first by default) */
+  function pages() {
+    const bar = $q('#mobileFloatingBar'), o = typeof barOrder === 'function' ? barOrder() : PAGES;
+    return o.filter(k => PAGES.includes(k)).filter(k => { const b = document.getElementById(BTN[k]); return b && b.parentNode === bar && !b.hidden && getComputedStyle(b).display !== 'none'; });
   }
   function sync() {
     const bar = $q('#mobileFloatingBar'); if (!bar) return;
-    const k = activeKey();
-    [...bar.children].forEach(b => { if (b.id) b.classList.toggle('th-on', b.id === k); });
-    document.documentElement.classList.toggle('th-tabs', !!k);
+    const id = BTN[curKey()];
+    [...bar.children].forEach(b => { if (b.id) b.classList.toggle('th-on', b.id === id); });
+    document.documentElement.classList.add('th-tabs');
   }
   setInterval(sync, 250); document.addEventListener('click', () => setTimeout(sync, 60), true); sync();
 
-  /* ---------- swipe left / right = previous / next page (the bar never moves) ---------- */
+  function closeAll() {
+    try { if ($q('#thLib.open') && window.closeLibrary) closeLibrary(); } catch (e) { }
+    try { if ($q('#thCal.open') && window.closeCal) closeCal(); } catch (e) { }
+    try { if (window.thMessenger && thMessenger.state().open) thMessenger.hide(); } catch (e) { }
+    try { if ($q('#pop.open')) closePop(); } catch (e) { }
+    try { if ($q('#thDays.open')) thDays.close(); } catch (e) { }
+    try { if ($q('#thSpace.open')) thSpace.close(); } catch (e) { }
+    try { if ($q('#asm:not([hidden])') && window.Panels) Panels.min(); } catch (e) { }
+    try { if ($q('#rqm.open,#rqn.open,#rqo.open')) closeRq(); } catch (e) { }
+    try { const x = $q('#thSet.open .tsx'); if (x) x.click(); } catch (e) { }
+    try { const m = $q('#thMenu.open'); if (m) m.classList.remove('open'); } catch (e) { }
+    try { thDetClose(); } catch (e) { }
+  }
+  function go(k) {
+    if (!pages().includes(k) || curKey() === k) return;
+    closeAll();
+    try {
+      if (k === 'feed') openFeed($('feedBtn'));
+      else if (k === 'msgr') thMessenger.open();
+      else if (k === 'days') thDays.open();
+      else if (k === 'space') thSpace.open();
+    } catch (e) { console.warn('[nav]', k, e); }
+    if (window.thFpSync) thFpSync(); sync();
+  }
+  /* tapping a bar button = go to that page (+ keeps its own menu) */
+  const barEl = $q('#mobileFloatingBar');
+  if (barEl) barEl.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-bk]'); if (!b || b.parentNode !== barEl) return;
+    const k = PAGES.find(x => BTN[x] === b.id); if (!k) return;
+    e.stopPropagation(); e.preventDefault(); go(k);
+  }, true);
+
+  /* ---------- swipe left / right = previous / next page ---------- */
   let sx = 0, sy = 0, st0 = 0, ok = false;
-  const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk]';
-  const MODALS = '.asm:not([hidden]),.ssm.open,.mdl.open,.pop.open,.lgp.open,.avm.open,#thDet.open,#thMenu.open';
+  const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
+  const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thMenu.open,#thCal.open,#thLib.open,#thSet.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
+  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
   document.addEventListener('touchstart', e => {
-    ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS);
+    ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
     if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now();
   }, { passive: true });
   document.addEventListener('touchend', e => {
     if (!ok) return; ok = false;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - st0 > 700) return;
-    const sc = typeof thSecs === 'function' ? thSecs() : []; if (sc.length < 2) return;
-    const i = typeof thCur === 'function' ? thCur() : 0, n = dx < 0 ? i + 1 : i - 1;
-    if (n < 0 || n >= sc.length) return;
-    sc[n].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const ps = pages(), i = ps.indexOf(curKey()); if (i < 0 || ps.length < 2) return;
+    const n = ((dx < 0) !== SWAP) ? i + 1 : i - 1;
+    if (n < 0 || n >= ps.length) return;
+    go(ps[n]);
   }, { passive: true });
 })();
