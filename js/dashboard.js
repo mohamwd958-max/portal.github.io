@@ -1,6 +1,6 @@
 (function () {   /* old bar buttons (Add / Language / Theme / Profile) never show: hidden at once, and any saved old order is erased */
   try { const h = document.createElement('style'); h.id = 'thNoOld'; h.textContent = '#plusBtn,#floatBtnTheme,#profBtn,#langBtn,[data-bk="assist"],[data-bk="lang"],[data-bk="theme"],[data-bk="logout"]{display:none!important}'; (document.head || document.documentElement).appendChild(h); } catch (e) { }
-  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
+  try { const o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); if (Array.isArray(o)) { const n = o.filter(k => ['reload', 'feed', 'msgr', 'days', 'space'].includes(k)); if (n.length !== o.length) localStorage.setItem('thabit_bar_order', JSON.stringify(n)); } } catch (e) { }
 })();
 /* Thabit trainee dashboard: token -> Supabase RPC. No sheet, no direct table reads. */
 console.info('[dashboard] build 2026-11-08 feed-restored-v5');
@@ -2060,7 +2060,7 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 })();
 
 /* ===== Sidebar / floating bar: Feed lives inside it on phones, long-press any icon to move it ===== */
-const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days'];
+const THB_BAR_DEF = ['reload', 'feed', 'msgr', 'days', 'space'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
   o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); return o;
@@ -3897,7 +3897,8 @@ html body.light-theme #mobileFloatingBar{border:1px solid rgba(15,23,42,.12)!imp
     theme: { en: 'Theme', ar: 'الوضع', eg: 'الوضع' },
     logout: { en: 'Profile', ar: 'الحساب', eg: 'الحساب' },
     feed: { en: 'Notifications', ar: 'الإشعارات', eg: 'الإشعارات' },
-    edit: { en: 'Settings', ar: 'الإعدادات', eg: 'الإعدادات' }
+    edit: { en: 'More', ar: 'المزيد', eg: 'المزيد' },
+    space: { en: 'Space', ar: 'سبيس', eg: 'سبيس' }
   };
   const L = () => (typeof lang !== 'undefined' && lang) || 'en';
 
@@ -3929,12 +3930,14 @@ body.light-theme #thMenu .tmi{color:#0f172a}
   /* ---- labels under the bar buttons ---- */
   function labels() {
     const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
-    const map = [['[data-bk="reload"]', 'reload'], ['#plusBtn', 'assist'], ['#langBtn', 'lang'], ['#floatBtnTheme', 'theme'], ['#profBtn', 'logout'], ['#feedBtn', 'feed'], ['#barEdit', 'edit']];
+    const map = [['[data-bk="reload"]', 'reload'], ['#plusBtn', 'assist'], ['#langBtn', 'lang'], ['#floatBtnTheme', 'theme'], ['#profBtn', 'logout'], ['#feedBtn', 'feed'], ['#barEdit', 'edit'], ['#spaceBtn', 'space']];
     map.forEach(([sel, k]) => {
       const b = bar.querySelector(sel); if (!b) return;
       let s = b.querySelector(':scope>.thl'); if (!s) { s = document.createElement('span'); s.className = 'thl'; b.appendChild(s); }
       s.textContent = LBL[k][L()] || LBL[k].en;
     });
+    const eb = bar.querySelector('#barEdit'), ic = eb && eb.querySelector(':scope>i');   /* Settings became More (+) */
+    if (ic && !ic.classList.contains('fa-plus')) ic.className = 'fa-solid fa-plus text-sm';
   }
   [100, 600, 1500, 3500].forEach(t => setTimeout(labels, t));
   new MutationObserver(labels).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
@@ -5148,7 +5151,7 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
     };
     const opt = (key, val, label, icon) => ({ icon: icon || '', label, pick: () => { if (P[key] === val) return; P[key] = val; applyNow(key); }, selected: () => P[key] === val });
     panel({
-      title: tr('Settings', 'الإعدادات', 'الإعدادات'), icon: '<i class="fa-solid fa-gear"></i>',
+      title: tr('More', 'المزيد', 'المزيد'), icon: '<i class="fa-solid fa-plus"></i>',
       dirty: () => false,   /* nothing waits for a Save any more */
       discard: () => { },
       save: () => {
@@ -5249,6 +5252,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (on('thDays')) k.push('days');
     if (on('thCal')) k.push('cal');
     if (on('thLib')) k.push('lib');
+    if (on('thSpace')) k.push('space');
     return k;
   }
   function refresh() { const cur = openKeys(); order = order.filter(k => cur.includes(k)).concat(cur.filter(k => !order.includes(k))); }
@@ -5263,6 +5267,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
       else if (k === 'cal') window.closeCal && window.closeCal();
       else if (k === 'days') window.thDays && window.thDays.close();
       else if (k === 'lib') window.closeLibrary && window.closeLibrary();
+      else if (k === 'space') window.thSpace && thSpace.close();
       else if (k === 'set') { const x = document.querySelector('#thSet .tsx'); if (x) x.click(); }
     } catch (e) { console.warn('[fullpage] close', k, e); }
   }
@@ -5273,6 +5278,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (k === 'asm') { const p = G('pp-profile'); return p && !p.hidden ? tr('Profile', 'ملفي', 'ملفي') : tr('Assistant', 'المساعد', 'المساعد'); }
     if (k === 'rq1' || k === 'rq2') return tr('Requests', 'الطلبات', 'الطلبات');
     if (k === 'days') return tr('Days', 'الأيام', 'الأيام');
+    if (k === 'space') return tr('Space', 'سبيس', 'سبيس');
     if (k === 'set') { const b = document.querySelector('#thSet .tsh b'); return (b && b.textContent) || tr('Settings', 'الإعدادات', 'الإعدادات'); }
     return '';
   }
@@ -5290,9 +5296,9 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
   let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
+  const KEEP_IDS = ['thSpace', 'pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
   const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
-  const hasKeep = e => !!e.querySelector('#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
+  const hasKeep = e => !!e.querySelector('#thSpace,#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
   function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
   function lockPage(on) {
     if (on === locked) return; locked = on;
@@ -6034,4 +6040,52 @@ body.thb-act #thLibCell{display:none!important}
 .mgr-pk button{aspect-ratio:1;border:0;background:transparent;font-size:22px;cursor:pointer;border-radius:10px}
 .mgr-pk button:active{background:rgba(255,255,255,.12)}`;
   document.head.appendChild(c);
+})();
+
+/* ==========================================================
+   SPACE: the trainee's own board (button on the bar). Opens as a full page, saves by itself.
+   board.html?student=1 runs in a frame; it talks to Supabase through trainee_space_* functions using the trainee token.
+   ========================================================== */
+(function () {
+  if (window.thSpace) return;
+  const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
+  const G = id => document.getElementById(id);
+  const css = document.createElement('style'); css.id = 'thSpaceCss';
+  css.textContent = `
+#thSpace{position:fixed;inset:0;z-index:10030;display:none;background:#fff}
+body:not(.light-theme) #thSpace{background:#17171b}
+#thSpace.open{display:block}
+#thSpace iframe{width:100%;height:100%;border:0;display:block;background:transparent}
+#thSpace .tsx{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+@media (max-width:820px) and (pointer:coarse){#thSpace{padding-top:calc(52px + env(safe-area-inset-top))}#thSpace .tsx{display:none}}`;
+  document.head.appendChild(css);
+
+  const box = document.createElement('div'); box.id = 'thSpace';
+  box.innerHTML = '<button type="button" class="tsx" aria-label="Close">&times;</button>';
+  document.body.appendChild(box);
+  let fr = null;
+  function open() {
+    if (!fr) {
+      fr = document.createElement('iframe'); fr.title = 'Space'; fr.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen');
+      fr.src = 'board.html?student=1' + (VIEW ? '&mode=view#vt=' + VT : '');
+      box.appendChild(fr);
+    }
+    box.classList.add('open');
+    if (window.thFpSync) thFpSync();
+  }
+  function close() {
+    try { fr && fr.contentWindow.ThabitBoard && fr.contentWindow.ThabitBoard.flush(); } catch (e) { }   /* saves by itself, nothing to ask */
+    box.classList.remove('open');
+    if (window.thFpSync) thFpSync();
+  }
+  box.querySelector('.tsx').onclick = close;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && box.classList.contains('open')) close(); });
+  window.thSpace = { open, close };
+
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'spaceBtn'; b.dataset.bk = 'space'; b.className = 'circle-badge-btn'; b.title = 'Space'; b.setAttribute('aria-label', 'Space');
+  b.style.color = '#38bdf8'; b.innerHTML = '<i class="fa-solid fa-pen-ruler text-sm"></i>';
+  b.onclick = open;
+  bar.appendChild(b);
+  try { layoutBar(); } catch (e) { }
 })();
