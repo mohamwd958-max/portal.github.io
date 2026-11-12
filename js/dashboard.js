@@ -5296,16 +5296,12 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
   })();
 
   /* dead background: the page is frozen where it was (scroll position kept), every part of it is inert; it wakes up when the last screen closes */
-  let locked = false, keepY = 0, dead = [];
-  const KEEP_IDS = ['mobileFloatingBar', 'thSpace', 'pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays', 'thFpBar', 'thLib', 'thLibV', 'thBackB', 'thLibCell'];
-  const isKeep = e => (e.id && KEEP_IDS.includes(e.id)) || /\b(mgr-pop|mgr-veil|opx-toast|thfp-toast)\b/.test(e.className || '') || ['SCRIPT', 'STYLE', 'LINK'].includes(e.tagName);
-  const hasKeep = e => !!e.querySelector('#thSpace,#pop,#asm,#rqm,#rqn,#rqo,#thSet,#thCal,#thDays,#thFpBar,.mgr-pop');
-  function deaden(n) { [...n.children].forEach(c => { if (isKeep(c)) return; if (hasKeep(c)) { deaden(c); return; } c.setAttribute('inert', ''); c.classList.add('thfp-dead'); dead.push(c); }); }
+  let locked = false, keepY = 0;
   function lockPage(on) {
     if (on === locked) return; locked = on;
     const b = document.body.style, h = document.documentElement.style;
-    if (on) { keepY = window.scrollY || document.documentElement.scrollTop || 0; b.position = 'fixed'; b.top = (-keepY) + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; h.overflow = 'hidden'; deaden(document.body); }
-    else { b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; h.overflow = ''; dead.forEach(c => { c.removeAttribute('inert'); c.classList.remove('thfp-dead'); }); dead = []; window.scrollTo(0, keepY); }
+    if (on) { keepY = window.scrollY || document.documentElement.scrollTop || 0; b.position = 'fixed'; b.top = (-keepY) + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; h.overflow = 'hidden'; }
+    else { b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; h.overflow = ''; window.scrollTo(0, keepY); }
   }
   function sync() {
     refresh();
@@ -5343,7 +5339,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
 
   /* nothing behind a full page reacts to taps: a tap on the empty edge of a screen never closes it */
   const ROOTS = ['pop', 'asm', 'rqm', 'rqn', 'rqo', 'thSet', 'thCal', 'thDays'];
-  ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, e => {
+  ['pointerdown', 'mousedown', 'click'].forEach(ev => document.addEventListener(ev, e => {
     if (PH() && e.target && e.target.id && ROOTS.includes(e.target.id)) e.stopImmediatePropagation();
   }, true));
 
@@ -6236,7 +6232,7 @@ html body #mobileFloatingBar>#feedBtn.th-on:not(#z) .fdw path{stroke:#34d399!imp
 html #thMenu,html #langPop{z-index:2147483020!important}
 #thBackB{display:none!important}
 @media (max-width:820px) and (pointer:coarse){
-#thDays.open,#pop.open{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
+#thDays.open,#pop.open,#thSet.open{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
 #thSpace{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .mgr-pop{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
 }`;
@@ -6254,7 +6250,7 @@ html #thMenu,html #langPop{z-index:2147483020!important}
   [200, 800, 2000, 4000, 8000].forEach(t => setTimeout(tagHdr, t)); window.addEventListener('load', tagHdr);
 
   /* ---------- v5: Home button + pages (Home, Notifications, Messenger, Days, Space) ---------- */
-  const PAGES = ['home', 'feed', 'msgr', 'days', 'space'];
+  const PAGES = ['home', 'feed', 'msgr', 'days', 'edit', 'space'];
   const BTN = { home: 'homeBtn', feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn', edit: 'barEdit' };
   const SWAP = false;   /* false: finger moves right -> left = next page (the one on the right in the bar). true = reversed */
   const $q = s => document.querySelector(s);
@@ -6289,9 +6285,11 @@ html #thMenu,html #langPop{z-index:2147483020!important}
     const bar = $q('#mobileFloatingBar'), o = typeof barOrder === 'function' ? barOrder() : PAGES;
     return o.filter(k => PAGES.includes(k)).filter(k => { const b = document.getElementById(BTN[k]); return b && b.parentNode === bar && !b.hidden && getComputedStyle(b).display !== 'none'; });
   }
+  const edges = ['L', 'R'].map(sd => { const d = document.createElement('div'); d.className = 'thSpEdge'; d.style.cssText = 'position:fixed;top:0;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:24px;z-index:2147483006;display:none;' + (sd === 'L' ? 'left:0' : 'right:0'); document.body.appendChild(d); return d; });
   function sync() {
     const bar = $q('#mobileFloatingBar'); if (!bar) return;
-    const id = BTN[curKey()];
+    const cur = curKey(), id = BTN[cur];
+    edges.forEach(d => { d.style.display = cur === 'space' ? 'block' : 'none'; });
     [...bar.children].forEach(b => { if (b.id) b.classList.toggle('th-on', b.id === id); });
     document.documentElement.classList.add('th-tabs');
   }
@@ -6318,6 +6316,7 @@ html #thMenu,html #langPop{z-index:2147483020!important}
       else if (k === 'msgr') thMessenger.open();
       else if (k === 'days') thDays.open();
       else if (k === 'space') thSpace.open();
+      else if (k === 'edit') window.openStar && window.openStar();
     } catch (e) { console.warn('[nav]', k, e); }
     if (window.thFpSync) thFpSync(); sync();
   }
@@ -6332,8 +6331,8 @@ html #thMenu,html #langPop{z-index:2147483020!important}
   /* ---------- swipe left / right = previous / next page ---------- */
   let sx = 0, sy = 0, st0 = 0, ok = false;
   const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
-  const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thMenu.open,#thCal.open,#thLib.open,#thSet.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
-  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
+  const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
+  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.position === 'fixed') break; if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
     ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
     if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now();
