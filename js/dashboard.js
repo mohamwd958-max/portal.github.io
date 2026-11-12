@@ -6328,6 +6328,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   }
   const edges = ['L', 'R'].map(sd => { const d = document.createElement('div'); d.className = 'thSpEdge'; d.style.cssText = 'position:fixed;top:0;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:24px;z-index:2147483006;display:none;' + (sd === 'L' ? 'left:0' : 'right:0'); document.body.appendChild(d); return d; });
   function sync() {
+    if (window.__thDragging) return;   /* the highlight stays on the current page until the drag ends */
     const bar = $q('#mobileFloatingBar'); if (!bar) return;
     const cur = curKey(), id = BTN[cur];
     edges.forEach(d => { d.style.display = cur === 'space' ? 'block' : 'none'; });
@@ -6412,23 +6413,26 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     if (ce) ce.style.setProperty('z-index', '2147482000', 'important');
     if (ne) ne.style.setProperty('z-index', '2147482001', 'important');
     put(ne, side * w, 0);
+    window.__thDragging = true; window.__thDrag = { a: BTN[ck], b: BTN[nk], t: 0, live: true };
     return { ck, nk, ce, ne, side, w };
   }
   function dragMove(dx) {
     dx = dg.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
     put(dg.ce, dx, 0); put(dg.ne, dg.side * dg.w + dx, 0);
+    if (window.__thDrag) window.__thDrag.t = Math.min(1, Math.abs(dx) / (dg.w * 0.35));
     return dx;
   }
   function dragEnd(dx) {
     const d = dg; dg = null; if (!d) return;
     dx = d.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
     const go1 = Math.abs(dx) > d.w * COMMIT || (Math.abs(vx) > 0.45 && Math.abs(dx) > 24 && Math.sign(vx) === Math.sign(dx));
+    if (window.__thDrag) { window.__thDrag.live = false; window.__thDrag.t = go1 ? 1 : 0; }
     if (go1) {
       put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230);
-      setTimeout(() => { shut(d.ck); clr(d.ce); clr(d.ne); if (window.thFpSync) thFpSync(); sync(); }, 245);
+      setTimeout(() => { shut(d.ck); clr(d.ce); clr(d.ne); window.__thDragging = false; sync(); window.__thDrag = null; if (window.thFpSync) thFpSync(); }, 245);
     } else {
       put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200);
-      setTimeout(() => { shut(d.nk); clr(d.ce); clr(d.ne); if (window.thFpSync) thFpSync(); sync(); }, 215);
+      setTimeout(() => { shut(d.nk); clr(d.ce); clr(d.ne); window.__thDragging = false; sync(); window.__thDrag = null; if (window.thFpSync) thFpSync(); }, 215);
     }
   }
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
@@ -6479,6 +6483,12 @@ html body.light-theme .thHdr:not(#z):not(#y):not(#w){
   background:rgba(255,255,255,.38)!important;background-color:rgba(255,255,255,.38)!important;background-image:none!important;
   border:0!important;box-shadow:none!important}
 html body #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w){font-size:0!important;color:transparent!important;z-index:2147483004!important}
+/* logo (wherever it lives) stays UNDER the header glass */
+html body>[class*="logo"],html body>[id*="logo"]{z-index:2147483002!important}
+/* feed: a little empty space under the header, a small title, then the first notification */
+html body #pop.open:not(#z) .pcs{padding-top:16px!important}
+html body #pop.open:not(#z) .pcs::before{content:"فيد";display:block;padding:0 6px 2px;font:700 .8rem Cairo,Inter,sans-serif;letter-spacing:.04em;opacity:.55;text-align:start}
+html[lang="en"] body #pop.open:not(#z) .pcs::before{content:"Feed"}
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
 html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
@@ -6489,14 +6499,14 @@ html body #mobileFloatingBar:not(#z):not(#y):not(#w)::after{content:""!important
 html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
 html body #mobileFloatingBar:not(#z):not(#y):not(#w)>:not(#thGlow){z-index:2}
 @property --thga{syntax:"<angle>";inherits:false;initial-value:0deg}
-#thGlow{position:absolute;left:0;top:50%;width:52px;height:52px;margin-top:-26px;border-radius:16px;z-index:0;pointer-events:none;opacity:0;transition:transform .38s cubic-bezier(.3,1.15,.4,1),opacity .25s}
+#thGlow{position:absolute;left:0;top:50%;width:44px;height:44px;margin-top:-22px;border-radius:50%;z-index:0;pointer-events:none;opacity:0;transition:opacity .2s;will-change:transform}
 #thGlow.on{opacity:1}
-#thGlow::before{content:"";position:absolute;inset:-6px;border-radius:20px;background:radial-gradient(closest-side,rgba(52,211,153,.55),rgba(52,211,153,0));filter:blur(8px)}
-#thGlow::after{content:"";position:absolute;inset:0;border-radius:16px;padding:3px;box-sizing:border-box;background:conic-gradient(from var(--thga),rgba(52,211,153,0) 0deg,#34d399 70deg,#22d3ee 120deg,rgba(34,211,238,0) 200deg,rgba(52,211,153,0) 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;filter:blur(1.2px) drop-shadow(0 0 6px rgba(52,211,153,.9));animation:thGlowSpin 2.6s linear infinite}
+#thGlow::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:radial-gradient(closest-side,rgba(52,211,153,.5),rgba(52,211,153,0));filter:blur(5px)}
+#thGlow::after{content:"";position:absolute;inset:0;border-radius:50%;padding:3px;box-sizing:border-box;background:conic-gradient(from var(--thga),rgba(52,211,153,0) 0deg,#34d399 80deg,#22d3ee 130deg,rgba(34,211,238,0) 210deg,rgba(52,211,153,0) 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;filter:blur(1px) drop-shadow(0 0 4px rgba(52,211,153,.8));animation:thGlowSpin 5.5s linear infinite}
 @keyframes thGlowSpin{to{--thga:360deg}}
 @media(prefers-reduced-motion:reduce){#thGlow::after{animation:none}}
 html body #thBrand:not(#z):not(#y):not(#w) :is(.thb-n,[class*="dot"],[class*="name"],h1,h2,h3,p,small){display:none!important}
-html body #thBrand:not(#z):not(#y):not(#w) :is(img,svg,picture,canvas,[class*="logo"],[id*="logo"]){visibility:visible!important;z-index:1}
+html body #thBrand:not(#z):not(#y):not(#w) :is(img,svg,picture,canvas,[class*="logo"],[id*="logo"]){visibility:visible!important;z-index:1!important}
 /* the feed page: separate rounded cards with a gap between them (as before), a bit narrower from the sides; the limit at the top is the header, at the bottom the bar; cards slide under the glass */
 html body #pop.open:not(#z){position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;
   padding:var(--th-hd,calc(58px + env(safe-area-inset-top,0px))) 0 var(--th-bar,calc(96px + env(safe-area-inset-bottom,0px)))!important;
@@ -6511,20 +6521,27 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
       if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
     } catch (e) { }
   }
-  /* the light under the active button */
-  let gl = null, gx = -1;
+  /* the light under the active button. While a page is being dragged it travels with the finger from one button to the next. */
+  let gl = null, gx = null, gt = '';
+  const ctr = (bar, el) => { const r = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return r.width ? r.left - b.left + r.width / 2 : null; };
   function glow() {
     try {
       const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
       if (!gl || gl.parentNode !== bar) { gl = document.getElementById('thGlow') || document.createElement('div'); gl.id = 'thGlow'; bar.insertBefore(gl, bar.firstChild); }
-      const on = bar.querySelector(':scope > .th-on:not([hidden])');
-      if (!on) { gl.classList.remove('on'); return; }
-      const r = on.getBoundingClientRect(), br = bar.getBoundingClientRect(); if (!r.width) return;
-      const x = Math.round(r.left - br.left + r.width / 2 - 26);
+      const d = window.__thDrag; let c = null, live = false;
+      if (d) {
+        const A = document.getElementById(d.a), B = document.getElementById(d.b), ca = A && ctr(bar, A), cb = B && ctr(bar, B);
+        if (ca != null && cb != null) { c = ca + (cb - ca) * d.t; live = d.live; }
+      }
+      if (c == null) { const on = bar.querySelector(':scope > .th-on:not([hidden])'); if (on) c = ctr(bar, on); }
+      if (c == null) { gl.classList.remove('on'); return; }
+      const x = Math.round((c - 22) * 10) / 10;
+      const tr = live ? 'none' : 'transform .16s cubic-bezier(.25,.9,.3,1),opacity .2s';
+      if (tr !== gt) { gt = tr; gl.style.transition = tr; }
       if (x !== gx) { gx = x; gl.style.transform = 'translateX(' + x + 'px)'; }
       gl.classList.add('on');
     } catch (e) { }
   }
-  glow(); setInterval(glow, 120); window.addEventListener('resize', glow);
+  (function loop() { glow(); requestAnimationFrame(loop); })(); window.addEventListener('resize', glow);
   measure(); setInterval(measure, 500); window.addEventListener('resize', measure); window.addEventListener('load', measure);
 })();
