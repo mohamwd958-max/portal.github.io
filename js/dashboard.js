@@ -6225,12 +6225,21 @@ html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar>.feed{transi
 /* ---------- v5: Home + page tabs ---------- */
 html body #mobileFloatingBar:not(#z):not(#y){direction:ltr!important}
 html body #mobileFloatingBar:not(#z):not(#y)>[data-bk]:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#feedBtn:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#mgrBtn:not(.pk-hide):not(#z),html body #mobileFloatingBar:not(#z):not(#y)>#daysBtn:not(.pk-hide):not(#z){visibility:visible!important}
-html body #mobileFloatingBar .thl{color:inherit!important;opacity:1!important}
-html body #mobileFloatingBar>[data-bk]:not(.th-on):not(#z) :is(svg,i,.mgr-ico,.fdp){filter:grayscale(1)}
+html body #mobileFloatingBar .thl{color:#fff!important;opacity:1!important}
+html body.light-theme #mobileFloatingBar .thl{color:#0f172a!important}
+html body #mobileFloatingBar>[data-bk]:not(.th-on):not(#feedBtn):not(#z) :is(svg,i,.mgr-ico){filter:grayscale(1) brightness(2.2)}
+html body.light-theme #mobileFloatingBar>[data-bk]:not(.th-on):not(#feedBtn):not(#z) :is(svg,i,.mgr-ico){filter:grayscale(1) brightness(.35)}
 html body #mobileFloatingBar>#feedBtn.th-on:not(#z) .fdw path{stroke:#34d399!important}
 #homeBtn svg.hmo{width:24px;height:24px;fill:none!important;stroke:currentColor!important;stroke-width:1.7}
 html #thMenu,html #langPop{z-index:2147483020!important}
 #thBackB{display:none!important}
+/* bar: only the top edge line (no left / right / bottom border) */
+html body #mobileFloatingBar:not(#z):not(#y){border:0!important;border-top:1px solid rgba(255,255,255,.22)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 30px rgba(0,0,0,.25)!important}
+html body.light-theme #mobileFloatingBar:not(#z):not(#y){border:0!important;border-top:1px solid rgba(255,255,255,.7)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 30px rgba(15,23,42,.12)!important}
+/* buttons: plain white, never dim; only the open page's icon is green; the notification circle and the numbers are always lit */
+html.th-tabs body #mobileFloatingBar>[data-bk]:not(.th-on):not(#z),html.th-tabs body #mobileFloatingBar>#feedBtn:not(.th-on):not(#z),html.th-tabs body #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#fff!important;opacity:1!important}
+html.th-tabs body.light-theme #mobileFloatingBar>[data-bk]:not(.th-on):not(#z),html.th-tabs body.light-theme #mobileFloatingBar>#feedBtn:not(.th-on):not(#z),html.th-tabs body.light-theme #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#0f172a!important}
+html body #mobileFloatingBar #feedNum,html body #mobileFloatingBar #mgrNum,html body #mobileFloatingBar #daysNum,html body #mobileFloatingBar .fdb{opacity:1!important;filter:none!important}
 @media (max-width:820px) and (pointer:coarse){
 #thDays.open,#pop.open,#thSet.open{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
 #thSpace{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
