@@ -4,12 +4,15 @@
    - اللوحة بتتحفظ في Supabase (space_boards)، وأماكن الأزرار والنوافذ في admin_ui_state */
 (function () {
   'use strict';
+  if (window.top !== window.self) return;   /* جوه iframe اللوحة: مفيش أدمن هنا */
   const Q = new URLSearchParams(location.search);
   const SESSION_KEY = 'thabit_admin_session';
   const hasSession = () => { try { const x = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); return !!(x && x.refresh_token); } catch { return false; } };
   /* EMBED: لو الصفحة هي adminpanel.html نفسها (الأدمن موجود فيها أصلًا)، بنحمّل اللوحة جواها */
   const EMBED = !!document.getElementById('adminModalOverlay');
   if (!EMBED && !Q.has('admin') && !hasSession()) return;
+  let frame = null;
+  const TB = () => (frame ? frame.contentWindow.ThabitBoard : window.ThabitBoard);
   if (!EMBED && !window.ThabitBoard) { console.error('[board-admin] board.js لازم يتحمّل الأول'); return; }
 
   /* لو ملفاتك في أماكن تانية، عدّلها قبل تحميل السكريبت: window.THABIT_ADMIN = { page:'...', css:[...], js:[...] } */
@@ -42,6 +45,7 @@
 
 /* الخلفية (شعار Thabit) تتخفي، اللوحة هي الخلفية */
 #thabitBg { display: none !important; }
+#baFrame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; z-index: 1; background: #fff; }
 
 /* الأوفرلاي الأساسي شفاف ومش بيمنع اللمس: اللوحة تحته شغالة بالكامل */
 #adminModalOverlay {
@@ -151,7 +155,8 @@
   async function startCloud() {
     if (started) return; started = true;
     buildControls();
-    window.ThabitBoard.enterCloud(api);
+    if (frame && !(frame.contentWindow && frame.contentWindow.ThabitBoard)) await new Promise(r => frame.addEventListener('load', r, { once: true }));
+    TB().enterCloud(api);
     await loadLayout();
   }
 
@@ -284,17 +289,12 @@
   }
 
   /* ---------------- boot ---------------- */
-  /* وضع adminpanel.html: نجيب عناصر اللوحة + css + js من board.html ونحطها جوه الصفحة دي */
-  async function loadBoardIntoAdminPage() {
-    const html = await (await fetch(CFG.board, { cache: 'no-cache' })).text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('link[rel="stylesheet"]').forEach(l => { const h = l.getAttribute('href'); if (h && !/fonts\.googleapis/.test(h)) loadCss(h); });
-    const frag = document.createDocumentFragment();
-    [...doc.body.children].forEach(n => { if (n.tagName !== 'SCRIPT') frag.appendChild(document.importNode(n, true)); });
-    document.body.insertBefore(frag, document.body.firstChild);
-    const srcs = [...doc.querySelectorAll('script[src]')].map(s => s.getAttribute('src')).filter(s => !/boardadmin|board-admin/.test(s));
-    for (const src of srcs) await loadJs(src);
-    if (!window.ThabitBoard) throw new Error('board.js اتحمّل بس ThabitBoard مش موجود. اتأكد إنه النسخة الجديدة');
+  /* وضع adminpanel.html: اللوحة (board.html) بتتحط في iframe بملء الشاشة ورا الأدمن، عشان ستايلاتهم ما تتعارضش */
+  function loadBoardIntoAdminPage() {
+    frame = document.createElement('iframe'); frame.id = 'baFrame'; frame.src = CFG.board; frame.title = 'Thabit Board';
+    frame.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen');
+    document.body.insertBefore(frame, document.body.firstChild);
+    return Promise.resolve();
   }
 
   async function boot() {
@@ -319,9 +319,9 @@
     window.toggleAdminPanel = function () { const o = $('adminModalOverlay'); setHidden(!(o && o.classList.contains('ba-hidden'))); };
     if (!EMBED) window.goToPortal = function () { location.replace(location.pathname); };
     const logout0 = window.adminLogout;
-    if (EMBED) window.adminLogout = async function () { try { await window.ThabitBoard.flush(); } catch { } return logout0.apply(this, arguments); };
+    if (EMBED) window.adminLogout = async function () { try { await TB().flush(); } catch { } return logout0.apply(this, arguments); };
     else window.adminLogout = async function () {
-      try { await window.ThabitBoard.flush(); } catch { }
+      try { await TB().flush(); } catch { }
       try { if (window.SB_ACCESS_TOKEN) await fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: sbHeaders() }); } catch { }
       clearAdminSession(); location.replace(location.pathname);
     };
