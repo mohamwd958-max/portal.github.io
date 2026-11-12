@@ -46,6 +46,8 @@ const mouse = { x: 0, y: 0, on: false };
 let boards = LS.get('thabit_index', []), cur = null;
 const params = new URLSearchParams(location.search);
 const viewMode = params.get('mode') === 'view';
+const STUDENT = params.has('student');   /* سبيس الطالب: بيشتغل جوه داشبورد الطالب عن طريق دوال trainee_space_* */
+if (STUDENT) document.body.classList.add('stu');
 if (viewMode) body.classList.add('view');
 const canEdit = () => !viewMode;
 
@@ -367,9 +369,20 @@ function fit() {
 cv.addEventListener('wheel', e => {
   e.preventDefault(); closeEditor();
   const mouseWheel = e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY);
-  if (e.ctrlKey || e.metaKey || mouseWheel) zoomAt(e.clientX, e.clientY, cam.z * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)));
+  /* وضع "العجلة تكبّر/تصغّر" (الافتراضي) أو "العجلة تحرّك": زرار صغير جنب أزرار التكبير */
+  if (e.ctrlKey || e.metaKey || (S.wheelZoom ? e.deltaX === 0 : mouseWheel)) zoomAt(e.clientX, e.clientY, cam.z * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)));
   else { cam.x -= e.deltaX; cam.y -= e.deltaY; draw(); dirty(true); }
 }, { passive: false });
+
+S.wheelZoom = LS.get('thabit_wheel', 'zoom') !== 'pan';
+(function () {
+  const zb = $('#zoomBar'), out = $('#btnZoomOut'); if (!zb || !out) return;
+  const b = document.createElement('button'); b.className = 'ib'; b.id = 'btnWheel';
+  b.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg>';
+  const sync = () => { b.classList.toggle('on', S.wheelZoom); b.title = S.wheelZoom ? 'العجلة: تكبير / تصغير (اضغط لتحريك اللوحة بها)' : 'العجلة: تحريك اللوحة (اضغط للتكبير بها)'; };
+  b.onclick = () => { S.wheelZoom = !S.wheelZoom; LS.set('thabit_wheel', S.wheelZoom ? 'zoom' : 'pan'); sync(); toast(S.wheelZoom ? 'عجلة الماوس بتكبّر وتصغّر' : 'عجلة الماوس بتحرّك اللوحة'); };
+  sync(); zb.insertBefore(b, out);
+})();
 
 /* ---------- pointer gestures ---------- */
 const ptrs = new Map();
@@ -892,6 +905,7 @@ function importJson(file) {
 /* وضعين: محلي (localStorage) للزوار، وسحابي (Supabase) لما الأدمن يدخل: كل لوحة سطر في جدول space_boards */
 let cloud = null;                    /* { fetch, url, key, token } بيجي من board-admin.js بعد لوجن الأدمن */
 const CLOUD_MAIN = 'admin-main';
+const mainId = () => (cloud && cloud.mainId) || CLOUD_MAIN;
 let saveT, camT, unsaved = false, failed = false, loadSeq = 0;
 const jobs = new Map();
 let pumping = false;
@@ -909,7 +923,7 @@ function dirty(camOnly) {
 }
 function saveNow() {
   if (!cur) return;
-  if (cloud) { clearTimeout(saveT); queueCloud(); return; }
+  if (cloud) { clearTimeout(saveT); if (!viewMode) queueCloud(); return; }
   const used = {}; objs.forEach(o => { if (o.t === 'i' && imgs[o.ref]) used[o.ref] = imgs[o.ref]; });
   const ok = LS.set('thabit_b_' + cur.id, { objs: JSON.parse(snap()), imgs: used, cam });
   cur.updated = Date.now(); LS.set('thabit_index', boards);
@@ -939,7 +953,7 @@ async function pump() {
   while (jobs.size && cloud) {
     const [id, j] = jobs.entries().next().value; jobs.delete(id);
     try {
-      for (const o of j.objs) if (o.t === 'i' && j.imgs[o.ref] && j.imgs[o.ref].startsWith('data:')) {
+      for (const o of j.objs) if (!cloud.noUpload && o.t === 'i' && j.imgs[o.ref] && j.imgs[o.ref].startsWith('data:')) {
         try {
           const url = await uploadImg(id, o.ref, j.imgs[o.ref]);
           j.imgs[o.ref] = url; if (cur === j.b && imgs[o.ref]) imgs[o.ref] = url;   /* الصورة بقت لينك مش base64 */
@@ -957,7 +971,7 @@ async function pump() {
   if (!jobs.size && cur && !failed) status('saved', 'تم الحفظ');
 }
 async function saveCam() {
-  if (!cloud || !cur) return;
+  if (!cloud || !cur || viewMode) return;
   try { await cloud.fetch('space_boards?id=eq.' + encodeURIComponent(cur.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ cam }) }); } catch {}
 }
 function mapRow(r) { return { id: r.id, name: r.name, kind: r.kind, trainee_id: r.trainee_id, updated: Date.parse(r.updated_at) || 0 }; }
@@ -970,14 +984,17 @@ async function enterCloud(api) {
   try {
     const rows = await (await api.fetch('space_boards?select=id,name,kind,trainee_id,updated_at&order=updated_at.desc')).json();
     let list = (Array.isArray(rows) ? rows : []).map(mapRow);
-    if (!list.some(b => b.id === CLOUD_MAIN)) {
-      const main = { id: CLOUD_MAIN, name: 'Space', kind: 'main', updated: Date.now() };
-      await api.fetch('space_boards?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: main.id, name: main.name, kind: main.kind, data: {} }) });
+    const MID = mainId();
+    if (!list.some(b => b.id === MID) && !viewMode) {
+      const main = { id: MID, name: api.mainName ? api.mainName() : 'Space', kind: 'main', updated: Date.now() };
+      const seed = api.seed ? api.seed() : null;
+      await api.fetch('space_boards?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: main.id, name: main.name, kind: main.kind, data: seed || {} }) });
       list.unshift(main);
     }
-    boards = list.sort((a, b) => (b.id === CLOUD_MAIN) - (a.id === CLOUD_MAIN));
+    if (!list.length) { status('saved', ''); toast('لا يوجد سبيس بعد'); return; }
+    boards = list.sort((a, b) => (b.id === MID) - (a.id === MID));
     const want2 = new URLSearchParams(location.search).get('b');
-    await openBoard(boards.some(b => b.id === want2) ? want2 : CLOUD_MAIN);
+    await openBoard(boards.some(b => b.id === want2) ? want2 : boards[0].id);
   } catch (e) {
     cloud = null; status('offline', 'فشل تحميل السبيس');
     toast('تعذّر تحميل السبيس: ' + e.message + ' (شغّل 01_space.sql في Supabase لو لسه)');
@@ -985,7 +1002,7 @@ async function enterCloud(api) {
 }
 
 function newBoard(name) {
-  const b = { id: uid(), name: name || 'لوحة بدون اسم', updated: Date.now() };
+  const b = { id: uid(), name: name || (cloud && cloud.newName ? cloud.newName(boards) : 'لوحة بدون اسم'), updated: Date.now() };
   if (cloud) { b.kind = 'free'; boards.push(b); return b; }
   boards.unshift(b); LS.set('thabit_index', boards); return b;
 }
@@ -1015,10 +1032,10 @@ async function openBoard(id) {
 }
 function deleteBoard(id) {
   if (cloud) {
-    if (id === CLOUD_MAIN) { toast('السبيس الرئيسية ما تتمسحش'); return; }
+    if (id === mainId()) { toast('السبيس الرئيسية ما تتمسحش'); return; }
     cloud.fetch('space_boards?id=eq.' + encodeURIComponent(id), { method: 'DELETE' }).catch(e => toast('فشل المسح: ' + e.message));
     boards = boards.filter(b => b.id !== id); jobs.delete(id);
-    if (cur && cur.id === id) { cur = null; openBoard(CLOUD_MAIN); }
+    if (cur && cur.id === id) { cur = null; openBoard(mainId()); }
     return;
   }
   boards = boards.filter(b => b.id !== id); LS.set('thabit_index', boards);
@@ -1033,7 +1050,7 @@ if (viewMode) { $('#title').readOnly = true; const k = $('#kindTag'); k.hidden =
 /* panels */
 const boardsP = $('#boardsPanel'), shareP = $('#sharePanel');
 function renderBoards() {
-  boardsP.innerHTML = '<b>لوحاتي</b>' + boards.map(b => `<div class="row ${cur && b.id === cur.id ? 'on' : ''}" data-id="${b.id}"><span class="grow">${esc(b.name || 'بدون اسم')}</span>${b.id === CLOUD_MAIN ? '' : `<button class="ib" data-del="${b.id}" title="حذف">${ICON_X}</button>`}</div>`).join('') + '<button class="pill dark" id="newBoardBtn">+ لوحة جديدة</button>';
+  boardsP.innerHTML = '<b>لوحاتي</b>' + boards.map(b => `<div class="row ${cur && b.id === cur.id ? 'on' : ''}" data-id="${b.id}"><span class="grow">${esc(b.name || 'بدون اسم')}</span>${b.id === mainId() ? '' : `<button class="ib" data-del="${b.id}" title="حذف">${ICON_X}</button>`}</div>`).join('') + '<button class="pill dark" id="newBoardBtn">+ لوحة جديدة</button>';
 }
 boardsP.addEventListener('click', e => {
   const del = e.target.closest('[data-del]');
@@ -1083,24 +1100,66 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { if (e.code === 'Space') S.space = false; });
 
+
+/* ---------- سبيس الطالب: نفس واجهة السحابة بس عن طريق RPC بالتوكن (الطالب مش بيسجّل دخول Supabase) ---------- */
+function studentApi() {
+  const SB = 'https://vkfexceitwjmxncwceqb.supabase.co';
+  const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI';
+  const tok = () => ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || (() => { try { return localStorage.getItem('thabit_trainee_token'); } catch { return null; } })();
+  const rpc = async (fn, body) => {
+    const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ p_token: tok() }, body)) });
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((j && (j.message || j.hint)) || ('HTTP ' + r.status));
+    return j;
+  };
+  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+  const dayName = () => { const d = new Date(); return `${MON[d.getMonth()]} ${ord(d.getDate())} space`; };
+  const lg = () => { try { return localStorage.getItem('thabit_lang') || 'en'; } catch { return 'en'; } };
+  const WELCOME = {
+    en: 'Thabit\n\nWelcome to your own space.\nTap the pen button and start drawing your own world.',
+    ar: 'ثابت\n\nأهلاً بك في مساحتك الخاصة.\nاضغط على زرار القلم وابدأ ارسم العالم الخاص بك.',
+    eg: 'ثابت\n\nأهلاً بيك في مساحتك الخاصة.\nاضغط على زرار القلم وابدأ ارسم العالم الخاص بيك.'
+  };
+  const res = v => ({ ok: true, json: async () => v });
+  return {
+    noUpload: true, mainId: 'main', mainName: dayName,
+    seed: () => ({ objs: [{ id: uid(), t: 'n', x: -150, y: -110, w: 300, h: 220, text: WELCOME[lg()] || WELCOME.en, color: '#fff2a8' }], imgs: {} }),
+    newName: list => { const base = dayName(); let n = base, i = 2; while (list.some(b => b.name === n)) n = base + ' (' + (i++) + ')'; return n; },
+    fetch: async (path, o = {}) => {
+      const m = (o.method || 'GET').toUpperCase(), body = o.body ? JSON.parse(o.body) : null;
+      const im = path.match(/[?&]id=eq\.([^&]+)/), id = im && decodeURIComponent(im[1]);
+      if (m === 'GET' && id) return res(await rpc('trainee_space_get', { p_id: id }));
+      if (m === 'GET') return res(await rpc('trainee_space_list', {}));
+      if (m === 'POST') return res(await rpc('trainee_space_save', { p_id: body.id, p_name: body.name || '', p_data: body.data || {}, p_cam: body.cam || null }));
+      if (m === 'PATCH') return res(await rpc('trainee_space_cam', { p_id: id, p_cam: body.cam }));
+      if (m === 'DELETE') return res(await rpc('trainee_space_delete', { p_id: id }));
+      return res([]);
+    }
+  };
+}
+
 /* ---------- init ---------- */
 addEventListener('resize', resize);
 addEventListener('beforeunload', e => {
-  if (cloud) { if (unsaved || jobs.size || pumping) { saveNow(); e.preventDefault(); e.returnValue = ''; } return; }
+  if (cloud) { if (unsaved || jobs.size || pumping) { saveNow(); if (!STUDENT) { e.preventDefault(); e.returnValue = ''; } } return; }
   saveNow();
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && cloud && unsaved) saveNow(); });
+addEventListener('pagehide', () => { if (cloud && unsaved) saveNow(); });
 addEventListener('online', () => status('saved', 'متصل'));
 addEventListener('offline', () => status('offline', 'بدون إنترنت'));
 
 setTheme(LS.get('thabit_theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-if (!boards.length) newBoard();
+if (!boards.length && !STUDENT) newBoard();
 resize();
 const want = params.get('b');
+if (STUDENT) { setTool('select'); enterCloud(studentApi()); } else {
 if (want && !boards.some(b => b.id === want) && !params.has('admin') && !hasAdminSession()) {
   if (viewMode) { $('#goneTxt').textContent = 'اللوحة غير موجودة على هذا الجهاز'; $('#gone').hidden = false; }
   else boards.unshift({ id: want, name: 'لوحة بدون اسم', updated: Date.now() });
 }
 openBoard(boards.some(b => b.id === want) ? want : boards[0].id);
 setTool('select');
+}
 })();
