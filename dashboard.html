@@ -459,11 +459,94 @@ html.bgl,html.bgl body{overscroll-behavior:none}
 body.light-theme .lgl{background:rgba(255,255,255,.92);color:#0f172a;border-color:rgba(15,23,42,.25)}
 /* phones: heavy blur on every card makes scrolling stick; the cards are almost opaque anyway */
 @media (hover:none) and (pointer:coarse){.thabit-card,.test-card,.dcard{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+
+/* ===== v2: pull-to-refresh (finger in the middle, circle follows it down) ===== */
+html,body{overscroll-behavior-y:contain}
+#ptr{position:fixed;top:0;left:50%;margin-left:-20px;z-index:10050;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#0f172a;border:1px solid rgba(255,255,255,.22);box-shadow:0 6px 18px rgba(0,0,0,.4);opacity:0;transform:translateY(-60px);pointer-events:none;will-change:transform,opacity}
+body.light-theme #ptr{background:#fff;border-color:rgba(15,23,42,.18);box-shadow:0 6px 18px rgba(15,23,42,.2)}
+#ptr.snap{transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#ptr svg{width:30px;height:30px;display:block}
+#ptr .pb{fill:none;stroke:rgba(148,163,184,.35);stroke-width:3}
+#ptr .pa{fill:none;stroke:#3b82f6;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:50% 50%}
+#ptr.spin svg{animation:ptrSpin .7s linear infinite}
+#ptr.spin .pa{stroke-dashoffset:25}
+@keyframes ptrSpin{to{transform:rotate(360deg)}}
+
+/* ===== v2: Space (feed) button = thin outline, coloured plus, no fill ===== */
+body{--fdc:#f1f5f9}body.light-theme{--fdc:#0f172a}
+.feed,.fl .feed,.fl .feed.empty{width:44px!important;height:44px!important;border:1.5px solid var(--fdc)!important;background:transparent!important;box-shadow:none!important}
+.fdp{width:20px!important;height:20px!important}
+.fdw path{stroke:var(--fdc)!important;stroke-width:3.2!important}
+.fdg{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M8 20H32M20 8V32' stroke='%23000' stroke-width='3.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E")!important;mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M8 20H32M20 8V32' stroke='%23000' stroke-width='3.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E")!important}
+.feed .fdb{top:-12px!important;right:-12px!important;min-width:19px!important;height:19px!important;font-size:.68rem!important;line-height:19px!important;padding:0 5px!important}
+@media(max-width:600px){.fl .feed,.feed{width:40px!important;height:40px!important}.fdp{width:18px!important;height:18px!important}}
+
+/* ===== v2: "More" button is a plain plus, normal size ===== */
+#mobileFloatingBar #barEdit{width:36px!important;height:36px!important;min-width:36px!important;opacity:1!important}
 </style>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 <script>try{var vm=localStorage.getItem("thabit_view");
 if(vm==="desktop"){var mv=document.querySelector('meta[name="viewport"]');if(mv)mv.setAttribute("content","width=1100")}
-else if(vm==="phone"&&window.top===window&&innerWidth>700){var lt=localStorage.getItem("thabit_theme")==="light";document.open();document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Thabit - Dashboard</title></head><body style="margin:0;height:100vh;display:flex;justify-content:center;background:'+(lt?"#e6e9ef":"#0b0d0e")+'"><iframe src="'+location.href.replace(/"/g,"&quot;")+'" allow="microphone; autoplay" style="width:430px;max-width:100%;height:100vh;border:0;box-shadow:0 0 50px rgba(0,0,0,.55)"></iframe></body></html>');document.close()}}catch(e){}</script>
+else if(vm==="phone"&&window.top===window&&innerWidth>700){var lt=localStorage.getItem("thabit_theme")==="light";document.open();document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Thabit - Dashboard</title></head><body style="margin:0;height:100vh;display:flex;justify-content:center;background:'+(lt?"#e6e9ef":"#0b0d0e")+'"><iframe src="'+location.href.replace(/"/g,"&quot;")+'" allow="microphone; autoplay" style="width:430px;max-width:100%;height:100vh;border:0;box-shadow:0 0 50px rgba(0,0,0,.55)"></iframe><div id="ptr" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="pb" cx="18" cy="18" r="13"/><circle class="pa" cx="18" cy="18" r="13" pathLength="100"/></svg></div>
+<script>
+(function(){
+var el=document.getElementById('ptr'),arc=el.querySelector('.pa'),svg=el.querySelector('svg');
+var TH=80,MAX=130,y0=0,x0=0,pull=0,on=false,busy=false;
+var MODALS='.asm:not([hidden]),.ssm.open,.mdl.open,.pop.open,.lgp.open,.avm.open';
+function top(){return (document.scrollingElement||document.documentElement).scrollTop}
+function blocked(t){
+  if(document.querySelector(MODALS))return true;
+  if(!t||!t.closest)return false;
+  if(t.closest('input,textarea,select,iframe,.tbl,#mobileFloatingBar'))return true;
+  for(var n=t;n&&n!==document.body;n=n.parentElement){if(n.scrollTop>0)return true}
+  return false}
+function draw(p){
+  var k=Math.min(1,p/TH);
+  el.style.opacity=Math.min(1,p/30);
+  el.style.transform='translateY('+(p-14)+'px)';
+  arc.style.strokeDashoffset=100-k*100;
+  svg.style.transform='rotate('+(k*270)+'deg)'}
+function hide(){
+  el.classList.add('snap');el.style.opacity=0;el.style.transform='translateY(-60px)';
+  setTimeout(function(){el.classList.remove('snap');arc.style.strokeDashoffset=100;svg.style.transform=''},260)}
+document.addEventListener('touchstart',function(e){
+  if(busy||e.touches.length!==1||top()>0||blocked(e.target)){on=false;return}
+  on=true;pull=0;y0=e.touches[0].clientY;x0=e.touches[0].clientX;el.classList.remove('snap')},{passive:true});
+document.addEventListener('touchmove',function(e){
+  if(!on||busy)return;
+  var dy=e.touches[0].clientY-y0,dx=Math.abs(e.touches[0].clientX-x0);
+  if(top()>0||dy<=0||(pull===0&&dx>dy)){if(pull>0){pull=0;hide()}if(dy<=0&&pull===0)return;return}
+  pull=Math.min(MAX,dy*0.5);
+  if(e.cancelable)e.preventDefault();
+  draw(pull)},{passive:false});
+function end(){
+  if(!on)return;on=false;
+  if(pull>=TH&&!busy){busy=true;el.classList.add('snap');el.style.transform='translateY('+(TH*0.6)+'px)';el.classList.add('spin');
+    setTimeout(function(){location.reload()},350)}
+  else if(pull>0)hide();
+  pull=0}
+document.addEventListener('touchend',end,{passive:true});
+document.addEventListener('touchcancel',end,{passive:true});
+})();
+</script>
+<script>
+/* keep the Messenger/assistant iframe on the same theme as the dashboard */
+(function(){
+var f=document.getElementById('asFrame');if(!f)return;
+function sync(){
+  var light=document.body.classList.contains('light-theme');
+  try{var d=f.contentDocument;if(d&&d.body){
+    d.body.classList.toggle('light-theme',light);d.body.classList.toggle('dark-theme',!light);
+    d.documentElement.classList.toggle('light-theme',light);
+    d.documentElement.setAttribute('data-theme',light?'light':'dark');
+    d.documentElement.style.colorScheme=light?'light':'dark'}}catch(e){}
+  try{f.contentWindow.postMessage({type:'thabit-theme',theme:light?'light':'dark'},'*')}catch(e){}}
+f.addEventListener('load',sync);
+new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
+document.addEventListener('click',function(){setTimeout(sync,150)},true);
+})();
+</script>
+</body></html>');document.close()}}catch(e){}</script>
 </head>
 <body id="bodyRoot">
 <script src="js/brand.js" data-profile></script>
@@ -471,7 +554,7 @@ else if(vm==="phone"&&window.top===window&&innerWidth>700){var lt=localStorage.g
 <div class="mobile-floating-bar" id="mobileFloatingBar">
   <button type="button" data-bk="reload" onclick="location.reload()" class="circle-badge-btn" title="Restart Page" style="color:#3b82f6"><i class="fa-solid fa-rotate text-sm"></i></button>
   <div class="bar-divider"></div>
-  <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="More" aria-label="More" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg></button>
+  <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="Assistant" aria-label="Assistant" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-9.5L6 20.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"/></svg></button>
   <div class="bar-divider"></div>
   <button type="button" data-bk="lang" id="langBtn" onclick="openLang(this)" class="circle-badge-btn" title="Language" aria-label="Language"><span id="langTxt">English</span></button>
   <div class="bar-divider"></div>
@@ -479,7 +562,7 @@ else if(vm==="phone"&&window.top===window&&innerWidth>700){var lt=localStorage.g
   <div class="bar-divider"></div>
   <button type="button" data-bk="logout" id="profBtn" onclick="openProf(this)" title="Account" aria-label="Account" class="circle-badge-btn" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.7 3.7-5.6 7.5-5.6s6.7 1.9 7.5 5.6"/></svg></button>
   <div class="bar-divider"></div>
-  <button type="button" id="barEdit" onclick="openStar(this)" class="circle-badge-btn" title="More" aria-label="More" style="color:#94a3b8"><i class="fa-solid fa-star text-sm"></i></button>
+  <button type="button" id="barEdit" onclick="openStar(this)" class="circle-badge-btn" title="More" aria-label="More" style="color:#94a3b8"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg></button>
 </div>
 
 
@@ -527,21 +610,4 @@ else if(vm==="phone"&&window.top===window&&innerWidth>700){var lt=localStorage.g
 <script src="js/dashboardsmartwidget.js"></script>
 <script src="js/dashvoicenote.js"></script>
 
-<script>
-/* keep the Messenger/assistant iframe on the same theme as the dashboard */
-(function(){
-var f=document.getElementById('asFrame');if(!f)return;
-function sync(){
-  var light=document.body.classList.contains('light-theme');
-  try{var d=f.contentDocument;if(d&&d.body){
-    d.body.classList.toggle('light-theme',light);d.body.classList.toggle('dark-theme',!light);
-    d.documentElement.classList.toggle('light-theme',light);
-    d.documentElement.setAttribute('data-theme',light?'light':'dark');
-    d.documentElement.style.colorScheme=light?'light':'dark'}}catch(e){}
-  try{f.contentWindow.postMessage({type:'thabit-theme',theme:light?'light':'dark'},'*')}catch(e){}}
-f.addEventListener('load',sync);
-new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
-document.addEventListener('click',function(){setTimeout(sync,150)},true);
-})();
-</script>
 </body></html>
