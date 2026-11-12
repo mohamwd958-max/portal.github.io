@@ -1,93 +1,143 @@
-/* Thabit Space: لوحة الأدمن فوق اللوحة اللانهائية.
-   كل القواعد هنا !important عشان تغلب Css/adminpanel.css والـ inline styles بتاعت adminpanel.js */
+/* Thabit Board: ستايل اللوحة (نسخة جديدة مبنية على board.html و board.js) */
+:root {
+  --bg: #ffffff; --dot: #d7d7de; --ink: #1a1a1f; --muted: #6b6b76;
+  --panel: rgba(255, 255, 255, .96); --line: #e3e3ea; --hover: #f1f1f5;
+  --accent: #3e63dd; --accent-soft: #e6ecff; --shadow: 0 4px 18px rgba(20, 20, 40, .14);
+  --ok: #30a46c; --warn: #f5a623; --bad: #e5484d;
+}
+:root[data-theme="dark"] {
+  --bg: #17171b; --dot: #33333b; --ink: #f3f3f6; --muted: #a0a0ac;
+  --panel: rgba(34, 34, 40, .96); --line: #3a3a44; --hover: #2d2d35;
+  --accent: #8da4ef; --accent-soft: #29315a; --shadow: 0 4px 18px rgba(0, 0, 0, .5);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+  font-family: "Cairo", system-ui, sans-serif; color: var(--ink); font-size: 14px;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.6px);
+  background-size: var(--gs, 100px) var(--gs, 100px);
+  background-position: var(--gx, 0) var(--gy, 0);
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+input { font: inherit; color: inherit; }
 
-/* الخلفية (شعار Thabit) تتخفي، اللوحة هي الخلفية */
-#thabitBg { display: none !important; }
+#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#editLayer { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+#editLayer textarea {
+  position: absolute; pointer-events: auto; margin: 0; border: 0; outline: 2px solid var(--accent);
+  resize: none; background: transparent; user-select: text; -webkit-user-select: text;
+}
 
-/* الأوفرلاي الأساسي شفاف ومش بيمنع اللمس: اللوحة تحته شغالة بالكامل */
-#adminModalOverlay {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  pointer-events: none !important;
-  display: none !important;
-  z-index: 90 !important;
+/* ---------- panels ---------- */
+.panel {
+  position: fixed; z-index: 10; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; gap: 4px; padding: 4px;
 }
-#adminModalOverlay.open:not(.ba-hidden) { display: block !important; }
-#adminPanel {
-  display: contents !important;
-}
-#adminPanel .tha-h { display: none !important; }
-#adminViewStore { display: none !important; }
+.panel.col { flex-direction: column; }
+.panel svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-/* شريط الأزرار: صف في الأعلى، والزرار المسحوب بيطلع منه ويتثبت (fixed) */
-#adminLauncher {
-  position: fixed !important;
-  top: 56px; left: 70px; right: 70px;
-  display: flex !important; flex-wrap: wrap; justify-content: center; gap: 8px;
-  background: transparent !important; border: 0 !important; padding: 0 !important; margin: 0 !important;
-  pointer-events: none !important;
-  z-index: 95;
+#topLeft { top: 12px; left: 12px; padding: 4px 6px 4px 4px; }
+#title {
+  width: 190px; max-width: 40vw; height: 32px; border: 0; border-radius: 8px; padding: 0 8px;
+  background: transparent; font-weight: 700; user-select: text; -webkit-user-select: text;
 }
-#adminLauncher .ws-lb {
-  pointer-events: auto !important;
-  touch-action: none; user-select: none; -webkit-user-select: none;
-  cursor: grab;
-  background: #0f172a;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
-}
-#adminLauncher .ws-lb.on { background: #f59e0b; }
-#adminLauncher .ws-lb.ba-free { position: fixed !important; z-index: 96; }
-#adminLauncher .ws-lb.ba-drag { cursor: grabbing; opacity: .92; }
+#title:hover { background: var(--hover); }
+#title:focus { outline: 2px solid var(--accent); background: transparent; }
+.tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 
-/* النوافذ: عايمة وتتسحب وتتغير مقاساتها */
-#adminWs {
-  position: fixed !important; inset: 0 !important;
-  display: block !important;
-  pointer-events: none !important;
-  z-index: 100;
-}
-#adminWs .ws-w {
-  position: absolute !important;
-  pointer-events: auto !important;
-  flex: none !important;
-  width: 380px; min-width: 260px; max-width: 96vw; max-height: 88vh;
-  resize: both; overflow: hidden !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
-}
-#adminWs .ws-w.ws-2 { width: 640px; }
-#adminWs .ws-w.ws-3 { width: 860px; }
-#adminWs .ws-w .ws-h { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
-#adminWs .ws-w.ba-drag .ws-h { cursor: grabbing; }
-#adminWs .ws-w .ws-bd { flex: 1 1 auto; min-height: 0; max-height: none !important; }
-#adminWs .ws-w.ws-fold { height: auto !important; resize: none; }
+#status { top: 14px; left: 50%; transform: translateX(-50%); padding: 5px 12px; font-size: 12px; color: var(--muted); gap: 8px; border-radius: 20px; }
+#status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: block; }
+#status[data-s="saving"] i { background: var(--warn); animation: pulse 1s infinite; }
+#status[data-s="offline"] i { background: var(--bad); }
+@keyframes pulse { 50% { opacity: .3; } }
+#followBtn { top: 56px; left: 50%; transform: translateX(-50%); }
 
-/* أزرار التحكم الصغيرة (حفظ الأماكن / رجوع / إخفاء / خروج) */
-#baCtl {
-  position: fixed; left: 0; right: 0; bottom: 12px;
-  display: flex; justify-content: center; gap: 6px;
-  pointer-events: none; z-index: 97;
-}
-#baCtl button {
-  pointer-events: auto;
-  width: 36px; height: 36px; border-radius: 10px;
-  border: 1px solid #475569; background: #0f172a; color: #e2e8f0;
-  font-size: 14px; cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
-}
-#baCtl button:hover { border-color: #fbbf24; color: #fbbf24; }
-#baCtl button.on { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
-#baCtl.ba-off { display: none; }
-#baShow {
-  position: fixed; bottom: 12px; left: 70px; z-index: 97;
-  width: 36px; height: 36px; border-radius: 10px;
-  border: 1px solid #475569; background: #0f172a; color: #fbbf24; cursor: pointer;
-}
-#baShow[hidden] { display: none; }
+#topRight { top: 12px; right: 12px; }
+#toolbar { left: 12px; top: 50%; transform: translateY(-50%); }
+#undoBar { left: 12px; bottom: 12px; flex-direction: row !important; }
+#zoomBar { right: 12px; bottom: 12px; }
+#propBar { left: 50%; bottom: 14px; transform: translateX(-50%); max-width: 94vw; overflow-x: auto; padding: 4px 8px; gap: 6px; }
+#propBar label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+#propBar input[type=range], #penPop input[type=range] { width: 110px; accent-color: var(--accent); }
 
-/* شاشة الدخول فوق كل حاجة */
-#thaAuth { z-index: 100000 !important; }
-@media (max-width: 700px) {
-  #adminLauncher { left: 8px; right: 8px; top: 52px; }
-  #adminWs .ws-w { max-width: calc(100vw - 16px); }
+/* ---------- buttons ---------- */
+.ib {
+  width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink); transition: background .12s;
+}
+.ib:hover { background: var(--hover); }
+.ib.on, .ib.t.on { background: var(--accent-soft); color: var(--accent); }
+.ib:disabled { opacity: .3; pointer-events: none; }
+.pill {
+  height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel);
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap;
+}
+.pill svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pill:hover { background: var(--hover); }
+.pill.dark { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pill.dark:hover { opacity: .88; background: var(--ink); }
+.pill.ghost { border-color: transparent; background: transparent; min-width: 54px; justify-content: center; padding: 0 6px; }
+.sep { display: block; width: 1px; height: 20px; background: var(--line); margin: 0 4px; flex: none; }
+.col .sep, .flyout .sep { width: 20px; height: 1px; margin: 4px 0; }
+#inkOpts .sep { grid-column: 1 / -1; width: 100%; margin: 2px 0; }
+
+/* ---------- popovers ---------- */
+.pop { position: fixed; z-index: 12; gap: 4px; padding: 6px; }
+#shapePop, #imgPop { left: 50%; bottom: 72px; transform: translateX(-50%); }
+#imgPop { flex-direction: column; align-items: stretch; }
+.flyout { z-index: 12; left: 70px; top: 90px; gap: 2px; padding: 6px; }
+#inkOpts { display: grid; grid-template-columns: repeat(2, 30px); gap: 4px; justify-content: center; padding-top: 2px; }
+.cdot, .sdot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.cdot i { display: block; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(128, 128, 140, .5); }
+.sdot i { display: block; border-radius: 50%; background: var(--ink); }
+.cdot.on, .sdot.on { box-shadow: 0 0 0 2px var(--accent); }
+.sw { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(128, 128, 140, .5); flex: none; }
+.sw.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+
+/* ---------- boards / share sheets ---------- */
+.sheet { top: 60px; left: 12px; width: 270px; max-height: 70vh; overflow: auto; flex-direction: column; align-items: stretch; padding: 12px; gap: 8px; z-index: 20; }
+.sheet.right { left: auto; right: 12px; }
+.sheet > b { font-size: 15px; }
+.sheet small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.sheet hr { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+.sheet input { width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; background: transparent; font-size: 12px; user-select: text; -webkit-user-select: text; }
+.row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; cursor: pointer; min-height: 36px; }
+.row:hover { background: var(--hover); }
+.row.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .ib { width: 28px; height: 28px; }
+.row .ib svg { width: 16px; height: 16px; }
+
+/* ---------- login / gone / toast ---------- */
+#login, #gone { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(20, 20, 30, .35); }
+.card { position: static; flex-direction: column; align-items: stretch; width: min(320px, 92vw); padding: 20px; gap: 10px; text-align: center; }
+.card small { color: var(--muted); }
+.card input { height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: transparent; user-select: text; -webkit-user-select: text; }
+.err { color: var(--bad); font-size: 12px; min-height: 16px; }
+#toast {
+  position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 60;
+  background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px;
+  max-width: 90vw; text-align: center; pointer-events: none;
+}
+
+/* ---------- view mode ---------- */
+body.view .edit-only { display: none !important; }
+body:not(.view) .view-only { display: none !important; }
+
+/* ---------- phones ---------- */
+@media (max-width: 720px) {
+  #toolbar { left: 50%; top: auto; bottom: 12px; transform: translateX(-50%); flex-direction: row; max-width: 96vw; overflow-x: auto; }
+  #toolbar .sep { width: 1px; height: 20px; margin: 0 4px; }
+  #undoBar { left: 12px; top: 60px; bottom: auto; }
+  #zoomBar { right: 12px; top: 60px; bottom: auto; }
+  #propBar { bottom: 70px; }
+  .flyout { left: 50%; top: auto; bottom: 70px; transform: translateX(-50%); flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 94vw; }
+  #inkOpts { grid-template-columns: repeat(auto-fill, 30px); }
+  #shapePop, #imgPop { bottom: 70px; }
+  #title { width: 120px; }
+  .sheet { left: 8px; right: 8px; width: auto; }
 }
