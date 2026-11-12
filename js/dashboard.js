@@ -2063,7 +2063,7 @@ window.thPick = pickOpen; window.openStar = openStar; window.openProf = openProf
 const THB_BAR_DEF = ['home', 'reload', 'feed', 'msgr', 'days', 'space', 'edit'];
 function barOrder() {
   let o = []; try { o = JSON.parse(localStorage.getItem('thabit_bar_order') || '[]'); } catch (e) {}
-  o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); const hadHome = o.includes('home'); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); if (!hadHome) { o = o.filter(k => k !== 'home'); o.unshift('home'); } return o;   /* Home = leftmost by default */
+  o = (Array.isArray(o) ? o : []).filter(k => THB_BAR_DEF.includes(k)); const hadHome = o.includes('home'); THB_BAR_DEF.forEach(k => { if (!o.includes(k)) o.push(k); }); o = o.filter(k => k !== 'home' && k !== 'space'); o.unshift('home'); o.push('space'); return o;   /* Home always leftmost, Space always rightmost */
 }
 function layoutBar() {
   const bar = $('mobileFloatingBar'), els = {}, edit = $('barEdit'); if (edit) edit.dataset.bk = 'edit';
@@ -6334,10 +6334,10 @@ html #thMenu,html #langPop{z-index:2147483020!important}
   const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
   const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thMenu.open,#thCal.open,#thLib.open,#thSet.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
   const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
-  document.addEventListener('touchstart', e => {
+  window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
     ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
     if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now();
-  }, { passive: true });
+  }, { passive: true, capture: true });
   document.addEventListener('touchend', e => {
     if (!ok) return; ok = false;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
