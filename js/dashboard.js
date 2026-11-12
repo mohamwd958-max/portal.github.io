@@ -5861,36 +5861,40 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
 
 
 /* ==========================================================
-   Pull-down refresh (phones): when the page is at the very top, pull down from anywhere. A round white button comes down from
-   under the top, an arc grows and turns with your finger; pull far enough and let go = refresh, let go early (or move back) = it winds back up. Appended at the END of dashboard.js. Delete this block to remove it.
+   Pull-down refresh (phones): at the very top, pull down from anywhere. A round button comes down WITH the finger and a
+   smooth spiral (a circle winding inside a circle) draws itself from the centre outwards the closer you get to the
+   trigger line (about a quarter of the screen). Let go past the line = refresh. Let go early, or move back up = the
+   spiral un-draws and the button goes back up, nothing refreshes. Appended at the END of dashboard.js.
    ========================================================== */
 (function () {
   if (window.__thPull) return; window.__thPull = 1;
-  const FAR = () => Math.round(innerHeight * 0.4), MAXD = () => Math.round(innerHeight * 0.5), EDGE = 2;
+  const TRIG = () => Math.max(140, Math.round(innerHeight * 0.27)), EDGE = 2, SZ = 46;
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
 html,body{overscroll-behavior-y:contain}
-#thPull{position:fixed;left:50%;top:0;z-index:10030;width:48px;height:48px;margin-left:-24px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translateY(-70px) scale(.5);background:#fff;color:#111;box-shadow:0 4px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.2)}
-#thPull.back{transition:transform .28s cubic-bezier(.3,1.2,.5,1),opacity .28s}
-#thPull svg{width:28px;height:28px;display:block;overflow:visible}
-#thPull .ac{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
-#thPull .ah{fill:currentColor}
-#thPull.spin svg{animation:thPullSpin .85s linear infinite}
+#thPull{position:fixed;left:50%;top:0;z-index:10030;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
+body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.22),0 0 0 1px rgba(15,23,42,.08)}
+#thPull.back{transition:transform .3s cubic-bezier(.3,1.1,.5,1),opacity .25s}
+#thPull svg{width:34px;height:34px;display:block;overflow:visible}
+#thPull .sp{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 1;stroke-dashoffset:1}
+#thPull.spin svg{animation:thPullSpin .9s linear infinite}
 @keyframes thPullSpin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){#thPull.spin svg{animation:none}}`;
   document.head.appendChild(st);
+  /* spiral path: starts as a dot in the centre and winds outwards ~2.3 turns */
+  let d = '', TURNS = 2.3, N = 140;
+  for (let i = 0; i <= N; i++) { const k = i / N, a = k * TURNS * 2 * Math.PI - Math.PI / 2, r = 1 + 14 * k; d += (i ? 'L' : 'M') + (17 + r * Math.cos(a)).toFixed(2) + ' ' + (17 + r * Math.sin(a)).toFixed(2); }
   const el = document.createElement('div'); el.id = 'thPull';
-  el.innerHTML = '<svg viewBox="0 0 28 28" aria-hidden="true"><circle class="ac" cx="14" cy="14" r="10"/><g class="ag"><polygon class="ah" points="20.8,12.2 27.2,12.2 24,17.6"/></g></svg>';
+  el.innerHTML = '<svg viewBox="0 0 34 34" aria-hidden="true"><path class="sp" pathLength="1" d="' + d + '"/></svg>';
   document.body.appendChild(el);
-  const AC = el.querySelector('.ac'), AG = el.querySelector('.ag'), CIRC = 2 * Math.PI * 10;
-  function setArc(p) { const a0 = -90 + p * 200, sw = 24 + 276 * p; AC.style.strokeDasharray = (CIRC * sw / 360) + ' ' + CIRC; AC.style.transform = 'rotate(' + a0 + 'deg)'; AG.setAttribute('transform', 'rotate(' + (a0 + sw + 90) + ' 14 14)'); }
-  setArc(0);
+  const SP = el.querySelector('.sp'), SVG = el.querySelector('svg');
+  const draw = p => { SP.style.strokeDashoffset = String(1 - Math.max(0, Math.min(1, p))); };
+  draw(0);
 
   const PH = () => matchMedia('(pointer:coarse)').matches;
   const atTop = () => (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0) <= EDGE;
   const pageOpen = () => document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')
     || !!document.querySelector('#pop.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thDays.open,#thLib.open,.ssm.open,#wp,.mgr-pop');
-  /* a scrollable box under the finger that is not at its own top keeps the touch for itself */
   function innerScroll(t) {
     for (let e = t; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
@@ -5899,45 +5903,44 @@ html,body{overscroll-behavior-y:contain}
     return false;
   }
   let g = null, busy = false, crossed = false;
-  const HIDE = -70, REST = () => 70 + Math.round(innerHeight * 0.12);
-  const prog = () => Math.min(1, g.d / FAR());
+  const top = dist => { const T = TRIG(), x = dist <= T ? dist : T + (dist - T) * 0.25; return x - SZ - 6 + Math.round(innerHeight * 0.02) + 0; };   /* the button rides just under the finger, slows down after the line */
   function paint() {
-    const p = prog(), f = Math.min(1, g.d / MAXD()), y = HIDE + f * (REST() - HIDE);      /* comes down from under the top, following the finger */
-    el.style.opacity = String(Math.min(1, p * 2.2));
-    el.style.transform = `translateY(${y}px) scale(${0.5 + 0.5 * Math.min(1, p * 1.6)})`;
-    setArc(p);                                                                           /* the arc grows and turns with the finger, and shrinks again when you go back */
+    const p = g.d / TRIG();
+    el.style.opacity = String(Math.min(1, g.d / 28));
+    el.style.transform = `translate3d(0,${top(g.d)}px,0) scale(${0.7 + 0.3 * Math.min(1, p * 2)})`;
+    draw(p);                                                   /* 0 at the start, complete at the line, un-draws when you go back */
+    SVG.style.transform = `rotate(${Math.round(Math.min(1, p) * 160)}deg)`;
   }
-  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = `translateY(${HIDE}px) scale(.5)`; setArc(0); setTimeout(() => el.classList.remove('back'), 320); }
+  function reset() { el.classList.add('back'); el.classList.remove('spin'); el.style.opacity = '0'; el.style.transform = `translate3d(0,-${SZ + 10}px,0)`; draw(0); SVG.style.transform = ''; setTimeout(() => el.classList.remove('back'), 330); }
   async function refresh() {
-    busy = true; el.classList.remove('back'); setArc(1); el.style.opacity = '1'; el.style.transform = `translateY(${Math.round(REST() * 0.8)}px) scale(1)`; el.classList.add('spin');
+    busy = true; el.classList.add('back'); draw(1); SVG.style.transform = ''; el.style.opacity = '1';
+    el.style.transform = `translate3d(0,${top(TRIG()) }px,0) scale(1)`; el.classList.add('spin');
     const t0 = Date.now();
     try { if (window.thSkel) window.thSkel(true); await load(); } catch (e) { console.warn('[pull refresh]', e); }
-    const wait = Math.max(0, 700 - (Date.now() - t0));
-    setTimeout(() => { busy = false; reset(); }, wait);
+    setTimeout(() => { busy = false; reset(); }, Math.max(0, 700 - (Date.now() - t0)));
   }
   document.addEventListener('touchstart', e => {
     g = null;
     if (busy || !PH() || e.touches.length !== 1 || pageOpen()) return;
-    const t = e.touches[0];
     if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui')) return;
     if (!atTop() || innerScroll(e.target)) return;
-    g = { y: t.clientY, x: t.clientX, d: 0, on: false }; crossed = false;
+    const t = e.touches[0]; g = { y: t.clientY, x: t.clientX, d: 0, on: false }; crossed = false; el.classList.remove('back');
   }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!g) return;
-    const t = e.touches[0], dy = t.clientY - g.y;                                      /* finger going DOWN = positive */
+    const t = e.touches[0], dy = t.clientY - g.y;
     if (!g.on) {
-      if (dy < 6 || Math.abs(t.clientX - g.x) > Math.abs(dy)) { if (dy < -6) g = null; return; }
+      if (dy < 4 || Math.abs(t.clientX - g.x) > Math.abs(dy)) { if (dy < -6) g = null; return; }
       if (!atTop()) { g = null; return; }
-      g.on = true; el.classList.remove('back');
+      g.on = true;
     }
-    g.d = Math.max(0, dy) * 0.9;
+    g.d = Math.max(0, dy);                                     /* 1:1 with the finger, no extra pull needed */
     if (e.cancelable) e.preventDefault();
     paint();
-    if (g.d >= FAR() && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(12); } catch (x) { } }
-    else if (g.d < FAR()) crossed = false;
+    if (g.d >= TRIG() && !crossed) { crossed = true; try { navigator.vibrate && navigator.vibrate(10); } catch (x) { } }
+    else if (g.d < TRIG()) crossed = false;
   }, { passive: false });
-  const end = () => { if (!g) return; const go = g.on && g.d >= FAR(); const on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
+  const end = () => { if (!g) return; const go = g.on && g.d >= TRIG(), on = g.on; g = null; if (go) refresh(); else if (on) reset(); };
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', () => { if (g && g.on) reset(); g = null; }, { passive: true });
 })();
