@@ -48,7 +48,7 @@
     var SS = function (k, v) { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) {} return null; };
     var light = ls('thabit_theme') === 'light', el = null, t0 = 0, kill = null, going = false;
     var css2 = document.createElement('style');
-    css2.textContent = 'html{overscroll-behavior-y:contain}' +
+    css2.textContent = 'html,body{overscroll-behavior-y:none}' +
       '#thSkOv{position:fixed;inset:0;z-index:2147483000;background:' + (light ? '#f4f6f9' : '#0b0e13') + ';color:' + (light ? '#0f172a' : '#e2e8f0') + ';overflow:hidden;transition:opacity .35s}#thSkOv.out{opacity:0;pointer-events:none}' +
       '#thSkOv .skw{box-sizing:border-box;width:min(100%,1000px);margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 84px) 22px 100px;display:flex;flex-direction:column;gap:14px}' +
       '#thSkOv .skg{display:grid;grid-template-columns:1fr 1fr;gap:14px}' +
@@ -92,13 +92,6 @@
     }, true);
     window.addEventListener('beforeunload', function () { show(); });         /* browser reload button / restart: the frozen screen shows the skeleton */
     window.addEventListener('pagehide', function () { show(); });
-    /* pull down hard at the top = refresh (phone). A flick up the page is a normal scroll, so it is not treated as refresh. */
-    var sy = 0, sx = 0, armed = false;
-    document.addEventListener('touchstart', function (e) { var t = e.touches[0]; sy = t.clientY; sx = t.clientX; armed = (window.scrollY || document.documentElement.scrollTop || 0) <= 2 && !document.body.classList.contains('thfp-open'); }, { passive: true });
-    document.addEventListener('touchmove', function (e) {
-      if (!armed || going) return; var t = e.touches[0], dy = t.clientY - sy, dx = Math.abs(t.clientX - sx);
-      if (dy > 120 && dy > dx * 1.6) { armed = false; reload(); }
-    }, { passive: true });
   })();
 
   /* ---- intro: only where data-intro is set, and not for signed-in visitors ---- */
