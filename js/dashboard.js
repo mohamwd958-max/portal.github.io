@@ -6460,3 +6460,38 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   }, { passive: true });
   document.addEventListener('touchcancel', () => { if (dg) { ok = false; dragEnd(0); } }, { passive: true });
 })();
+
+/* ===== Feed = full-width page between the header and the bar; header + bar = the same light glass; no dots, no name in the header ===== */
+(function () {
+  const old = document.getElementById('thFeedGlass'); if (old) old.remove();
+  const st = document.createElement('style'); st.id = 'thFeedGlass';
+  st.textContent = `
+/* header and bar: ONE glass look (very light blur), no dots, nothing inside the header */
+html body #mobileFloatingBar:not(#z):not(#y):not(#w),
+html body #thBrand:not(#z):not(#y):not(#w),
+html body .thHdr:not(#z):not(#y):not(#w){
+  background:rgba(24,28,32,.30)!important;background-color:rgba(24,28,32,.30)!important;background-image:none!important;
+  -webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w),
+html body.light-theme #thBrand:not(#z):not(#y):not(#w),
+html body.light-theme .thHdr:not(#z):not(#y):not(#w){
+  background:rgba(255,255,255,.38)!important;background-color:rgba(255,255,255,.38)!important;background-image:none!important}
+html body #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w){font-size:0!important;color:transparent!important;z-index:2147483004!important}
+html body #thBrand:not(#z):not(#y):not(#w) *{display:none!important}
+/* the feed page: no side gaps, no rounded frame; the limit at the top is the header, at the bottom the bar; cards slide under the glass */
+html body #pop.open:not(#z){position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;
+  padding:var(--th-hd,calc(58px + env(safe-area-inset-top,0px))) 0 var(--th-bar,calc(96px + env(safe-area-inset-bottom,0px)))!important;
+  overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;align-items:stretch!important;border-radius:0!important}
+html body #pop.open:not(#z) .pcs{margin:0!important;padding:0!important;width:100%!important;max-width:none!important;gap:0!important}
+html body #pop:not(#z) .pc{margin:0!important;border-radius:0!important;border-width:0 0 1px 0!important;box-shadow:none!important;width:100%;box-sizing:border-box}`;
+  document.head.appendChild(st);
+  /* real heights of the header and the bar, so the feed starts / ends exactly at them */
+  function measure() {
+    try {
+      const r = document.documentElement, h = document.getElementById('thBrand'), b = document.getElementById('mobileFloatingBar');
+      if (h) { const x = h.getBoundingClientRect(); if (x.height > 10 && x.bottom > 10) r.style.setProperty('--th-hd', Math.round(x.bottom) + 'px'); }
+      if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
+    } catch (e) { }
+  }
+  measure(); setInterval(measure, 500); window.addEventListener('resize', measure); window.addEventListener('load', measure);
+})();
