@@ -1110,6 +1110,18 @@ function openPop(cards, from) {
   }));
   if (from) { const b = from.getBoundingClientRect(); o.querySelectorAll('.pc').forEach(c => { const r = c.getBoundingClientRect(); c.style.setProperty('--dx', (b.left + b.width / 2 - r.left - r.width / 2) + 'px'); c.style.setProperty('--dy', (b.top + b.height / 2 - r.top - r.height / 2) + 'px'); }); }
 }
+const THN_MAX = 8;
+function thn_older() {
+  const o = $('pop'), box = o && o.querySelector('.pcs'); if (!box) return;
+  const nf = [...box.querySelectorAll('.pc.nf')]; if (nf.length <= THN_MAX) return;
+  const rest = nf.slice(THN_MAX); rest.forEach(c => { c.hidden = true; });
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'seeold';
+  b.textContent = ({ en: 'See previous notifications', ar: 'عرض الإشعارات السابقة', eg: 'شوف الإشعارات السابقة' })[lang] || 'See previous notifications';
+  b.onclick = e => { e.stopPropagation(); rest.forEach(c => { c.hidden = false; }); b.remove(); };
+  box.appendChild(b);
+}
+const thn_openPop0 = openPop;
+openPop = function (cards, from) { thn_openPop0(cards, from); try { thn_older(); } catch (e) { console.warn('[feed older]', e); } };
 const closePop = () => { $('pop').classList.remove('open'); $('pop').innerHTML = ''; INTRO.hold = false; if (typeof D !== 'undefined' && D) updateFeed(); };
 /* ===== Feed: next session + dandana + notifications + payment, all inside ONE button ===== */
 const NTX = {
@@ -1189,16 +1201,17 @@ function noteCat(n) {
   if (/system|maint/.test(k)) return 'system';
   return 'note';
 }
-function thn_nCard(key, cat, headHtml, bodyHtml, dt) {
-  const c = thn_NCT();
-  return { id: 'n:' + key, noX: true, cnt: true, isNew: true, cls: 'nf ' + cat,
-    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${ THN_ICON[cat] || 'fa-bell' }"></i></span><div class="nfm"><div class="nfc">${c[cat]}</div><div class="nft2">${c.tap}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
-      + `<div class="nfb" hidden>${headHtml ? `<div class="nth" dir="auto">${headHtml}</div>` : ''}<div class="rich" dir="auto">${bodyHtml}</div><button type="button" class="ackb btn2">${c.ok}</button></div>` };
+function thn_nCard(key, cat, headHtml, bodyHtml, dt, read) {
+  const c = thn_NCT(), rd = read == null ? (key in thn_opened()) : !!read;
+  const snip = (() => { const d = document.createElement('div'); d.innerHTML = bodyHtml || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 140); })();
+  return { id: 'n:' + key, noX: true, cnt: !rd, isNew: !rd, cls: 'nf ' + cat + (rd ? ' read' : ' unread'),
+    html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${THN_ICON[cat] || 'fa-bell'}"></i></span><div class="nfm"><div class="nfc" dir="auto">${headHtml || c[cat]}</div><div class="nft2" dir="auto">${esc(snip)}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
+      + `<div class="nfb" hidden><div class="rich" dir="auto">${bodyHtml}</div></div>` };
 }
 function thn_toggleNf(pc) {
   if (!pc.classList.contains('open')) document.querySelectorAll('#pop .pc.nf.open:not(.acked)').forEach(o => { if (o !== pc) { o.classList.remove('open'); const b = o.querySelector('.nfb'); if (b) b.hidden = true; } });   // one at a time: opening a notification folds the others
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
-  if (on) thn_openedSet(pc.dataset.cid.slice(2));
+  if (on) { thn_openedSet(pc.dataset.cid.slice(2)); pc.classList.remove('unread'); pc.classList.add('read'); if (typeof updateFeed === 'function') updateFeed(); }
 }
 function thn_ackCard(pc) {
   const o = $('pop'); thn_ackSet(pc.dataset.cid.slice(2)); pc.classList.add('acked');
@@ -1212,15 +1225,17 @@ function billCard(s) {
   return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
 }
 /* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
+const thn_opened = () => { try { return JSON.parse(localStorage.getItem(thn_OPNK) || '{}') || {}; } catch (e) { return {}; } };
+const thn_isRead = n => !!n.read_at || thn_isAcked(thn_nKey(n)) || (thn_nKey(n) in thn_opened());
 function thn_noteList() {
   const now = Date.now();
-  return (((D && D.notes) || []).concat(window.thLocalNotes ? thLocalNotes() : [])).filter(n => !WORD_KINDS.includes(n.kind) && !n.read_at && !thn_isAcked(thn_nKey(n)) && !(now - Date.parse(n.created_at) >= 864e5))
+  return (((D && D.notes) || []).concat(window.thLocalNotes ? thLocalNotes() : [])).filter(n => !WORD_KINDS.includes(n.kind))
     .slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
 function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt);
+  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt, thn_isRead(n));
 }
 (function () { const st = document.createElement('style'); st.textContent = `
 .thabit-card #tInfo{cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin:0;-webkit-user-select:none;user-select:none}
@@ -1314,7 +1329,7 @@ const IMP_KINDS = ['update', 'app_update', 'policy', 'policy_update', 'restricti
 const IMP_SEEN = new Set();
 const isImp = n => !!n && (IMP_KINDS.includes(n.kind) || !!(n.meta && n.meta.important));
 const impKey = n => String(n.id != null ? n.id : n.created_at);
-const impUnread = () => thn_noteList().filter(n => isImp(n) && !IMP_SEEN.has(impKey(n)));
+const impUnread = () => thn_noteList().filter(n => isImp(n) && !thn_isRead(n) && !IMP_SEEN.has(impKey(n)));
 const impMark = () => impUnread().forEach(n => IMP_SEEN.add(impKey(n)));
 /* gentle attention instead of a pop-up: the Feed button glows; for important updates the plus also turns */
 function attention(spin) {
@@ -3897,7 +3912,7 @@ html body.light-theme #mobileFloatingBar{border:1px solid rgba(15,23,42,.12)!imp
     lang: { en: 'Language', ar: 'اللغة', eg: 'اللغة' },
     theme: { en: 'Theme', ar: 'الوضع', eg: 'الوضع' },
     logout: { en: 'Profile', ar: 'الحساب', eg: 'الحساب' },
-    feed: { en: 'Notifications', ar: 'الإشعارات', eg: 'الإشعارات' },
+    feed: { en: 'Feed', ar: 'فيد', eg: 'فيد' },
     edit: { en: 'More', ar: 'المزيد', eg: 'المزيد' },
     space: { en: 'Space', ar: 'سبيس', eg: 'سبيس' }
   };
@@ -5275,7 +5290,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
   function title(k) {
     if (k === 'mgr') return tr('Thabit Messenger', 'ثابت ميسنجر', 'ثابت ميسنجر');
     if (k === 'mgrchat') return (window.thMessenger && thMessenger.name && thMessenger.name()) || '';
-    if (k === 'pop') return tr('Notifications', 'الإشعارات', 'الإشعارات');
+    if (k === 'pop') return tr('Feed', 'فيد', 'فيد');
     if (k === 'asm') { const p = G('pp-profile'); return p && !p.hidden ? tr('Profile', 'ملفي', 'ملفي') : tr('Assistant', 'المساعد', 'المساعد'); }
     if (k === 'rq1' || k === 'rq2') return tr('Requests', 'الطلبات', 'الطلبات');
     if (k === 'days') return tr('Days', 'الأيام', 'الأيام');
@@ -6233,6 +6248,21 @@ html body #mobileFloatingBar>#feedBtn.th-on:not(#z) .fdw path{stroke:#34d399!imp
 #homeBtn svg.hmo{width:24px;height:24px;fill:none!important;stroke:currentColor!important;stroke-width:1.7}
 html #thMenu,html #langPop{z-index:2147483020!important}
 #thBackB{display:none!important}
+/* feed page */
+#pop.open{overflow-y:auto}
+#pop .pc.nf{width:100%;box-sizing:border-box}
+#pop .pc.nf.unread{background:rgba(96,165,250,.30)!important;border-color:rgba(147,197,253,.65)!important}
+#pop .pc.nf.unread .nfc{font-weight:800}
+#pop .pc.nf.read{background:rgba(15,23,42,.25)!important;border-color:rgba(255,255,255,.06)!important}
+#pop .pc.nf.read .nfi,#pop .pc.nf.read .nfc,#pop .pc.nf.read .nft2,#pop .pc.nf.read .nfd{opacity:.5}
+body.light-theme #pop .pc.nf.unread{background:rgba(96,165,250,.32)!important;border-color:rgba(59,130,246,.55)!important}
+body.light-theme #pop .pc.nf.read{background:rgba(255,255,255,.3)!important;border-color:rgba(255,255,255,.5)!important}
+.pc.nf:not(.open) .nft2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#pop .seeold{display:block;margin:6px auto 4px;padding:11px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(148,163,184,.18);color:inherit;font:700 .85rem Cairo,Inter,sans-serif;cursor:pointer}
+@media (max-width:820px) and (pointer:coarse){
+html #pop.open{justify-content:flex-start!important}
+html #pop.open .pcs{margin:0 auto!important;padding-top:calc(58px + env(safe-area-inset-top,0px));width:100%;max-width:480px}
+}
 /* bar: only the top edge line (no left / right / bottom border) */
 html body #mobileFloatingBar:not(#z):not(#y){border:0!important;border-top:1px solid rgba(255,255,255,.22)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 30px rgba(0,0,0,.25)!important}
 html body.light-theme #mobileFloatingBar:not(#z):not(#y){border:0!important;border-top:1px solid rgba(255,255,255,.7)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 30px rgba(15,23,42,.12)!important}
