@@ -5873,7 +5873,6 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
   const st = document.createElement('style'); st.id = 'thPullCss';
   st.textContent = `
 html,body{overscroll-behavior-y:none}
-html{touch-action:pan-x pan-y}
 #thPull{position:fixed;left:50%;top:0;z-index:2147483002;width:${SZ}px;height:${SZ}px;margin-left:-${SZ / 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:translate3d(0,-${SZ + 10}px,0);will-change:transform,opacity;background:#1e293b;color:#f8fafc;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
 body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,.22),0 0 0 1px rgba(15,23,42,.08)}
 #thPull.back{transition:transform .3s cubic-bezier(.3,1.1,.5,1),opacity .25s}
@@ -5933,9 +5932,7 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
     if (!g) return;
     const t = e.touches[0], dy = t.clientY - g.y;
     if (!g.on) {
-      /* decide on the very first move: any downward move at the top takes over the gesture at once (a late preventDefault is ignored by the browser, which then cancels the touch = the circle vanishes) */
-      if (dy < -8) { g = null; return; }
-      if (dy <= 0 || Math.abs(t.clientX - g.x) > dy * 1.5 + 6) { return; }
+      if (dy < 4 || Math.abs(t.clientX - g.x) > Math.abs(dy)) { if (dy < -6) g = null; return; }
       if (!atTop()) { g = null; return; }
       g.on = true;
     }
@@ -6175,182 +6172,107 @@ html body #mobileFloatingBar .lifting:not(#a):not(#b):not(#c){transform:var(--li
   const start = () => { fix(); const e = document.getElementById('barEdit'); if (e) new MutationObserver(fix).observe(e, { childList: true }); [200, 800, 2000, 4000].forEach(t => setTimeout(fix, t)); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
-
 /* ==========================================================
-   Facebook-style phone shell (appended at the END of dashboard.js, delete this block to go back)
-   1) No header: only the logo (one colour, no animation) pinned top-left inside a small circle; not tappable, never moves.
-   2) Bottom bar icons are plain grey. The open tab's icon gets its own colour (Notifications red, Messenger blue,
-      Days green, Space orange). The bar stays visible under the open tab page.
-   3) Swipe left / right on a tab page = go to the neighbour tab in the bar (like Facebook).
+   v4 (end of dashboard.js): GLASS bar + GLASS header (empty), bar never hides,
+   swipe left/right = previous/next page, bar button of the open panel = green, others dim grey.
+   Delete this block to go back.
    ========================================================== */
 (function () {
-  if (window.__thTabs) return; window.__thTabs = 1;
-  const G = id => document.getElementById(id);
-  const PH = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
-  const G1 = '#22c55e', COL = { feed: G1, msgr: G1, days: G1, space: G1 };   /* one colour for whichever tab is open */
-  const BTN = { feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn' };
-  const GREY = '#8a94a0';
-  const cls = id => { const e = G(id); return !!(e && e.classList.contains('open')); };
-  const isOpen = {
-    feed: () => cls('pop'),
-    msgr: () => { try { return !!thMessenger.state().open; } catch (e) { return false; } },
-    days: () => cls('thDays'),
-    space: () => cls('thSpace')
-  };
-  const closeTab = {
-    feed: () => { try { closePop(); } catch (e) { } },
-    msgr: () => { try { thMessenger.hide(); } catch (e) { } },
-    days: () => { try { thDays.close(); } catch (e) { } },
-    space: () => { try { thSpace.close(); } catch (e) { } }
-  };
-  const nested = () => {
-    try { if (thMessenger.state().chat) return true; } catch (e) { }
-    return !!document.querySelector('#rqm.open,#rqn.open,#rqo.open,#thSet.open,#thCal.open,#thLib.open,#asm:not([hidden]),.ssm.open');
-  };
-  const cur = () => { for (const k of Object.keys(isOpen)) if (isOpen[k]()) return k; return null; };
-  const tabs = () => Object.keys(BTN).filter(k => { const b = G(BTN[k]); return b && !b.hidden && b.getClientRects().length; })
-    .sort((a, b) => G(BTN[a]).getBoundingClientRect().left - G(BTN[b]).getBoundingClientRect().left);
+  const st = document.createElement('style'); st.id = 'thGlassV4';
+  st.textContent = `
+/* ---------- 1) the bar never disappears ---------- */
+html body #mobileFloatingBar:not(#z):not(#y),
+html.th-page body #mobileFloatingBar:not(#z):not(#y),
+html.adj-on body #mobileFloatingBar:not(#z):not(#y),
+body.thfp-open #mobileFloatingBar:not(#z):not(#y){
+  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;z-index:10015!important}
+html body #mobileFloatingBar:not(#z):not(#y)>*{visibility:visible}
+html body #mobileFloatingBar:not(#z):not(#y)>.pk-hide{visibility:hidden}
 
-  const st = document.createElement('style'); st.id = 'thTabsCss';
-  let css = `@media (max-width:820px) and (pointer:coarse){
-/* 1) header = only the logo in a small circle */
-html body #thBrand:not(#z){visibility:visible!important;position:fixed!important;left:10px!important;right:auto!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;width:36px!important;height:36px!important;padding:0!important;gap:0!important;
-  justify-content:center!important;align-items:center!important;border-radius:50%!important;border:1.5px solid rgba(233,237,239,.55)!important;background:rgba(24,28,32,.88)!important;background-image:none!important;box-shadow:none!important;
-  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#e9edef!important;pointer-events:none!important;z-index:2147483003!important;transform:none!important}
-html body.light-theme #thBrand:not(#z){border-color:rgba(15,23,42,.45)!important;background:rgba(244,246,249,.92)!important;color:#0f172a!important}
-html body #thBrand:not(#z)>*:not(.thb-l){display:none!important}
-html body #thBrand .thb-l:not(#z){width:20px!important;height:20px!important;background:currentColor!important;background-image:none!important;animation:none!important;filter:none!important;margin:0!important}
-/* 2) bar: grey icons, the open tab is coloured; bar stays above the tab page */
-html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on),html body #mobileFloatingBar:not(#z) #barEdit{color:${GREY}!important}
-html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on) :is(i,svg,.fstar,.fdp){color:${GREY}!important;filter:grayscale(1)!important}
-html body #mobileFloatingBar:not(#z) [data-bk]:not(.tab-on) .mgr-ico{background-color:${GREY}!important}
-html body #mobileFloatingBar:not(#z) #barEdit :is(i,svg){color:${GREY}!important;filter:grayscale(1)!important}
-html body #mobileFloatingBar:not(#z) .tab-on :is(i,svg,.fstar,.fdp){color:inherit!important;filter:none!important}
-body.th-tab #mobileFloatingBar:not(#z){visibility:visible!important;z-index:2147483003!important}
-body.th-tab #thBackB{display:none!important}
-html body.th-tab #pop.open,html body.th-tab #thSpace.open,html body.th-tab #thDays.open,html body.th-tab .mgr-pop{bottom:var(--thTabH,64px)!important;height:auto!important;max-height:none!important;inset-block-end:var(--thTabH,64px)!important}
-}`;
-  Object.keys(COL).forEach(k => {
-    const id = '#' + BTN[k];
-    css += `\nhtml body #mobileFloatingBar ${id}.tab-on:not(#z){color:${COL[k]}!important}\nhtml body #mobileFloatingBar ${id}.tab-on .mgr-ico{background-color:${COL[k]}!important}`;
-  });
-  st.textContent = css; document.head.appendChild(st);
+/* ---------- 2) real glass: almost clear, very strong blur, thin bright edge ---------- */
+html body #mobileFloatingBar:not(#z):not(#y),
+html body #thBrand:not(#z):not(#y),
+html body .thHdr:not(#z):not(#y){
+  background:rgba(24,28,32,.16)!important;background-color:rgba(24,28,32,.16)!important;background-image:none!important;
+  -webkit-backdrop-filter:blur(34px) saturate(1.9) brightness(1.05)!important;
+  backdrop-filter:blur(34px) saturate(1.9) brightness(1.05)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.06),0 8px 30px rgba(0,0,0,.25)!important}
+html body.light-theme #mobileFloatingBar:not(#z):not(#y),
+html body.light-theme #thBrand:not(#z):not(#y),
+html body.light-theme .thHdr:not(#z):not(#y){
+  background:rgba(255,255,255,.22)!important;background-color:rgba(255,255,255,.22)!important;background-image:none!important;
+  border:1px solid rgba(255,255,255,.7)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 30px rgba(15,23,42,.12)!important}
+/* header: edge only at the bottom, same width as before (no size change) */
+html body #thBrand:not(#z):not(#y),html body .thHdr:not(#z):not(#y){border-top:0!important;border-left:0!important;border-right:0!important}
 
-  let lock = null;
-  const pageEl = k => k === 'feed' ? G('pop') : k === 'msgr' ? [...document.querySelectorAll('.mgr-pop')].find(e => e.getClientRects().length) : k === 'days' ? G('thDays') : G('thSpace');
-  const W = () => innerWidth;
-  function go(from, to, dx0) {
-    if (!to || to === from || lock) return;
-    const list = tabs(), dir = list.indexOf(to) > list.indexOf(from) ? 1 : -1;   /* +1 = the next tab is on the right */
-    lock = from;
-    const out = pageEl(from), t0 = Date.now();
-    const b = G(BTN[to]); if (b) b.click();                       /* open the neighbour first, then close this one: keeps the back-history in step */
-    const wait = () => {
-      const inn = isOpen[to]() ? pageEl(to) : null;
-      if (!inn && Date.now() - t0 < 900) return requestAnimationFrame(wait);
-      lock = to;
-      const D = 230, ez = 'cubic-bezier(.2,.8,.2,1)', anims = [];
-      if (out) anims.push(out.animate([{ translate: (dx0 || 0) + 'px 0' }, { translate: (-dir * W()) + 'px 0' }], { duration: D, easing: ez, fill: 'forwards' }));
-      if (inn) anims.push(inn.animate([{ translate: (dir * W()) + 'px 0' }, { translate: '0px 0' }], { duration: D, easing: ez, fill: 'both' }));
-      setTimeout(() => {
-        closeTab[from](); if (out) out.style.translate = '';
-        anims.forEach(x => { try { x.cancel(); } catch (e) { } }); lock = null; sync();
-      }, D + 20);
-    };
-    requestAnimationFrame(wait);
+/* ---------- 3) header is just a piece of glass: no name, no logo, nothing inside ---------- */
+html body #thBrand:not(#z):not(#y) *,html body .thHdr:not(#z):not(#y) *{visibility:hidden!important;pointer-events:none!important}
+html body #thBrand:not(#z):not(#y)::before,html body #thBrand:not(#z):not(#y)::after,
+html body .thHdr:not(#z):not(#y)::before,html body .thHdr:not(#z):not(#y)::after{content:none!important;display:none!important}
+
+/* icons stay readable on the clear glass */
+html body #mobileFloatingBar>[data-bk] svg,html body #mobileFloatingBar>[data-bk] i,html body #mobileFloatingBar>.feed .fdp,html body #mobileFloatingBar>.mgrBtn svg{
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.55))}
+body.light-theme #mobileFloatingBar>[data-bk] svg,body.light-theme #mobileFloatingBar>[data-bk] i{filter:drop-shadow(0 1px 2px rgba(255,255,255,.7))}
+
+/* ---------- 4) open panel = green, the rest = soft grey ---------- */
+html.th-tabs body #mobileFloatingBar>[data-bk]:not(.th-on):not(#z),
+html.th-tabs body #mobileFloatingBar>#feedBtn:not(.th-on):not(#z),
+html.th-tabs body #mobileFloatingBar>#mgrBtn:not(.th-on):not(#z){color:#9aa3ad!important;opacity:.6!important}
+html body #mobileFloatingBar>.th-on:not(#z){color:#34d399!important;opacity:1!important}
+html body #mobileFloatingBar>.th-on:not(#z) svg,html body #mobileFloatingBar>.th-on:not(#z) i{color:#34d399!important}
+html body #mobileFloatingBar>#feedBtn.th-on:not(#z){border-color:#34d399!important}
+html body #mobileFloatingBar>[data-bk],html body #mobileFloatingBar>.feed{transition:color .25s,opacity .25s,border-color .25s}`;
+  document.head.appendChild(st);
+
+  /* tag the header (same rule the file already uses) */
+  function tagHdr() {
+    const b = document.getElementById('thBrand'); if (b) b.classList.add('thHdr');
+    [...document.body.children].forEach(el => {
+      if (el.id === 'mobileFloatingBar' || el.tagName === 'SECTION' || el.tagName === 'SCRIPT') return;
+      const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+      if ((cs.position === 'fixed' || cs.position === 'sticky') && r.top < 6 && r.width > innerWidth * .5 && r.height > 20 && r.height < 130 && !el.classList.contains('thHdr') && !/^(pop|thDet|thHint|langPop|asm|thGhost|dock|thBri|barTip|thMenu|ptr)$/.test(el.id)) el.classList.add('thHdr');
+    });
   }
+  [200, 800, 2000, 4000, 8000].forEach(t => setTimeout(tagHdr, t)); window.addEventListener('load', tagHdr);
 
-  /* keep colours / bar visibility in step with whatever is open */
+  /* ---------- green = the panel that is open now ---------- */
+  const $q = s => document.querySelector(s), vis = s => { const e = $q(s); return !!e && !e.hidden && getComputedStyle(e).display !== 'none'; };
+  function activeKey() {
+    if (vis('#pp-assistant') && $q('#asm') && !$q('#asm').hidden) return 'plusBtn';
+    if (vis('#pp-profile') && $q('#asm') && !$q('#asm').hidden) return 'profBtn';
+    if ($q('#langPop.open')) return 'langBtn';
+    if ($q('#pop.open')) return 'feedBtn';
+    if ($q('#spaceBox.open,#thSpace.open,.thspace.open')) return 'spaceBtn';
+    if ($q('#thMenu.open')) return 'barEdit';
+    if (document.body.classList.contains('thfp-open') || document.documentElement.classList.contains('th-page')) return 'mgrBtn';
+    return '';
+  }
   function sync() {
-    const ph = PH(), c = ph ? (lock || cur()) : null, tab = !!c && !nested();
-    document.body.classList.toggle('th-tab-feed', c === 'feed');
-    document.body.classList.toggle('th-tab', tab);
-    Object.keys(BTN).forEach(k => { const b = G(BTN[k]); if (b) b.classList.toggle('tab-on', ph && c === k); });
-    const bar = G('mobileFloatingBar');
-    if (bar) {
-      if (tab) {                                                  /* the page lock makes the bar inert; give it back so it can switch tabs */
-        bar.removeAttribute('inert'); bar.classList.remove('thfp-dead');
-        const h = Math.round(bar.getBoundingClientRect().height); if (h > 30) document.documentElement.style.setProperty('--thTabH', h + 'px');
-      }
-    }
+    const bar = $q('#mobileFloatingBar'); if (!bar) return;
+    const k = activeKey();
+    [...bar.children].forEach(b => { if (b.id) b.classList.toggle('th-on', b.id === k); });
+    document.documentElement.classList.toggle('th-tabs', !!k);
   }
-  setInterval(sync, 120);
+  setInterval(sync, 250); document.addEventListener('click', () => setTimeout(sync, 60), true); sync();
 
-  /* tap on a tab icon while a tab page is open = switch tab (tapping the open one does nothing) */
-  const barTap = e => {
-    if (!PH() || !document.body.classList.contains('th-tab')) return;
-    const b = e.target.closest && e.target.closest('[data-bk]'); if (!b) return;
-    const k = Object.keys(BTN).find(x => BTN[x] === b.id); if (!k) return;
-    e.stopImmediatePropagation(); e.preventDefault();
-    if (e.type === 'click') { const c = cur(); if (c && c !== k) go(c, k); }
-  };
-  const barEl = G('mobileFloatingBar') || document.body;
-  ['click'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('#mobileFloatingBar')) barTap(e); }, true));
-
-  /* swipe: the page follows the finger, lets go -> slides to the neighbour tab (or springs back) */
-  let q = null;
-  const BLOCK = 'input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.tptl,.tvw,.thsel-ui,.aswrap,[data-nosw]';
-  const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 4) return true; } return false; };
-  const nb = (c, dx) => { const l = tabs(), i = l.indexOf(c); return i < 0 ? null : l[dx < 0 ? i + 1 : i - 1] || null; };
+  /* ---------- swipe left / right = previous / next page (the bar never moves) ---------- */
+  let sx = 0, sy = 0, st0 = 0, ok = false;
+  const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk]';
+  const MODALS = '.asm:not([hidden]),.ssm.open,.mdl.open,.pop.open,.lgp.open,.avm.open,#thDet.open,#thMenu.open';
   document.addEventListener('touchstart', e => {
-    q = null;
-    if (lock || !PH() || e.touches.length !== 1 || !document.body.classList.contains('th-tab')) return;
-    if (e.target.closest && e.target.closest(BLOCK)) return;
-    if (hScroll(e.target)) return;
-    const c = cur(); if (!c) return; const t = e.touches[0];
-    q = { x: t.clientX, y: t.clientY, c, on: false, dx: 0, t: Date.now(), row: !!(e.target.closest && e.target.closest('.mgr-b')) };
+    ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS);
+    if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now();
   }, { passive: true });
-  document.addEventListener('touchmove', e => {
-    if (!q) return; const t = e.touches[0], dx = t.clientX - q.x, dy = t.clientY - q.y;
-    if (!q.on) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { q = null; return; } if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3) q.on = true; else return; }
-    q.dx = dx; q.v = dx / Math.max(1, Date.now() - q.t);
-    if (q.row) return;                                              /* on a message row: its own swipe options win unless the flick is fast */
-    if (e.cancelable) e.preventDefault();
-    const el = pageEl(q.c); if (!el) return;
-    el.style.translate = (nb(q.c, dx) ? dx : dx * 0.25) + 'px 0';
-  }, { passive: false });
-  document.addEventListener('touchend', () => {
-    const z = q; q = null; if (!z || !z.on) return;
-    const dx = z.dx, v = Math.abs(dx) / Math.max(1, Date.now() - z.t), to = nb(z.c, dx), el = pageEl(z.c);
-    const fast = v > 0.55 && Math.abs(dx) > (z.row ? 80 : 40), far = Math.abs(dx) > W() * 0.3;
-    if (to && (z.row ? fast : (fast || far))) { go(z.c, to, z.row ? 0 : dx); return; }
-    if (el && el.style.translate) { const a = el.animate([{ translate: dx + 'px 0' }, { translate: '0px 0' }], { duration: 160, easing: 'ease-out' }); a.onfinish = a.oncancel = () => { el.style.translate = ''; }; el.style.translate = ''; }
+  document.addEventListener('touchend', e => {
+    if (!ok) return; ok = false;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - st0 > 700) return;
+    const sc = typeof thSecs === 'function' ? thSecs() : []; if (sc.length < 2) return;
+    const i = typeof thCur === 'function' ? thCur() : 0, n = dx < 0 ? i + 1 : i - 1;
+    if (n < 0 || n >= sc.length) return;
+    sc[n].scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, { passive: true });
-  document.addEventListener('touchcancel', () => { if (q) { const el = pageEl(q.c); if (el) el.style.translate = ''; } q = null; }, { passive: true });
-
-  /* the star / icons take the tab colour from the button (their own strokes were hard-coded) */
-  const st2 = document.createElement('style');
-  st2.textContent = `@media (max-width:820px) and (pointer:coarse){
-html body #mobileFloatingBar:not(#z) [data-bk] svg :is(path,circle,rect,line,polyline,ellipse){stroke:currentColor!important}
-html body #mobileFloatingBar:not(#z) #daysBtn svg text{fill:currentColor!important}
-html body.th-tab-feed #thFpBar b{font-size:0!important}
-html body.th-tab-feed #thFpBar b::after{content:var(--thFeedT,"Feed");font-size:15px}}`;
-  document.head.appendChild(st2);
-  const feedName = () => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? 'Feed' : 'الفيد'; };
-  setInterval(() => document.documentElement.style.setProperty('--thFeedT', JSON.stringify(feedName())), 500);
-
-  /* Messenger icon: a small carrier dove, same thin line as the other icons (replaces the old bottle) */
-  const DOVE = '<svg class="mgco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 15.7C7 14.6 10 14 12.5 12.2c2-1.4 3.1-2.6 3.7-3.8.2-1.5 1.4-2.4 2.7-2.1.7.2 1.1.6 1.3 1.1L22 8.2l-1.8.7c-.2 1.5-.8 3.1-2 4.5-2.2 2.6-6.2 4-10.2 3.9-1.4-.1-2.6-.5-3.4-1.6z"/><path d="M11.2 13.4C9.8 9.2 11.2 5 15.6 2.4c.6 3.8-.4 7.6-2.8 10"/><path d="M9.4 14C6.8 11.2 6.6 7.6 8.8 4.4c1.6 2.4 2 5.2 1.6 8"/><path d="M4.8 16L1.8 16.6M5.3 17.1L2.6 19"/></svg>';
-  const st3 = document.createElement('style');
-  st3.textContent = `html body #mobileFloatingBar #mgrBtn .mgr-ico{display:none!important}
-html body #mobileFloatingBar #mgrBtn svg.mgco{width:25px!important;height:25px!important;display:block;flex:none}
-html body #mobileFloatingBar:not(#z) [data-bk].tab-on:not(#y) svg :is(path,circle,rect,line,polyline,ellipse){stroke-width:1.5!important}
-html body #mobileFloatingBar:not(#z) [data-bk].tab-on:not(#y) :is(i,.fstar path){font-weight:900}`;
-  document.head.appendChild(st3);
-  setInterval(() => { const b = G('mgrBtn'); if (b && !b.querySelector('svg.mgco')) { const o = b.querySelector('.mgr-ico'); if (o) o.insertAdjacentHTML('beforebegin', DOVE); } }, 300);
-
-  /* default landing: the Feed if it has anything, otherwise Days */
-  (function () {
-    let n = 0;
-    const iv = setInterval(() => {
-      if (!PH() || ++n > 60) return clearInterval(iv);
-      try {
-        if (typeof D === 'undefined' || !D || (typeof INTRO !== 'undefined' && INTRO.hold)) return;
-        if (cur() || document.body.classList.contains('thfp-open')) return clearInterval(iv);
-        clearInterval(iv);
-        const fb = G('feedBtn');
-        if (fb && !fb.hidden && feedCards().length) fb.click(); else { const d = G('daysBtn'); if (d) d.click(); }
-      } catch (e) { }
-    }, 500);
-  })();
 })();
