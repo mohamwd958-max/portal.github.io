@@ -6471,13 +6471,32 @@ html body #mobileFloatingBar:not(#z):not(#y):not(#w),
 html body #thBrand:not(#z):not(#y):not(#w),
 html body .thHdr:not(#z):not(#y):not(#w){
   background:rgba(24,28,32,.30)!important;background-color:rgba(24,28,32,.30)!important;background-image:none!important;
-  -webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+  -webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important;
+  border:0!important;box-shadow:none!important;outline:0!important}
 html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w),
 html body.light-theme #thBrand:not(#z):not(#y):not(#w),
 html body.light-theme .thHdr:not(#z):not(#y):not(#w){
-  background:rgba(255,255,255,.38)!important;background-color:rgba(255,255,255,.38)!important;background-image:none!important}
+  background:rgba(255,255,255,.38)!important;background-color:rgba(255,255,255,.38)!important;background-image:none!important;
+  border:0!important;box-shadow:none!important}
 html body #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w){font-size:0!important;color:transparent!important;z-index:2147483004!important}
-html body #thBrand:not(#z):not(#y):not(#w) *{display:none!important}
+/* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
+html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+html body.light-theme #thBrand:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
+/* bar: the glass is a layer on top of a small light that travels under the active button */
+html body #mobileFloatingBar:not(#z):not(#y):not(#w),html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:1!important;pointer-events:none!important;border-radius:inherit;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#w)>:not(#thGlow){z-index:2}
+@property --thga{syntax:"<angle>";inherits:false;initial-value:0deg}
+#thGlow{position:absolute;left:0;top:50%;width:52px;height:52px;margin-top:-26px;border-radius:16px;z-index:0;pointer-events:none;opacity:0;transition:transform .38s cubic-bezier(.3,1.15,.4,1),opacity .25s}
+#thGlow.on{opacity:1}
+#thGlow::before{content:"";position:absolute;inset:-6px;border-radius:20px;background:radial-gradient(closest-side,rgba(52,211,153,.55),rgba(52,211,153,0));filter:blur(8px)}
+#thGlow::after{content:"";position:absolute;inset:0;border-radius:16px;padding:3px;box-sizing:border-box;background:conic-gradient(from var(--thga),rgba(52,211,153,0) 0deg,#34d399 70deg,#22d3ee 120deg,rgba(34,211,238,0) 200deg,rgba(52,211,153,0) 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;filter:blur(1.2px) drop-shadow(0 0 6px rgba(52,211,153,.9));animation:thGlowSpin 2.6s linear infinite}
+@keyframes thGlowSpin{to{--thga:360deg}}
+@media(prefers-reduced-motion:reduce){#thGlow::after{animation:none}}
+html body #thBrand:not(#z):not(#y):not(#w) :is(.thb-n,[class*="dot"],[class*="name"],h1,h2,h3,p,small){display:none!important}
+html body #thBrand:not(#z):not(#y):not(#w) :is(img,svg,picture,canvas,[class*="logo"],[id*="logo"]){visibility:visible!important;z-index:1}
 /* the feed page: separate rounded cards with a gap between them (as before), a bit narrower from the sides; the limit at the top is the header, at the bottom the bar; cards slide under the glass */
 html body #pop.open:not(#z){position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;
   padding:var(--th-hd,calc(58px + env(safe-area-inset-top,0px))) 0 var(--th-bar,calc(96px + env(safe-area-inset-bottom,0px)))!important;
@@ -6492,5 +6511,20 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
       if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
     } catch (e) { }
   }
+  /* the light under the active button */
+  let gl = null, gx = -1;
+  function glow() {
+    try {
+      const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
+      if (!gl || gl.parentNode !== bar) { gl = document.getElementById('thGlow') || document.createElement('div'); gl.id = 'thGlow'; bar.insertBefore(gl, bar.firstChild); }
+      const on = bar.querySelector(':scope > .th-on:not([hidden])');
+      if (!on) { gl.classList.remove('on'); return; }
+      const r = on.getBoundingClientRect(), br = bar.getBoundingClientRect(); if (!r.width) return;
+      const x = Math.round(r.left - br.left + r.width / 2 - 26);
+      if (x !== gx) { gx = x; gl.style.transform = 'translateX(' + x + 'px)'; }
+      gl.classList.add('on');
+    } catch (e) { }
+  }
+  glow(); setInterval(glow, 120); window.addEventListener('resize', glow);
   measure(); setInterval(measure, 500); window.addEventListener('resize', measure); window.addEventListener('load', measure);
 })();
