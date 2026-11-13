@@ -6447,7 +6447,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     if (ce) ce.style.setProperty('z-index', '2147482000', 'important');
     if (ne) ne.style.setProperty('z-index', '2147482001', 'important');
     put(ne, side * w, 0);
-    window.__thDragging = true; window.__thDrag = { a: BTN[ck], b: BTN[nk], t: 0, live: true };
+    window.__thDragging = true; window.__thDrag = { a: BTN[ck], b: BTN[nk], t: 0, live: true, ce, ne };
     return { ck, nk, ce, ne, side, w };
   }
   function dragMove(dx) {
@@ -6979,6 +6979,8 @@ ${B}>[data-bk]:not(.th-on)>svg,${B}>[data-bk]:not(.th-on)>i,${B}>[data-bk]:not(.
   run(); setInterval(run, 300);
 })();
 
+
+
 /* ==========================================================
    Bar v6 (end of dashboard.js): icons centred in the bar, notification badge = red disc with the number cut out (see-through),
    bar glow rising from the bottom every 10 s (no streak in the header). Delete this block to go back.
@@ -7028,9 +7030,10 @@ html body #mobileFloatingBar #feedBtn:not(.num) #feedNum:not(#z){opacity:0!impor
 
 /* ==========================================================
    Bar v7 (end of dashboard.js): page change feels alive.
-   - while you drag to another page, the header description slides back out the way it came in (blur + soft "portal" edge, no sharp cut) and is fully gone when the new page takes over
-   - when the new page takes over, its description comes in from the same side, slowly, then one small pop
-   - the icon of the page that has the turn turns green / bigger / bolder + pops, at the same moment (faster than before); the old icon goes back
+   - while you drag to another page, the header description slides back out the way it came in (blur + soft "portal" edge, no sharp cut),
+     it is completely gone at 70% of the way, and then the new description starts to come in (still while dragging); the old page blurs more and more
+   - the new description comes in a few px bigger and settles to its size (no pop)
+   - the icon of the page that has the turn turns green / bigger / bolder with one slow, soft pop; the old icon goes back
    Delete this block to go back.
    ========================================================== */
 (function () {
@@ -7039,7 +7042,6 @@ html body #mobileFloatingBar #feedBtn:not(.num) #feedNum:not(#z){opacity:0!impor
   const BB = 'html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w):not(#v)';
   const BL = 'html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w):not(#v)';
   const ON = s => `${BB}>[data-bk].th-on:not(.thLeave) ${s},${BB}>[data-bk].thGo ${s}`;
-  const KIDS = '>svg,>i,>.mgr-ico';
   st.textContent = `
 /* colour + size follow the finger / the tap fast (was 0.9 s) */
 ${BB}>[data-bk],${BB}>[data-bk] svg,${BB}>[data-bk] i,${BB}>[data-bk] .thl,${BB}>[data-bk] svg *{transition:color .24s ease,opacity .24s ease,stroke .24s ease,fill .24s ease,stroke-width .24s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
@@ -7055,82 +7057,117 @@ ${BB}>[data-bk].th-on.thLeave>svg,${BB}>[data-bk].th-on.thLeave>i,${BB}>[data-bk
 ${ON('svg path')},${ON('svg line')},${ON('svg rect')},${ON('svg circle')},${ON('svg polyline')}{stroke-width:2.1px!important}
 ${BB}>#daysBtn.th-on:not(.thLeave) .dys .fr,${BB}>#daysBtn.thGo .dys .fr{stroke-width:2.6px!important}
 ${BB}>#daysBtn.th-on:not(.thLeave) .dys .rg,${BB}>#daysBtn.thGo .dys .rg{stroke-width:2.8px!important}
-/* a small pop of the icon, together with the new description */
-@keyframes thIcoPop{0%{scale:1.2}35%{scale:1.52}68%{scale:1.12}100%{scale:1.2}}
-${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:thIcoPop .5s cubic-bezier(.3,1.4,.5,1) 1}
+/* one slow, soft rise and settle of the icon */
+@keyframes thIcoPop{0%{scale:1.2}50%{scale:1.33}100%{scale:1.2}}
+#thBlurVeil{position:fixed;inset:0;z-index:2147482000;pointer-events:none;display:none}
+${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:thIcoPop .85s cubic-bezier(.45,0,.35,1) 1}
 #thGH .ttl{will-change:transform,filter,opacity}
 @media(prefers-reduced-motion:reduce){${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:none}}`;
   document.head.appendChild(st);
 
-  const COMMIT = 0.22;                                   /* same as the page switch: the description is completely gone when the new page is taken */
+  const T = {
+    en: { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Time', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' },
+    ar: { homeBtn: 'الرئيسية', feedBtn: 'المنشورات', daysBtn: 'الوقت', mgrBtn: 'المحادثات', barEdit: 'المزيد', spaceBtn: 'المساحة' },
+    eg: { homeBtn: 'الرئيسية', feedBtn: 'الفيد', daysBtn: 'تايم', mgrBtn: 'الماسنجر', barEdit: 'المزيد', spaceBtn: 'المساحة' }
+  };
+  const L = () => { const l = (typeof lang === 'string' && lang) || 'en'; return T[l] ? l : 'en'; };
+  const titleOf = id => T[L()][id] || '';
+  const G1 = 0.7;                 /* share of the screen at which the old description is completely gone and the new one starts to come in */
+  const BLUR = 26;                /* px of blur on the page you are leaving when it reaches G1 (the bar glass is 20) */
   const ttl = () => document.querySelector('#thGH .ttl');
   const easeOut = t => 1 - Math.pow(1 - t, 3), easeIn = t => t * t;
-  let qNow = 0, raf = 0, token = 0, pending = null, goneAt = 0, dragging = false, tw = false;
+  let qNow = 0, raf = 0, token = 0, pending = null, dragging = false, lastD = null, lastP = 0, pTw = 0, phase2 = false, veil = null;
 
-  /* q: 0 = in its place, 1 = gone. It slides back to the side it came from, blurs, and a soft-edged mask eats it (no hard cut) */
-  function apply(te, q) {
+  /* q: 0 = in its place, 1 = gone. It slides back to the side it came from, blurs, and a soft-edged mask eats it (no hard cut).
+     sc: when the description is coming in it starts a few px bigger and settles to its size (no pop). */
+  function apply(te, q, sc) {
     if (!te) return;
-    if (q <= 0.001) { ['transform', 'filter', 'opacity', '-webkit-mask-image', 'mask-image'].forEach(p => te.style.removeProperty(p)); return; }
+    if (q <= 0.001) { ['transform', 'filter', 'opacity', '-webkit-mask-image', 'mask-image', 'transform-origin'].forEach(p => te.style.removeProperty(p)); return; }
     const a = q * 160 - 60, m = 'linear-gradient(90deg,transparent ' + a.toFixed(1) + '%,#000 ' + (a + 60).toFixed(1) + '%)';
-    te.style.setProperty('transform', 'translateX(' + (-q * 44).toFixed(1) + 'px)');
+    te.style.setProperty('transform-origin', te.dataset.d === 'r' ? 'right center' : 'left center');
+    te.style.setProperty('transform', 'translateX(' + (-q * 44).toFixed(1) + 'px) scale(' + (1 + (sc || 0) * q).toFixed(3) + ')');
     te.style.setProperty('filter', 'blur(' + (q * 6).toFixed(2) + 'px)');
     te.style.setProperty('opacity', String(Math.max(0, 1 - Math.pow(q, 1.6)).toFixed(3)));
     te.style.setProperty('-webkit-mask-image', m); te.style.setProperty('mask-image', m);
   }
-  function tween(te, from, to, ms, done, ez) {
-    cancelAnimationFrame(raf); tw = true; const t0 = performance.now(), f = ez || easeOut;
+  function tween(te, from, to, ms, done, ez, sc) {
+    cancelAnimationFrame(raf); const t0 = performance.now(), f = ez || easeOut;
     (function step(n) {
-      const t = Math.min(1, (n - t0) / ms); qNow = from + (to - from) * f(t); apply(te, qNow);
-      if (t < 1) raf = requestAnimationFrame(step); else { qNow = to; tw = false; if (done) done(); }
+      const t = Math.min(1, (n - t0) / ms); qNow = from + (to - from) * f(t); apply(te, qNow, sc);
+      if (t < 1) raf = requestAnimationFrame(step); else { qNow = to; if (done) done(); }
     })(t0);
   }
-  function popIcon() {
-    const b = document.querySelector('#mobileFloatingBar>.th-on'); if (!b) return;
-    b.classList.remove('thPopIt'); void b.offsetWidth; b.classList.add('thPopIt'); setTimeout(() => b.classList.remove('thPopIt'), 650);
+  function popIcon(b) {
+    b = b || document.querySelector('#mobileFloatingBar>.th-on'); if (!b) return;
+    b.classList.remove('thPopIt'); void b.offsetWidth; b.classList.add('thPopIt'); setTimeout(() => b.classList.remove('thPopIt'), 900);
   }
-  function popText(te) { try { te.animate([{ scale: 1 }, { scale: 1.09 }, { scale: .985 }, { scale: 1 }], { duration: 380, easing: 'cubic-bezier(.3,1.3,.5,1)' }); } catch (e) { } }
+  function setText(te, txt) { te.dataset.full = txt; te.dataset.d = L() !== 'en' ? 'r' : 'l'; te.dir = L() !== 'en' ? 'rtl' : 'ltr'; te.textContent = txt; }
 
-  /* the header calls this every 40 ms with the title of the page you are on */
+  /* the header calls this every 40 ms with the title of the page you are on (a tap on the bar, not a drag) */
   window.thRollTitle = function (te, text, l) {
     const d = l !== 'en' ? 'r' : 'l', key = text + '|' + d;
     if (pending === key) return;
     if (!pending && te.dataset.full === text && te.dataset.d === d) return;
-    if (dragging) return;                                  /* the finger is still moving the pages */
+    if (dragging) return;                                  /* the finger is still moving the pages: the drag code owns the title */
     pending = key; const my = ++token; te.classList.remove('thIn');
     const show = () => {
       if (my !== token) return;
-      te.dataset.full = text; te.dataset.d = d; te.dir = d === 'r' ? 'rtl' : 'ltr'; te.textContent = text; goneAt = 0; qNow = 1; apply(te, 1);
+      setText(te, text); qNow = 1; apply(te, 1, 0.1);
       setTimeout(() => {
         if (my !== token) return; popIcon();
-        tween(te, 1, 0, 520, () => { if (my !== token) return; pending = null; popText(te); }, easeOut);
-      }, 70);
+        tween(te, 1, 0, 650, () => { if (my !== token) return; pending = null; }, easeOut, 0.1);
+      }, 60);
     };
     if (!te.dataset.full || qNow >= 0.99) show();
-    else tween(te, qNow, 1, 150, show, easeIn);            /* a tap on the bar: the old one leaves first */
+    else tween(te, qNow, 1, 220, show, easeIn, 0);        /* the old one leaves first */
   };
 
-  function preview(d, on) {
-    const a = document.getElementById(d.a), b = document.getElementById(d.b);
-    if (a) a.classList.toggle('thLeave', on); if (b) b.classList.toggle('thGo', on);
+  /* one function draws everything for the page position P (0 = still on the old page, 1 = the new page is in) */
+  function blurPage(d, px) {
+    if (d.ce) { if (px > 0.3) d.ce.style.setProperty('filter', 'blur(' + px.toFixed(1) + 'px)', 'important'); else d.ce.style.removeProperty('filter'); }
+    else {   /* Home is the page underneath: a veil blurs it, the new page slides over the veil */
+      if (!veil) { veil = document.getElementById('thBlurVeil') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'thBlurVeil' })); }
+      if (px > 0.3) { veil.style.display = 'block'; veil.style.webkitBackdropFilter = veil.style.backdropFilter = 'blur(' + px.toFixed(1) + 'px)'; } else veil.style.display = 'none';
+    }
   }
-  let lastD = null;
+  function render(d, P) {
+    const te = ttl(); if (!te) return;
+    const second = P >= G1, want = titleOf(second ? d.b : d.a);
+    if (want && te.dataset.full !== want) setText(te, want);
+    const q = second ? 1 - Math.min(1, (P - G1) / (1 - G1)) : Math.min(1, P / G1);
+    qNow = q; apply(te, q, second ? 0.1 : 0);
+    blurPage(d, BLUR * Math.min(1, P / G1));
+    if (second !== phase2) {                                /* the new page has the turn: its icon takes the colour + pops, the old one goes back */
+      phase2 = second; const a = document.getElementById(d.a), b = document.getElementById(d.b);
+      if (a) a.classList.toggle('thLeave', second); if (b) b.classList.toggle('thGo', second);
+      popIcon(second ? b : a);
+    }
+  }
+  function cleanup() {
+    cancelAnimationFrame(pTw);
+    if (lastD) {
+      [lastD.a, lastD.b].forEach(id => { const x = document.getElementById(id); if (x) x.classList.remove('thLeave', 'thGo'); });
+      [lastD.ce, lastD.ne].forEach(x => x && x.style.removeProperty('filter'));
+      lastD = null;
+    }
+    if (veil) veil.style.display = 'none';
+    phase2 = false; dragging = false; pending = null;
+  }
   (function loop() {
     try {
       const d = window.__thDrag, te = ttl();
       if (d && te) {
-        if (!dragging) { dragging = true; lastD = d; pending = null; token++; cancelAnimationFrame(raf); tw = false; te.classList.remove('thIn'); try { te.getAnimations().forEach(x => x.cancel()); } catch (e) { } d.tweened = false; }
-        if (d.live) { qNow = Math.min(1, (d.f || 0) / COMMIT); apply(te, qNow); preview(d, (d.f || 0) > 0.14); }
-        else if (!d.tweened) {                              /* let go: finish the move (new page) or come back (same page) */
-          d.tweened = true; const to = d.t === 1 ? 1 : 0; preview(d, to === 1);
-          tween(te, qNow, to, 180, () => { if (to === 1) goneAt = Date.now(); }, to === 1 ? easeIn : easeOut);
+        if (!dragging) { dragging = true; lastD = d; pending = null; token++; cancelAnimationFrame(raf); cancelAnimationFrame(pTw); te.classList.remove('thIn'); try { te.getAnimations().forEach(x => x.cancel()); } catch (e) { } phase2 = false; d.tweened = false; lastP = 0; }
+        if (d.live) { lastP = Math.min(1, d.f || 0); render(d, lastP); }
+        else if (!d.tweened) {                              /* let go: the page finishes the move (or comes back); the title + blur + icons go with it */
+          d.tweened = true; const to = d.t === 1 ? 1 : 0, from = lastP, ms = to ? 230 : 200, t0 = performance.now();
+          (function s(n) {
+            if (window.__thDrag !== d) return;
+            const t = Math.min(1, (n - t0) / ms); lastP = from + (to - from) * (1 - Math.pow(1 - t, 2)); render(d, lastP);
+            if (t < 1) pTw = requestAnimationFrame(s);
+          })(t0);
         }
-      } else if (dragging) {
-        dragging = false;
-        if (lastD) { const a = document.getElementById(lastD.a), b = document.getElementById(lastD.b); [a, b].forEach(x => x && x.classList.remove('thLeave', 'thGo')); lastD = null; }
-        if (qNow >= 0.99 && !goneAt) goneAt = Date.now();
-      }
-      /* safety: if the page switched but its title did not change, bring the description back */
-      if (!dragging && goneAt && !pending && qNow >= 0.99 && Date.now() - goneAt > 700 && te) { goneAt = 0; tween(te, 1, 0, 300, null, easeOut); }
+      } else if (dragging) cleanup();
     } catch (e) { }
     requestAnimationFrame(loop);
   })();
