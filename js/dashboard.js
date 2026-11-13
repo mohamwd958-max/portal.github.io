@@ -6599,9 +6599,9 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
     try {
       const gh = document.getElementById('thGH'); if (!gh) return;
       const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTLS[curL()][on.id] || '') : ''; if (on) lastOn = on.id;
-      gh.classList.remove('thHdr');
+      gh.classList.remove('thHdr'); gh.dataset.l = curL();
       const te = gh.querySelector('.ttl'); if (!t && lastOn) tt = TTLS[curL()][lastOn] || tt; if (t) tt = t;   /* a popup turns every button off: keep the last title, never blank */
-      if (tt && te.textContent !== tt) te.textContent = tt;
+      if (tt) { try { thRollTitle(te, tt, curL()); } catch (e) { if (te.textContent !== tt) te.textContent = tt; } }
       let n = tn; if (on) { n = ''; if (on.id === 'barEdit') n = (window.Thabit && Thabit.getName && Thabit.getName()) || ''; tn = n; }
       const ne = gh.querySelector('.nm'); if (ne.textContent !== n) ne.textContent = n;
     } catch (e) { }
@@ -6798,25 +6798,27 @@ html body .mgr-pop .mgr-h [data-x]{display:none!important}
 })();
 
 /* ==========================================================
-   Frosted glass (header + bar): still see-through and blurred, only a little lighter than plain dark glass, with a soft sheen on the face.
-   Dark theme = white writing, light theme = dark writing (as before). The old brand/logo leftovers under the header are removed.
+   Frosted glass (header + bar): ONE flat tint everywhere (no darker band in the middle), no borders, no lines, blurred and see-through.
+   Dark theme = white writing, light theme = dark writing. Page title in the header: English on the LEFT, Arabic on the RIGHT, and it
+   rolls in letter after letter (no pop). Old brand/logo leftovers under the header are removed.
    Appended at the END of dashboard.js. Delete this block to go back.
    ========================================================== */
 (function () {
   if (document.getElementById('thWhiteGlass')) return;
   const st = document.createElement('style'); st.id = 'thWhiteGlass';
   st.textContent = `
-/* dark theme: transparent glass with a light milky tint + a faint sheen */
+/* the glass: one flat tint, same from top to bottom */
 html body #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
 html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{
-  background:linear-gradient(180deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.08) 45%,rgba(255,255,255,.12) 100%)!important;
+  background:rgba(255,255,255,.16)!important;background-image:none!important;
   -webkit-backdrop-filter:blur(16px) saturate(1.5)!important;backdrop-filter:blur(16px) saturate(1.5)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.08)!important}
-/* light theme: same idea on a light page */
+  border:0!important;box-shadow:none!important;outline:0!important}
 html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
-html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{
-  background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,.36) 45%,rgba(255,255,255,.44) 100%)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(15,23,42,.06)!important}
+html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{background:rgba(255,255,255,.5)!important;background-image:none!important}
+/* no borders / lines on the header or the bar, top or bottom */
+html body #thGH:not(#z):not(#y):not(#w):not(#v),html body #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
+html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v),html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v),
+html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::before{border:0!important;border-top:0!important;border-bottom:0!important;box-shadow:none!important;outline:0!important}
 /* writing: white on the dark theme, dark on the light theme */
 html body #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#fff!important;text-shadow:0 1px 8px rgba(0,0,0,.35)!important}
 html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#0f172a!important;text-shadow:none!important}
@@ -6828,7 +6830,27 @@ html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#34d
 html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z),
 html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) svg,
 html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#059669!important}
+/* title side follows the language: English = left (the page name), Arabic = right; the profile name goes to the other side */
+html body #thGH[data-l="en"]:not(#z):not(#y) .ttl{left:16px!important;right:auto!important}
+html body #thGH[data-l="en"]:not(#z):not(#y) .nm{left:auto!important;right:16px!important}
+html body #thGH:not([data-l="en"]):not(#z):not(#y) .ttl{right:16px!important;left:auto!important}
+html body #thGH:not([data-l="en"]):not(#z):not(#y) .nm{left:16px!important;right:auto!important}
+/* the title rolls in letter after letter */
+#thGH .ttl .rl{display:inline-block;animation-fill-mode:both;animation-name:thRollL}
+#thGH .ttl .rl.r{animation-name:thRollR}
+@keyframes thRollL{from{clip-path:inset(-14px 100% -14px -14px)}to{clip-path:inset(-14px -14px -14px -14px)}}
+@keyframes thRollR{from{clip-path:inset(-14px -14px -14px 100%)}to{clip-path:inset(-14px -14px -14px -14px)}}
+@media(prefers-reduced-motion:reduce){#thGH .ttl .rl{animation:none!important}}
 /* old brand / logo / header leftovers must not exist (they showed as blurred writing under the header) */
 html body #thBrand,html body .thb-n,html body>[class*="logo"],html body>[id*="logo"],html body .thHdr:not(#thGH){display:none!important}`;
   document.head.appendChild(st);
+  window.thRollTitle = function (te, text, l) {
+    const rtl = l !== 'en', d = rtl ? 'r' : 'l';
+    if (te.dataset.full === text && te.dataset.d === d) return;
+    te.dataset.full = text; te.dataset.d = d; te.dir = rtl ? 'rtl' : 'ltr';
+    const n = Math.max(1, [...text].length), sp = document.createElement('span');
+    sp.className = 'rl ' + d; sp.textContent = text;
+    sp.style.animationDuration = Math.max(400, n * 110) + 'ms'; sp.style.animationTimingFunction = 'steps(' + n + ',end)';
+    te.textContent = ''; te.appendChild(sp);
+  };
 })();
