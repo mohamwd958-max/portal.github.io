@@ -6648,45 +6648,61 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
   async function refreshCurrent() {
     if (busy) return; busy = true;
     try {
-      const id = activeId();
-      if (id === 'feedBtn') { if (typeof refreshNotes === 'function') await refreshNotes(); }
-      else if (id === 'mgrBtn') { if (window.thMessenger && thMessenger.reload) await thMessenger.reload(); }
-      else if (id === 'daysBtn') { if (window.thDays && document.querySelector('#thDays.open')) thDays.open(); }
-      else if (id === 'spaceBtn') {
+      const id = activeId(), jobs = [];
+      if (id === 'spaceBtn') {
         const fr = document.querySelector('#thSpace iframe');
         if (fr) { try { fr.contentWindow.location.reload(); } catch (e) { const u = fr.src; fr.src = 'about:blank'; setTimeout(() => { fr.src = u; }, 30); } }
+      } else {
+        if (id === 'mgrBtn' && window.thMessenger && thMessenger.reload) jobs.push(thMessenger.reload());
+        if (id === 'daysBtn' && window.thDays && document.querySelector('#thDays.open')) { try { thDays.open(); } catch (e) { } }
+        if (typeof refreshNotes === 'function') jobs.push(refreshNotes());
+        if ((id === 'homeBtn' || !id) && window.thSkel) window.thSkel(true);
+        jobs.push(load());                      /* the data of the whole dashboard, whichever page you are on */
       }
-      else if (id === 'barEdit') { /* More: nothing to reload */ }
-      else { if (window.thSkel) window.thSkel(true); await load(); }
+      await Promise.allSettled(jobs);
     } catch (e) { console.warn('[pull refresh]', e); }
     setTimeout(() => { busy = false; }, 600);
   }
-  /* ---------- the pull circle: follows the finger down, an inner ring fills as you pull; let go early = it shrinks back and disappears ---------- */
+  /* ---------- the pull circle: comes down from BEHIND the header, follows the finger; the icon of the page you are on draws itself
+     (white) as you pull. Full = it turns green, pops, goes back behind the header, then the page refreshes. Let go early = it un-draws and hides. ---------- */
   const pst = document.createElement('style'); pst.id = 'thPtrCss';
   pst.textContent = `
-#thPtr{position:fixed;top:0;left:50%;margin-left:-22px;width:44px;height:44px;border-radius:50%;z-index:2147483010;display:grid;place-items:center;background:#161b22;border:1.5px solid rgba(255,255,255,.4);box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;will-change:transform,opacity;transform:translate3d(0,-80px,0)}
-body.light-theme #thPtr{background:#fff;border-color:rgba(15,23,42,.28);box-shadow:0 8px 22px rgba(15,23,42,.22)}
-#thPtr svg{width:40px;height:40px;display:block}
-#thPtr .pt{fill:none;stroke:rgba(148,163,184,.35);stroke-width:3}
-#thPtr .pa{fill:none;stroke:#34d399;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:50% 50%}
-#thPtr.spin svg{animation:thPtrSpin .8s linear infinite}
-#thPtr.spin .pa{stroke-dashoffset:28}
-@keyframes thPtrSpin{to{transform:rotate(360deg)}}`;
+#thPtr{position:fixed;top:0;left:50%;margin-left:-24px;width:48px;height:48px;border-radius:50%;z-index:2147483003;display:grid;place-items:center;background:#161b22;border:1.5px solid rgba(255,255,255,.35);box-shadow:0 8px 22px rgba(0,0,0,.45);opacity:0;pointer-events:none;will-change:transform;transform:translate3d(0,-120px,0)}
+body.light-theme #thPtr{background:#fff;border-color:rgba(15,23,42,.25);box-shadow:0 8px 22px rgba(15,23,42,.2)}
+#thPtr svg{width:28px;height:28px;display:block;overflow:visible;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.light-theme #thPtr svg{stroke:#0f172a}
+#thPtr svg path{stroke-dasharray:1;stroke-dashoffset:1}
+#thPtr.done svg{stroke:#34d399!important}
+body.light-theme #thPtr.done svg{stroke:#059669!important}
+#thPtr.pop{animation:thPtrPop .38s cubic-bezier(.3,1.7,.5,1)}
+@keyframes thPtrPop{0%{scale:1}45%{scale:1.28}100%{scale:1}}
+@media(prefers-reduced-motion:reduce){#thPtr.pop{animation:none}}`;
   document.head.appendChild(pst);
-  const ring = document.createElement('div'); ring.id = 'thPtr'; ring.setAttribute('aria-hidden', 'true');
-  ring.innerHTML = '<svg viewBox="0 0 44 44"><circle class="pt" cx="22" cy="22" r="11"/><circle class="pa" cx="22" cy="22" r="11" pathLength="100"/></svg>';
-  document.body.appendChild(ring);
-  const arc = ring.querySelector('.pa');
-  const TH = 84, MAXP = 112;
+  const ring = document.createElement('div'); ring.id = 'thPtr'; ring.setAttribute('aria-hidden', 'true'); document.body.appendChild(ring);
+  const ICONS = {
+    homeBtn: ['M3.5 11.2 12 4l8.5 7.2', 'M5.5 9.6v9.6a.8.8 0 0 0 .8.8h11.4a.8.8 0 0 0 .8-.8V9.6', 'M9.8 20v-5a.8.8 0 0 1 .8-.8h2.8a.8.8 0 0 1 .8.8v5'],
+    feedBtn: ['M12 3L15.06 7.79L20.56 9.22L16.95 13.61L17.29 19.28L12 17.2L6.71 19.28L7.05 13.61L3.44 9.22L8.94 7.79Z'],
+    daysBtn: ['M4.5 6.5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z', 'M3.5 10.5h17', 'M8.5 3.5v4', 'M15.5 3.5v4'],
+    mgrBtn: ['M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z', 'M7.6 13.8 17.4 7'],
+    barEdit: ['M12 4.5v15', 'M4.5 12h15'],
+    spaceBtn: ['M4 20v-3.8L16.2 4a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L7.8 20z', 'M13.6 6.7l3.7 3.7']
+  };
+  let paths = [], iconId = '';
+  function setIcon(id) {                  /* the icon of the page you are on (Home by default) */
+    id = ICONS[id] ? id : 'homeBtn'; if (id === iconId) return; iconId = id;
+    ring.innerHTML = '<svg viewBox="0 0 24 24">' + ICONS[id].map(d => '<path pathLength="1" d="' + d + '"/>').join('') + '</svg>';
+    paths = [...ring.querySelectorAll('path')];
+  }
   const hdrH = () => { const h = document.getElementById('thGH'); return h ? h.getBoundingClientRect().height : 52; };
+  const TH = 84, MAXP = 112;
   function draw(p) {                      /* p = how far the circle has been pulled (px) */
-    const k = Math.max(0, Math.min(1, p / TH));
-    ring.style.opacity = p <= 2 ? 0 : Math.min(1, p / 26);
-    ring.style.transform = 'translate3d(0,' + Math.round(hdrH() + p - 58) + 'px,0) scale(' + (0.55 + 0.45 * Math.min(1, p / 40)) + ')';
-    if (!ring.classList.contains('spin')) arc.style.strokeDashoffset = 100 - k * 100;
+    const k = Math.max(0, Math.min(1, p / TH)), n = paths.length;
+    ring.style.opacity = p <= 1 ? 0 : 1;
+    ring.style.transform = 'translate3d(0,' + Math.round(hdrH() - 54 + p * 0.95) + 'px,0)';   /* p = 0: fully behind the header */
+    paths.forEach((el, j) => { const f = Math.max(0, Math.min(1, k * n - j)); el.style.strokeDashoffset = 1 - f; });
   }
   let anim = 0;
-  function glide(from, to, ms, done) {    /* smooth slide of the pull value (shrinks back slowly, slower the closer to the end) */
+  function glide(from, to, ms, done) {    /* smooth slide of the pull value */
     cancelAnimationFrame(anim); const t0 = performance.now();
     (function f(now) {
       const t = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - t, 2);
@@ -6694,10 +6710,10 @@ body.light-theme #thPtr{background:#fff;border-color:rgba(15,23,42,.28);box-shad
       if (t < 1) anim = requestAnimationFrame(f); else if (done) done();
     })(t0);
   }
-  let g = null, cur = 0;
+  let g = null, cur = 0, running = false;
   document.addEventListener('touchstart', e => {
     g = null;
-    if (busy || ring.classList.contains('spin') || e.touches.length !== 1) return;
+    if (busy || running || e.touches.length !== 1) return;
     const t0 = e.target;
     if (t0.closest && t0.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui,iframe')) return;
     if (document.querySelector('.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open')) return;
@@ -6713,21 +6729,24 @@ body.light-theme #thPtr{background:#fff;border-color:rgba(15,23,42,.28);box-shad
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) { g = null; return; }      /* a sideways swipe: not ours */
       if (dy < 10) { if (dy < -8) g = null; return; }                                  /* not pulling down yet */
       if (!winTop() && activeId() !== 'spaceBtn' && (activeId() === 'homeBtn' || !activeId())) { g = null; return; }
-      g.on = true; ring.classList.remove('spin');
+      g.on = true; ring.classList.remove('done', 'pop'); setIcon(activeId() || 'homeBtn');
     }
     cur = Math.max(0, Math.min(MAXP, (dy - 10) * 0.7));
     if (e.cancelable) e.preventDefault();
-    draw(cur);                                                                          /* going back up makes it shrink by itself */
+    draw(cur);                                                                          /* going back up un-draws it by itself */
   }, { passive: false });
   function release() {
     const was = g; g = null; if (!was || !was.on) return;
-    if (cur >= TH && !busy) {
-      ring.classList.add('spin'); glide(cur, TH, 160);
-      Promise.resolve(refreshCurrent()).catch(() => { }).then(() => setTimeout(() => {
-        glide(TH, 0, 280, () => { ring.classList.remove('spin'); arc.style.strokeDashoffset = 100; });
-      }, 500));
+    if (cur >= TH) {
+      running = true; glide(cur, TH, 120, () => {
+        draw(TH); ring.classList.add('done'); ring.classList.remove('pop'); void ring.offsetWidth; ring.classList.add('pop');   /* green + a small pop */
+        setTimeout(() => glide(TH, 0, 300, () => {                                      /* back behind the header... */
+          ring.classList.remove('done', 'pop'); running = false;
+          refreshCurrent();                                                              /* ...then the refresh */
+        }), 420);
+      });
     } else {
-      glide(cur, 0, 100 + cur * 5);                                                     /* not finished: shrink back and vanish */
+      glide(cur, 0, 120 + cur * 5);                                                     /* not finished: un-draws and hides */
     }
     cur = 0;
   }
@@ -6810,8 +6829,8 @@ html body .mgr-pop .mgr-h [data-x]{display:none!important}
 /* the glass: one flat tint, same from top to bottom */
 html body #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
 html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{
-  background:rgba(255,255,255,.16)!important;background-image:none!important;
-  -webkit-backdrop-filter:blur(16px) saturate(1.5)!important;backdrop-filter:blur(16px) saturate(1.5)!important;
+  background:rgba(255,255,255,.09)!important;background-image:none!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.8)!important;backdrop-filter:blur(20px) saturate(1.8)!important;
   border:0!important;box-shadow:none!important;outline:0!important}
 html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
 html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{background:rgba(255,255,255,.5)!important;background-image:none!important}
