@@ -6381,11 +6381,12 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   function go(k) {
     if (!pages().includes(k)) return;
     const c0 = curKey();
-    if (c0 === k) { if (k === 'space') exitSpace(); else if (k === 'home') { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } if (window.thRefreshNow) window.thRefreshNow(); } return; }   /* tap Space again = exit */
+    if (c0 === k) { if (k === 'space') exitSpace(); else { if (k === 'home') { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } } if (window.thRefreshNow) window.thRefreshNow(); } return; }   /* tap Space again = exit */
     if (k === 'space') spPrev = c0;
+    if (window.thCancelRefresh) window.thCancelRefresh();
     closeAll();
     try {
-      if (k === 'feed') openFeed($('feedBtn'));
+      if (k === 'feed') { openFeed($('feedBtn')); if (window.thFlyFeed) window.thFlyFeed(); }
       else if (k === 'msgr') thMessenger.open();
       else if (k === 'days') thDays.open();
       else if (k === 'space') thSpace.open();
@@ -6466,7 +6467,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     NAVBUSY = true; busyAt = Date.now();                     /* a new swipe cannot start until this one has fully landed */
     let fin = false;
     const finish = which => { if (fin) return; fin = true; try { shut(which); } catch (e) { } clr(d.ce); clr(d.ne); window.__thDragging = false; window.__thDrag = null; NAVBUSY = false; try { sync(); if (window.thFpSync) thFpSync(); } catch (e) { } };
-    if (go1) { put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230); setTimeout(() => finish(d.ck), 245); }
+    if (go1) { if (window.thCancelRefresh) window.thCancelRefresh(); if (d.nk === 'feed' && window.thFlyFeed) window.thFlyFeed(); put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230); setTimeout(() => finish(d.ck), 245); }
     else { put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200); setTimeout(() => finish(d.nk), 215); }
   }
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
@@ -6723,7 +6724,7 @@ body.light-theme #thPtr.done svg{stroke:#059669!important}
      the data reloads, then the cards fly down one after another into their places. The bar icons are never touched. ---------- */
   const rst = document.createElement('style'); rst.id = 'thRefSkCss';
   rst.textContent = `
-#thSkPg{position:fixed;inset:0;z-index:2147483002;background:var(--thp-bg,#000);overflow:hidden}
+#thSkPg{position:fixed;inset:0;z-index:2147483002;background:var(--thp-bg,#000);overflow:hidden;pointer-events:none}
 #thSkPg .thSkB{position:fixed;box-sizing:border-box;overflow:hidden;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.07);color:#cbd5e1}
 body.light-theme #thSkPg .thSkB{color:#0f172a}
 #thSkPg .thSkB .th-sk::before{animation-duration:1.1s}
@@ -6747,17 +6748,28 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     ov.innerHTML = list.map(q => '<div class="thSkB" style="left:' + q.l + 'px;top:' + q.t + 'px;width:' + q.w + 'px;height:' + q.h + 'px;border-radius:' + q.r + '"><div class="th-sk"></div></div>').join('');
     document.body.appendChild(ov); return ov;
   }
+  let rtk = 0;
+  window.thCancelRefresh = () => {          /* you went somewhere else: the old refresh stops (skeleton gone at once, nothing plays after) */
+    rtk++; const o = document.getElementById('thSkPg'); if (o) o.remove();
+    try { if (window.thSkel) window.thSkel(false); } catch (e) { }
+    busy = false;
+  };
   async function runRefresh() {
-    const id = activeId();
+    const id = activeId(), my = ++rtk;
     if (!id || id === 'homeBtn') return refreshCurrent();            /* Home: the full skeleton that already exists */
     const ov = skelShow(id), t0 = Date.now();
     try { await refreshCurrent(); } catch (e) { }
     await sleep(Math.max(0, (id === 'spaceBtn' ? 1500 : 1000) - (Date.now() - t0)));
-    const els = id === 'spaceBtn' ? [] : cands(id);
-    els.forEach((e, i) => { e.style.setProperty('--d', Math.min(i, 14) * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
-    ov.remove();                                                      /* the cards are already hidden (waiting for their turn), so nothing flashes */
-    setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2800);
+    if (my !== rtk || activeId() !== id) { ov.remove(); return; }      /* cancelled / you left this page */
+    ov.style.transition = 'opacity .6s ease'; ov.style.opacity = '0';   /* the skeleton melts away and the info under it is there: no fly-in, no second pop */
+    setTimeout(() => ov.remove(), 650);
   }
+  /* the cards falling from the sky one by one: ONLY when you come into the Feed */
+  window.thFlyFeed = () => {
+    const els = [...document.querySelectorAll('#pop .pc')].slice(0, 14);
+    els.forEach((e, i) => { e.style.setProperty('--d', i * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
+    setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2600);
+  };
   let g = null, cur = 0, running = false;
   window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
   window.addEventListener('touchstart', e => {   /* window + capture: the pages swallow taps on their empty background before document sees them */
@@ -7070,7 +7082,7 @@ ${BB}>#daysBtn.th-on:not(.thLeave) .dys .rg,${BB}>#daysBtn.thGo .dys .rg{stroke-
 @keyframes thIcoPop{0%{scale:1.2}50%{scale:1.33}100%{scale:1.2}}
 #thBlurVeil{position:fixed;inset:0;z-index:2147482000;pointer-events:none;display:none}
 ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:thIcoPop .85s cubic-bezier(.45,0,.35,1) 1}
-#thGH .ttl{will-change:transform,filter,opacity}
+#thGH .ttl{will-change:transform,filter,opacity;padding:.35em 1.1em!important;margin:-.35em -1.1em!important;box-sizing:content-box}
 @media(prefers-reduced-motion:reduce){${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:none}}`;
   document.head.appendChild(st);
 
@@ -7139,6 +7151,24 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
       if (px > 0.3) { veil.style.display = 'block'; veil.style.webkitBackdropFilter = veil.style.backdropFilter = 'blur(' + px.toFixed(1) + 'px)'; } else veil.style.display = 'none';
     }
   }
+  const mixed = new Set();
+  const lerpC = (w, g, k) => 'rgb(' + w.map((x, i) => Math.round(x + (g[i] - x) * k)).join(',') + ')';
+  function iconMix(btn, k) {                    /* k: 0 = a normal icon, 1 = the active icon (green, 1.2x) */
+    if (!btn) return; mixed.add(btn);
+    const light = document.body.classList.contains('light-theme'), c = lerpC(light ? [15, 23, 42] : [255, 255, 255], light ? [5, 150, 105] : [52, 211, 153], k), sc = (1 + 0.2 * k).toFixed(3);
+    btn.style.setProperty('color', c, 'important'); btn.style.setProperty('opacity', '1', 'important'); btn.style.setProperty('transition', 'none', 'important');
+    btn.querySelectorAll(':scope>svg,:scope>i,:scope>.mgr-ico').forEach(x => {
+      x.style.setProperty('color', c, 'important'); x.style.setProperty('scale', sc, 'important'); x.style.setProperty('translate', '0 0', 'important');
+      x.style.setProperty('transition', 'none', 'important'); x.style.setProperty('filter', 'none', 'important'); x.style.setProperty('animation', 'none', 'important');
+    });
+  }
+  function iconClear() {
+    mixed.forEach(btn => {
+      ['color', 'opacity', 'transition'].forEach(p => btn.style.removeProperty(p));
+      btn.querySelectorAll(':scope>svg,:scope>i,:scope>.mgr-ico').forEach(x => ['color', 'scale', 'translate', 'transition', 'filter', 'animation'].forEach(p => x.style.removeProperty(p)));
+    });
+    mixed.clear();
+  }
   function render(d, P) {
     const te = ttl(); if (!te) return;
     const second = P >= G1, want = titleOf(second ? d.b : d.a);
@@ -7146,16 +7176,16 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
     const q = second ? 1 - Math.min(1, (P - G1) / (1 - G1)) : Math.min(1, P / G1);
     qNow = q; apply(te, q, second ? 0.1 : 0);
     blurPage(d, BLUR * Math.pow(Math.min(1, P / G1), 2.4));
-    if (second !== phase2) {                                /* the new page has the turn: its icon takes the colour + pops, the old one goes back */
-      phase2 = second; const a = document.getElementById(d.a), b = document.getElementById(d.b);
-      if (a) a.classList.toggle('thLeave', second); if (b) b.classList.toggle('thGo', second);
-      popIcon(second ? b : a);
-    }
+    phase2 = second;
+    /* the old icon shrinks back to normal size and loses its green by 75% of the way; from 50% the new icon turns green and grows */
+    iconMix(document.getElementById(d.a), 1 - Math.min(1, P / 0.75));
+    iconMix(document.getElementById(d.b), Math.max(0, Math.min(1, (P - 0.5) / 0.5)));
   }
   function cleanup() {
     cancelAnimationFrame(pTw);
     if (lastD) {
       [lastD.a, lastD.b].forEach(id => { const x = document.getElementById(id); if (x) x.classList.remove('thLeave', 'thGo'); });
+      const landed = lastP > 0.5; iconClear(); if (landed) setTimeout(() => popIcon(), 30);
       [lastD.ce, lastD.ne].forEach(x => x && x.style.removeProperty('filter'));
       lastD = null;
     }
