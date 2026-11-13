@@ -6375,8 +6375,13 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     try { const m = $q('#thMenu.open'); if (m) m.classList.remove('open'); } catch (e) { }
     try { thDetClose(); } catch (e) { }
   }
+  let spPrev = 'home';   /* the page you were on before you opened Space */
+  function exitSpace() { const p = spPrev && spPrev !== 'space' ? spPrev : 'home'; go(p); }   /* closing Space saves the board first */
   function go(k) {
-    if (!pages().includes(k) || curKey() === k) return;
+    if (!pages().includes(k)) return;
+    const c0 = curKey();
+    if (c0 === k) { if (k === 'space') exitSpace(); return; }   /* tap Space again = exit */
+    if (k === 'space') spPrev = c0;
     closeAll();
     try {
       if (k === 'feed') openFeed($('feedBtn'));
@@ -6394,6 +6399,9 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     const k = PAGES.find(x => BTN[x] === b.id); if (!k) return;
     e.stopPropagation(); e.preventDefault(); go(k);
   }, true);
+
+  { const tsx = $q('#thSpace .tsx'); if (tsx) tsx.addEventListener('click', () => setTimeout(() => { if (curKey() !== 'space' && spPrev && spPrev !== 'home') go(spPrev); }, 80)); }
+  window.addEventListener('message', e => { if (e.data && e.data.type === 'thabit-board-exit') exitSpace(); });
 
   let sx = 0, sy = 0, st0 = 0, ok = false;
   const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
@@ -6451,6 +6459,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     const d = dg; dg = null; if (!d) return;
     dx = d.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
     const go1 = Math.abs(dx) > d.w * COMMIT || (Math.abs(vx) > 0.45 && Math.abs(dx) > 24 && Math.sign(vx) === Math.sign(dx));
+    if (d.nk === 'space') spPrev = d.ck;
     if (window.__thDrag) { window.__thDrag.live = false; window.__thDrag.t = go1 ? 1 : 0; }
     if (go1) {
       put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230);
@@ -6528,6 +6537,14 @@ body.light-theme #thGH .ttl,body.light-theme #thGH .nm{color:#0f172a;text-shadow
 /* (logo is OFF for now. To bring it back: see the note next to  g.innerHTML  and add these styles)
 #thGH .lgw{position:absolute;left:16px;top:50%;transform:translateY(-42%);width:34px;height:34px;filter:drop-shadow(0 0 5px rgba(56,189,248,.95)) drop-shadow(0 0 14px rgba(56,189,248,.55))}
 #thGH .lg{width:100%;height:100%;-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat;background:linear-gradient(135deg,#a5f3fc,#38bdf8 45%,#3b82f6 75%,#22d3ee)} */
+/* the new glass header can never turn into the old one, whoever tags it */
+html body #thGH:not(#z):not(#y):not(#w),html body #thGH.thHdr:not(#z):not(#y):not(#w){background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;visibility:visible!important;opacity:1!important;display:block!important}
+html body #thGH:not(#z):not(#y):not(#w) *{visibility:visible!important}
+html body #thGH:not(#z):not(#y):not(#w) .gl{background:rgba(24,28,32,.30)!important}
+html body.light-theme #thGH:not(#z):not(#y):not(#w) .gl{background:rgba(255,255,255,.38)!important}
+html body #thGH:not(#z):not(#y):not(#w) .gl{-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+/* standard top distance for the messenger too */
+html body .mgr-pop:not(#z){padding-top:calc(var(--th-hd) + var(--th-gap))!important}
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
 html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
@@ -6549,7 +6566,7 @@ html body #thBrand:not(#z):not(#y):not(#w) :is(img,svg,picture,canvas,[class*="l
 html body #pop.open:not(#z){position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;
   padding:var(--th-hd,calc(58px + env(safe-area-inset-top,0px))) 0 var(--th-bar,calc(96px + env(safe-area-inset-bottom,0px)))!important;
   overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;align-items:stretch!important;border-radius:0!important}
-html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;width:100%!important;max-width:none!important;gap:10px!important;box-sizing:border-box!important}`;
+html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0!important;width:100%!important;max-width:none!important;gap:10px!important;box-sizing:border-box!important}`;
   document.head.appendChild(st);
   /* real heights of the header and the bar, so the feed starts / ends exactly at them */
   function measure() {
@@ -6574,6 +6591,7 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
     try {
       const gh = document.getElementById('thGH'); if (!gh) return;
       const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTL[on.id] || '') : '';
+      gh.classList.remove('thHdr');
       const te = gh.querySelector('.ttl'); if (t) tt = t;   /* a popup turns every button off: keep the last title, never blank */
       if (tt && te.textContent !== tt) te.textContent = tt;
       let n = tn; if (on) { n = ''; if (on.id === 'barEdit') n = (window.Thabit && Thabit.getName && Thabit.getName()) || ''; tn = n; }
