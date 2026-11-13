@@ -18,7 +18,7 @@
 
   var brand = document.createElement('div'); brand.id = 'thBrand';
   brand.innerHTML = '<span class="thb-l" role="img" aria-label="THABIT"></span><span class="thb-n" dir="auto"></span>';
-  (document.documentElement || document.body).appendChild(brand);
+  /* the old header is REMOVED: #thBrand is built (other code still talks to it) but never put on the page. The glass header lives in dashboard.js (#thGH). To bring the old header back, use:  (document.documentElement || document.body).appendChild(brand); */
   var mark = brand.querySelector('.thb-l'), pf = brand.querySelector('.thb-p'), nmEl = brand.querySelector('.thb-n'), nmTxt = '';
   /* hard pin: if any ancestor/transform/scroller makes the fixed box drift, push it back to its place */
   (function () {
@@ -32,7 +32,7 @@
   })();
   if (pf) pf.onclick = function () { window.Panels && Panels.open('profile'); };
 
-  window.Thabit = { hasName: function () { return !!nmTxt; }, setProfile: function (name, photo) {
+  window.Thabit = { hasName: function () { return !!nmTxt; }, getName: function () { return nmTxt; }, setProfile: function (name, photo) {
     if (name) { nmTxt = String(name).trim(); if (nmEl) nmEl.textContent = nmTxt; }
     if (!pf) return;
     if (photo) { pf.innerHTML = '<img alt="" src="' + photo + '">'; return; }
@@ -55,6 +55,11 @@
       '#thSkOv .skm{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;background:currentColor;opacity:.3;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat;animation:thSkMk 1.7s ease-in-out infinite}' +
       '@keyframes thSkFl{to{transform:translateX(330%)}}@keyframes thSkMk{0%,100%{opacity:.16}50%{opacity:.42}}' +
       'html.thsk-on #thBrand{z-index:2147483004!important}' +
+      /* while loading: nothing of the old bar / header may show. The bar is only glass (no buttons) and the header is only glass; the buttons appear when the loading screen leaves. */
+      '#thBrand{display:none!important}' +
+      'html.thsk-on body #mobileFloatingBar:not(#z):not(#y):not(#w){background:' + (light ? 'rgba(255,255,255,.38)' : 'rgba(24,28,32,.30)') + '!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important;border:0!important;box-shadow:none!important}' +
+      'html.thsk-on body #mobileFloatingBar:not(#z):not(#y):not(#w)>*:not(.thSweepBox){visibility:hidden!important}' +
+      'html.thsk-on:not(.th-gh)::before{content:"";position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 52px);z-index:2147483004;pointer-events:none;background:' + (light ? 'rgba(255,255,255,.38)' : 'rgba(24,28,32,.30)') + ';-webkit-backdrop-filter:blur(6px) saturate(1.3);backdrop-filter:blur(6px) saturate(1.3)}' +
       '@media(prefers-reduced-motion:reduce){#thSkOv .skf,#thSkOv .skm{animation:none}}';
     document.head.appendChild(css2);
     var cards = function (n, h) { var o = ''; for (var i = 0; i < n; i++) o += '<div class="skc" style="height:' + h + 'px"></div>'; return o; };
