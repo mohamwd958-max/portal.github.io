@@ -3464,7 +3464,7 @@ html[dir=rtl] #thCal .cb i.fa-chevron-left,html[dir=rtl] #thCal .cb i.fa-chevron
   function closeCal() { box.classList.remove('open'); document.documentElement.style.overflow = ''; }
   box.addEventListener('click', e => { if (e.target === box) closeCal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && box.classList.contains('open')) closeCal(); });
-  window.openCal = openCal; window.closeCal = closeCal;
+  window.openCal = openCal; window.closeCal = closeCal; window.thCalRender = () => { try { if (box.classList.contains('open')) render(); } catch (e) { } };
 
   /* the profile button's pop-out: Profile, Calendar, Log out */
   window.openProf = function (btn) {
@@ -6453,7 +6453,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   function dragMove(dx) {
     dx = dg.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
     put(dg.ce, dx, 0); put(dg.ne, dg.side * dg.w + dx, 0);
-    if (window.__thDrag) window.__thDrag.t = Math.min(1, Math.abs(dx) / (dg.w * 0.35));
+    if (window.__thDrag) { window.__thDrag.t = Math.min(1, Math.abs(dx) / (dg.w * 0.35)); window.__thDrag.f = Math.abs(dx) / dg.w; }
     return dx;
   }
   function dragEnd(dx) {
@@ -6659,7 +6659,8 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
         if ((id === 'homeBtn' || !id) && window.thSkel) window.thSkel(true);
         jobs.push(load());                      /* the data of the whole dashboard, whichever page you are on */
       }
-      await Promise.allSettled(jobs);
+      await Promise.race([Promise.allSettled(jobs), new Promise(r => setTimeout(r, 9000))]);   /* never stuck: 9 s at most */
+      try { if (document.querySelector('#thCal.open') && window.thCalRender) thCalRender(); } catch (e) { }
     } catch (e) { console.warn('[pull refresh]', e); }
     setTimeout(() => { busy = false; }, 600);
   }
@@ -6725,6 +6726,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
   const CANDS = { feedBtn: '#pop .pc', daysBtn: '#thDays .dcard,#thDays .drow', barEdit: '#thSet .tsl', mgrBtn: '.mgr-pop .mgr-cell' };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   function cands(id) {                    /* the cards / cells of the page you are on (the things that hold info) */
+    { const cb = document.querySelector('#thCal.open .cbox'); if (cb) return [cb]; }   /* calendar open: the calendar card itself */
     const sel = CANDS[id]; if (!sel) return [];
     let a = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 60 && r.height > 20 && r.bottom > 0 && r.top < innerHeight; });
     return a.filter(e => !a.some(o => o !== e && o.contains(e)));
@@ -6749,17 +6751,17 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2800);
   }
   let g = null, cur = 0, running = false;
-  document.addEventListener('touchstart', e => {
+  window.addEventListener('touchstart', e => {   /* window + capture: the pages swallow taps on their empty background before document sees them */
     g = null;
     if (busy || running || e.touches.length !== 1) return;
     const t0 = e.target;
     if (t0.closest && t0.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui,iframe')) return;
-    if (document.querySelector('.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open')) return;
+    if (document.querySelector('.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open')) return;
     const id = activeId();
     if (id !== 'spaceBtn' && !scrolledInside(t0) && (id === 'homeBtn' || !id) && !winTop()) return;
     if (scrolledInside(t0)) return;
     const t = e.touches[0]; g = { x: t.clientX, y: t.clientY, on: false }; cancelAnimationFrame(anim);
-  }, { passive: true });
+  }, { passive: true, capture: true });
   document.addEventListener('touchmove', e => {
     if (!g) return;
     const t = e.touches[0], dy = t.clientY - g.y, dx = t.clientX - g.x;
@@ -6975,4 +6977,161 @@ ${B}>[data-bk]:not(.th-on)>svg,${B}>[data-bk]:not(.th-on)>i,${B}>[data-bk]:not(.
   }
   const run = () => document.querySelectorAll('#feedNum,#mgrNum,#daysNum').forEach(cut);
   run(); setInterval(run, 300);
+})();
+
+/* ==========================================================
+   Bar v6 (end of dashboard.js): icons centred in the bar, notification badge = red disc with the number cut out (see-through),
+   bar glow rising from the bottom every 10 s (no streak in the header). Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (document.getElementById('thBarV6')) return;
+  const st = document.createElement('style'); st.id = 'thBarV6';
+  const B = 'html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)';
+  st.textContent = `
+/* 1) icons exactly in the middle of the bar (the safe-area strip at the bottom is not counted) */
+${B}{align-items:center!important;padding-top:0!important;padding-bottom:env(safe-area-inset-bottom,0px)!important;box-sizing:border-box!important}
+${B}>[data-bk]:not(#z){height:44px!important;min-height:0!important;padding:0!important;margin:0!important;align-self:center!important;display:flex!important;align-items:center!important;justify-content:center!important}
+${B}>[data-bk].th-on>svg,${B}>[data-bk].th-on>i,${B}>[data-bk].th-on>.mgr-ico{translate:0 0!important}
+
+/* 2) badge: solid red, the number is a hole (the bar shows through it) */
+html body #mobileFloatingBar #feedNum:not(#z):not(#y),html body #mobileFloatingBar #mgrNum:not(#z):not(#y),html body #mobileFloatingBar #daysNum:not(#z):not(#y){
+  background:#ef4444!important;background-color:#ef4444!important;background-image:none!important;border:0!important;box-shadow:none!important;text-shadow:none!important;
+  color:transparent!important;-webkit-text-fill-color:transparent!important;filter:none!important;opacity:1}
+html body #mobileFloatingBar #feedBtn:not(.num) #feedNum:not(#z){opacity:0!important}
+
+/* 3) no streak at all in the header or the bar; the new glow comes up from the bottom of the bar */
+.thSweepBox{display:none!important}
+.thGlowBox{position:absolute;inset:0;overflow:hidden;border-radius:inherit;z-index:0;pointer-events:none}
+.thGlowBox i{position:absolute;left:-10%;right:-10%;bottom:-60%;height:150%;opacity:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 100%,rgba(167,243,208,.50) 0%,rgba(255,255,255,.20) 38%,rgba(255,255,255,0) 70%);filter:blur(5px)}
+.thGlowBox i.go{animation:thGlowUp 1.7s ease-in-out 1}
+@keyframes thGlowUp{0%{opacity:0;transform:translateY(40%)}40%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8%)}}
+@media(prefers-reduced-motion:reduce){.thGlowBox i{display:none}}`;
+  document.head.appendChild(st);
+
+  let el = null;
+  function make() {
+    const bar = document.getElementById('mobileFloatingBar'); if (!bar) return null;
+    let bx = bar.querySelector(':scope > .thGlowBox');
+    if (!bx) { bx = document.createElement('div'); bx.className = 'thGlowBox'; bx.innerHTML = '<i></i>'; bar.insertBefore(bx, bar.firstChild); }
+    return bx.firstChild;
+  }
+  function fire() {
+    if (document.hidden) return;
+    el = make(); if (!el) return;
+    el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+  }
+  setTimeout(fire, 800);
+  setInterval(fire, 10000);
+})();
+
+
+/* ==========================================================
+   Bar v7 (end of dashboard.js): page change feels alive.
+   - while you drag to another page, the header description slides back out the way it came in (blur + soft "portal" edge, no sharp cut) and is fully gone when the new page takes over
+   - when the new page takes over, its description comes in from the same side, slowly, then one small pop
+   - the icon of the page that has the turn turns green / bigger / bolder + pops, at the same moment (faster than before); the old icon goes back
+   Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (document.getElementById('thBarV7')) return;
+  const st = document.createElement('style'); st.id = 'thBarV7';
+  const BB = 'html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w):not(#v)';
+  const BL = 'html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w):not(#v)';
+  const ON = s => `${BB}>[data-bk].th-on:not(.thLeave) ${s},${BB}>[data-bk].thGo ${s}`;
+  const KIDS = '>svg,>i,>.mgr-ico';
+  st.textContent = `
+/* colour + size follow the finger / the tap fast (was 0.9 s) */
+${BB}>[data-bk],${BB}>[data-bk] svg,${BB}>[data-bk] i,${BB}>[data-bk] .thl,${BB}>[data-bk] svg *{transition:color .24s ease,opacity .24s ease,stroke .24s ease,fill .24s ease,stroke-width .24s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
+${BB}>[data-bk]>svg,${BB}>[data-bk]>i,${BB}>[data-bk]>.mgr-ico{transition:scale .32s cubic-bezier(.34,1.5,.5,1),translate .32s ease,color .24s ease,opacity .24s ease,stroke .24s ease,fill .24s ease,stroke-width .24s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
+/* the page that has the turn (th-on, or "thGo" while you are still dragging toward it) */
+${BB}>[data-bk].thGo,${BB}>[data-bk].thGo svg,${BB}>[data-bk].thGo i{color:#34d399!important;opacity:1!important}
+${BL}>[data-bk].thGo,${BL}>[data-bk].thGo svg,${BL}>[data-bk].thGo i{color:#059669!important}
+${BB}>[data-bk].th-on.thLeave,${BB}>[data-bk].th-on.thLeave svg,${BB}>[data-bk].th-on.thLeave i{color:#fff!important}
+${BL}>[data-bk].th-on.thLeave,${BL}>[data-bk].th-on.thLeave svg,${BL}>[data-bk].th-on.thLeave i{color:#0f172a!important}
+${BB}>[data-bk].thGo>svg,${BB}>[data-bk].thGo>i,${BB}>[data-bk].thGo>.mgr-ico{scale:1.2}
+${BB}>[data-bk].th-on.thLeave>svg,${BB}>[data-bk].th-on.thLeave>i,${BB}>[data-bk].th-on.thLeave>.mgr-ico{scale:1}
+/* bolder line on the active icon */
+${ON('svg path')},${ON('svg line')},${ON('svg rect')},${ON('svg circle')},${ON('svg polyline')}{stroke-width:2.1px!important}
+${BB}>#daysBtn.th-on:not(.thLeave) .dys .fr,${BB}>#daysBtn.thGo .dys .fr{stroke-width:2.6px!important}
+${BB}>#daysBtn.th-on:not(.thLeave) .dys .rg,${BB}>#daysBtn.thGo .dys .rg{stroke-width:2.8px!important}
+/* a small pop of the icon, together with the new description */
+@keyframes thIcoPop{0%{scale:1.2}35%{scale:1.52}68%{scale:1.12}100%{scale:1.2}}
+${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:thIcoPop .5s cubic-bezier(.3,1.4,.5,1) 1}
+#thGH .ttl{will-change:transform,filter,opacity}
+@media(prefers-reduced-motion:reduce){${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.mgr-ico{animation:none}}`;
+  document.head.appendChild(st);
+
+  const COMMIT = 0.22;                                   /* same as the page switch: the description is completely gone when the new page is taken */
+  const ttl = () => document.querySelector('#thGH .ttl');
+  const easeOut = t => 1 - Math.pow(1 - t, 3), easeIn = t => t * t;
+  let qNow = 0, raf = 0, token = 0, pending = null, goneAt = 0, dragging = false, tw = false;
+
+  /* q: 0 = in its place, 1 = gone. It slides back to the side it came from, blurs, and a soft-edged mask eats it (no hard cut) */
+  function apply(te, q) {
+    if (!te) return;
+    if (q <= 0.001) { ['transform', 'filter', 'opacity', '-webkit-mask-image', 'mask-image'].forEach(p => te.style.removeProperty(p)); return; }
+    const a = q * 160 - 60, m = 'linear-gradient(90deg,transparent ' + a.toFixed(1) + '%,#000 ' + (a + 60).toFixed(1) + '%)';
+    te.style.setProperty('transform', 'translateX(' + (-q * 44).toFixed(1) + 'px)');
+    te.style.setProperty('filter', 'blur(' + (q * 6).toFixed(2) + 'px)');
+    te.style.setProperty('opacity', String(Math.max(0, 1 - Math.pow(q, 1.6)).toFixed(3)));
+    te.style.setProperty('-webkit-mask-image', m); te.style.setProperty('mask-image', m);
+  }
+  function tween(te, from, to, ms, done, ez) {
+    cancelAnimationFrame(raf); tw = true; const t0 = performance.now(), f = ez || easeOut;
+    (function step(n) {
+      const t = Math.min(1, (n - t0) / ms); qNow = from + (to - from) * f(t); apply(te, qNow);
+      if (t < 1) raf = requestAnimationFrame(step); else { qNow = to; tw = false; if (done) done(); }
+    })(t0);
+  }
+  function popIcon() {
+    const b = document.querySelector('#mobileFloatingBar>.th-on'); if (!b) return;
+    b.classList.remove('thPopIt'); void b.offsetWidth; b.classList.add('thPopIt'); setTimeout(() => b.classList.remove('thPopIt'), 650);
+  }
+  function popText(te) { try { te.animate([{ scale: 1 }, { scale: 1.09 }, { scale: .985 }, { scale: 1 }], { duration: 380, easing: 'cubic-bezier(.3,1.3,.5,1)' }); } catch (e) { } }
+
+  /* the header calls this every 40 ms with the title of the page you are on */
+  window.thRollTitle = function (te, text, l) {
+    const d = l !== 'en' ? 'r' : 'l', key = text + '|' + d;
+    if (pending === key) return;
+    if (!pending && te.dataset.full === text && te.dataset.d === d) return;
+    if (dragging) return;                                  /* the finger is still moving the pages */
+    pending = key; const my = ++token; te.classList.remove('thIn');
+    const show = () => {
+      if (my !== token) return;
+      te.dataset.full = text; te.dataset.d = d; te.dir = d === 'r' ? 'rtl' : 'ltr'; te.textContent = text; goneAt = 0; qNow = 1; apply(te, 1);
+      setTimeout(() => {
+        if (my !== token) return; popIcon();
+        tween(te, 1, 0, 520, () => { if (my !== token) return; pending = null; popText(te); }, easeOut);
+      }, 70);
+    };
+    if (!te.dataset.full || qNow >= 0.99) show();
+    else tween(te, qNow, 1, 150, show, easeIn);            /* a tap on the bar: the old one leaves first */
+  };
+
+  function preview(d, on) {
+    const a = document.getElementById(d.a), b = document.getElementById(d.b);
+    if (a) a.classList.toggle('thLeave', on); if (b) b.classList.toggle('thGo', on);
+  }
+  let lastD = null;
+  (function loop() {
+    try {
+      const d = window.__thDrag, te = ttl();
+      if (d && te) {
+        if (!dragging) { dragging = true; lastD = d; pending = null; token++; cancelAnimationFrame(raf); tw = false; te.classList.remove('thIn'); try { te.getAnimations().forEach(x => x.cancel()); } catch (e) { } d.tweened = false; }
+        if (d.live) { qNow = Math.min(1, (d.f || 0) / COMMIT); apply(te, qNow); preview(d, (d.f || 0) > 0.14); }
+        else if (!d.tweened) {                              /* let go: finish the move (new page) or come back (same page) */
+          d.tweened = true; const to = d.t === 1 ? 1 : 0; preview(d, to === 1);
+          tween(te, qNow, to, 180, () => { if (to === 1) goneAt = Date.now(); }, to === 1 ? easeIn : easeOut);
+        }
+      } else if (dragging) {
+        dragging = false;
+        if (lastD) { const a = document.getElementById(lastD.a), b = document.getElementById(lastD.b); [a, b].forEach(x => x && x.classList.remove('thLeave', 'thGo')); lastD = null; }
+        if (qNow >= 0.99 && !goneAt) goneAt = Date.now();
+      }
+      /* safety: if the page switched but its title did not change, bring the description back */
+      if (!dragging && goneAt && !pending && qNow >= 0.99 && Date.now() - goneAt > 700 && te) { goneAt = 0; tween(te, 1, 0, 300, null, easeOut); }
+    } catch (e) { }
+    requestAnimationFrame(loop);
+  })();
 })();
