@@ -3786,7 +3786,8 @@ html .lgi:hover{transform:scale(1.12)}
 
   /* top header: find the fixed bar at the top of the page (the one with the logo) and tag it */
   function tagHeader() {
-    const skip = new Set(['mobileFloatingBar', 'pop', 'thDet', 'thHint', 'langPop', 'asm', 'thGhost', 'dock', 'thBri', 'barTip']);
+    const skip = new Set(['mobileFloatingBar', 'pop', 'thDet', 'thHint', 'langPop', 'asm', 'thGhost', 'dock', 'thBri', 'barTip', 'thGH']);   /* thGH = the new glass header: it must never get the old header look (dots / dark background) */
+    const gh = document.getElementById('thGH'); if (gh) gh.classList.remove('thHdr');
     [...document.body.children].forEach(el => {
       if (!el.id || !skip.has(el.id)) {
         const cs = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -6558,7 +6559,7 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
     } catch (e) { }
   }
   /* the glass header (logo behind the glass) */
-  (function () { if (document.getElementById('thGH')) return; const g = document.createElement('div'); g.id = 'thGH'; /* LOGO IS OFF FOR NOW. To bring it back, use:  g.innerHTML = '<div class="lgw"><div class="lg"></div></div><div class="gl"></div>';  (the .lgw / .lg styles are still in the CSS above) */
+  (function () { if (document.getElementById('thGH')) return; const g = document.createElement('div'); g.id = 'thGH'; document.documentElement.classList.add('th-gh'); /* LOGO IS OFF FOR NOW. To bring it back, use:  g.innerHTML = '<div class="lgw"><div class="lg"></div></div><div class="gl"></div>';  (the .lgw / .lg styles are still in the CSS above) */
     g.innerHTML = '<div class="gl"></div><div class="ttl"></div><div class="nm"></div>'; document.body.appendChild(g); })();
   /* page title on the glass; the name shows only on More / Account */
   const TTL = { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' };
