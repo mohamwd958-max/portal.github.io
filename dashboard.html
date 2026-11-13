@@ -552,15 +552,18 @@ document.addEventListener('click',function(){setTimeout(sync,150)},true);
 <script src="js/brand.js" data-profile></script>
 
 <div class="mobile-floating-bar" id="mobileFloatingBar">
-  
+  <button type="button" data-bk="reload" onclick="location.reload()" class="circle-badge-btn" title="Restart Page" style="color:#3b82f6"><i class="fa-solid fa-rotate text-sm"></i></button>
+  <div class="bar-divider"></div>
   <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="Assistant" aria-label="Assistant" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-9.5L6 20.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"/></svg></button>
-
- <div class="bar-divider"></div>
-  <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="Assistant" aria-label="Assistant" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-9.5L6 20.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"/></svg></button>
-
-
- 
- </div>
+  <div class="bar-divider"></div>
+  <button type="button" data-bk="lang" id="langBtn" onclick="openLang(this)" class="circle-badge-btn" title="Language" aria-label="Language"><span id="langTxt">English</span></button>
+  <div class="bar-divider"></div>
+  <button type="button" data-bk="theme" onclick="toggleTheme()" id="floatBtnTheme" class="circle-badge-btn" title="Theme" style="color:#fbbf24"><i id="themeIcon" class="fa-solid fa-moon text-sm"></i></button>
+  <div class="bar-divider"></div>
+  <button type="button" data-bk="logout" id="profBtn" onclick="openProf(this)" title="Account" aria-label="Account" class="circle-badge-btn" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.7 3.7-5.6 7.5-5.6s6.7 1.9 7.5 5.6"/></svg></button>
+  <div class="bar-divider"></div>
+  <button type="button" id="barEdit" onclick="openStar(this)" class="circle-badge-btn" title="More" aria-label="More" style="color:#94a3b8"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg></button>
+</div>
 
 
 <div class="wrap">
