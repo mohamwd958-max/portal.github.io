@@ -5403,11 +5403,7 @@ html.th-skel :is(.thabit-card,.test-card,.tkcell,.cap,.scrt,.dnr,.ssi)>*:not(.th
 html.th-skel :is(.itc,.tkdot,.thrb,.ear,.tharr){position:relative;background:rgba(148,163,184,.18)!important;border-color:transparent!important;color:transparent!important;animation:none!important}
 html.th-skel :is(.itc,.tkdot,.thrb,.tharr,.ear)>*:not(.th-sk){visibility:hidden!important}
 html.th-skel :is(.thabit-card,.test-card) svg.c2{visibility:hidden}
-/* bottom bar: small squares light up one after another (1, 2, 3...), each stays visible for a moment */
-html.th-skel body #mobileFloatingBar :is([data-bk],#barEdit,#mgrBtn,#feedBtn):not(#z)>*{visibility:hidden!important}
-html.th-skel body #mobileFloatingBar :is([data-bk],#barEdit,#mgrBtn,#feedBtn):not(#z)::before{content:""!important;display:block!important;position:absolute!important;left:50%!important;top:50%!important;width:26px!important;height:26px!important;margin:-17px 0 0 -13px!important;border-radius:8px!important;background:rgba(148,163,184,.28)!important;animation:thSkTile 2.4s ease-in-out infinite!important;animation-delay:calc(var(--sk,0) * .3s)!important}
-html.th-skel body #mobileFloatingBar>:nth-child(1){--sk:0}html.th-skel body #mobileFloatingBar>:nth-child(2){--sk:1}html.th-skel body #mobileFloatingBar>:nth-child(3){--sk:2}html.th-skel body #mobileFloatingBar>:nth-child(4){--sk:3}html.th-skel body #mobileFloatingBar>:nth-child(5){--sk:4}html.th-skel body #mobileFloatingBar>:nth-child(6){--sk:5}html.th-skel body #mobileFloatingBar>:nth-child(7){--sk:6}html.th-skel body #mobileFloatingBar>:nth-child(8){--sk:7}
-@keyframes thSkTile{0%,100%{background:rgba(148,163,184,.22);transform:scale(1);box-shadow:none}10%{background:rgba(125,211,252,.55);transform:scale(1.18);box-shadow:0 0 14px rgba(125,211,252,.55)}22%{background:rgba(148,163,184,.3);transform:scale(1);box-shadow:none}}
+/* (old bar skeleton tiles removed: while loading, the bar / header only get a light streak passing under the glass, see thSkFlash) */
 @media(prefers-reduced-motion:reduce){.th-sk::before{animation:none}}`.replace('__LOGO_URL__', TH_LOGO);
   document.head.appendChild(st);
 
@@ -6513,19 +6509,24 @@ html body.light-theme .thHdr:not(#z):not(#y):not(#w){
 html body #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w){font-size:0!important;color:transparent!important;z-index:2147483004!important}
 /* logo (wherever it lives) stays UNDER the header glass */
 html body>[class*="logo"],html body>[id*="logo"]{z-index:2147483002!important}
-/* feed: a little empty space under the header, a small title, then the first notification */
-html body #pop.open:not(#z) .pcs{padding-top:16px!important}
-html body #pop.open:not(#z) .pcs::before{content:"فيد";display:block;padding:0 6px 2px;font:700 .8rem Cairo,Inter,sans-serif;letter-spacing:.04em;opacity:.55;text-align:start}
-html[lang="en"] body #pop.open:not(#z) .pcs::before{content:"Feed"}
-/* header = the original one is hidden; this one is a pane of glass (same as the bar: no background, no border, no dots, no name) with the logo glowing BEHIND it */
-html body #thBrand:not(#z):not(#y):not(#w){visibility:hidden!important}
-#thGH{position:fixed;left:0;right:0;top:0;height:var(--th-hd,calc(56px + env(safe-area-inset-top,0px)));z-index:2147483004;pointer-events:none;overflow:hidden}
-#thGH .lgw{position:absolute;left:16px;top:50%;transform:translateY(-42%);width:34px;height:34px;filter:drop-shadow(0 0 5px rgba(56,189,248,.95)) drop-shadow(0 0 14px rgba(56,189,248,.55));animation:thGHpulse 3.2s ease-in-out infinite}
-#thGH .lg{width:100%;height:100%;-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat;background:linear-gradient(135deg,#a5f3fc,#38bdf8 45%,#3b82f6 75%,#22d3ee)}
+/* feed: the first cell starts at the standard gap under the header */
+html body #pop.open:not(#z) .pcs{padding-top:var(--th-gap)!important}
+:root{--th-hd:calc(env(safe-area-inset-top,0px) + 52px);--th-gap:44px}
+/* STANDARD distance between the header and the first cell, on every page */
+html body .thsec{padding-top:calc(var(--th-hd) + var(--th-gap))!important}
+html body #thDays.open:not(#z),html body #thSet.open:not(#z){padding-top:calc(var(--th-hd) + var(--th-gap))!important}
+/* header: the old header element is REMOVED; #thGH is a pane of glass in its place (same as the bar: no background, no border, no dots, no logo) */
+html body #thBrand:not(#z):not(#y):not(#w){display:none!important}
+#thGH{position:fixed;left:0;right:0;top:0;height:var(--th-hd);z-index:2147483004;pointer-events:none;overflow:hidden}
 #thGH .gl{position:absolute;inset:0;background:rgba(24,28,32,.30);-webkit-backdrop-filter:blur(6px) saturate(1.3);backdrop-filter:blur(6px) saturate(1.3)}
 body.light-theme #thGH .gl{background:rgba(255,255,255,.38)}
-@keyframes thGHpulse{0%,100%{filter:drop-shadow(0 0 4px rgba(56,189,248,.8)) drop-shadow(0 0 10px rgba(56,189,248,.4))}50%{filter:drop-shadow(0 0 7px rgba(56,189,248,1)) drop-shadow(0 0 18px rgba(56,189,248,.7))}}
-@media(prefers-reduced-motion:reduce){#thGH .lgw{animation:none}}
+/* title of the page you are on, written on the glass (first quarter, left); the name only on More / Account (right) */
+#thGH .ttl{position:absolute;left:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;font:700 17px/1 Cairo,Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;white-space:nowrap;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+#thGH .nm{position:absolute;right:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;overflow:hidden;text-overflow:ellipsis;font:600 14px/1 Cairo,Inter,system-ui,sans-serif;color:#fff;white-space:nowrap;opacity:.9}
+body.light-theme #thGH .ttl,body.light-theme #thGH .nm{color:#0f172a;text-shadow:none}
+/* (logo is OFF for now. To bring it back: see the note next to  g.innerHTML  and add these styles)
+#thGH .lgw{position:absolute;left:16px;top:50%;transform:translateY(-42%);width:34px;height:34px;filter:drop-shadow(0 0 5px rgba(56,189,248,.95)) drop-shadow(0 0 14px rgba(56,189,248,.55))}
+#thGH .lg{width:100%;height:100%;-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat;background:linear-gradient(135deg,#a5f3fc,#38bdf8 45%,#3b82f6 75%,#22d3ee)} */
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
 html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
@@ -6553,13 +6554,24 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
   function measure() {
     try {
       const r = document.documentElement, h = document.getElementById('thBrand'), b = document.getElementById('mobileFloatingBar');
-      if (h) { const x = h.getBoundingClientRect(); if (x.height > 10 && x.bottom > 10) r.style.setProperty('--th-hd', Math.round(x.bottom) + 'px'); }
       if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
     } catch (e) { }
   }
   /* the glass header (logo behind the glass) */
   (function () { if (document.getElementById('thGH')) return; const g = document.createElement('div'); g.id = 'thGH'; /* LOGO IS OFF FOR NOW. To bring it back, use:  g.innerHTML = '<div class="lgw"><div class="lg"></div></div><div class="gl"></div>';  (the .lgw / .lg styles are still in the CSS above) */
-    g.innerHTML = '<div class="gl"></div>'; document.body.appendChild(g); })();
+    g.innerHTML = '<div class="gl"></div><div class="ttl"></div><div class="nm"></div>'; document.body.appendChild(g); })();
+  /* page title on the glass; the name shows only on More / Account */
+  const TTL = { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' };
+  let tt = '', tn = '';
+  setInterval(() => {
+    try {
+      const gh = document.getElementById('thGH'); if (!gh) return;
+      const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTL[on.id] || '') : '';
+      if (t !== tt) { tt = t; gh.querySelector('.ttl').textContent = t; }
+      let n = ''; if (on && on.id === 'barEdit') { const e = document.querySelector('#thBrand .thb-n'); n = e ? e.textContent.trim() : ''; }
+      if (n !== tn) { tn = n; gh.querySelector('.nm').textContent = n; }
+    } catch (e) { }
+  }, 120);
   /* light streak behind the glass */
   function mkSweep(host, first) {
     if (!host || host.querySelector(':scope > .thSweepBox')) return host && host.querySelector(':scope > .thSweepBox .thSweep');
@@ -6573,6 +6585,8 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
     if (!barSw && bar) { barSw = mkSweep(bar); setTimeout(() => fire(barSw), 700); setInterval(() => { if (!document.hidden) { barSw = mkSweep(bar) || barSw; fire(barSw); } }, 15000); }
     if (!hdrSw && gh) { hdrSw = mkSweep(gh); setTimeout(() => fire(hdrSw), 700); }   /* header: once, at start */
   }
+  /* while the page is loading / refreshing: a flash keeps passing under the header and the bar */
+  setInterval(() => { if (document.documentElement.classList.contains('thsk-on')) { sweepInit(); fire(barSw); fire(hdrSw); } }, 1700);
   sweepInit(); const _si = setInterval(() => { sweepInit(); if (barSw && hdrSw) clearInterval(_si); }, 400);
   measure(); setInterval(measure, 500); window.addEventListener('resize', measure); window.addEventListener('load', measure);
 })();
