@@ -6681,3 +6681,61 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
   document.addEventListener('touchend', () => { const go = g && g.ok; g = null; if (go) refreshCurrent(); }, { passive: true });
   document.addEventListener('touchcancel', () => { g = null; }, { passive: true });
 })();
+
+
+/* ==========================================================
+   Main widgets (Feed, Messenger, Days, Space, More) = FULL PAGES on every screen size (phone, tablet, computer).
+   - the page background fills the whole screen (solid, nothing of Home behind it); the container stays in the middle, readable
+   - tapping the background does nothing: you leave a page only by going to another page (bar / swipe) or leaving the app
+   - no inner title that repeats the header (the header already says where you are)
+   - pop-ups INSIDE a page keep working as before (they are not touched)
+   - a solid "void" layer sits under the pages, so while you swipe between two pages you never see Home between / behind them
+   Appended at the END of dashboard.js. Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (window.__thPages) return; window.__thPages = 1;
+  const st = document.createElement('style'); st.id = 'thPagesCss';
+  st.textContent = `
+:root{--thp-bg:#000}
+body.light-theme{--thp-bg:#f4f6f9}
+/* the void under the pages */
+#thVoid{position:fixed;inset:0;z-index:10020;background:var(--thp-bg);display:none;pointer-events:auto}
+html.thp-on #thVoid{display:block}
+/* each page: whole screen, solid background, header above and bar below stay free */
+html body #pop.open:not(#z),html body #thSet.open:not(#z),html body #thDays.open:not(#z),html body .mgr-pop:not(#z){
+  position:fixed!important;inset:0!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;border-radius:0!important;border:0!important;box-shadow:none!important;box-sizing:border-box!important;
+  background:var(--thp-bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #thSpace.open:not(#z){background:var(--thp-bg)!important}
+html body #thSet.open:not(#z),html body #thDays.open:not(#z){display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:auto!important;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+html body #thSpace{padding-top:var(--th-hd,calc(52px + env(safe-area-inset-top)))!important;padding-bottom:calc(84px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
+/* the container: in the middle, a sensible width on wide screens */
+html body #thSet .tsc,html body #thDays .tsc{width:min(480px,100%)!important;margin:0 auto auto!important}
+html body #pop.open .pcs{margin:0 auto!important;width:100%!important;max-width:480px!important}
+html body .mgr-pop>*{width:min(560px,100%);align-self:center;box-sizing:border-box}
+html body .mgr-pop{align-items:center}
+html body .mgr-pop .mgr-list,html body .mgr-pop .mgr-cells{flex:1 1 auto;min-height:0}
+/* no repeated titles / no close buttons: the header says where you are, the bar moves you */
+html body #thSet .tsh,html body #thDays .tsh,html body .mgr-pop .mgr-h>b,html body #thSpace .tsx,html body .mgr-veil{display:none!important}
+html body .mgr-pop .mgr-h{background:transparent!important;padding-top:0!important;padding-bottom:0!important;min-height:0}
+html body .mgr-pop .mgr-h [data-x]{display:none!important}
+`;
+  document.head.appendChild(st);
+
+  const v = document.createElement('div'); v.id = 'thVoid'; document.body.appendChild(v);
+  const vis = e => e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+  const anyPage = () => !!(document.querySelector('#pop.open,#thSet.open,#thDays.open,#thSpace.open') || [...document.querySelectorAll('.mgr-pop')].some(vis));
+  let last = null;
+  setInterval(() => {
+    const d = window.__thDrag, toHome = !!(d && (d.a === 'homeBtn' || d.b === 'homeBtn')), on = anyPage() && !toHome;
+    if (on !== last) { last = on; document.documentElement.classList.toggle('thp-on', on); }
+  }, 80);
+
+  /* a tap on the empty background of a page never closes it (every screen size); the void swallows taps too */
+  const IDS = ['pop', 'thSet', 'thDays', 'thSpace', 'thVoid'];
+  ['pointerdown', 'mousedown', 'mouseup', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, e => {
+    const t = e.target;
+    if (t && (IDS.includes(t.id) || (t.classList && (t.classList.contains('mgr-veil') || t.classList.contains('mgr-pop'))))) { e.stopImmediatePropagation(); if (e.cancelable && ev === 'click') e.preventDefault(); }
+  }, true));
+  /* Escape no longer closes a main page either */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && anyPage() && !document.querySelector('.ssm.open,#thCal.open,#thLib.open,#thDet.open,#asm:not([hidden])')) { e.stopImmediatePropagation(); } }, true);
+})();
