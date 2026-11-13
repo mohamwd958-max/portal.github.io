@@ -6512,9 +6512,9 @@ html body #pop.open:not(#z) .pcs{padding-top:16px!important}
 html body #pop.open:not(#z) .pcs::before{content:"فيد";display:block;padding:0 6px 2px;font:700 .8rem Cairo,Inter,sans-serif;letter-spacing:.04em;opacity:.55;text-align:start}
 html[lang="en"] body #pop.open:not(#z) .pcs::before{content:"Feed"}
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
-html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
-html body.light-theme #thBrand:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
+html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w),html body.light-theme .thHdr:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #thBrand:not(#z):not(#y):not(#w)::after,html body .thHdr:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+html body.light-theme #thBrand:not(#z):not(#y):not(#w)::after,html body.light-theme .thHdr:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
 /* bar: the glass is a layer on top of a small light that travels under the active button */
 html body #mobileFloatingBar:not(#z):not(#y):not(#w),html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #mobileFloatingBar:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:1!important;pointer-events:none!important;border-radius:inherit;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
@@ -6543,6 +6543,32 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
       if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
     } catch (e) { }
   }
+  /* header: no dots, no name, transparent; the logo stays and sits under the glass. Works on whatever element the header really is. */
+  const sp = (el, k, v) => { if (el.style.getPropertyValue(k) !== v || el.style.getPropertyPriority(k) !== 'important') el.style.setProperty(k, v, 'important'); };
+  function cleanHeader() {
+    try {
+      const hs = new Set(); const b = document.getElementById('thBrand'); if (b) hs.add(b);
+      document.querySelectorAll('.thHdr').forEach(e => hs.add(e));
+      hs.forEach(h => {
+        ['background', 'background-color', 'background-image'].forEach(k => sp(h, k, k === 'background-image' ? 'none' : 'transparent'));
+        sp(h, 'border', '0'); sp(h, 'box-shadow', 'none'); sp(h, 'backdrop-filter', 'none'); sp(h, '-webkit-backdrop-filter', 'none');
+        h.querySelectorAll('*').forEach(el => {
+          const tn = el.tagName;
+          if (/^(IMG|SVG|PICTURE|CANVAS|PATH|G|CIRCLE|RECT|DEFS|USE|LINEARGRADIENT|STOP|CLIPPATH|MASK|POLYGON|LINE|ELLIPSE)$/i.test(tn)) return;   /* the logo (and its svg parts) stay */
+          if (el.closest('svg')) return;
+          const cs = getComputedStyle(el), bg = cs.backgroundImage || '';
+          const logoLike = /url\(/.test(bg) || /logo/i.test((el.className && el.className.baseVal != null ? el.className.baseVal : el.className) + ' ' + el.id) || el.querySelector('img,svg,canvas,picture');
+          const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+          const dots = /dot/i.test(String(el.className) + ' ' + el.id) || /gradient/.test(bg);
+          if (own && !logoLike) { sp(el, 'visibility', 'hidden'); sp(el, 'font-size', '0'); }
+          else if (dots && !logoLike) { sp(el, 'display', 'none'); }
+          else if (!logoLike && !el.children.length && !(cs.width && /px/.test(cs.width) && parseFloat(cs.width) > 20 && parseFloat(cs.height) > 20 && /url\(|svg|img/i.test(bg))) { sp(el, 'visibility', 'hidden'); }
+          if (logoLike) sp(el, 'z-index', '1');
+        });
+      });
+    } catch (e) { }
+  }
+  cleanHeader(); setInterval(cleanHeader, 600); window.addEventListener('load', cleanHeader);
   /* the light under the active button. While a page is being dragged it travels with the finger from one button to the next. */
   let gl = null, gx = null, gt = '';
   const ctr = (bar, el) => { const r = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return r.width ? r.left - b.left + r.width / 2 : null; };
