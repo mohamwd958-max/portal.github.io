@@ -50,17 +50,12 @@
     var css2 = document.createElement('style');
     css2.textContent = 'html,body{overscroll-behavior-y:none}' +
       '#thSkOv{position:fixed;inset:0;z-index:2147483000;background:' + (light ? '#f4f6f9' : '#0b0e13') + ';color:' + (light ? '#0f172a' : '#e2e8f0') + ';overflow:hidden;transition:opacity .35s}#thSkOv.out{opacity:0;pointer-events:none}' +
-      '#thSkOv .skw{box-sizing:border-box;width:min(100%,1000px);margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 84px) 22px 100px;display:flex;flex-direction:column;gap:14px}' +
-      '#thSkOv .skg{display:grid;grid-template-columns:1fr 1fr;gap:14px}' +
-      '#thSkOv .skc{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}' +
-      '#thSkOv .skc::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,' + (light ? '.7' : '.14') + ') 50%,transparent 70%);transform:translateX(-100%);animation:thSkSw 1.5s ease-in-out infinite}' +
-      '#thSkOv .skc::after{content:"";position:absolute;left:50%;top:50%;width:min(64px,40%);aspect-ratio:1;transform:translate(-50%,-50%);background:currentColor;opacity:.14;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat}' +
-      '@keyframes thSkSw{to{transform:translateX(100%)}}' +
-      '#thSkOv .skb{position:fixed;left:0;right:0;bottom:0;margin:0 auto;width:min(100%,520px);height:calc(54px + env(safe-area-inset-bottom,0px));box-sizing:border-box;padding:0 8px env(safe-area-inset-bottom,0px);display:flex;justify-content:space-around;align-items:center;background:' + (light ? '#eef1f5' : '#181c20') + ';border-radius:16px 16px 0 0;border:1px solid rgba(148,163,184,.14);border-bottom:0}' +
-      '#thSkOv .skt{width:28px;height:28px;border-radius:9px;background:rgba(148,163,184,.25);animation:thSkTl 1.5s ease-in-out infinite}#thSkOv .skt:nth-child(2){animation-delay:.5s}#thSkOv .skt:nth-child(3){animation-delay:1s}' +
-      '@keyframes thSkTl{0%,34%,100%{background:rgba(148,163,184,.22);transform:scale(1);box-shadow:none}10%{background:rgba(125,211,252,.6);transform:scale(1.2);box-shadow:0 0 14px rgba(125,211,252,.55)}}' +
+      /* loading screen: NO boxes, NO fake bar. Just a soft flash that keeps passing, and one TH mark in the middle. The real header and bar sit above it (their glass lights up when the flash goes under). */
+      '#thSkOv .skf{position:absolute;top:0;bottom:0;left:0;width:46%;background:linear-gradient(100deg,transparent,rgba(255,255,255,' + (light ? '.55' : '.10') + ') 45%,rgba(167,243,208,' + (light ? '.30' : '.16') + ') 56%,transparent);filter:blur(8px);transform:translateX(-130%);animation:thSkFl 1.7s ease-in-out infinite}' +
+      '#thSkOv .skm{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;background:currentColor;opacity:.3;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat;animation:thSkMk 1.7s ease-in-out infinite}' +
+      '@keyframes thSkFl{to{transform:translateX(330%)}}@keyframes thSkMk{0%,100%{opacity:.16}50%{opacity:.42}}' +
       'html.thsk-on #thBrand{z-index:2147483004!important}' +
-      '@media(prefers-reduced-motion:reduce){#thSkOv .skc::before,#thSkOv .skt{animation:none}}';
+      '@media(prefers-reduced-motion:reduce){#thSkOv .skf,#thSkOv .skm{animation:none}}';
     document.head.appendChild(css2);
     var cards = function (n, h) { var o = ''; for (var i = 0; i < n; i++) o += '<div class="skc" style="height:' + h + 'px"></div>'; return o; };
     var body = function (idx) {   /* order of the sections: 0 tasks + dandana, 1 notes / TEFL / QOL, 2 chart */
@@ -75,7 +70,7 @@
     function show() {
       if (el) return; var live = cur(), idx = live >= 0 ? live : (+SS('thSkSec') || 0); SS('thSkSec', String(idx));
       el = document.createElement('div'); el.id = 'thSkOv'; el.setAttribute('aria-hidden', 'true');
-      el.innerHTML = '<div class="skw">' + body(idx) + '</div><div class="skb"><i class="skt"></i><i class="skt"></i><i class="skt"></i></div>';
+      el.innerHTML = '<div class="skf"></div><div class="skm"></div>';
       (document.body || document.documentElement).appendChild(el); document.documentElement.classList.add('thsk-on'); t0 = Date.now();
       clearTimeout(kill); kill = setTimeout(hide, 15000);                     /* safety: never stays forever */
     }
