@@ -6094,8 +6094,14 @@ body:not(.light-theme) #thSpace{background:#17171b}
   async function probe() {
     if (probed) return; probed = true;
     const bad = [];
-    for (const u of ['board.html', 'Css/board.css', 'js/board.js']) {
-      try { const r = await fetch(u, { method: 'HEAD', cache: 'no-store' }); if (!r.ok) bad.push(u + '  ->  HTTP ' + r.status); } catch (e) { bad.push(u + '  ->  ' + e.message); }
+    for (const u of ['board.html', 'Css/board.css', 'css/board.css', 'js/board.js']) {
+      try {
+        const r = await fetch(u, { cache: 'no-store' }), t = r.ok ? await r.text() : '', ty = r.headers.get('content-type') || '';
+        const asset = /\.(css|js)$/.test(u), isCss = /\.css$/.test(u);
+        if (!r.ok) { if (u !== 'css/board.css') bad.push(u + '  ->  HTTP ' + r.status); }   /* css/board.css is only a second guess for the folder case */
+        else if (asset && (/^\s*</.test(t) || t.length < (isCss ? 300 : 3000))) bad.push(u + '  ->  not a real ' + (isCss ? 'CSS' : 'JS') + ' file (' + t.length + ' bytes, ' + ty + ')');
+        else if (u === 'css/board.css') bad.push('css/board.css exists but board.html asks for Css/board.css (capital C): the page loads without styles');
+      } catch (e) { bad.push(u + '  ->  ' + e.message); }
     }
     try {
       const t = tok();
