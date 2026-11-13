@@ -6798,26 +6798,36 @@ html body .mgr-pop .mgr-h [data-x]{display:none!important}
 })();
 
 /* ==========================================================
-   White frosted glass: header + bar are WHITE glass (both themes), blurred, anything passing under them shows through soft and tinted.
-   Dark icons/labels on top of it. The old brand/logo leftovers under the header are removed (they were the blurred writing).
+   Frosted glass (header + bar): still see-through and blurred, only a little lighter than plain dark glass, with a soft sheen on the face.
+   Dark theme = white writing, light theme = dark writing (as before). The old brand/logo leftovers under the header are removed.
    Appended at the END of dashboard.js. Delete this block to go back.
    ========================================================== */
 (function () {
   if (document.getElementById('thWhiteGlass')) return;
   const st = document.createElement('style'); st.id = 'thWhiteGlass';
   st.textContent = `
-/* the glass itself */
+/* dark theme: transparent glass with a light milky tint + a faint sheen */
 html body #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
-html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .gl{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(18px) saturate(1.5)!important;backdrop-filter:blur(18px) saturate(1.5)!important}
-html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after,
-html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(18px) saturate(1.5)!important;backdrop-filter:blur(18px) saturate(1.5)!important}
-/* dark writing on white glass */
-html body #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#0f172a!important;text-shadow:none!important}
-html.th-tabs body #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z),
-html.th-tabs body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z){color:#0f172a!important;opacity:.78!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{
+  background:linear-gradient(180deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.08) 45%,rgba(255,255,255,.12) 100%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.5)!important;backdrop-filter:blur(16px) saturate(1.5)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.08)!important}
+/* light theme: same idea on a light page */
+html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
+html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{
+  background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,.36) 45%,rgba(255,255,255,.44) 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(15,23,42,.06)!important}
+/* writing: white on the dark theme, dark on the light theme */
+html body #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#fff!important;text-shadow:0 1px 8px rgba(0,0,0,.35)!important}
+html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#0f172a!important;text-shadow:none!important}
+html.th-tabs body #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z){color:#fff!important;opacity:1!important}
+html.th-tabs body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z){color:#0f172a!important}
 html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z),
 html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) svg,
-html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#059669!important;opacity:1!important}
+html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#34d399!important;opacity:1!important}
+html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z),
+html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) svg,
+html body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#059669!important}
 /* old brand / logo / header leftovers must not exist (they showed as blurred writing under the header) */
 html body #thBrand,html body .thb-n,html body>[class*="logo"],html body>[id*="logo"],html body .thHdr:not(#thGH){display:none!important}`;
   document.head.appendChild(st);
