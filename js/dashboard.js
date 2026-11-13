@@ -6361,7 +6361,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     [...bar.children].forEach(b => { if (b.id) b.classList.toggle('th-on', b.id === id); });
     document.documentElement.classList.add('th-tabs');
   }
-  setInterval(sync, 250); document.addEventListener('click', () => setTimeout(sync, 60), true); sync();
+  setInterval(sync, 80); document.addEventListener('click', () => setTimeout(sync, 0), true); sync();
 
   function closeAll() {
     try { if ($q('#thLib.open') && window.closeLibrary) closeLibrary(); } catch (e) { }
@@ -6605,7 +6605,7 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
       let n = tn; if (on) { n = ''; if (on.id === 'barEdit') n = (window.Thabit && Thabit.getName && Thabit.getName()) || ''; tn = n; }
       const ne = gh.querySelector('.nm'); if (ne.textContent !== n) ne.textContent = n;
     } catch (e) { }
-  }, 120);
+  }, 40);
   /* light streak behind the glass */
   function mkSweep(host, first) {
     if (!host || host.querySelector(':scope > .thSweepBox')) return host && host.querySelector(':scope > .thSweepBox .thSweep');
@@ -6854,23 +6854,24 @@ html body #thGH[data-l="en"]:not(#z):not(#y) .ttl{left:16px!important;right:auto
 html body #thGH[data-l="en"]:not(#z):not(#y) .nm{left:auto!important;right:16px!important}
 html body #thGH:not([data-l="en"]):not(#z):not(#y) .ttl{right:16px!important;left:auto!important}
 html body #thGH:not([data-l="en"]):not(#z):not(#y) .nm{left:16px!important;right:auto!important}
-/* the title rolls in letter after letter */
-#thGH .ttl .rl{display:inline-block;animation-fill-mode:both;animation-name:thRollL}
-#thGH .ttl .rl.r{animation-name:thRollR}
-@keyframes thRollL{from{clip-path:inset(-14px 100% -14px -14px)}to{clip-path:inset(-14px -14px -14px -14px)}}
-@keyframes thRollR{from{clip-path:inset(-14px -14px -14px 100%)}to{clip-path:inset(-14px -14px -14px -14px)}}
-@media(prefers-reduced-motion:reduce){#thGH .ttl .rl{animation:none!important}}
+/* the title slides in from the left, slowly and softly (no pop, no letter by letter) */
+#thGH .ttl.thIn{animation:thTtlIn .9s cubic-bezier(.22,.8,.3,1) both}
+@keyframes thTtlIn{from{opacity:0;transform:translateX(-38px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){#thGH .ttl.thIn{animation:none!important}}
+/* the colour of the active button fills in slowly, together with the title coming in (no sudden switch) */
+html body #mobileFloatingBar:not(#z):not(#y):not(#x)>[data-bk],
+html body #mobileFloatingBar:not(#z):not(#y):not(#x)>[data-bk] svg,
+html body #mobileFloatingBar:not(#z):not(#y):not(#x)>[data-bk] i,
+html body #mobileFloatingBar:not(#z):not(#y):not(#x)>[data-bk] .thl,
+html body #mobileFloatingBar:not(#z):not(#y):not(#x)>[data-bk] svg *{transition:color .9s ease,opacity .9s ease,stroke .9s ease,fill .9s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
 /* old brand / logo / header leftovers must not exist (they showed as blurred writing under the header) */
 html body #thBrand,html body .thb-n,html body>[class*="logo"],html body>[id*="logo"],html body .thHdr:not(#thGH){display:none!important}`;
   document.head.appendChild(st);
   window.thRollTitle = function (te, text, l) {
-    const rtl = l !== 'en', d = rtl ? 'r' : 'l';
+    const d = l !== 'en' ? 'r' : 'l';
     if (te.dataset.full === text && te.dataset.d === d) return;
-    te.dataset.full = text; te.dataset.d = d; te.dir = rtl ? 'rtl' : 'ltr';
-    const n = Math.max(1, [...text].length), sp = document.createElement('span');
-    sp.className = 'rl ' + d; sp.textContent = text;
-    sp.style.animationDuration = Math.max(400, n * 110) + 'ms'; sp.style.animationTimingFunction = 'steps(' + n + ',end)';
-    te.textContent = ''; te.appendChild(sp);
+    te.dataset.full = text; te.dataset.d = d; te.dir = d === 'r' ? 'rtl' : 'ltr';
+    te.textContent = text; te.classList.remove('thIn'); void te.offsetWidth; te.classList.add('thIn');
   };
 })();
 
