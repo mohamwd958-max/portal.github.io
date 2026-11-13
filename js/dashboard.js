@@ -6901,3 +6901,40 @@ ${B} #spaceBtn svg.spco *{stroke-width:1.5!important}`;
   function plane() { const i = document.querySelector('#mgrBtn .mgr-ico'); if (i && !i.querySelector('svg.mgp')) i.innerHTML = PLANE; }
   plane(); setInterval(plane, 700);
 })();
+
+/* ==========================================================
+   Bar polish: no words under the icons; the active icon is a little bigger and lifted (the others stay normal);
+   notification badges = solid red circle with the number cut out of it (see-through).
+   Appended at the END of dashboard.js. Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (document.getElementById('thBarPolish')) return;
+  const st = document.createElement('style'); st.id = 'thBarPolish';
+  const B = 'html body #mobileFloatingBar:not(#z):not(#y):not(#x)';
+  st.textContent = `
+/* no words under the icons (the title in the header already says where you are) */
+html body #mobileFloatingBar .thl,html body #mobileFloatingBar>[data-bk] .thl{display:none!important}
+${B}>[data-bk]{display:flex!important;align-items:center!important;justify-content:center!important}
+/* the active icon: a little bigger and lifted, with a soft bounce; the others stay at their normal size */
+${B}>[data-bk]>svg,${B}>[data-bk]>i,${B}>[data-bk]>.mgr-ico{scale:1;translate:0 0}
+${B}>[data-bk].th-on>svg,${B}>[data-bk].th-on>i,${B}>[data-bk].th-on>.mgr-ico{scale:1.2;translate:0 -3px;
+  transition:scale .6s cubic-bezier(.34,1.55,.5,1),translate .6s cubic-bezier(.34,1.55,.5,1),color .9s ease,opacity .9s ease,stroke .9s ease,fill .9s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
+${B}>[data-bk]:not(.th-on)>svg,${B}>[data-bk]:not(.th-on)>i,${B}>[data-bk]:not(.th-on)>.mgr-ico{
+  transition:scale .45s ease,translate .45s ease,color .9s ease,opacity .9s ease,stroke .9s ease,fill .9s ease,transform .18s cubic-bezier(.2,.9,.3,1.4)!important}
+/* notification badges: red disc, the number is cut out of it */
+#feedNum,#mgrNum,#daysNum{background:#ef4444!important;background-image:none!important;border:0!important;box-shadow:none!important;text-shadow:none!important;color:transparent!important;-webkit-text-fill-color:transparent!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;filter:none!important;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}`;
+  document.head.appendChild(st);
+
+  /* mask = a solid pill with the number punched out; rebuilt when the number or the size changes */
+  function cut(el) {
+    const t = (el.textContent || '').trim(); if (!t) { el.style.removeProperty('-webkit-mask-image'); el.style.removeProperty('mask-image'); el.dataset.cut = ''; return; }
+    const r = el.getBoundingClientRect(), w = Math.round(r.width), h = Math.round(r.height); if (w < 4 || h < 4) return;
+    const key = t + '|' + w + '|' + h; if (el.dataset.cut === key) return; el.dataset.cut = key;
+    const fs = Math.round(h * 0.72 * 10) / 10, safe = t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="' + w + '" height="' + h + '"><rect width="' + w + '" height="' + h + '" fill="#fff"/><text x="' + (w / 2) + '" y="' + (h / 2) + '" fill="#000" font-family="Inter,Arial,Helvetica,sans-serif" font-weight="800" font-size="' + fs + '" text-anchor="middle" dominant-baseline="central">' + safe + '</text></mask></defs><rect width="' + w + '" height="' + h + '" rx="' + (h / 2) + '" fill="#000" mask="url(#m)"/></svg>';
+    const u = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+    el.style.setProperty('-webkit-mask-image', u, 'important'); el.style.setProperty('mask-image', u, 'important');
+  }
+  const run = () => document.querySelectorAll('#feedNum,#mgrNum,#daysNum').forEach(cut);
+  run(); setInterval(run, 300);
+})();
