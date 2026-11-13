@@ -551,18 +551,6 @@ document.addEventListener('click',function(){setTimeout(sync,150)},true);
 <body id="bodyRoot">
 <script src="js/brand.js" data-profile></script>
 
-<div class="mobile-floating-bar" id="mobileFloatingBar">
-  
-  <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="Assistant" aria-label="Assistant" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-9.5L6 20.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"/></svg></button>
-  <div class="bar-divider"></div>
-  
-  <button type="button" data-bk="theme" onclick="toggleTheme()" id="floatBtnTheme" class="circle-badge-btn" title="Theme" style="color:#fbbf24"><i id="themeIcon" class="fa-solid fa-moon text-sm"></i></button>
-  <div class="bar-divider"></div>
-  <button type="button" data-bk="logout" id="profBtn" onclick="openProf(this)" title="Account" aria-label="Account" class="circle-badge-btn" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.7 3.7-5.6 7.5-5.6s6.7 1.9 7.5 5.6"/></svg></button>
-  <div class="bar-divider"></div>
-  </div>
-
-
 <div class="wrap">
   <div class="top"><h1 id="hello">...</h1>
     <div class="rng" id="rng"></div>
@@ -571,10 +559,6 @@ document.addEventListener('click',function(){setTimeout(sync,150)},true);
   <div class="thabit-card dcard" id="overall" style="margin-bottom:14px"></div>
   <div class="grid" id="lists"></div>
 </div>
-
- 
-<button type="button" id="feedBtn" class="feed empty" aria-label="Feed"><span class="fdp"><svg class="fdw" viewBox="0 0 40 40" aria-hidden="true"><path class="fh" pathLength="1" d="M8 20H32"/><path class="fv" pathLength="1" d="M20 8V32"/></svg><span class="fdg"></span><span class="fdn" id="feedNum"></span></span><span class="fdb" id="feedBadge" hidden>0</span></button>
-
  
  <div id="dock" style="display:contents"></div>
 <div class="asm" id="asm" hidden onclick="if(event.target===this)Panels.min()"><div class="asbox"><button type="button" class="asx" onclick="Panels.close()" aria-label="Close">&times;</button>
