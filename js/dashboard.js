@@ -6517,10 +6517,19 @@ html body>[class*="logo"],html body>[id*="logo"]{z-index:2147483002!important}
 html body #pop.open:not(#z) .pcs{padding-top:16px!important}
 html body #pop.open:not(#z) .pcs::before{content:"فيد";display:block;padding:0 6px 2px;font:700 .8rem Cairo,Inter,sans-serif;letter-spacing:.04em;opacity:.55;text-align:start}
 html[lang="en"] body #pop.open:not(#z) .pcs::before{content:"Feed"}
+/* header = the original one is hidden; this one is a pane of glass (same as the bar: no background, no border, no dots, no name) with the logo glowing BEHIND it */
+html body #thBrand:not(#z):not(#y):not(#w){visibility:hidden!important}
+#thGH{position:fixed;left:0;right:0;top:0;height:var(--th-hd,calc(56px + env(safe-area-inset-top,0px)));z-index:2147483004;pointer-events:none;overflow:hidden}
+#thGH .lgw{position:absolute;left:16px;top:50%;transform:translateY(-42%);width:34px;height:34px;filter:drop-shadow(0 0 5px rgba(56,189,248,.95)) drop-shadow(0 0 14px rgba(56,189,248,.55));animation:thGHpulse 3.2s ease-in-out infinite}
+#thGH .lg{width:100%;height:100%;-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat;background:linear-gradient(135deg,#a5f3fc,#38bdf8 45%,#3b82f6 75%,#22d3ee)}
+#thGH .gl{position:absolute;inset:0;background:rgba(24,28,32,.30);-webkit-backdrop-filter:blur(3px) saturate(1.3);backdrop-filter:blur(3px) saturate(1.3)}
+body.light-theme #thGH .gl{background:rgba(255,255,255,.38)}
+@keyframes thGHpulse{0%,100%{filter:drop-shadow(0 0 4px rgba(56,189,248,.8)) drop-shadow(0 0 10px rgba(56,189,248,.4))}50%{filter:drop-shadow(0 0 7px rgba(56,189,248,1)) drop-shadow(0 0 18px rgba(56,189,248,.7))}}
+@media(prefers-reduced-motion:reduce){#thGH .lgw{animation:none}}
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
-html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w),html body .thHdr:not(#z):not(#y):not(#w),html body.light-theme .thHdr:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-html body #thBrand:not(#z):not(#y):not(#w)::after,html body .thHdr:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
-html body.light-theme #thBrand:not(#z):not(#y):not(#w)::after,html body.light-theme .thHdr:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
+html body #thBrand:not(#z):not(#y):not(#w),html body.light-theme #thBrand:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #thBrand:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:5!important;pointer-events:none!important;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+html body.light-theme #thBrand:not(#z):not(#y):not(#w)::after{background:rgba(255,255,255,.38)!important}
 /* bar: the glass is a layer on top of a small light that travels under the active button */
 html body #mobileFloatingBar:not(#z):not(#y):not(#w),html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w){background:transparent!important;background-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #mobileFloatingBar:not(#z):not(#y):not(#w)::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;z-index:1!important;pointer-events:none!important;border-radius:inherit;background:rgba(24,28,32,.30)!important;-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
@@ -6549,32 +6558,8 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
       if (b) { const y = b.getBoundingClientRect(); if (y.height > 10) r.style.setProperty('--th-bar', Math.round(innerHeight - y.top) + 'px'); }
     } catch (e) { }
   }
-  /* header: no dots, no name, transparent; the logo stays and sits under the glass. Works on whatever element the header really is. */
-  const sp = (el, k, v) => { if (el.style.getPropertyValue(k) !== v || el.style.getPropertyPriority(k) !== 'important') el.style.setProperty(k, v, 'important'); };
-  function cleanHeader() {
-    try {
-      const hs = new Set(); const b = document.getElementById('thBrand'); if (b) hs.add(b);
-      document.querySelectorAll('.thHdr').forEach(e => hs.add(e));
-      hs.forEach(h => {
-        ['background', 'background-color', 'background-image'].forEach(k => sp(h, k, k === 'background-image' ? 'none' : 'transparent'));
-        sp(h, 'border', '0'); sp(h, 'box-shadow', 'none'); sp(h, 'backdrop-filter', 'none'); sp(h, '-webkit-backdrop-filter', 'none');
-        h.querySelectorAll('*').forEach(el => {
-          const tn = el.tagName;
-          if (/^(IMG|SVG|PICTURE|CANVAS|PATH|G|CIRCLE|RECT|DEFS|USE|LINEARGRADIENT|STOP|CLIPPATH|MASK|POLYGON|LINE|ELLIPSE)$/i.test(tn)) return;   /* the logo (and its svg parts) stay */
-          if (el.closest('svg')) return;
-          const cs = getComputedStyle(el), bg = cs.backgroundImage || '';
-          const logoLike = /url\(/.test(bg) || /logo/i.test((el.className && el.className.baseVal != null ? el.className.baseVal : el.className) + ' ' + el.id) || el.querySelector('img,svg,canvas,picture');
-          const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
-          const dots = /dot/i.test(String(el.className) + ' ' + el.id) || /gradient/.test(bg);
-          if (own && !logoLike) { sp(el, 'visibility', 'hidden'); sp(el, 'font-size', '0'); }
-          else if (dots && !logoLike) { sp(el, 'display', 'none'); }
-          else if (!logoLike && !el.children.length && !(cs.width && /px/.test(cs.width) && parseFloat(cs.width) > 20 && parseFloat(cs.height) > 20 && /url\(|svg|img/i.test(bg))) { sp(el, 'visibility', 'hidden'); }
-          if (logoLike) sp(el, 'z-index', '1');
-        });
-      });
-    } catch (e) { }
-  }
-  cleanHeader(); setInterval(cleanHeader, 600); window.addEventListener('load', cleanHeader);
+  /* the glass header (logo behind the glass) */
+  (function () { if (document.getElementById('thGH')) return; const g = document.createElement('div'); g.id = 'thGH'; g.innerHTML = '<div class="lgw"><div class="lg"></div></div><div class="gl"></div>'; document.body.appendChild(g); })();
   /* the light under the active button. While a page is being dragged it travels with the finger from one button to the next. */
   let gl = null, gx = null, gt = '';
   const ctr = (bar, el) => { const r = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return r.width ? r.left - b.left + r.width / 2 : null; };
