@@ -6561,6 +6561,12 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
   /* the glass header (logo behind the glass) */
   (function () { if (document.getElementById('thGH')) return; const g = document.createElement('div'); g.id = 'thGH'; document.documentElement.classList.add('th-gh'); /* LOGO IS OFF FOR NOW. To bring it back, use:  g.innerHTML = '<div class="lgw"><div class="lg"></div></div><div class="gl"></div>';  (the .lgw / .lg styles are still in the CSS above) */
     g.innerHTML = '<div class="gl"></div><div class="ttl"></div><div class="nm"></div>'; document.body.appendChild(g); })();
+  /* the old header must never exist: remove it now and whenever anything adds it again */
+  (function () {
+    const kill = () => { const o = document.getElementById('thBrand'); if (o) o.remove(); };
+    kill(); new MutationObserver(kill).observe(document.documentElement, { childList: true, subtree: false });
+    new MutationObserver(kill).observe(document.body, { childList: true });
+  })();
   /* page title on the glass; the name shows only on More / Account */
   const TTL = { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' };
   let tt = '', tn = '';
@@ -6568,9 +6574,10 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:0 22px!important;wid
     try {
       const gh = document.getElementById('thGH'); if (!gh) return;
       const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTL[on.id] || '') : '';
-      if (t !== tt) { tt = t; gh.querySelector('.ttl').textContent = t; }
-      let n = ''; if (on && on.id === 'barEdit') { const e = document.querySelector('#thBrand .thb-n'); n = e ? e.textContent.trim() : ''; }
-      if (n !== tn) { tn = n; gh.querySelector('.nm').textContent = n; }
+      const te = gh.querySelector('.ttl'); if (t) tt = t;   /* a popup turns every button off: keep the last title, never blank */
+      if (tt && te.textContent !== tt) te.textContent = tt;
+      let n = tn; if (on) { n = ''; if (on.id === 'barEdit') n = (window.Thabit && Thabit.getName && Thabit.getName()) || ''; tn = n; }
+      const ne = gh.querySelector('.nm'); if (ne.textContent !== n) ne.textContent = n;
     } catch (e) { }
   }, 120);
   /* light streak behind the glass */
