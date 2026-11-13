@@ -4927,6 +4927,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     suspend: on => { if (!el.pop) return; if (on && M.mode === 'open') { M.susp = true; el.pop.style.display = 'none'; } else if (M.susp) { M.susp = false; if (M.mode === 'open') el.pop.style.display = 'flex'; } },
     name: () => TN(),
     msgs: () => M.msgs.slice(),
+    reload: () => mLoad(),
     visible: () => M.mode === 'open' && !M.susp
   };
   /* presence: any sign of life (touch, mouse, key, scroll, copy...) in the last 10s = online. Never from the admin "view as" page. */
@@ -5931,7 +5932,7 @@ body.light-theme #thPull{background:#fff;color:#0f172a;box-shadow:0 6px 18px rgb
   }
   document.addEventListener('touchstart', e => {
     g = null;
-    if (busy || !PH() || e.touches.length !== 1 || pageOpen()) return;
+    if (window.__thPP || busy || !PH() || e.touches.length !== 1 || pageOpen()) return;
     if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui')) return;
     if (!atTop() || innerScroll(e.target)) return;
     const t = e.touches[0]; g = { y: t.clientY, x: t.clientX, d: 0, on: false }; crossed = false; el.classList.remove('back');
@@ -6531,8 +6532,8 @@ html body #thBrand:not(#z):not(#y):not(#w){display:none!important}
 #thGH .gl{position:absolute;inset:0;background:rgba(24,28,32,.30);-webkit-backdrop-filter:blur(6px) saturate(1.3);backdrop-filter:blur(6px) saturate(1.3)}
 body.light-theme #thGH .gl{background:rgba(255,255,255,.38)}
 /* title of the page you are on, written on the glass (first quarter, left); the name only on More / Account (right) */
-#thGH .ttl{position:absolute;left:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;font:700 17px/1 Cairo,Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;white-space:nowrap;text-shadow:0 1px 8px rgba(0,0,0,.35)}
-#thGH .nm{position:absolute;right:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;overflow:hidden;text-overflow:ellipsis;font:600 14px/1 Cairo,Inter,system-ui,sans-serif;color:#fff;white-space:nowrap;opacity:.9}
+#thGH .ttl{position:absolute;right:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;font:700 17px/1 Cairo,Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;white-space:nowrap;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+#thGH .nm{position:absolute;left:16px;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;max-width:46%;overflow:hidden;text-overflow:ellipsis;font:600 14px/1 Cairo,Inter,system-ui,sans-serif;color:#fff;white-space:nowrap;opacity:.9}
 body.light-theme #thGH .ttl,body.light-theme #thGH .nm{color:#0f172a;text-shadow:none}
 /* (logo is OFF for now. To bring it back: see the note next to  g.innerHTML  and add these styles)
 #thGH .lgw{position:absolute;left:16px;top:50%;transform:translateY(-42%);width:34px;height:34px;filter:drop-shadow(0 0 5px rgba(56,189,248,.95)) drop-shadow(0 0 14px rgba(56,189,248,.55))}
@@ -6543,6 +6544,7 @@ html body #thGH:not(#z):not(#y):not(#w) *{visibility:visible!important}
 html body #thGH:not(#z):not(#y):not(#w) .gl{background:rgba(24,28,32,.30)!important}
 html body.light-theme #thGH:not(#z):not(#y):not(#w) .gl{background:rgba(255,255,255,.38)!important}
 html body #thGH:not(#z):not(#y):not(#w) .gl{-webkit-backdrop-filter:blur(6px) saturate(1.3)!important;backdrop-filter:blur(6px) saturate(1.3)!important}
+#rngNote{display:none!important}
 /* standard top distance for the messenger too */
 html body .mgr-pop:not(#z){padding-top:calc(var(--th-hd) + var(--th-gap))!important}
 /* header: the glass is a layer on top, the logo (with its normal glow) sits UNDER it */
@@ -6585,14 +6587,20 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
     new MutationObserver(kill).observe(document.body, { childList: true });
   })();
   /* page title on the glass; the name shows only on More / Account */
-  const TTL = { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' };
+  const TTLS = {
+    en: { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' },
+    ar: { homeBtn: 'الرئيسية', feedBtn: 'المنشورات', daysBtn: 'الأيام', mgrBtn: 'المحادثات', barEdit: 'المزيد', spaceBtn: 'المساحة' },
+    eg: { homeBtn: 'الرئيسية', feedBtn: 'الفيد', daysBtn: 'الأيام', mgrBtn: 'الماسنجر', barEdit: 'المزيد', spaceBtn: 'المساحة' }
+  };
+  const curL = () => { const l = (typeof lang === 'string' && lang) || 'en'; return TTLS[l] ? l : 'en'; };
+  let lastOn = '';
   let tt = '', tn = '';
   setInterval(() => {
     try {
       const gh = document.getElementById('thGH'); if (!gh) return;
-      const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTL[on.id] || '') : '';
+      const on = document.querySelector('#mobileFloatingBar > .th-on'), t = on ? (TTLS[curL()][on.id] || '') : ''; if (on) lastOn = on.id;
       gh.classList.remove('thHdr');
-      const te = gh.querySelector('.ttl'); if (t) tt = t;   /* a popup turns every button off: keep the last title, never blank */
+      const te = gh.querySelector('.ttl'); if (!t && lastOn) tt = TTLS[curL()][lastOn] || tt; if (t) tt = t;   /* a popup turns every button off: keep the last title, never blank */
       if (tt && te.textContent !== tt) te.textContent = tt;
       let n = tn; if (on) { n = ''; if (on.id === 'barEdit') n = (window.Thabit && Thabit.getName && Thabit.getName()) || ''; tn = n; }
       const ne = gh.querySelector('.nm'); if (ne.textContent !== n) ne.textContent = n;
@@ -6615,4 +6623,61 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
   setInterval(() => { if (document.documentElement.classList.contains('thsk-on')) { sweepInit(); fire(barSw); fire(hdrSw); } }, 1700);
   sweepInit(); const _si = setInterval(() => { sweepInit(); if (barSw && hdrSw) clearInterval(_si); }, 400);
   measure(); setInterval(measure, 500); window.addEventListener('resize', measure); window.addEventListener('load', measure);
+})();
+
+
+/* ==========================================================
+   Pull down (top -> bottom) = refresh ONLY the page / widget you are on. No circle, no indicator.
+   Home -> load(), Feed -> refreshNotes(), Messenger -> reload messages, Days -> redraw, Space -> reload its frame.
+   Appended at the END of dashboard.js. Delete this block to go back (the old spiral pull then works again).
+   ========================================================== */
+(function () {
+  if (window.__thPP) return; window.__thPP = 1;
+  const MIN = 90;
+  const vis = e => e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const activeId = () => { const o = document.querySelector('#mobileFloatingBar > .th-on'); return o ? o.id : ''; };
+  const winTop = () => Math.max(window.scrollY || 0, document.documentElement.scrollTop || 0, document.body.scrollTop || 0) <= 2;
+  function scrolledInside(t) {
+    for (let e = t; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.scrollTop > 2) return true;
+    }
+    return false;
+  }
+  let busy = false;
+  async function refreshCurrent() {
+    if (busy) return; busy = true;
+    try {
+      const id = activeId();
+      if (id === 'feedBtn') { if (typeof refreshNotes === 'function') await refreshNotes(); }
+      else if (id === 'mgrBtn') { if (window.thMessenger && thMessenger.reload) await thMessenger.reload(); }
+      else if (id === 'daysBtn') { if (window.thDays && document.querySelector('#thDays.open')) thDays.open(); }
+      else if (id === 'spaceBtn') {
+        const fr = document.querySelector('#thSpace iframe');
+        if (fr) { try { fr.contentWindow.location.reload(); } catch (e) { const u = fr.src; fr.src = 'about:blank'; setTimeout(() => { fr.src = u; }, 30); } }
+      }
+      else if (id === 'barEdit') { /* More: nothing to reload */ }
+      else { if (window.thSkel) window.thSkel(true); await load(); }
+    } catch (e) { console.warn('[pull refresh]', e); }
+    setTimeout(() => { busy = false; }, 600);
+  }
+  let g = null;
+  document.addEventListener('touchstart', e => {
+    g = null;
+    if (busy || e.touches.length !== 1) return;
+    const t0 = e.target;
+    if (t0.closest && t0.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui,iframe')) return;
+    const id = activeId();
+    if (id !== 'spaceBtn' && !scrolledInside(t0) && (id === 'homeBtn' || !id) && !winTop()) return;
+    if (scrolledInside(t0)) return;
+    const t = e.touches[0]; g = { x: t.clientX, y: t.clientY, ok: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!g) return;
+    const t = e.touches[0], dy = t.clientY - g.y, dx = t.clientX - g.x;
+    if (dy < -8 || Math.abs(dx) > Math.abs(dy) * 0.8 && Math.abs(dx) > 14) { g = null; return; }
+    g.ok = dy >= MIN;
+  }, { passive: true });
+  document.addEventListener('touchend', () => { const go = g && g.ok; g = null; if (go) refreshCurrent(); }, { passive: true });
+  document.addEventListener('touchcancel', () => { g = null; }, { passive: true });
 })();
