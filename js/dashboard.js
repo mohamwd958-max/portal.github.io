@@ -5295,7 +5295,7 @@ body.thfp-open #mobileFloatingBar,body.thfp-open #thBrand,body.thfp-open #dock,b
     if (k === 'pop') return tr('Feed', 'فيد', 'فيد');
     if (k === 'asm') { const p = G('pp-profile'); return p && !p.hidden ? tr('Profile', 'ملفي', 'ملفي') : tr('Assistant', 'المساعد', 'المساعد'); }
     if (k === 'rq1' || k === 'rq2') return tr('Requests', 'الطلبات', 'الطلبات');
-    if (k === 'days') return tr('Days', 'الأيام', 'الأيام');
+    if (k === 'days') return tr('Time', 'الوقت', 'تايم');
     if (k === 'space') return tr('Space', 'سبيس', 'سبيس');
     if (k === 'set') { const b = document.querySelector('#thSet .tsh b'); return (b && b.textContent) || tr('Settings', 'الإعدادات', 'الإعدادات'); }
     return '';
@@ -5787,7 +5787,7 @@ body.light-theme #thDays.open{background:#f4f6f9!important}
 
   /* ---------- the button ---------- */
   const SVG = () => `<svg class="dys" viewBox="0 0 28 28" aria-hidden="true"><rect class="fr" x="3.5" y="5.5" width="21" height="19" rx="4.5"/><path class="rg" d="M9.5 3v5M18.5 3v5"/><path class="fr" d="M3.5 11h21"/><text x="14" y="21.2" id="dysTxt">${dayNum()}</text></svg>`;
-  const LBL = () => tr('Days', 'الأيام', 'الأيام');
+  const LBL = () => tr('Time', 'الوقت', 'تايم');
   function install() {
     if (G('daysBtn')) return true;
     const bar = G('mobileFloatingBar'), anchor = G('mgrBtn') || G('feedBtn');
@@ -6588,9 +6588,9 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
   })();
   /* page title on the glass; the name shows only on More / Account */
   const TTLS = {
-    en: { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Days', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' },
-    ar: { homeBtn: 'الرئيسية', feedBtn: 'المنشورات', daysBtn: 'الأيام', mgrBtn: 'المحادثات', barEdit: 'المزيد', spaceBtn: 'المساحة' },
-    eg: { homeBtn: 'الرئيسية', feedBtn: 'الفيد', daysBtn: 'الأيام', mgrBtn: 'الماسنجر', barEdit: 'المزيد', spaceBtn: 'المساحة' }
+    en: { homeBtn: 'Home', feedBtn: 'Feed', daysBtn: 'Time', mgrBtn: 'Messenger', barEdit: 'More', spaceBtn: 'Space' },
+    ar: { homeBtn: 'الرئيسية', feedBtn: 'المنشورات', daysBtn: 'الوقت', mgrBtn: 'المحادثات', barEdit: 'المزيد', spaceBtn: 'المساحة' },
+    eg: { homeBtn: 'الرئيسية', feedBtn: 'الفيد', daysBtn: 'تايم', mgrBtn: 'الماسنجر', barEdit: 'المزيد', spaceBtn: 'المساحة' }
   };
   const curL = () => { const l = (typeof lang === 'string' && lang) || 'en'; return TTLS[l] ? l : 'en'; };
   let lastOn = '';
@@ -6853,4 +6853,31 @@ html body #thBrand,html body .thb-n,html body>[class*="logo"],html body>[id*="lo
     sp.style.animationDuration = Math.max(400, n * 110) + 'ms'; sp.style.animationTimingFunction = 'steps(' + n + ',end)';
     te.textContent = ''; te.appendChild(sp);
   };
+})();
+
+/* ==========================================================
+   Bar icons: same line weight as the Home icon (1.7px), Time (was Days) a bit smaller, Messenger = paper plane, pen a bit bigger.
+   Appended at the END of dashboard.js. Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (document.getElementById('thIconWeight')) return;
+  const st = document.createElement('style'); st.id = 'thIconWeight';
+  const B = 'html body #mobileFloatingBar:not(#z):not(#y):not(#x)';
+  st.textContent = `
+${B} #feedBtn .fstar{width:25px!important;height:25px!important}
+${B} #feedBtn .fstar path{stroke-width:1.65!important;stroke-linejoin:round!important;stroke-linecap:round!important}
+${B} #daysBtn>svg.dys{width:23px!important;height:23px!important}
+${B} #daysBtn .dys .fr{stroke-width:2.1!important}
+${B} #daysBtn .dys .rg{stroke-width:2.3!important}
+${B} #daysBtn .dys text{font-weight:800!important;font-size:10.5px!important}
+${B} #mgrBtn .mgr-ico{width:25px!important;height:25px!important;background:none!important;background-color:transparent!important;-webkit-mask:none!important;mask:none!important;display:block}
+${B} #mgrBtn .mgr-ico svg.mgp{width:100%;height:100%;display:block;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linejoin:round;stroke-linecap:round}
+${B} #barEdit svg.plusout{width:25px!important;height:25px!important}
+${B} #barEdit svg.plusout path{stroke-width:1.65!important}
+${B} #spaceBtn svg.spco{width:28px!important;height:28px!important}
+${B} #spaceBtn svg.spco *{stroke-width:1.5!important}`;
+  document.head.appendChild(st);
+  const PLANE = '<svg class="mgp" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z"/><path d="M7.6 13.8 17.4 7"/></svg>';
+  function plane() { const i = document.querySelector('#mgrBtn .mgr-ico'); if (i && !i.querySelector('svg.mgp')) i.innerHTML = PLANE; }
+  plane(); setInterval(plane, 700);
 })();
