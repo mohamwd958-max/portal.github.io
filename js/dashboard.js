@@ -6381,7 +6381,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   function go(k) {
     if (!pages().includes(k)) return;
     const c0 = curKey();
-    if (c0 === k) { if (k === 'space') exitSpace(); return; }   /* tap Space again = exit */
+    if (c0 === k) { if (k === 'space') exitSpace(); else if (k === 'home') { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } if (window.thRefreshNow) window.thRefreshNow(); } return; }   /* tap Space again = exit */
     if (k === 'space') spPrev = c0;
     closeAll();
     try {
@@ -6404,7 +6404,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
   { const tsx = $q('#thSpace .tsx'); if (tsx) tsx.addEventListener('click', () => setTimeout(() => { if (curKey() !== 'space' && spPrev && spPrev !== 'home') go(spPrev); }, 80)); }
   window.addEventListener('message', e => { if (e.data && e.data.type === 'thabit-board-exit') exitSpace(); });
 
-  let sx = 0, sy = 0, st0 = 0, ok = false;
+  let sx = 0, sy = 0, st0 = 0, ok = false, NAVBUSY = false, busyAt = 0, lastTouch = 0;
   const BLOCK = '.tbl,input,textarea,select,iframe,svg.c2,.avcv,.mbh,.mbt,.thdots,[data-bk],.mgr-b,.mgr-in,.mgr-comp,.thsel-ui,[contenteditable="true"],#thCal,#thFpBar';
   const MODALS = '.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open';
   const hScroll = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.position === 'fixed') break; if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true; } return false; };
@@ -6456,27 +6456,28 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     if (window.__thDrag) { window.__thDrag.t = Math.min(1, Math.abs(dx) / (dg.w * 0.35)); window.__thDrag.f = Math.abs(dx) / dg.w; }
     return dx;
   }
+  const fixAll = () => { ['#pop', '#thDays', '#thSpace', '.mgr-pop', '#thSet', '#thMenu'].forEach(q => document.querySelectorAll(q).forEach(clr)); window.__thDragging = false; window.__thDrag = null; NAVBUSY = false; };
   function dragEnd(dx) {
     const d = dg; dg = null; if (!d) return;
     dx = d.side > 0 ? Math.min(0, dx) : Math.max(0, dx);
     const go1 = Math.abs(dx) > d.w * COMMIT || (Math.abs(vx) > 0.45 && Math.abs(dx) > 24 && Math.sign(vx) === Math.sign(dx));
     if (d.nk === 'space') spPrev = d.ck;
     if (window.__thDrag) { window.__thDrag.live = false; window.__thDrag.t = go1 ? 1 : 0; }
-    if (go1) {
-      put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230);
-      setTimeout(() => { shut(d.ck); clr(d.ce); clr(d.ne); window.__thDragging = false; sync(); window.__thDrag = null; if (window.thFpSync) thFpSync(); }, 245);
-    } else {
-      put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200);
-      setTimeout(() => { shut(d.nk); clr(d.ce); clr(d.ne); window.__thDragging = false; sync(); window.__thDrag = null; if (window.thFpSync) thFpSync(); }, 215);
-    }
+    NAVBUSY = true; busyAt = Date.now();                     /* a new swipe cannot start until this one has fully landed */
+    let fin = false;
+    const finish = which => { if (fin) return; fin = true; try { shut(which); } catch (e) { } clr(d.ce); clr(d.ne); window.__thDragging = false; window.__thDrag = null; NAVBUSY = false; try { sync(); if (window.thFpSync) thFpSync(); } catch (e) { } };
+    if (go1) { put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230); setTimeout(() => finish(d.ck), 245); }
+    else { put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200); setTimeout(() => finish(d.nk), 215); }
   }
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
-    ok = e.touches.length === 1 && !dg && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
-    if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now(); lx = sx; lt = st0; vx = 0;
+    if (dg) return;                                   /* a second finger / stray touch during a drag: ignored, the drag goes on */
+    if (NAVBUSY) { ok = false; return; }
+    ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
+    if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now(); lx = sx; lt = st0; vx = 0; lastTouch = st0;
   }, { passive: true, capture: true });
   window.addEventListener('touchmove', e => {
     if (!ok || !e.touches[0]) return;
-    const x = e.touches[0].clientX, dx = x - sx, dy = e.touches[0].clientY - sy, now = Date.now();
+    const x = e.touches[0].clientX, dx = x - sx, dy = e.touches[0].clientY - sy, now = Date.now(); lastTouch = now;
     if (now > lt) vx = (x - lx) / (now - lt); lx = x; lt = now;
     if (!dg) {
       if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { ok = false; return; }   /* it is a vertical scroll */
@@ -6486,18 +6487,25 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     if (e.cancelable) e.preventDefault();
     dragMove(dx);
   }, { passive: false, capture: true });
-  document.addEventListener('touchend', e => {
-    if (!ok) return; ok = false;
-    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (dg) { dragEnd(dx); return; }
+  window.addEventListener('touchend', e => {
+    if (e.touches && e.touches.length) return;         /* another finger is still down */
+    const t = e.changedTouches && e.changedTouches[0];
+    if (dg) { ok = false; dragEnd(t ? t.clientX - sx : 0); return; }   /* a drag ALWAYS ends here, whatever happened to "ok" */
+    if (!ok) return; ok = false; if (!t) return;
+    const dx = t.clientX - sx, dy = t.clientY - sy;
     /* quick flick that finished before the page started following the finger */
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.4 || Date.now() - st0 > 700) return;
     const ps = pages(), i = ps.indexOf(curKey()); if (i < 0 || ps.length < 2) return;
     const n = ((dx < 0) !== SWAP) ? i + 1 : i - 1;
     if (n < 0 || n >= ps.length) return;
     go(ps[n]);
-  }, { passive: true });
-  document.addEventListener('touchcancel', () => { if (dg) { ok = false; dragEnd(0); } }, { passive: true });
+  }, { passive: true, capture: true });
+  window.addEventListener('touchcancel', () => { if (dg) { ok = false; dragEnd(0); } ok = false; }, { passive: true, capture: true });
+  /* watchdog: if a drag lost its finger, or a landing animation never finished, everything is put back by itself */
+  setInterval(() => {
+    if (dg && Date.now() - lastTouch > 1500) { ok = false; dragEnd(0); }
+    if (NAVBUSY && Date.now() - busyAt > 1500) fixAll();
+  }, 400);
 })();
 
 /* ===== Feed = full-width page between the header and the bar; header + bar = the same light glass; no dots, no name in the header ===== */
@@ -6751,6 +6759,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2800);
   }
   let g = null, cur = 0, running = false;
+  window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
   window.addEventListener('touchstart', e => {   /* window + capture: the pages swallow taps on their empty background before document sees them */
     g = null;
     if (busy || running || e.touches.length !== 1) return;
@@ -7136,7 +7145,7 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
     if (want && te.dataset.full !== want) setText(te, want);
     const q = second ? 1 - Math.min(1, (P - G1) / (1 - G1)) : Math.min(1, P / G1);
     qNow = q; apply(te, q, second ? 0.1 : 0);
-    blurPage(d, BLUR * Math.min(1, P / G1));
+    blurPage(d, BLUR * Math.pow(Math.min(1, P / G1), 2.4));
     if (second !== phase2) {                                /* the new page has the turn: its icon takes the colour + pops, the old one goes back */
       phase2 = second; const a = document.getElementById(d.a), b = document.getElementById(d.b);
       if (a) a.classList.toggle('thLeave', second); if (b) b.classList.toggle('thGo', second);
