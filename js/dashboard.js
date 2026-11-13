@@ -6674,9 +6674,9 @@ body.light-theme #thPtr svg{stroke:#0f172a}
 #thPtr svg path{stroke-dasharray:1;stroke-dashoffset:1}
 #thPtr.done svg{stroke:#34d399!important}
 body.light-theme #thPtr.done svg{stroke:#059669!important}
-#thPtr.pop{animation:thPtrPop .38s cubic-bezier(.3,1.7,.5,1)}
+#thPtr.thpop{animation:thPtrPop .38s cubic-bezier(.3,1.7,.5,1)}
 @keyframes thPtrPop{0%{scale:1}45%{scale:1.28}100%{scale:1}}
-@media(prefers-reduced-motion:reduce){#thPtr.pop{animation:none}}`;
+@media(prefers-reduced-motion:reduce){#thPtr.thpop{animation:none}}`;
   document.head.appendChild(pst);
   const ring = document.createElement('div'); ring.id = 'thPtr'; ring.setAttribute('aria-hidden', 'true'); document.body.appendChild(ring);
   const ICONS = {
@@ -6710,6 +6710,44 @@ body.light-theme #thPtr.done svg{stroke:#059669!important}
       if (t < 1) anim = requestAnimationFrame(f); else if (done) done();
     })(t0);
   }
+  /* ---------- the refresh itself: Home = the full skeleton (as before); every other page = its cards are emptied (logo + passing light),
+     the data reloads, then the cards fly down one after another into their places. The bar icons are never touched. ---------- */
+  const rst = document.createElement('style'); rst.id = 'thRefSkCss';
+  rst.textContent = `
+#thSkPg{position:fixed;inset:0;z-index:2147483002;background:var(--thp-bg,#000);overflow:hidden}
+#thSkPg .thSkB{position:fixed;box-sizing:border-box;overflow:hidden;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.07);color:#cbd5e1}
+body.light-theme #thSkPg .thSkB{color:#0f172a}
+#thSkPg .thSkB .th-sk::before{animation-duration:1.1s}
+.thFly{animation:thFly .68s cubic-bezier(.22,1,.36,1) var(--d,0ms) both!important}
+@keyframes thFly{0%{opacity:0;transform:translate3d(0,-56px,0) scale(.92)}55%{opacity:1;transform:translate3d(0,8px,0) scale(1.015)}78%{transform:translate3d(0,-2px,0) scale(.998)}100%{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.thFly{animation:none!important}}`;
+  document.head.appendChild(rst);
+  const CANDS = { feedBtn: '#pop .pc', daysBtn: '#thDays .dcard,#thDays .drow', barEdit: '#thSet .tsl', mgrBtn: '.mgr-pop .mgr-cell' };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function cands(id) {                    /* the cards / cells of the page you are on (the things that hold info) */
+    const sel = CANDS[id]; if (!sel) return [];
+    let a = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 60 && r.height > 20 && r.bottom > 0 && r.top < innerHeight; });
+    return a.filter(e => !a.some(o => o !== e && o.contains(e)));
+  }
+  function skelShow(id) {
+    const ov = document.createElement('div'); ov.id = 'thSkPg'; const h = hdrH();
+    let list = cands(id).slice(0, 14).map(e => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, r: getComputedStyle(e).borderTopLeftRadius }; });
+    if (id === 'spaceBtn') list = [{ l: 0, t: h, w: innerWidth, h: innerHeight - h - 84, r: '0px' }];
+    else if (!list.length) { const w = Math.min(480, innerWidth - 44); list = [0, 1, 2, 3, 4].map(i => ({ l: (innerWidth - w) / 2, t: h + 44 + i * 122, w: w, h: 110, r: '22px' })); }
+    ov.innerHTML = list.map(q => '<div class="thSkB" style="left:' + q.l + 'px;top:' + q.t + 'px;width:' + q.w + 'px;height:' + q.h + 'px;border-radius:' + q.r + '"><div class="th-sk"></div></div>').join('');
+    document.body.appendChild(ov); return ov;
+  }
+  async function runRefresh() {
+    const id = activeId();
+    if (!id || id === 'homeBtn') return refreshCurrent();            /* Home: the full skeleton that already exists */
+    const ov = skelShow(id), t0 = Date.now();
+    try { await refreshCurrent(); } catch (e) { }
+    await sleep(Math.max(0, (id === 'spaceBtn' ? 1500 : 1000) - (Date.now() - t0)));
+    const els = id === 'spaceBtn' ? [] : cands(id);
+    els.forEach((e, i) => { e.style.setProperty('--d', Math.min(i, 14) * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
+    ov.remove();                                                      /* the cards are already hidden (waiting for their turn), so nothing flashes */
+    setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2800);
+  }
   let g = null, cur = 0, running = false;
   document.addEventListener('touchstart', e => {
     g = null;
@@ -6729,7 +6767,7 @@ body.light-theme #thPtr.done svg{stroke:#059669!important}
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) { g = null; return; }      /* a sideways swipe: not ours */
       if (dy < 10) { if (dy < -8) g = null; return; }                                  /* not pulling down yet */
       if (!winTop() && activeId() !== 'spaceBtn' && (activeId() === 'homeBtn' || !activeId())) { g = null; return; }
-      g.on = true; ring.classList.remove('done', 'pop'); setIcon(activeId() || 'homeBtn');
+      g.on = true; ring.classList.remove('done', 'thpop'); setIcon(activeId() || 'homeBtn');
     }
     cur = Math.max(0, Math.min(MAXP, (dy - 10) * 0.7));
     if (e.cancelable) e.preventDefault();
@@ -6739,10 +6777,10 @@ body.light-theme #thPtr.done svg{stroke:#059669!important}
     const was = g; g = null; if (!was || !was.on) return;
     if (cur >= TH) {
       running = true; glide(cur, TH, 120, () => {
-        draw(TH); ring.classList.add('done'); ring.classList.remove('pop'); void ring.offsetWidth; ring.classList.add('pop');   /* green + a small pop */
+        draw(TH); ring.classList.add('done'); ring.classList.remove('thpop'); void ring.offsetWidth; ring.classList.add('thpop');   /* green + a small pop */
         setTimeout(() => glide(TH, 0, 300, () => {                                      /* back behind the header... */
-          ring.classList.remove('done', 'pop'); running = false;
-          refreshCurrent();                                                              /* ...then the refresh */
+          ring.classList.remove('done', 'thpop'); running = false;
+          runRefresh();                                                                  /* ...then the refresh */
         }), 420);
       });
     } else {
