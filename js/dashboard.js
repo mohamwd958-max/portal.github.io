@@ -6705,6 +6705,10 @@ html.thp-on #thVoid{display:block}
 html body #pop.open:not(#z),html body #thSet.open:not(#z),html body #thDays.open:not(#z),html body .mgr-pop:not(#z){
   position:fixed!important;inset:0!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;border-radius:0!important;border:0!important;box-shadow:none!important;box-sizing:border-box!important;
   background:var(--thp-bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+/* FIX: the void (z 10020) was above the Feed page (#pop, z 10001) and hid it; pages must sit above the void, the bar/header above pages */
+html body #pop.open:not(#z){z-index:10025!important}
+html body .mgr-pop:not(#z){z-index:2147483001!important}
+html body #mobileFloatingBar:not(#z){z-index:2147483003!important}
 html body #thSpace.open:not(#z){background:var(--thp-bg)!important}
 html body #thSet.open:not(#z),html body #thDays.open:not(#z){display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:auto!important;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
 html body #thSpace{padding-top:var(--th-hd,calc(52px + env(safe-area-inset-top)))!important;padding-bottom:calc(84px + env(safe-area-inset-bottom))!important;box-sizing:border-box!important}
