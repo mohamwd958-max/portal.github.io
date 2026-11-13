@@ -6661,25 +6661,78 @@ html body #pop.open:not(#z) .pcs{margin:0!important;padding:var(--th-gap) 22px 0
     } catch (e) { console.warn('[pull refresh]', e); }
     setTimeout(() => { busy = false; }, 600);
   }
-  let g = null;
+  /* ---------- the pull circle: follows the finger down, an inner ring fills as you pull; let go early = it shrinks back and disappears ---------- */
+  const pst = document.createElement('style'); pst.id = 'thPtrCss';
+  pst.textContent = `
+#thPtr{position:fixed;top:0;left:50%;margin-left:-22px;width:44px;height:44px;border-radius:50%;z-index:2147483010;display:grid;place-items:center;background:#161b22;border:1.5px solid rgba(255,255,255,.4);box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;will-change:transform,opacity;transform:translate3d(0,-80px,0)}
+body.light-theme #thPtr{background:#fff;border-color:rgba(15,23,42,.28);box-shadow:0 8px 22px rgba(15,23,42,.22)}
+#thPtr svg{width:40px;height:40px;display:block}
+#thPtr .pt{fill:none;stroke:rgba(148,163,184,.35);stroke-width:3}
+#thPtr .pa{fill:none;stroke:#34d399;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:50% 50%}
+#thPtr.spin svg{animation:thPtrSpin .8s linear infinite}
+#thPtr.spin .pa{stroke-dashoffset:28}
+@keyframes thPtrSpin{to{transform:rotate(360deg)}}`;
+  document.head.appendChild(pst);
+  const ring = document.createElement('div'); ring.id = 'thPtr'; ring.setAttribute('aria-hidden', 'true');
+  ring.innerHTML = '<svg viewBox="0 0 44 44"><circle class="pt" cx="22" cy="22" r="11"/><circle class="pa" cx="22" cy="22" r="11" pathLength="100"/></svg>';
+  document.body.appendChild(ring);
+  const arc = ring.querySelector('.pa');
+  const TH = 84, MAXP = 112;
+  const hdrH = () => { const h = document.getElementById('thGH'); return h ? h.getBoundingClientRect().height : 52; };
+  function draw(p) {                      /* p = how far the circle has been pulled (px) */
+    const k = Math.max(0, Math.min(1, p / TH));
+    ring.style.opacity = p <= 2 ? 0 : Math.min(1, p / 26);
+    ring.style.transform = 'translate3d(0,' + Math.round(hdrH() + p - 58) + 'px,0) scale(' + (0.55 + 0.45 * Math.min(1, p / 40)) + ')';
+    if (!ring.classList.contains('spin')) arc.style.strokeDashoffset = 100 - k * 100;
+  }
+  let anim = 0;
+  function glide(from, to, ms, done) {    /* smooth slide of the pull value (shrinks back slowly, slower the closer to the end) */
+    cancelAnimationFrame(anim); const t0 = performance.now();
+    (function f(now) {
+      const t = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - t, 2);
+      draw(from + (to - from) * e);
+      if (t < 1) anim = requestAnimationFrame(f); else if (done) done();
+    })(t0);
+  }
+  let g = null, cur = 0;
   document.addEventListener('touchstart', e => {
     g = null;
-    if (busy || e.touches.length !== 1) return;
+    if (busy || ring.classList.contains('spin') || e.touches.length !== 1) return;
     const t0 = e.target;
     if (t0.closest && t0.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui,iframe')) return;
+    if (document.querySelector('.ssm.open,.mdl.open,.lgp.open,.avm.open,#thDet.open,#thCal.open,#thLib.open,#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open')) return;
     const id = activeId();
     if (id !== 'spaceBtn' && !scrolledInside(t0) && (id === 'homeBtn' || !id) && !winTop()) return;
     if (scrolledInside(t0)) return;
-    const t = e.touches[0]; g = { x: t.clientX, y: t.clientY, ok: false };
+    const t = e.touches[0]; g = { x: t.clientX, y: t.clientY, on: false }; cancelAnimationFrame(anim);
   }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!g) return;
     const t = e.touches[0], dy = t.clientY - g.y, dx = t.clientX - g.x;
-    if (dy < -8 || Math.abs(dx) > Math.abs(dy) * 0.8 && Math.abs(dx) > 14) { g = null; return; }
-    g.ok = dy >= MIN;
-  }, { passive: true });
-  document.addEventListener('touchend', () => { const go = g && g.ok; g = null; if (go) refreshCurrent(); }, { passive: true });
-  document.addEventListener('touchcancel', () => { g = null; }, { passive: true });
+    if (!g.on) {
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) { g = null; return; }      /* a sideways swipe: not ours */
+      if (dy < 10) { if (dy < -8) g = null; return; }                                  /* not pulling down yet */
+      if (!winTop() && activeId() !== 'spaceBtn' && (activeId() === 'homeBtn' || !activeId())) { g = null; return; }
+      g.on = true; ring.classList.remove('spin');
+    }
+    cur = Math.max(0, Math.min(MAXP, (dy - 10) * 0.7));
+    if (e.cancelable) e.preventDefault();
+    draw(cur);                                                                          /* going back up makes it shrink by itself */
+  }, { passive: false });
+  function release() {
+    const was = g; g = null; if (!was || !was.on) return;
+    if (cur >= TH && !busy) {
+      ring.classList.add('spin'); glide(cur, TH, 160);
+      Promise.resolve(refreshCurrent()).catch(() => { }).then(() => setTimeout(() => {
+        glide(TH, 0, 280, () => { ring.classList.remove('spin'); arc.style.strokeDashoffset = 100; });
+      }, 500));
+    } else {
+      glide(cur, 0, 100 + cur * 5);                                                     /* not finished: shrink back and vanish */
+    }
+    cur = 0;
+  }
+  document.addEventListener('touchend', release, { passive: true });
+  document.addEventListener('touchcancel', release, { passive: true });
 })();
 
 
@@ -6742,4 +6795,30 @@ html body .mgr-pop .mgr-h [data-x]{display:none!important}
   }, true));
   /* Escape no longer closes a main page either */
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && anyPage() && !document.querySelector('.ssm.open,#thCal.open,#thLib.open,#thDet.open,#asm:not([hidden])')) { e.stopImmediatePropagation(); } }, true);
+})();
+
+/* ==========================================================
+   White frosted glass: header + bar are WHITE glass (both themes), blurred, anything passing under them shows through soft and tinted.
+   Dark icons/labels on top of it. The old brand/logo leftovers under the header are removed (they were the blurred writing).
+   Appended at the END of dashboard.js. Delete this block to go back.
+   ========================================================== */
+(function () {
+  if (document.getElementById('thWhiteGlass')) return;
+  const st = document.createElement('style'); st.id = 'thWhiteGlass';
+  st.textContent = `
+/* the glass itself */
+html body #thGH:not(#z):not(#y):not(#w):not(#v) .gl,
+html body.light-theme #thGH:not(#z):not(#y):not(#w):not(#v) .gl{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(18px) saturate(1.5)!important;backdrop-filter:blur(18px) saturate(1.5)!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after,
+html body.light-theme #mobileFloatingBar:not(#z):not(#y):not(#w):not(#v)::after{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(18px) saturate(1.5)!important;backdrop-filter:blur(18px) saturate(1.5)!important}
+/* dark writing on white glass */
+html body #thGH:not(#z):not(#y):not(#w):not(#v) .ttl,html body #thGH:not(#z):not(#y):not(#w):not(#v) .nm{color:#0f172a!important;text-shadow:none!important}
+html.th-tabs body #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z),
+html.th-tabs body.light-theme #mobileFloatingBar:not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(#z){color:#0f172a!important;opacity:.78!important}
+html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z),
+html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) svg,
+html body #mobileFloatingBar:not(#y):not(#x):not(#w)>.th-on:not(#z) i{color:#059669!important;opacity:1!important}
+/* old brand / logo / header leftovers must not exist (they showed as blurred writing under the header) */
+html body #thBrand,html body .thb-n,html body>[class*="logo"],html body>[id*="logo"],html body .thHdr:not(#thGH){display:none!important}`;
+  document.head.appendChild(st);
 })();
