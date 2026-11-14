@@ -4669,3 +4669,199 @@ function mgEnsureBar() {
     if (mg.open) mgMarkRead(mg.open);
   }, 10000);
 }
+
+/* ==========================================================
+   Patch 11 (end of adminpanel.js): smart Update button, Tag, Automate
+   - Announcements > Update: only for trainees who are NOT in an update yet; if all of them already are, it becomes "إلغاء التحديث"
+   - Announcements > Tag: put a small tag (New / ! / a number) on a button of the trainee's bar for a chosen time
+     (rides in the notifications table as a hidden row: meta.tag, no SQL change)
+   - Notifications > Automate: the same notification is sent again every X for N days (meta.auto, no SQL change)
+   ========================================================== */
+(function () {
+  if (window.__p11) return; window.__p11 = 1;
+  const css = document.createElement('style'); css.id = 'p11Css';
+  css.textContent = `
+.p11-ov{position:fixed;inset:0;z-index:2147483160;background:rgba(2,6,23,.72);display:flex;align-items:center;justify-content:center;padding:12px}
+.p11-box{width:min(520px,100%);max-height:92vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:16px;padding:14px;color:#e2e8f0;font:600 13px Cairo,sans-serif}
+.p11-h{color:#fbbf24;font-weight:800;font-size:13px;margin:0 0 4px}
+.p11-l{display:block;font-size:11px;color:#94a3b8;margin:12px 0 6px}
+.p11-c{display:flex;flex-wrap:wrap;gap:6px}
+.p11-chip{padding:6px 12px;border-radius:999px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;cursor:pointer;font:700 12px Cairo,sans-serif}
+.p11-chip.on{border-color:#fbbf24;background:rgba(251,191,36,.15);color:#fbbf24}
+.p11-in{width:90px;padding:6px 10px;border-radius:10px;border:1px solid #334155;background:#020617;color:#f1f5f9;font:inherit}
+.p11-row{display:flex;gap:8px;margin-top:14px}
+.p11-auto{margin-top:10px;padding:10px;border:1px dashed #475569;border-radius:12px}
+.p11-auto select{padding:5px 8px;border-radius:8px;border:1px solid #334155;background:#020617;color:#f1f5f9;font:inherit}`;
+  document.head.appendChild(css);
+  const hasTag = n => !!(n && n.meta && n.meta.tag);
+  const post = rows => sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+  const patchIn = (ids, body) => sbFetch(`notifications?id=in.(${ids.map(enc).join(',')})`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(body) });
+  const overlay = html => { const ov = document.createElement('div'); ov.className = 'p11-ov'; ov.innerHTML = `<div class="p11-box">${html}</div>`; ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); }); document.body.appendChild(ov); return ov; };
+  const chips = (g, list) => `<div class="p11-c" data-g="${g}">${list.map(([v, t]) => `<span class="p11-chip" data-v="${v}">${t}</span>`).join('')}</div>`;
+  const pickIn = (ov, st) => ov.addEventListener('click', e => { const c = e.target.closest('.p11-chip'); if (!c) return; const g = c.parentNode.dataset.g; st[g] = c.dataset.v; c.parentNode.querySelectorAll('.p11-chip').forEach(x => x.classList.toggle('on', x === c)); if (ov._after) ov._after(g); });
+
+  /* ---------- who is already in an update? (needs the maintenance file to expose it) ---------- */
+  async function mtOnSet(ids) {
+    try {
+      if (typeof window.mtStatus === 'function') {
+        const r = await window.mtStatus(ids);
+        if (r instanceof Set) return new Set([...r].map(String));
+        if (Array.isArray(r)) return new Set(r.map(String));
+        if (r && typeof r === 'object') return new Set(Object.keys(r).filter(k => r[k]).map(String));
+      }
+      if (typeof window.mtIsOn === 'function') { const s = new Set(); for (const id of ids) { if (await window.mtIsOn(id)) s.add(String(id)); } return s; }
+    } catch (e) { console.warn('[announce] update state unavailable', e); }
+    return null;   /* unknown: the button behaves as before */
+  }
+
+  /* ---------- Announcements menu ---------- */
+  window.anMenu = async function (btn, who) {
+    window.anClose();
+    const ids = who === 'sel' ? [...mpState.sel].map(String) : [String(who)]; if (!ids.length) return;
+    const set = await Promise.race([mtOnSet(ids), new Promise(r => setTimeout(() => r(null), 900))]);
+    const on = set ? ids.filter(i => set.has(i)) : [], off = set ? ids.filter(i => !set.has(i)) : ids;
+    const m = document.createElement('div'); m.id = 'anMenu';
+    m.style.cssText = 'position:fixed;z-index:2147483150;min-width:210px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(245,158,11,.5);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .8rem Cairo,sans-serif;color:#f1f5f9';
+    const it = (a, ic, t, c) => `<div data-a="${a}" style="padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;gap:8px;align-items:center;${c || ''}" onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''"><i class="fa-solid ${ic}" style="width:16px;text-align:center"></i>${t}</div>`;
+    let h = it('notify', 'fa-bell', 'إشعار');
+    if (set && !off.length) h += it('end', 'fa-circle-xmark', 'إلغاء التحديث', 'color:#f87171');
+    else {
+      h += it('start', 'fa-screwdriver-wrench', set && on.length ? `تحديث (${off.length})` : 'تحديث', 'color:#fbbf24');
+      if (!set || on.length) h += it('end', 'fa-circle-check', set ? `إنهاء التحديث (${on.length})` : 'إنهاء التحديث');
+    }
+    h += it('tag', 'fa-tag', 'Tag', 'color:#34d399') + it('updates', 'fa-arrows-rotate', 'Updates');
+    m.innerHTML = h; document.body.appendChild(m);
+    const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(6, Math.min(r.left, innerWidth - mr.width - 6)) + 'px';
+    m.style.top = (r.bottom + 6 + mr.height > innerHeight - 6 ? Math.max(6, r.top - mr.height - 6) : r.bottom + 6) + 'px';
+    m.addEventListener('click', e => {
+      const f = e.target.closest('[data-a]'); if (!f) return; window.anClose(); const a = f.dataset.a;
+      if (a === 'notify') return openNotify(ids);
+      if (a === 'tag') return anTag(ids);
+      if (a === 'start' || a === 'end') {
+        const fn = a === 'start' ? window.mtSend : window.mtEnd;
+        if (typeof fn !== 'function') { showToast('ملف adminpanelmaint.js مش متحمّل', true); return; }
+        return fn(a === 'start' ? off : (set && on.length ? on : ids));
+      }
+      showToast('Updates: لسه مفيش وظيفة متوصّلة بيه', true, true);
+    });
+    setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { window.anClose(); document.removeEventListener('pointerdown', off, true); } }, true), 0);
+  };
+
+  /* ---------- Tag ---------- */
+  const eod = add => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime() + add * 864e5; };
+  const TG_T = [['home', 'الرئيسية · Home'], ['feed', 'الفيد · Feed'], ['msgr', 'ميسنجر · Messenger'], ['days', 'الوقت · Time'], ['space', 'Space'], ['edit', 'المزيد · More']];
+  const TG_Y = [['new', 'New · جديد'], ['alert', '! مهم'], ['count', 'إشعار (رقم)'], ['clear', 'إزالة التاج']];
+  const TG_D = [['ساعة', () => Date.now() + 36e5], ['ساعتين', () => Date.now() + 72e5], ['النهارده', () => eod(0)], ['بكره', () => eod(1)], ['3 أيام', () => Date.now() + 3 * 864e5], ['أسبوع', () => Date.now() + 7 * 864e5]];
+  window.anTag = function (ids) {
+    const st = { t: '', y: '', d: '2' };
+    const ov = overlay(`<div class="p11-h"><i class="fa-solid fa-tag"></i> Tag · ${ids.length} ${ids.length === 1 ? 'طالب' : 'طلاب'}</div>
+      <span class="p11-l">الزرار في البار</span>${chips('t', TG_T)}
+      <span class="p11-l">نوع التاج</span>${chips('y', TG_Y)}
+      <div id="p11N" style="display:none"><span class="p11-l">الرقم (بيغطّي الرقم الحقيقي طول المدة)</span><input id="p11Num" class="p11-in" type="number" min="1" max="99" value="1"></div>
+      <div id="p11D"><span class="p11-l">المدة (بتفضل لحد ما الطالب يفتح الزرار)</span>${chips('d', TG_D.map((x, i) => [String(i), x[0]]))}</div>
+      <div class="p11-row"><button type="button" class="ds-b green" id="p11Go"><i class="fa-solid fa-paper-plane"></i> تطبيق</button><button type="button" class="ds-b ghost" id="p11X">إلغاء</button></div>`);
+    pickIn(ov, st);
+    ov._after = g => { if (g === 'y') { ov.querySelector('#p11N').style.display = st.y === 'count' ? '' : 'none'; ov.querySelector('#p11D').style.display = st.y === 'clear' ? 'none' : ''; } };
+    ov.querySelector('[data-g="d"] [data-v="2"]').classList.add('on');
+    ov.querySelector('#p11X').onclick = () => ov.remove();
+    ov.querySelector('#p11Go').onclick = async () => {
+      if (!st.t || !st.y) { showToast('اختار الزرار ونوع التاج', true, true); return; }
+      const tag = { target: st.t, type: st.y, until: new Date(st.y === 'clear' ? Date.now() + 30 * 864e5 : TG_D[+st.d][1]()).toISOString() };
+      if (st.y === 'count') { const n = parseInt(ov.querySelector('#p11Num').value, 10); if (!(n >= 1 && n <= 99)) { showToast('الرقم من 1 لـ 99', true, true); return; } tag.n = n; }
+      const b = ov.querySelector('#p11Go'); b.disabled = true;
+      try { await post(ids.map(id => ({ trainee_id: id, kind: 'message', title: null, body: '·', meta: { tag, hidden: true, category: 'system' } }))); showToast(st.y === 'clear' ? 'اتشال التاج ✓' : 'اتحط التاج ✓'); ov.remove(); }
+      catch (e) { showToast('فشل: ' + e.message, true); b.disabled = false; }
+    };
+  };
+
+  /* ---------- Automate ---------- */
+  const A_DUR = [['1', '1 يوم'], ['2', '2 يوم'], ['3', '3 أيام'], ['4', '4 أيام'], ['5', '5 أيام'], ['7', 'أسبوع'], ['14', 'أسبوعين']];
+  const A_EVERY = [['6', 'كل 6 ساعات'], ['12', 'كل 12 ساعة'], ['24', 'كل يوم'], ['48', 'كل يومين']];
+  const sel = (id, list, cur) => `<select id="${id}">${list.map(([v, t]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
+  const autoOn = m => !!(m && m.auto && Date.parse(m.auto.until) > Date.now());
+  const autoBtn = (kind, ref, m) => `<button type="button" class="ds-b" style="color:${autoOn(m) ? '#34d399' : '#fbbf24'}!important" title="Automate" onclick="anAuto('${kind}','${ref}')"><i class="fa-solid fa-clock-rotate-left"></i> Automate${autoOn(m) ? ' ✓' : ''}</button>`;
+  window.anAuto = function (kind, ref) {
+    let ids, meta;
+    if (kind === 'cc') { const g = cc.groups.get(ref); if (!g) return; ids = g.rows.map(r => r.id); meta = g.first.meta || {}; }
+    else { const n = (window.ntRows || {})[ref]; if (!n) return; ids = [n.id]; meta = n.meta || {}; }
+    const cur = autoOn(meta) ? meta.auto : null;
+    const ov = overlay(`<div class="p11-h"><i class="fa-solid fa-clock-rotate-left"></i> Automate</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">بيتبعت الإشعار ده تاني تلقائياً. لو الطالب داس "فهمت" بيختفي عادي وبيرجع يتبعت في الميعاد الجاي.</div>
+      <span class="p11-l">يفضل يتبعت لمدة</span>${sel('p11Dur', A_DUR, '3')}
+      <span class="p11-l">كل قد إيه</span>${sel('p11Ev', A_EVERY, cur ? String(cur.every_h) : '24')}
+      <div class="p11-row"><button type="button" class="ds-b green" id="p11AGo">${cur ? 'تحديث' : 'تفعيل'}</button>${cur ? '<button type="button" class="ds-b" style="color:#f43f5e!important" id="p11AOff">إيقاف</button>' : ''}<button type="button" class="ds-b ghost" id="p11AX">إلغاء</button></div>`);
+    const save = async auto => {
+      const m2 = Object.assign({}, meta); if (auto) m2.auto = auto; else delete m2.auto;
+      try {
+        await patchIn(ids, { meta: m2 });
+        if (kind === 'cc') { const g = cc.groups.get(ref); g.rows.forEach(r => { r.meta = Object.assign({}, r.meta || {}, m2); }); g.first.meta = m2; ccPaint(); }
+        else { window.ntRows[ref].meta = m2; ntLoadSent(); }
+        showToast(auto ? 'اتفعّل الـ Automate ✓' : 'اتوقّف الـ Automate ✓'); ov.remove();
+      } catch (e) { showToast('فشل: ' + e.message, true); }
+    };
+    ov.querySelector('#p11AX').onclick = () => ov.remove();
+    ov.querySelector('#p11AGo').onclick = () => save({ every_h: +ov.querySelector('#p11Ev').value, until: new Date(Date.now() + (+ov.querySelector('#p11Dur').value) * 864e5).toISOString() });
+    const off = ov.querySelector('#p11AOff'); if (off) off.onclick = () => save(null);
+  };
+
+  /* Automate option inside the Notification window (new notifications) */
+  { const prev = openNotify;
+    openNotify = async function () {
+      const r = await prev.apply(this, arguments);
+      const send = $id('ntSend');
+      if (send && !$id('ntAuto')) {
+        send.parentNode.insertAdjacentHTML('beforebegin', `<label style="display:flex;gap:6px;align-items:center;margin-top:10px;font-size:12px;cursor:pointer"><input type="checkbox" id="ntAuto"> Automate · إعادة إرسال تلقائي</label>
+          <div class="p11-auto" id="ntAutoBox" style="display:none">لمدة ${sel('ntAutoDur', A_DUR, '3')} &nbsp; ${sel('ntAutoEvery', A_EVERY, '24')}</div>`);
+        $id('ntAuto').onchange = e => { $id('ntAutoBox').style.display = e.target.checked ? '' : 'none'; };
+      }
+      return r;
+    };
+  }
+  const _send0 = window.ntSend;
+  window.ntSend = async function () {
+    const c = ntCur; if (!c) return;
+    const body = $id('ntBody').value.trim(), title = $id('ntTitle').value.trim(), cat = ccCatVal('ntCat');
+    if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
+    const auto = $id('ntAuto') && $id('ntAuto').checked ? { every_h: +$id('ntAutoEvery').value, until: new Date(Date.now() + (+$id('ntAutoDur').value) * 864e5).toISOString() } : null;
+    const btn = $id('ntSend'); btn.disabled = true;
+    try {
+      if (c.editId) {
+        const old = (window.ntRows || {})[c.editId] || {}, meta = Object.assign({}, old.meta || {}, { category: cat }); if (auto) meta.auto = auto;
+        await sbFetch(`notifications?id=eq.${enc(c.editId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title: title || null, body, meta }) });
+        showToast('اتعدّل الإشعار ✓'); ntEditDone();
+      } else {
+        await post(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body, meta: Object.assign({ category: cat }, auto ? { auto } : {}) })));
+        showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
+      }
+      $id('ntBody').value = ''; $id('ntTitle').value = ''; dsRefreshPf('ntBody'); ccCatPick('ntCat', 'general');
+      const pf = $id('ntBody_pf'); if (pf) { pf.textContent = PF_EMPTY; pf.classList.add('empty'); }
+      if ($id('ntAuto')) { $id('ntAuto').checked = false; $id('ntAutoBox').style.display = 'none'; }
+      ntLoadSent();
+    } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 02_notifications.sql لو لسه)', true); }
+    btn.disabled = false;
+  };
+
+  /* Automate button on already-sent notifications (trainee window list + Contact Center Outbound); hidden tag rows never show */
+  { const _ls = ntLoadSent;
+    ntLoadSent = async function () {
+      await _ls.apply(this, arguments);
+      const box = document.getElementById('ntSent'); if (!box) return;
+      box.querySelectorAll('.nt-row').forEach(row => {
+        const d = row.querySelector('button[onclick^="ntDel("]'); if (!d) return;
+        const id = (d.getAttribute('onclick').match(/ntDel\((\d+)\)/) || [])[1]; const n = id && (window.ntRows || {})[id];
+        if (!n) return;
+        if (hasTag(n)) { row.remove(); return; }
+        if (n.kind === 'message' && !row.querySelector('[onclick^="anAuto("]')) d.insertAdjacentHTML('beforebegin', autoBtn('nt', id, n.meta));
+      });
+    };
+    const _oc = ccOutCard;
+    ccOutCard = function (g, gid) {
+      const h = _oc.apply(this, arguments);
+      if (!g || !g.first || g.first.kind !== 'message') return h;
+      return h.replace(/<button[^>]*onclick="ccDelOut\(/, m0 => autoBtn('cc', gid, g.first.meta) + m0);
+    };
+    const _go = ccGroupOut;
+    ccGroupOut = function (rows) { return _go.call(this, (rows || []).filter(n => !hasTag(n))); };
+  }
+})();
