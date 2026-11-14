@@ -6768,7 +6768,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
   window.thFlyFeed = () => {
     const els = [...document.querySelectorAll('#pop .pc')].slice(0, 14);
     els.forEach((e, i) => { e.style.setProperty('--d', i * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
-    setTimeout(() => els.forEach(e => { e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2600);
+    setTimeout(() => els.forEach(e => { e.classList.add('thFlyDone'); e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2600);   /* thFlyDone keeps animation:none, so removing thFly never lets the base pcIn animation start again (that was the second pop) */
   };
   let g = null, cur = 0, running = false;
   window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
@@ -7210,4 +7210,15 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
     } catch (e) { }
     requestAnimationFrame(loop);
   })();
+})();
+
+/* ===== Fix v1: Feed cards fly in ONCE; no replay, no glow lines ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFlyOnceCss';
+  st.textContent = `
+.pc.thFlyDone{animation:none!important}
+#pop .pc{isolation:isolate;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+#pop .pc.thFly{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;will-change:transform,opacity}
+#pop .pc::before,#pop .pc::after{backface-visibility:hidden;-webkit-backface-visibility:hidden}`;
+  document.head.appendChild(st);
 })();
