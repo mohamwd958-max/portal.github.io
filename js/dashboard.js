@@ -7254,3 +7254,34 @@ html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>#feedBtn.th-on:hove
 }`;
   document.head.appendChild(st);
 })();
+
+/* ===== "New" tag on the Space and Messenger buttons: a small glass-green pill, gone for good after the first tap ===== */
+(function () {
+  const TARGETS = { spaceBtn: 'thabit_new_space', mgrBtn: 'thabit_new_msgr' };
+  const st = document.createElement('style'); st.id = 'thNewTagCss';
+  st.textContent = `
+.thNew{position:absolute;top:0;left:calc(50% + 3px);z-index:6;pointer-events:none;padding:1px 5px 1.5px;border-radius:999px;font:800 8px/1.25 Inter,Cairo,sans-serif;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;
+  color:#04291d;background:linear-gradient(135deg,#6ee7b7,#34d399 55%,#10b981);box-shadow:0 0 0 1.5px #181c20,0 2px 8px rgba(16,185,129,.45);animation:thNewIn .5s cubic-bezier(.34,1.55,.5,1) both,thNewGlow 2.6s ease-in-out 1s infinite}
+body.light-theme .thNew{box-shadow:0 0 0 1.5px #fbfcfe,0 2px 8px rgba(5,150,105,.35)}
+@keyframes thNewIn{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+@keyframes thNewGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+@media(prefers-reduced-motion:reduce){.thNew{animation:none}}`;
+  document.head.appendChild(st);
+  const seen = k => { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } };
+  const label = () => (typeof lang === 'string' && lang !== 'en') ? 'جديد' : 'New';
+  function sync() {
+    Object.keys(TARGETS).forEach(id => {
+      const b = document.getElementById(id); if (!b) return;
+      let t = b.querySelector(':scope > .thNew');
+      if (seen(TARGETS[id])) { if (t) t.remove(); return; }
+      if (!t) { t = document.createElement('span'); t.className = 'thNew'; b.appendChild(t); }
+      if (t.textContent !== label()) t.textContent = label();
+    });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('#spaceBtn,#mgrBtn'); if (!b) return;
+    try { localStorage.setItem(TARGETS[b.id], '1'); } catch (x) { }
+    sync();
+  }, true);
+  sync(); setInterval(sync, 1000);
+})();
