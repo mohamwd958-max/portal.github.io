@@ -546,6 +546,17 @@ new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilte
 document.addEventListener('click',function(){setTimeout(sync,150)},true);
 })();
 </script>
+</body></html>');document.close()}}catch(e){}</script>
+<style id="fixGlowSeams">
+/* glow sweep: no hairline seams inside cells (own compositing layer, no sub-pixel tiling, no edge bleed) */
+.thabit-card,.test-card,.dcard{isolation:isolate}
+.thabit-card::before,.test-card::before{backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform,opacity;background-repeat:no-repeat!important;background-size:100% 100%;outline:0;border:0;border-radius:inherit;pointer-events:none}
+.thabit-card::after,.test-card::after{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+</style>
+<style id="noOldBar">#plusBtn,#profBtn,#floatBtnTheme,#langBtn,[data-bk="assist"],[data-bk="lang"],[data-bk="theme"],[data-bk="logout"]{display:none!important}
+html:not(.thBarOk) #mobileFloatingBar{visibility:hidden!important}</style>
+<script>(function(){var d=document.documentElement,done=false;function ok(){if(done)return;done=true;d.classList.add('thBarOk')}
+window.addEventListener('load',function(){setTimeout(ok,250)});setTimeout(ok,1800)})();</script>
 </head>
 <body id="bodyRoot">
 <script src="js/brand.js" data-profile></script>
@@ -555,14 +566,11 @@ document.addEventListener('click',function(){setTimeout(sync,150)},true);
   <div class="bar-divider"></div>
   <button type="button" data-bk="assist" id="plusBtn" onclick="openPlus(this)" title="Assistant" aria-label="Assistant" class="circle-badge-btn" style="color:#34d399"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-9.5L6 20.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"/></svg></button>
   <div class="bar-divider"></div>
-  <button type="button" data-bk="lang" id="langBtn" onclick="openLang(this)" class="circle-badge-btn" title="Language" aria-label="Language"><span id="langTxt">English</span></button>
-  <div class="bar-divider"></div>
-  <button type="button" data-bk="theme" onclick="toggleTheme()" id="floatBtnTheme" class="circle-badge-btn" title="Theme" style="color:#fbbf24"><i id="themeIcon" class="fa-solid fa-moon text-sm"></i></button>
-  <div class="bar-divider"></div>
   <button type="button" data-bk="logout" id="profBtn" onclick="openProf(this)" title="Account" aria-label="Account" class="circle-badge-btn" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.7 3.7-5.6 7.5-5.6s6.7 1.9 7.5 5.6"/></svg></button>
   <div class="bar-divider"></div>
   <button type="button" id="barEdit" onclick="openStar(this)" class="circle-badge-btn" title="More" aria-label="More" style="color:#94a3b8"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg></button>
 </div>
+<span id="langBtn" hidden style="display:none"><span id="langTxt"></span></span><span id="floatBtnTheme" hidden style="display:none"><i id="themeIcon"></i></span>
 
 
 <div class="wrap">
