@@ -7222,3 +7222,35 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
 #pop .pc::before,#pop .pc::after{backface-visibility:hidden;-webkit-backface-visibility:hidden}`;
   document.head.appendChild(st);
 })();
+
+/* ===== Fix v2: glass skeleton (light behind, logo pulses twice), Messenger on light theme, bar hover ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFixV2Css';
+  st.textContent = `
+/* --- skeleton = transparent glass; the light passes BEHIND the logo, left -> right, never in front --- */
+.th-sk{background:rgba(148,163,184,.05)!important;-webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),inset 0 1px 0 rgba(255,255,255,.12)}
+body.light-theme .th-sk{box-shadow:inset 0 0 0 1px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.6)}
+.th-sk::before{z-index:0!important;left:0!important;right:auto!important;direction:ltr;width:55%!important;background:linear-gradient(100deg,transparent,rgba(255,255,255,.16) 45%,rgba(167,243,208,.2) 58%,transparent)!important;filter:blur(7px);transform:translateX(-130%);animation:thSkSweep 1.8s ease-in-out infinite!important}
+#thSkPg .thSkB .th-sk::before{animation-duration:1.8s!important}
+.th-sk::after{z-index:2!important;opacity:.55!important;width:min(40px,55%)!important;animation:thSkPulse 1.8s ease-in-out infinite!important}
+@keyframes thSkPulse{0%{scale:1}7%{scale:1.1}14%{scale:1}21%{scale:1.1}28%{scale:1}100%{scale:1}}
+@keyframes thSkSweep{from{transform:translateX(-130%)}to{transform:translateX(300%)}}
+@media(prefers-reduced-motion:reduce){.th-sk::before,.th-sk::after{animation:none!important}}
+/* --- the bar never changes during a refresh --- */
+html body #mobileFloatingBar:not(#z){z-index:2147483647!important}
+html.th-skel #mobileFloatingBar,html.th-skel #mobileFloatingBar *{visibility:visible!important}
+/* --- Messenger on the light theme (it had light text on a light page) --- */
+body.light-theme .mgr-pop{color:#0f172a}
+body.light-theme .mgr-cell{color:#0f172a}
+body.light-theme .mgr-cp,body.light-theme .mgr-c2{color:#475569}
+body.light-theme .mgr-hb,body.light-theme .mgr-ab{color:#475569}
+body.light-theme .mgr-pop [data-empty],body.light-theme .mgr-empty{color:#475569}
+/* --- bar hover: the selected button does nothing; the others rise a little to the selected size, no colour change --- */
+@media(hover:hover){
+html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(.lifting):not(.pk-on):not(.pk-hide):hover>svg,html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(.lifting):not(.pk-on):not(.pk-hide):hover>i,html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk]:not(.th-on):not(.lifting):not(.pk-on):not(.pk-hide):hover>.mgr-ico{scale:1.2!important;translate:0 -2px!important;transform:none!important;transition:scale .35s cubic-bezier(.22,1,.36,1),translate .35s cubic-bezier(.22,1,.36,1)!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk].th-on:hover>svg,html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk].th-on:hover>i,html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>[data-bk].th-on:hover>.mgr-ico{transform:none!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>#feedBtn:not(.th-on):hover .fstar{transform:translateY(-2px) scale(1.2)!important;transition:transform .35s cubic-bezier(.22,1,.36,1)!important}
+html body #mobileFloatingBar:not(#z):not(#y):not(#x):not(#w)>#feedBtn.th-on:hover .fstar{transform:none!important}
+}`;
+  document.head.appendChild(st);
+})();
