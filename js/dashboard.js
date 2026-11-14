@@ -6076,16 +6076,57 @@ body:not(.light-theme) #thSpace{background:#17171b}
   const box = document.createElement('div'); box.id = 'thSpace';
   box.innerHTML = '<button type="button" class="tsx" aria-label="Close">&times;</button>';
   document.body.appendChild(box);
+  const SPACE_SOON = true;   /* true = show the "under development" page; false = the real board */
+  const SOON_T = {
+    en: { d: 'On this page you can pick up a pen and start drawing your own free space however you like.', s: 'This page is still being updated and is under development. It will be available very soon.' },
+    ar: { d: 'في هذه الصفحة تستطيع أن تلتقط قلمًا وتبدأ برسم مساحتك الحرة كيفما شئت.', s: 'لا زالت هذه الصفحة تحت التحديث أو قيد التطوير، وستكون متاحة في أقرب وقت.' }
+  };
+  const gearD = (cx, cy, R, r, n) => { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; };
+  const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
+  const soonCss = document.createElement('style'); soonCss.id = 'thSpaceSoonCss';
+  soonCss.textContent = `
+#thSpace .tsoon{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 26px;text-align:center;overflow:auto}
+#thSpace .tsoon svg{width:min(250px,70vw);height:auto;overflow:visible;flex:none}
+#thSpace .tsoon .gl{fill:url(#tsGlow)}
+#thSpace .tsoon .g1{fill:none;stroke:#fbbf24;stroke-width:3.2;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(251,191,36,.75))}
+#thSpace .tsoon .g1r{fill:none;stroke:#fbbf24;stroke-width:3;filter:drop-shadow(0 0 5px rgba(251,191,36,.7))}
+#thSpace .tsoon .g1c{fill:#fbbf24;filter:drop-shadow(0 0 7px rgba(251,191,36,.95))}
+#thSpace .tsoon .g2{fill:none;stroke:#f1f5f9;stroke-width:2.2;stroke-linejoin:round;opacity:.92}
+#thSpace .tsoon .orb{fill:none;stroke:#fbbf24;stroke-width:1.4;stroke-dasharray:1 6;stroke-linecap:round;opacity:.35}
+#thSpace .tsoon .sp1{fill:#f1f5f9}.tsoon .sp2{fill:#fbbf24;filter:drop-shadow(0 0 5px rgba(251,191,36,.9))}.tsoon .dt{fill:#fbbf24;opacity:.7}
+#thSpace .tsoon .td{max-width:340px;margin:0;font:600 .98rem/1.7 Inter,Cairo,sans-serif;color:#f1f5f9}
+#thSpace .tsoon .ts{max-width:340px;margin:0;padding:8px 16px;border-radius:16px;font:700 .82rem/1.6 Inter,Cairo,sans-serif;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.32)}
+body.light-theme #thSpace .tsoon .td{color:#0f172a}
+body.light-theme #thSpace .tsoon .ts{color:#92400e;background:rgba(245,158,11,.12);border-color:rgba(180,83,9,.35)}
+body.light-theme #thSpace .tsoon .g2{stroke:#475569}body.light-theme #thSpace .tsoon .sp1{fill:#475569}
+body.light-theme #thSpace .tsoon .g1,body.light-theme #thSpace .tsoon .g1r{stroke:#d97706}body.light-theme #thSpace .tsoon .g1c,body.light-theme #thSpace .tsoon .sp2,body.light-theme #thSpace .tsoon .dt{fill:#d97706}`;
+  document.head.appendChild(soonCss);
+  function soon() {
+    const L = (typeof lang === 'string' && lang === 'en') ? 'en' : 'ar', T = SOON_T[L];
+    let s = box.querySelector('.tsoon');
+    if (!s) {
+      s = document.createElement('div'); s.className = 'tsoon';
+      s.innerHTML = '<svg viewBox="0 0 240 190" aria-hidden="true"><defs><radialGradient id="tsGlow"><stop offset="0" stop-color="#fbbf24" stop-opacity=".38"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>'
+        + '<circle class="gl" cx="100" cy="108" r="92"/><circle class="orb" cx="100" cy="108" r="76"/>'
+        + '<path class="g1" d="' + gearD(100, 108, 50, 41, 12) + '"/><circle class="g1r" cx="100" cy="108" r="20"/><circle class="g1c" cx="100" cy="108" r="6.5"/>'
+        + '<path class="g2" d="' + gearD(168, 58, 28, 23, 10) + '"/><circle class="g2" cx="168" cy="58" r="8"/>'
+        + '<path class="sp1" d="' + spark(34, 70, 7) + '"/><path class="sp2" d="' + spark(216, 128, 10) + '"/>'
+        + '<circle class="dt" cx="58" cy="34" r="1.6"/><circle class="dt" cx="196" cy="22" r="1.4"/><circle class="dt" cx="22" cy="140" r="1.4"/><circle class="dt" cx="150" cy="172" r="1.6"/></svg>'
+        + '<p class="td"></p><p class="ts"></p>';
+      box.appendChild(s);
+    }
+    s.dir = L === 'en' ? 'ltr' : 'rtl'; s.querySelector('.td').textContent = T.d; s.querySelector('.ts').textContent = T.s;
+  }
   let fr = null;
   function open() {
-    if (!fr) {
+    if (SPACE_SOON) soon(); else if (!fr) {
       fr = document.createElement('iframe'); fr.title = 'Space'; fr.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen');
       fr.src = 'board.html?student=1' + (VIEW ? '&mode=view#vt=' + VT : '');
       box.appendChild(fr);
     }
     box.classList.add('open');
     if (window.thFpSync) thFpSync();
-    probe();
+    if (!SPACE_SOON) probe();
   }
   /* If Space cannot load, say exactly why on screen (missing file, or the server function is missing / rejected the token) */
   let probed = false;
@@ -6732,7 +6773,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
 @keyframes thFly{0%{opacity:0;transform:translate3d(0,-56px,0) scale(.92)}55%{opacity:1;transform:translate3d(0,8px,0) scale(1.015)}78%{transform:translate3d(0,-2px,0) scale(.998)}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.thFly{animation:none!important}}`;
   document.head.appendChild(rst);
-  const CANDS = { feedBtn: '#pop .pc', daysBtn: '#thDays .dcard,#thDays .drow', barEdit: '#thSet .tsl', mgrBtn: '.mgr-pop .mgr-cell' };
+  const CANDS = { feedBtn: '#pop .pc', daysBtn: '#thDays .dcard,#thDays .drow', barEdit: '#thSet .tsl', mgrBtn: '.mgr-pop .mgr-cell', homeBtn: '.wrap .thabit-card,.wrap .test-card,.wrap .cap,.wrap .dcard' };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   function cands(id) {                    /* the cards / cells of the page you are on (the things that hold info) */
     { const cb = document.querySelector('#thCal.open .cbox'); if (cb) return [cb]; }   /* calendar open: the calendar card itself */
@@ -6770,6 +6811,14 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     els.forEach((e, i) => { e.style.setProperty('--d', i * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
     setTimeout(() => els.forEach(e => { e.classList.add('thFlyDone'); e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2600);   /* thFlyDone keeps animation:none, so removing thFly never lets the base pcIn animation start again (that was the second pop) */
   };
+  /* Home refresh: the SAME glass cards with the logo as every other page. No full-screen layer, no centred word. */
+  {
+    let hov = null, hT = 0, hk = 0;
+    const hShow = () => { if (hov && hov.isConnected && hov.style.opacity !== '0') return; if (hov) hov.remove(); hov = skelShow('homeBtn'); hT = Date.now(); hk++; };
+    const hHide = () => { const ov = hov, k = hk; if (!ov) return; setTimeout(() => { if (k !== hk || hov !== ov) return; ov.style.transition = 'opacity .6s ease'; ov.style.opacity = '0'; setTimeout(() => { if (hov === ov) hov = null; ov.remove(); }, 650); }, Math.max(0, 1000 - (Date.now() - hT))); };
+    window.thSkel = on => { try { on ? hShow() : hHide(); } catch (e) { console.warn('[home skeleton]', e); } };
+    if (window.thSkelOv) { try { thSkelOv.show = hShow; thSkelOv.hide = hHide; } catch (e) { } }
+  }
   let g = null, cur = 0, running = false;
   window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
   window.addEventListener('touchstart', e => {   /* window + capture: the pages swallow taps on their empty background before document sees them */
@@ -7284,4 +7333,14 @@ body.light-theme .thNew{box-shadow:0 0 0 1.5px #fbfcfe,0 2px 8px rgba(5,150,105,
     sync();
   }, true);
   sync(); setInterval(sync, 1000);
+})();
+
+/* ===== Fix v3: Messenger unread rows on the light theme ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFixV3Css';
+  st.textContent = `
+body.light-theme .mgr-cell.unr .mgr-c1 b,body.light-theme .mgr-cell.unr .mgr-cp{color:#0f172a}
+body.light-theme .mgr-c1 em{color:#64748b}
+body.light-theme .mgr-ca{background:#e2e8f0}`;
+  document.head.appendChild(st);
 })();
