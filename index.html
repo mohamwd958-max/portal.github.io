@@ -212,6 +212,8 @@
     /* =====================================================================
        LEFT OPTIONS RAIL + OPTION PAGES + bar appears only after the intro
        ===================================================================== */
+    html body #login-screen{transition:opacity .9s ease}
+    html body:not(.th-ready) #login-screen{opacity:0!important}
     html body:not(.th-ready) #mobileFloatingBar:not(#z):not(#y){opacity:0!important;visibility:hidden!important;pointer-events:none!important;translate:0 100%!important}
     html body #mobileFloatingBar:not(#z):not(#y){transition:opacity .9s ease,translate .9s var(--rc-ease),visibility 0s}
 
@@ -268,12 +270,25 @@
     @media(hover:hover){.xbtn:hover{scale:var(--rc-hover-ctl);background:rgba(148,163,184,.16)}.xbtn.gold:hover{background:rgba(251,191,36,.2);box-shadow:0 0 22px rgba(251,191,36,.25)}}
     .xbtn.rc-down{scale:var(--rc-down-ctl)!important;transition:scale var(--rc-fast) ease-out,background .3s,box-shadow .3s,border-color .3s}
 
+
+    /* ---------- Get In button: the ONLY hover/press allowed is Real-click animation ----------
+       anything older (Css/portal.css or elsewhere) that moves, lifts, glows or transforms the button or the card behind it is cancelled here */
+    html body .portal-card .btn[data-state="idle"]:not(#z):hover,
+    html body .portal-card .btn[data-state="idle"]:not(#z):active,
+    html body .portal-card .btn[data-state="idle"]:not(#z):focus,
+    html body .portal-card .btn[data-state="idle"]:not(#z):focus-visible,
+    html body .portal-card:hover .btn[data-state="idle"]:not(#z),
+    html body .portal-card:active .btn[data-state="idle"]:not(#z){
+      transform:none!important;translate:none!important;filter:none!important;animation:none!important;outline:0!important;letter-spacing:.5px!important}
+    html body .portal-card:not(#z):hover,html body .portal-card:not(#z):active{transform:none!important;translate:none!important;filter:none!important}
+    html body .portal-card:hover::before,html body .portal-card:hover::after,html body .portal-card .btn:hover::before,html body .portal-card .btn:hover::after{content:none!important;display:none!important;animation:none!important}
+
     @media(prefers-reduced-motion:reduce){.fl label,.btn,.eye,html body #mobileFloatingBar>.circle-badge-btn:not(#z){transition:none!important}.btn .sp,.eye.glow .pup{animation:none}}
     </style>
 </head>
 
 <body data-opt="lang">
-<script src="js/brand.js" data-intro></script>
+<script src="js/brand.js" data-intro data-intro-end="dissolve"></script>
 
     <!-- Bottom glass bar: language + theme + placement (TH logo) -->
     <div class="mobile-floating-bar" id="mobileFloatingBar">
@@ -658,8 +673,8 @@
       /* bar + rail appear only after the logo intro has finished */
       let tries = 0;
       const iv = setInterval(() => {
-        const o = $('cinematicIntroOverlay'); tries++;
-        if (!o || o.style.display === 'none' || tries > 45) { clearInterval(iv); setTimeout(() => body.classList.add('th-ready'), 150); }
+        tries++;   /* wait for the logo intro of js/brand.js (.thb-ov) to be completely gone */
+        if ((document.readyState === 'complete' && !document.querySelector('.thb-ov')) || tries > 150) { clearInterval(iv); setTimeout(() => body.classList.add('th-ready'), 150); }
       }, 80);
 
       const T = {
