@@ -90,7 +90,6 @@
       touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
       transition:scale var(--rc-slow) var(--rc-ease)!important}
     /* any older hover effect on the card (Css/portal.css) is cancelled here; hover now comes only from Real-click animation */
-    html body .portal-card:not(#z):hover{transform:none!important;translate:none!important;filter:none!important}
     html body:not(.light-theme) .portal-card:not(#z){
       background:rgba(255,255,255,.04)!important;background-image:none!important;
       border:1px solid rgba(255,255,255,.09)!important;
@@ -280,7 +279,8 @@
     html body .portal-card:hover .btn[data-state="idle"]:not(#z),
     html body .portal-card:active .btn[data-state="idle"]:not(#z){
       transform:none!important;translate:none!important;filter:none!important;animation:none!important;outline:0!important;letter-spacing:.5px!important}
-    html body .portal-card:not(#z):hover,html body .portal-card:not(#z):active{transform:none!important;translate:none!important;filter:none!important}
+    html body .portal-card:not(#z),html body .portal-card:not(#z):hover,html body .portal-card:not(#z):active{transform:none!important;translate:none!important;filter:none!important;will-change:scale}
+    html body .lgorb{will-change:scale}
     html body .portal-card:hover::before,html body .portal-card:hover::after,html body .portal-card .btn:hover::before,html body .portal-card .btn:hover::after{content:none!important;display:none!important;animation:none!important}
 
     @media(prefers-reduced-motion:reduce){.fl label,.btn,.eye,html body #mobileFloatingBar>.circle-badge-btn:not(#z){transition:none!important}.btn .sp,.eye.glow .pup{animation:none}}
@@ -306,6 +306,7 @@
         <button type="button" class="ob" data-opt="voice"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i><span></span></button>
         <button type="button" class="ob" data-opt="digital"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span></span></button>
         <button type="button" class="ob" data-opt="consult"><i class="fa-solid fa-user-tie" aria-hidden="true"></i><span></span></button>
+        <button type="button" class="ob" data-opt="store"><i class="fa-solid fa-shirt" aria-hidden="true"></i><span></span></button>
         <button type="button" class="ob" data-opt="soon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i><span></span></button>
     </nav>
     <div id="optPanel" aria-live="polite">
@@ -678,18 +679,18 @@
       }, 80);
 
       const T = {
-        en: { lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', soon: 'Coming soon', empty: 'Nothing here yet. This page is coming soon.' },
-        ar: { lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', soon: 'قريبًا', empty: 'لا يوجد شيء هنا حتى الآن. هذه الصفحة قريبًا.' },
-        eg: { lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', soon: 'قريبًا', empty: 'لسه مفيش حاجة هنا. الصفحة دي قريب.' }
+        en: { lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', soon: 'Coming soon', empty: 'Nothing here yet. This page is coming soon.', storeText: 'Thabit merch: T-shirts and more. Coming soon.' },
+        ar: { lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'قريبًا', empty: 'لا يوجد شيء هنا حتى الآن. هذه الصفحة قريبًا.', storeText: 'منتجات ثابت: تيشيرتات وغيرها. قريبًا.' },
+        eg: { lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'قريبًا', empty: 'لسه مفيش حاجة هنا. الصفحة دي قريب.', storeText: 'منتجات ثابت: تيشيرتات وحاجات تانية. قريب.' }
       };
-      const ICON = { voice: 'fa-microphone-lines', digital: 'fa-laptop-code', consult: 'fa-user-tie', soon: 'fa-hourglass-half' };
+      const ICON = { voice: 'fa-microphone-lines', digital: 'fa-laptop-code', consult: 'fa-user-tie', store: 'fa-shirt', soon: 'fa-hourglass-half' };
       const lang = () => (typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en';
       let cur = 'lang', switching = false;
 
       function labels() {
         const t = T[lang()];
         rail.querySelectorAll('.ob').forEach(b => { const k = b.dataset.opt; b.querySelector('span').textContent = t[k]; b.title = t[k]; b.setAttribute('aria-label', t[k]); });
-        if (cur !== 'lang') { $('opTitle').textContent = t[cur]; $('opText').textContent = t.empty; }
+        if (cur !== 'lang') { $('opTitle').textContent = t[cur]; $('opText').textContent = t[cur + 'Text'] || t.empty; }
       }
       const origSet = window.setLanguage;
       if (typeof origSet === 'function') window.setLanguage = function () { const r = origSet.apply(this, arguments); labels(); return r; };
