@@ -235,7 +235,7 @@ function render() {
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + dandanaCard() + cap(all, 'notes', t.notes) + cap(all, 'tefl', 'TEFL') + cap(all, 'qol', 'QOL') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
+  $('lists').innerHTML = tasksCard() + dandanaCard() + cap(all, 'notes', t.notes) + cap(all, 'tefl', lang === 'en' ? 'Passages' : 'النصوص') + cap(all, 'qol', lang === 'en' ? 'Words and sounds' : 'الكلمات والأصوات') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
   { const e = $('tInfo'); if (e) e.textContent = t.info; }
   rqUI();
   const L = all[all.length - 1], line = sessLine;
@@ -2290,9 +2290,9 @@ function rtStrip(s) { return window.ThabitRich ? ThabitRich.strip(s) : String(s 
   /* QOL = the QOL card in the dashboard, or the full-text modal opened from it (its title says QOL) */
   function isQol(n) {
     var p = n.parentElement; if (!p) return false;
-    if (p.closest('#mB')) { var t = document.getElementById('mT'); return !!t && /\bQOL\b/i.test(t.textContent); }
+    if (p.closest('#mB')) { var t = document.getElementById('mT'); return !!t && /\bQOL\b|الكلمات والأصوات|Words and sounds/i.test(t.textContent); }
     var c = p.closest('.dcard'), h = c && c.querySelector('h4');
-    return !!h && /^QOL$/i.test(h.textContent.trim());
+    return !!h && /^(QOL|الكلمات والأصوات|Words and sounds)$/i.test(h.textContent.trim());
   }
   function apply(nodes) {
     nodes.forEach(function (x) {
@@ -6837,6 +6837,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
   window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
   window.addEventListener('touchstart', e => {   /* window + capture: the pages swallow taps on their empty background before document sees them */
     g = null;
+    if (window.__thPullOn !== 1) return;   /* pull-down refresh is OFF (set window.__thPullOn = 1 to bring it back). Home refreshes from the Home bar button via thRefreshNow */
     if (busy || running || e.touches.length !== 1) return;
     const t0 = e.target;
     if (t0.closest && t0.closest('input,textarea,select,[contenteditable="true"],#mobileFloatingBar,.thsel-ui,iframe')) return;
@@ -7439,4 +7440,75 @@ body.light-theme .thTg.nw,body.light-theme .thTg.al,body.light-theme .thTg.ct{bo
     sync(); if (k === 'feed') { try { updateFeed(); } catch (x) { } }
   }, true);
   sync(); setInterval(sync, 1500);
+})();
+
+/* ==========================================================
+   Home v2: no pull refresh (see the first line of this file), 3 sections centered, a title in each section's corner
+   (right in Arabic, left in English), renamed cards, and a one-time "what's new" card.
+   ========================================================== */
+(function () {
+  if (window.__thHv2) return; window.__thHv2 = 1;
+  const TT = {
+    thS2: { en: 'Tasks and To-Dos', ar: 'المهام' },
+    thS3: { en: 'Words and passages bucket', ar: 'مخزن الكلمات والنصوص' },
+    thS1: { en: 'Numbers dashboard', ar: 'لوحة الأرقام' }
+  };
+  const st = document.createElement('style'); st.id = 'thHv2css';
+  st.textContent = `
+html body .thsec:not(#z):not(#y){justify-content:center!important}
+html body .thsec.th-first:not(#z):not(#y){justify-content:center!important;padding-top:calc(var(--th-hd) + var(--th-gap) + 8px)!important}
+html body .thsec:not(#z):not(#y){padding-top:calc(var(--th-hd) + var(--th-gap) + 8px)!important}
+.thsl{position:absolute;top:calc(var(--th-hd) + 12px);inset-inline-start:22px;font:800 15px/1.2 Inter,Cairo,sans-serif;letter-spacing:.2px;color:#fbbf24;opacity:.95;pointer-events:none;max-width:calc(100% - 44px)}
+html[dir=rtl] .thsl{font-size:16px}
+body.light-theme .thsl{color:#b45309}
+@media(min-width:601px){.thsl{inset-inline-start:30px}}`;
+  document.head.appendChild(st);
+  const paint = () => {
+    const l = (typeof lang === 'string' && lang === 'en') ? 'en' : 'ar';
+    Object.keys(TT).forEach(id => {
+      const sec = document.getElementById(id); if (!sec) return;
+      let e = sec.querySelector(':scope > .thsl');
+      if (!e) { e = document.createElement('div'); e.className = 'thsl'; e.setAttribute('aria-hidden', 'true'); sec.insertBefore(e, sec.firstChild); }
+      if (e.dataset.l !== l) { e.dataset.l = l; e.textContent = TT[id][l]; }
+    });
+  };
+  setInterval(paint, 600); paint();
+
+  /* ---------- one-time "what's new" card ---------- */
+  const NEWS = {
+    en: { h: 'What’s new on Home', items: [
+      ['fa-hand-pointer', 'Pull-down refresh is gone. Tap the Home button to refresh.'],
+      ['fa-heading', 'Each section now has its own title.'],
+      ['fa-file-lines', 'TEFL is now “Passages”.'],
+      ['fa-volume-high', 'QOL is now “Words and sounds”.']], ok: 'Got it' },
+    ar: { h: 'إيه الجديد في الرئيسية', items: [
+      ['fa-hand-pointer', 'السحب لتحت للتحديث اتشال. اضغط زر الرئيسية عشان تحدّث.'],
+      ['fa-heading', 'كل قسم بقى له عنوان.'],
+      ['fa-file-lines', 'TEFL بقت «النصوص».'],
+      ['fa-volume-high', 'QOL بقت «الكلمات والأصوات».']], ok: 'تمام' }
+  };
+  const KEYN = 'th_news_home_v2';
+  window.thNewsShow = function (force) {
+    try { if (!force && localStorage.getItem(KEYN)) return; } catch (e) { }
+    if (document.getElementById('thNews')) return;
+    const l = (typeof lang === 'string' && lang === 'en') ? 'en' : 'ar', n = NEWS[l];
+    const ov = document.createElement('div'); ov.id = 'thNews'; ov.dir = l === 'en' ? 'ltr' : 'rtl';
+    ov.innerHTML = `<div class="thn-b" role="dialog" aria-modal="true"><h3>${n.h}</h3><ul>${n.items.map(i => `<li><i class="fa-solid ${i[0]}"></i><span>${i[1]}</span></li>`).join('')}</ul><button type="button" class="thn-ok">${n.ok}</button></div>`;
+    document.body.appendChild(ov);
+    const done = () => { try { localStorage.setItem(KEYN, '1'); } catch (e) { } ov.remove(); };
+    ov.querySelector('.thn-ok').onclick = done; ov.addEventListener('click', e => { if (e.target === ov) done(); });
+  };
+  const ns = document.createElement('style'); ns.id = 'thNewsCss';
+  ns.textContent = `
+#thNews{position:fixed;inset:0;z-index:2147483100;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:22px;font-family:Inter,Cairo,sans-serif}
+#thNews .thn-b{width:min(340px,100%);background:#161b22;color:#e6edf3;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:20px 18px 16px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+body.light-theme #thNews .thn-b{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.12)}
+#thNews h3{margin:0 0 12px;font-size:17px;font-weight:800;color:#fbbf24}
+body.light-theme #thNews h3{color:#b45309}
+#thNews ul{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px}
+#thNews li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5}
+#thNews li i{color:#38bdf8;width:18px;text-align:center;margin-top:3px}
+#thNews .thn-ok{width:100%;border:0;border-radius:12px;padding:10px;font:800 14px Inter,Cairo,sans-serif;background:#fbbf24;color:#0f172a;cursor:pointer}`;
+  document.head.appendChild(ns);
+  const wait = setInterval(() => { if (document.getElementById('thS2') && document.querySelector('#lists .dcard')) { clearInterval(wait); setTimeout(() => window.thNewsShow(false), 1200); } }, 700);
 })();
