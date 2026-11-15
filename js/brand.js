@@ -105,7 +105,7 @@
   var MODE = s.getAttribute('data-intro-end') === 'dissolve' ? 'dissolve' : 'fly', stat = null;
   if (MODE === 'fly' && s.getAttribute('data-logo') !== 'none') {
     var stl = document.createElement('style');
-    stl.textContent = '#thLogoStatic{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:14px;width:30px;height:30px;z-index:70;pointer-events:none;background:#fff;opacity:0;transition:opacity .4s;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat}body.light-theme #thLogoStatic{background:#000}';
+    stl.textContent = '#thLogoStatic{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:16px;width:30px;height:30px;z-index:70;pointer-events:none;background:#fff;opacity:0;transition:opacity .4s;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat}body.light-theme #thLogoStatic{background:#000}@media(max-width:600px){#thLogoStatic{left:12px;width:27px;height:27px}}';
     document.head.appendChild(stl);
     stat = document.createElement('span'); stat.id = 'thLogoStatic'; stat.setAttribute('role', 'img'); stat.setAttribute('aria-label', 'THABIT'); document.body.appendChild(stat);
   }
@@ -168,7 +168,7 @@
     var draw = function (t) {
       var tw = t - 1000, env = 0, p = 0;
       if (tw > 0 && tw < 1500) env = .8 * (tw < 350 ? ez(tw / 350) : tw < 900 ? 1 : 1 - ez((tw - 900) / 600));
-      p = ez((t - 1300) / 1200); var fo = t > 3900 ? 1 - ez((t - 3900) / 600) : 1;   /* p: gold arrives, fo: gold leaves, back to the plain colour */
+      p = ez((t - 1300) / 1200); var fo = t > 4300 ? 1 - ez((t - 4300) / 600) : 1;   /* p: gold arrives, fo: gold leaves, back to the plain colour */
       mx.clearRect(0, 0, mc.width, mc.height);
       if (env > .001) { thStep(g, Math.max(0, tw) / 1000 * 1.7, env, -.5); px.putImageData(pimg, 0, 0); mx.drawImage(sc, MG, MG); mx.drawImage(pcv, MG + g.ox, MG + g.oy); }
       else mx.drawImage(img, MG, MG);
@@ -192,16 +192,19 @@
       if (!glowed && t >= 2500) { glowed = true; glow(); }
       requestAnimationFrame(loop);
     };
-    /* soft heartbeat (two double-beats) with a warm glow while the word is gold */
+    /* once the gold is complete: the word swells slowly and softly, pops twice (gently), then settles back to its size */
     var G = function (a, b) { return 'drop-shadow(0 0 ' + a + 'px rgba(251,191,36,' + b + '))'; };
     var glow = function () {
       big.animate([
-        { offset: 0, transform: 'scale(1)', filter: G(0, 0) }, { offset: .10, transform: 'scale(1.10)', filter: G(26, .95) }, { offset: .22, transform: 'scale(1)', filter: G(8, .4) },
-        { offset: .32, transform: 'scale(1.06)', filter: G(18, .75) }, { offset: .46, transform: 'scale(1)', filter: G(4, .2) },
-        { offset: .58, transform: 'scale(1.10)', filter: G(26, .95) }, { offset: .70, transform: 'scale(1)', filter: G(8, .4) },
-        { offset: .80, transform: 'scale(1.06)', filter: G(18, .75) }, { offset: 1, transform: 'scale(1)', filter: G(0, 0) }
-      ], { duration: 1500, easing: 'ease-in-out' });
-      setTimeout(MODE === 'dissolve' ? dissolve : fly, 2000);   /* gold is gone by then, the word is plain white / black */
+        { offset: 0, transform: 'scale(1)', filter: G(0, 0), easing: 'ease-in-out' },
+        { offset: .34, transform: 'scale(1.05)', filter: G(14, .45), easing: 'ease-out' },
+        { offset: .48, transform: 'scale(1.075)', filter: G(18, .6), easing: 'ease-in-out' },
+        { offset: .60, transform: 'scale(1.05)', filter: G(14, .45), easing: 'ease-out' },
+        { offset: .74, transform: 'scale(1.075)', filter: G(18, .6), easing: 'ease-in-out' },
+        { offset: .86, transform: 'scale(1.05)', filter: G(12, .4), easing: 'ease-in-out' },
+        { offset: 1, transform: 'scale(1)', filter: G(0, 0) }
+      ], { duration: 2200 });
+      setTimeout(MODE === 'dissolve' ? dissolve : fly, 2400);   /* gold is gone by then, the word is plain white / black */
     };
     var dissolve = function () {   /* the word fades away, slow and cinematic; nothing flies anywhere */
       if (done) return;
