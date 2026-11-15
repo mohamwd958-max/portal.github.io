@@ -20,10 +20,105 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:ital,wght@0,900;1,700;1,900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Embedded CSS for one-file testing -->
-    
-        <link rel="stylesheet" href="Css/portal.css">
+
+    <link rel="stylesheet" href="Css/portal.css">
+
+    <!-- Dashboard look: glass bottom bar (language + theme only) + glass login card -->
+    <style id="thPortalLook">
+    /* ---------- page ---------- */
+    html body:not(.light-theme){background-color:#050506!important;background-image:none!important}
+    html body.light-theme{background-color:#f4f6f9!important;background-image:none!important}
+    html body{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))!important}
+
+    /* ---------- bottom bar: fixed, centred, glass, no borders ---------- */
+    html body #mobileFloatingBar:not(#z):not(#y){
+      position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;
+      margin:0 auto!important;transform:none!important;translate:none!important;
+      width:min(100%,520px)!important;max-width:none!important;
+      height:calc(54px + env(safe-area-inset-bottom,0px))!important;min-height:0!important;box-sizing:border-box!important;
+      padding:0 8px env(safe-area-inset-bottom,0px)!important;
+      display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+      justify-content:space-around!important;align-items:center!important;gap:0!important;
+      direction:ltr!important;border-radius:16px 16px 0 0!important;
+      border:0!important;outline:0!important;box-shadow:none!important;
+      background:rgba(255,255,255,.09)!important;background-image:none!important;
+      -webkit-backdrop-filter:blur(20px) saturate(1.8)!important;backdrop-filter:blur(20px) saturate(1.8)!important;
+      z-index:2147483000!important;overflow:visible!important}
+    @media(max-width:600px){html body #mobileFloatingBar:not(#z):not(#y){width:100%!important;border-radius:0!important}}
+    html body.light-theme #mobileFloatingBar:not(#z):not(#y){background:rgba(255,255,255,.5)!important}
+    html body #mobileFloatingBar .bar-divider{display:none!important}
+    html body #mobileFloatingBar::before,html body #mobileFloatingBar::after{content:none!important;display:none!important}
+
+    /* ---------- bar buttons: free icons, no box ---------- */
+    html body #mobileFloatingBar>.circle-badge-btn:not(#z){
+      position:relative!important;box-sizing:border-box!important;flex:1 1 0!important;
+      width:auto!important;min-width:0!important;max-width:76px!important;height:44px!important;
+      margin:0!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+      background:transparent!important;background-image:none!important;border:0!important;outline:0!important;box-shadow:none!important;
+      -webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:50%!important;
+      color:#fff!important;opacity:1!important;cursor:pointer;-webkit-tap-highlight-color:transparent;
+      font:700 13px/1 Cairo,Inter,sans-serif!important;letter-spacing:0!important;
+      transition:color .24s ease,scale .32s cubic-bezier(.34,1.5,.5,1),translate .32s ease!important}
+    html body.light-theme #mobileFloatingBar>.circle-badge-btn:not(#z){color:#0f172a!important}
+    html body #mobileFloatingBar>.circle-badge-btn::before,html body #mobileFloatingBar>.circle-badge-btn::after{content:none!important;display:none!important}
+    html body #mobileFloatingBar>.circle-badge-btn i{font-size:21px!important;line-height:1!important;color:inherit!important}
+
+    /* chosen option = green, a little bigger and bolder */
+    html body #mobileFloatingBar>.circle-badge-btn.active:not(#z){color:#34d399!important;font-weight:900!important;scale:1.2;translate:0 -2px}
+    html body.light-theme #mobileFloatingBar>.circle-badge-btn.active:not(#z){color:#059669!important}
+    @media(hover:hover){
+      html body #mobileFloatingBar>.circle-badge-btn:not(.active):not(#z):hover{scale:1.2;translate:0 -2px}
+    }
+    html body #mobileFloatingBar>.circle-badge-btn:active:not(#z){scale:.94}
+
+    /* theme icon: outline, always white (dark) / dark (light) */
+    html body #mobileFloatingBar #floatBtnTheme{color:#fff!important}
+    html body.light-theme #mobileFloatingBar #floatBtnTheme{color:#0f172a!important}
+    html body #mobileFloatingBar #themeIcon{font-weight:400!important}
+
+    /* ---------- login card: glass like the dashboard cards ---------- */
+    html body .portal-card:not(#z){
+      border-radius:22px!important;-webkit-backdrop-filter:blur(24px) saturate(1.3)!important;backdrop-filter:blur(24px) saturate(1.3)!important}
+    html body:not(.light-theme) .portal-card:not(#z){
+      background:rgba(255,255,255,.045)!important;background-image:none!important;
+      border:1px solid rgba(255,255,255,.09)!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 10px 30px rgba(0,0,0,.45)!important;color:#f1f5f9!important}
+    html body.light-theme .portal-card:not(#z){
+      background:rgba(255,255,255,.7)!important;background-image:none!important;
+      border:1px solid rgba(15,23,42,.1)!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(15,23,42,.1)!important;color:#0f172a!important}
+    html body .portal-card::before,html body .portal-card::after{animation:none!important}
+
+    /* inputs */
+    html body .portal-card .input-group label{font-size:.74rem!important;font-weight:700!important;opacity:.85}
+    html body .portal-card input[type=text],html body .portal-card input[type=password]{
+      width:100%;box-sizing:border-box;padding:12px 14px!important;border-radius:14px!important;
+      border:1px solid rgba(148,163,184,.4)!important;background:rgba(148,163,184,.1)!important;color:inherit!important;
+      font:500 .9rem Cairo,Inter,sans-serif!important;outline:0!important;box-shadow:none!important;
+      transition:border-color .2s,box-shadow .2s!important}
+    html body.light-theme .portal-card input[type=text],html body.light-theme .portal-card input[type=password]{background:#fff!important;color:#0f172a!important}
+    html body .portal-card input:focus{border-color:#fbbf24!important;box-shadow:0 0 0 3px rgba(251,191,36,.2)!important}
+    html body .portal-card ::placeholder{opacity:.45}
+    html body .portal-card .toggle-password{opacity:.7}
+
+    /* main button: yellow gradient */
+    html body .portal-card .btn:not(#z){
+      width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px!important;border:0!important;border-radius:16px!important;
+      background:linear-gradient(135deg,#fbbf24,#f59e0b)!important;color:#111!important;
+      font:800 .95rem Cairo,Inter,sans-serif!important;cursor:pointer;
+      box-shadow:0 8px 22px rgba(245,158,11,.28)!important;transition:transform .15s!important}
+    html body .portal-card .btn:active{transform:scale(.97)}
+    html body .portal-card .btn:disabled{opacity:.7;cursor:wait}
+
+    /* "Want to Become Thabit?" = dashed yellow cell */
+    html body .portal-card .assistant-join-btn:not(#z){
+      display:flex!important;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;margin-top:14px;padding:10px!important;
+      border-radius:14px!important;border:1px dashed rgba(251,191,36,.6)!important;background:rgba(251,191,36,.08)!important;
+      color:#fbbf24!important;font:700 .8rem Cairo,Inter,sans-serif!important;text-decoration:none!important;box-shadow:none!important}
+    html body.light-theme .portal-card .assistant-join-btn:not(#z){color:#92400e!important}
+
+    @media(prefers-reduced-motion:reduce){html body #mobileFloatingBar>.circle-badge-btn:not(#z){transition:none!important}}
+    </style>
 </head>
 
 <body>
@@ -35,20 +130,16 @@
         <img src="assets/thabit-ornament.png" alt="">
     </div>
 
-    <!-- Floating left bar -->
+    <!-- Bottom glass bar: language + theme only -->
     <div class="mobile-floating-bar" id="mobileFloatingBar">
         <button type="button" onclick="setLanguage('ar')" id="floatBtnAr" title="العربية" class="circle-badge-btn">عربي</button>
         <button type="button" onclick="setLanguage('en')" id="floatBtnEn" title="English" class="circle-badge-btn active">EN</button>
         <button type="button" onclick="setLanguage('eg')" id="floatBtnEg" title="مصري" class="circle-badge-btn">مصر</button>
-
-        <div class="bar-divider"></div>
-
-        <button type="button" onclick="toggleTheme()" id="floatBtnTheme" title="Light / Dark" data-i18n-title="themeTitle" class="circle-badge-btn theme-btn" style="color: #fbbf24;">
-            <i id="themeIcon" class="fa-solid fa-moon" aria-hidden="true"></i>
+        <button type="button" onclick="toggleTheme()" id="floatBtnTheme" title="Light / Dark" data-i18n-title="themeTitle" class="circle-badge-btn theme-btn">
+            <i id="themeIcon" class="fa-regular fa-moon" aria-hidden="true"></i>
         </button>
     </div>
 
-    <!-- شاشة اللوجن مباشرة بدون انيميشن يخفيها وتظهر فوراً -->
     <div id="cinematicIntroOverlay" aria-hidden="true">
         <span class="cinematic-intro-logo thabit-logo-mark" role="img" aria-label="TH logo"></span>
     </div>
@@ -111,7 +202,7 @@
     </div>
 
 
-    <!-- Report slide/modal copied from the Overall report flow -->
+    <!-- Report modal -->
     <div id="reportOverlay" class="tha-modal" role="dialog" aria-modal="true" aria-labelledby="rpTitle">
       <div class="tha-box report-box">
         <div class="tha-h">
@@ -132,7 +223,6 @@
     </div>
     <div id="reportToast" role="status" aria-live="polite"></div>
 
-    <!-- ربط ملف الـ JavaScript الصحيح portal.js -->
-        <script src="js/portal.js"></script>
+    <script src="js/portal.js"></script>
 </body>
 </html>
