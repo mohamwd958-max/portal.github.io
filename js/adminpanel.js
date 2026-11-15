@@ -2695,6 +2695,7 @@ window.openBulkTask = function () {
       <div><span class="ds-lbl">الوصف (Description)</span><input type="hidden" id="tkBody"><div id="tkBody_pf" class="ds-pf empty" style="width:100%;box-sizing:border-box;min-height:44px;padding:10px" onclick="dsTextPop('tkBody','الوصف')">${PF_EMPTY}</div></div>
       <div><span class="ds-lbl">Priority · الأهمية</span><select id="tkPri" class="ds-in" style="width:auto"><option value="normal">Normal</option><option value="high">High priority (Urgent)</option></select></div>
       <div class="ds-fx"><div class="ds-fx-h"><i class="fa-solid fa-sliders"></i> Functionality · طريقة العمل</div>${schedFields('tk', 12, 1)}</div>
+      <div><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12px;font-weight:700"><input type="checkbox" id="tkExp"> <span><i class="fa-solid fa-bolt" style="color:#fbbf24"></i> Can expedite · يقدر يبدأ فوراً <span style="font-weight:600;color:#94a3b8">(من غيره: أول مرة بعد نص ساعة من الرفع. وفي الحالتين بين كل مرتين نص ساعة)</span></span></label></div>
       <div><button type="button" class="ds-b green" id="tkSend" onclick="tkSend()"><i class="fa-solid fa-paper-plane"></i> ابعت التاسك لـ ${st.length}</button></div>
       <div style="font-size:10px;color:#64748b">بيتحط في أول خانة فاضية (1–10) عند كل طالب النهارده، وبياخد نفس الجدول الزمني.</div>
     </div>`;
@@ -2703,8 +2704,8 @@ window.openBulkTask = function () {
 };
 window.tkSend = async function () {
   const c = tkCur; if (!c) return;
-  const title = $id('tkTitle').value.trim() || null, badge = $id('tkBadge').value.trim() || null, body = $id('tkBody').value.trim() || null;
-  if (!title && !body) { showToast('اكتب اسم التاسك أو الوصف الأول', true, true); return; }
+  const title = $id('tkTitle').value.trim() || null, badge = $id('tkBadge').value.trim() || null, body0 = $id('tkBody').value.trim() || null, exp = !!($id('tkExp') && $id('tkExp').checked), body = exp ? ((body0 || '') + (body0 ? '\n\n' : '') + '@@app@@{"exp":1}') : body0;
+  if (!title && !body0) { showToast('اكتب اسم التاسك أو الوصف الأول', true, true); return; }
   const sc = fxSched('tk');
   if (!(sc.R > 0)) { showToast('اكتب الـ Range بالساعات الأول', true, true); return; }
   const btn = $id('tkSend'); btn.disabled = true;
