@@ -4482,6 +4482,8 @@ window.tzPick = async function (id, zone) {
   if (!SP_OPTIONS.some(o => o.id === 'reply')) SP_OPTIONS.push({ id: 'reply', icon: 'fa-reply', label: 'Reply', sub: 'الطالب يرد عليك: نص · صورة · صوت · لينك' });
   if (!SP_OPTIONS.some(o => o.id === 'copy')) SP_OPTIONS.push({ id: 'copy', icon: 'fa-copy', label: 'Copy', sub: 'الطالب ينسخ النص' });
   if (!SP_OPTIONS.some(o => o.id === 'share')) SP_OPTIONS.push({ id: 'share', icon: 'fa-share-nodes', label: 'Share', sub: 'الطالب يشارك المحتوى' });
+  /* expedite: only for things that have tasks (Tasks window + Dandana slot). It drives the real checkbox (#tkExp / #dsi_exp). Add 'only' entries here when more task-like things appear. */
+  if (!SP_OPTIONS.some(o => o.id === 'expedite')) SP_OPTIONS.push({ id: 'expedite', icon: 'fa-bolt', label: 'Can expedite', sub: 'الطالب يقدر يبدأ فوراً · من غيره أول مرة بعد نص ساعة من الرفع', only: ['task', 'slot'], bind: { task: 'tkExp', slot: 'dsi_exp' } });
 
   const KEY = 'sp_opt_use';
   const use = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } };
@@ -4491,13 +4493,17 @@ window.tzPick = async function (id, zone) {
   function fill(pop) {
     const box = pop.querySelector('[data-opts]'), btn = pop._for; if (!box || !btn || box.dataset.f) return;
     box.dataset.f = '1';
+    const where = btn.getAttribute('data-where') || '';
     const set = btn._opts || (btn._opts = new Set());
-    box.innerHTML = ordered().map(o => `<button type="button" class="sp-o${set.has(o.id) ? ' on' : ''}" data-id="${esc(o.id)}"><i class="fa-solid ${esc(o.icon)}"></i><span><b>${esc(o.label)}</b><small>${esc(o.sub || '')}</small></span><i class="fa-solid fa-check sp-ck"></i></button>`).join('')
-      + '<div class="sp-hint">تجريبي: الاختيار هنا لسه مش بيتخزن ولا بيتبعت للطالب.</div>';
+    const list = ordered().filter(o => !o.only || o.only.indexOf(where) >= 0);
+    const cbOf = o => o.bind && document.getElementById(o.bind[where]);
+    list.forEach(o => { const cb = cbOf(o); if (cb) { if (cb.checked) set.add(o.id); else set.delete(o.id); } });   /* real state wins */
+    box.innerHTML = list.map(o => `<button type="button" class="sp-o${set.has(o.id) ? ' on' : ''}" data-id="${esc(o.id)}"><i class="fa-solid ${esc(o.icon)}"></i><span><b>${esc(o.label)}</b><small>${esc(o.sub || '')}</small></span><i class="fa-solid fa-check sp-ck"></i></button>`).join('')
+      + '<div class="sp-hint">Can expedite شغال فعلاً. الباقي تجريبي: لسه مش بيتخزن ولا بيتبعت للطالب.</div>';
     box.onclick = e => {
       const b = e.target.closest('.sp-o'); if (!b) return;
-      const id = b.dataset.id;
-      if (set.has(id)) { set.delete(id); b.classList.remove('on'); } else { set.add(id); b.classList.add('on'); bump(id); }
+      const id = b.dataset.id, o = list.find(x => x.id === id), cb = o && cbOf(o);
+      if (set.has(id)) { set.delete(id); b.classList.remove('on'); if (cb) cb.checked = false; } else { set.add(id); b.classList.add('on'); bump(id); if (cb) cb.checked = true; }
       btn.classList.toggle('sp-has', set.size > 0); btn.dataset.n = set.size;
     };
   }
@@ -4907,4 +4913,23 @@ function mgEnsureBar() {
     try { return await _save.apply(this, arguments); }
     finally { if (t && orig !== null && document.getElementById('dsi_body') === t) t.value = orig; }
   };
+})();
+
+/* Expedite now lives in the Options button for Tasks + Dandana: hide the old checkbox rows (they stay as the state holder) and show the count on the button */
+(function () {
+  if (window.__p13) return; window.__p13 = 1;
+  const st = document.createElement('style'); st.id = 'p13css';
+  st.textContent = 'label:has(> #tkExp), label:has(> #dsi_exp){display:none !important}';
+  document.head.appendChild(st);
+  const sync = () => {
+    [['tkSend', 'tkExp'], ['dsi_body', 'dsi_exp']].forEach(([anchor, cbid]) => {
+      const cb = document.getElementById(cbid); if (!cb) return;
+      const btn = cbid === 'tkExp' ? document.querySelector('.sp-opt[data-where="task"]') : document.querySelector('.sp-opt[data-where="slot"]'); if (!btn) return;
+      const set = btn._opts || (btn._opts = new Set());
+      if (cb.checked) set.add('expedite'); else set.delete('expedite');
+      btn.classList.toggle('sp-has', set.size > 0); btn.dataset.n = set.size;
+    });
+  };
+  let q = 0;
+  new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { sync(); } catch (e) { } }); }).observe(document.body || document.documentElement, { childList: true, subtree: true });
 })();
