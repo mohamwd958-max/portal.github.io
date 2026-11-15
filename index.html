@@ -74,12 +74,23 @@
     html body #mobileFloatingBar #themeIcon{font-weight:400!important}
     html body #mobileFloatingBar #placementBtn .thabit-logo-mark{display:block!important;width:28px!important;height:28px!important;margin:0!important;flex:none}
 
-    /* ---------- login card: glass all the time, elastic press ---------- */
+    /* =====================================================================
+       REAL-CLICK ANIMATION  (change the numbers here to tune it)
+       hover  : grows a couple of px, slowly, and stays until the pointer leaves
+       down   : sinks a few px and freezes (no sideways / upward movement)
+       return : always slow
+       classes: .rc-hov (hover, card + orb)   .rc-down (pressed / held)
+       ===================================================================== */
+    :root{--rc-hover-card:1.014;--rc-hover-ctl:1.03;--rc-down-card:.978;--rc-down-ctl:.94;
+          --rc-fast:.2s;--rc-slow:.85s;--rc-ease:cubic-bezier(.22,1,.36,1)}
+
+    /* ---------- login card: glass all the time ---------- */
     html body .portal-card:not(#z){
       border-radius:22px!important;-webkit-backdrop-filter:blur(24px) saturate(1.3)!important;backdrop-filter:blur(24px) saturate(1.3)!important;
       touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-      transition:scale .75s cubic-bezier(.34,1.56,.64,1)!important}
-    html body .portal-card.pr:not(#z){scale:.972;transition:scale .45s cubic-bezier(.25,.8,.3,1)!important}
+      transition:scale var(--rc-slow) var(--rc-ease)!important}
+    /* any older hover effect on the card (Css/portal.css) is cancelled here; hover now comes only from Real-click animation */
+    html body .portal-card:not(#z):hover{transform:none!important;translate:none!important;filter:none!important}
     html body:not(.light-theme) .portal-card:not(#z){
       background:rgba(255,255,255,.04)!important;background-image:none!important;
       border:1px solid rgba(255,255,255,.09)!important;
@@ -93,9 +104,10 @@
 
     /* soft light that passes BEHIND the glass: left, bottom, right, top */
     html body .lgorb{--lc:255,255,255;position:absolute!important;overflow:hidden!important;border-radius:22px!important;pointer-events:none!important;z-index:0!important;
-      transition:scale .75s cubic-bezier(.34,1.56,.64,1)}
-    html body .lgorb.pr{scale:.972;transition:scale .45s cubic-bezier(.25,.8,.3,1)}
+      transition:scale var(--rc-slow) var(--rc-ease)}
     html body.light-theme .lgorb{--lc:251,191,36}
+    html body .portal-card.rc-hov:not(#z),html body .lgorb.rc-hov{scale:var(--rc-hover-card)}
+    html body .portal-card.rc-down:not(#z),html body .lgorb.rc-down{scale:var(--rc-down-card);transition:scale var(--rc-fast) ease-out!important}
     .lgorb .le{position:absolute;inset:0;opacity:0}
     .lgorb .le.l{background:linear-gradient(90deg,rgba(var(--lc),.34),rgba(var(--lc),.1) 28%,transparent 58%)}
     .lgorb .le.r{background:linear-gradient(270deg,rgba(var(--lc),.34),rgba(var(--lc),.1) 28%,transparent 58%)}
@@ -109,7 +121,21 @@
       border-radius:14px!important;border:1px solid rgba(148,163,184,.35)!important;background:rgba(148,163,184,.07)!important;
       color:inherit!important;font:500 .92rem Cairo,Inter,sans-serif!important;outline:0!important;box-shadow:none!important;
       -webkit-user-select:text;user-select:text;
-      caret-color:#fbbf24;transition:border-color .3s,box-shadow .3s,background .3s!important}
+      caret-color:#fbbf24;color-scheme:dark;-webkit-text-fill-color:currentColor;
+      transition:border-color .3s,box-shadow .3s,background .3s,scale var(--rc-slow) var(--rc-ease)!important}
+    html body.light-theme .fl input{color-scheme:light}
+    @media(hover:hover){html body .fl input:hover{scale:var(--rc-hover-ctl)}}
+    html body .fl input.rc-down{scale:var(--rc-down-ctl)!important;transition:border-color .3s,box-shadow .3s,background .3s,scale var(--rc-fast) ease-out!important}
+
+    /* browser autofill / saved or suggested password: keep OUR text colour, font and background, never the browser's white-on-white */
+    html body .fl input:-webkit-autofill,html body .fl input:-webkit-autofill:hover,html body .fl input:-webkit-autofill:focus,html body .fl input:-webkit-autofill:active{
+      -webkit-text-fill-color:#f1f5f9!important;caret-color:#fbbf24!important;font:500 .92rem Cairo,Inter,sans-serif!important;
+      transition:background-color 600000s 0s,color 600000s 0s,border-color .3s,box-shadow .3s,scale var(--rc-slow) var(--rc-ease)!important}
+    html body .fl input:autofill,html body .fl input:autofill:hover,html body .fl input:autofill:focus,html body .fl input:autofill:active{
+      -webkit-text-fill-color:#f1f5f9!important;caret-color:#fbbf24!important;font:500 .92rem Cairo,Inter,sans-serif!important;
+      transition:background-color 600000s 0s,color 600000s 0s,border-color .3s,box-shadow .3s,scale var(--rc-slow) var(--rc-ease)!important}
+    html body.light-theme .fl input:-webkit-autofill,html body.light-theme .fl input:-webkit-autofill:hover,html body.light-theme .fl input:-webkit-autofill:focus,html body.light-theme .fl input:-webkit-autofill:active{-webkit-text-fill-color:#0f172a!important}
+    html body.light-theme .fl input:autofill,html body.light-theme .fl input:autofill:hover,html body.light-theme .fl input:autofill:focus,html body.light-theme .fl input:autofill:active{-webkit-text-fill-color:#0f172a!important}
     .fl:not(.act) input{caret-color:transparent}
     .fl input::placeholder{color:transparent!important}
     .fl.pw input{padding-right:46px!important}
@@ -139,16 +165,16 @@
     /* ---------- eye button ---------- */
     .fl .eye{position:absolute;right:10px;top:41px;translate:0 -50%;width:34px;height:34px;padding:0;margin:0;border:0;background:none;color:inherit;opacity:.7;
       display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
-      transition:scale .7s cubic-bezier(.34,1.56,.64,1),opacity .25s}
-    .fl .eye:hover{opacity:1}
-    .fl .eye.pr{scale:.78;transition:scale .35s cubic-bezier(.25,.8,.3,1),opacity .25s}
+      transition:scale var(--rc-slow) var(--rc-ease),opacity .25s}
+    @media(hover:hover){.fl .eye:hover{opacity:1;scale:var(--rc-hover-ctl)}}
+    .fl .eye.rc-down{scale:var(--rc-down-ctl)!important;transition:scale var(--rc-fast) ease-out,opacity .25s!important}
     .eye svg{width:22px;height:22px;display:block;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .eye .pup{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center}
     .eye.glow .pup{animation:pupGlow 1.3s ease-in-out 1}
     @keyframes pupGlow{0%{fill:currentColor;filter:none;scale:1}35%{fill:#fbbf24;filter:drop-shadow(0 0 3px #fbbf24) drop-shadow(0 0 8px rgba(251,191,36,.9));scale:1.5}100%{fill:currentColor;filter:none;scale:1}}
 
     /* shown password: blurred letters that clear one by one, not copyable */
-    .fl.show input{color:transparent!important;-webkit-text-fill-color:transparent!important}
+    .fl.show input,html body .fl.show input:-webkit-autofill,html body .fl.show input:autofill{color:transparent!important;-webkit-text-fill-color:transparent!important}
     .fl.show input::selection{background:transparent}
     .pwv{position:absolute;left:0;right:0;top:18px;height:46px;box-sizing:border-box;padding:0 46px 0 14px;overflow:hidden;pointer-events:none;
       -webkit-user-select:none;user-select:none;direction:ltr;display:none;align-items:center;border-radius:14px}
@@ -165,10 +191,10 @@
       background:rgba(251,191,36,.06)!important;background-image:none!important;color:#fbbf24!important;
       -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);touch-action:manipulation;
       font:800 .92rem Cairo,Inter,sans-serif!important;letter-spacing:.5px;cursor:pointer;box-shadow:none!important;
-      transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,box-shadow .3s,color .3s,border-color .3s,scale .7s cubic-bezier(.34,1.56,.64,1)!important}
-    html body .portal-card .btn.pr:not(#z){scale:.93;transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,box-shadow .3s,color .3s,border-color .3s,scale .35s cubic-bezier(.25,.8,.3,1)!important}
+      transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,box-shadow .3s,color .3s,border-color .3s,scale var(--rc-slow) var(--rc-ease)!important}
+    html body .portal-card .btn.rc-down:not(#z){scale:var(--rc-down-ctl);transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,box-shadow .3s,color .3s,border-color .3s,scale var(--rc-fast) ease-out!important}
     html body .portal-card .btn::before,html body .portal-card .btn::after{content:none!important;display:none!important}
-    @media(hover:hover){html body .portal-card .btn[data-state="idle"]:hover{background:rgba(251,191,36,.16)!important;box-shadow:0 0 22px rgba(251,191,36,.22)!important}}
+    @media(hover:hover){html body .portal-card .btn[data-state="idle"]:hover{background:rgba(251,191,36,.16)!important;box-shadow:0 0 22px rgba(251,191,36,.22)!important;scale:var(--rc-hover-ctl)}}
     html body.light-theme .portal-card .btn:not(#z){color:#92400e!important;border-color:rgba(180,83,9,.55)!important;background:rgba(251,191,36,.12)!important}
     .btn .bt{white-space:nowrap;transition:opacity .15s}
     .btn .sp{position:absolute;left:50%;top:50%;translate:-50% -50%;width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:0;animation:lgSpin .8s linear infinite;transition:opacity .25s}
@@ -227,13 +253,13 @@
                         <div id="webAlertBox"></div>
 
                         <div class="fl">
-                            <input type="text" id="username" dir="ltr" placeholder=" " autocomplete="off" autocapitalize="off" spellcheck="false">
+                            <input type="text" id="username" dir="ltr" placeholder=" " autocomplete="username" autocapitalize="off" spellcheck="false">
                             <label for="username" id="lblUser" data-i18n="username">Username</label>
                             <div class="fmsg" id="msgUser"></div>
                         </div>
 
                         <div class="fl pw">
-                            <input type="password" id="password" dir="ltr" placeholder=" ">
+                            <input type="password" id="password" dir="ltr" placeholder=" " autocomplete="current-password">
                             <label for="password" id="lblPass" data-i18n="password">Password</label>
                             <button type="button" class="eye" id="togglePassword" aria-label="Show password" aria-pressed="false">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12S5.8 5.5 12 5.5 21.8 12 21.8 12 18.2 18.5 12 18.5 2.2 12 2.2 12z"/><circle class="pup" cx="12" cy="12" r="3"/></svg>
@@ -313,9 +339,12 @@
 
       /* light comes in from the left, then bottom, right, top; short, soft; never while the user is busy */
       const sides = ['l', 'b', 'r', 't']; let si = 0;
-      const PR = { on: false };
+      /* Real-click animation state: on = a press is in progress, held = the card was pressed on empty space and stays sunk */
+      const RC = { on: false, id: null, a: null, x: 0, y: 0, drag: false, out: false, held: false };
+      const RC_DRAG_PX = 3;   /* movement (px) after which a press counts as a drag, not a click */
+      const rcCard = (cls, on) => { card.classList.toggle(cls, on); orb.classList.toggle(cls, on); };
       function sweep() {
-        if (document.hidden || LG.engaged || LG.busy || PR.on || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+        if (document.hidden || LG.engaged || LG.busy || RC.on || RC.held || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
         const el = orb.querySelector('.le.' + sides[si++ % 4]);
         if (el) try { el.animate([{ opacity: 0 }, { opacity: 1, offset: .4 }, { opacity: 0 }], { duration: 1800, easing: 'ease-in-out' }); } catch (e) { }
       }
@@ -365,10 +394,13 @@
         if (t === uIn) onUserBlur();
       });
 
-      /* ---------- press & release on the card ----------
-         pressed = the card (and the thing under the finger) sinks a little, nothing opens yet.
-         lifted straight up on the same spot = it opens / runs.
-         dragged away, or left the card's border = it just springs back, nothing happens. */
+      /* ---------- REAL-CLICK ANIMATION ----------
+         hover (mouse): card / button / field grows a little, slowly, stays until the pointer leaves its border.
+         press: the thing pressed sinks a few px and freezes. Nothing runs yet.
+           - lifted straight up (no drag)      = real click: it comes back slowly and the action runs.
+           - dragged, or pointer left its border = not a click: it comes back slowly, nothing runs.
+         press on empty space of the card: the CARD sinks and stays sunk until you tap outside it (or leave by dragging out).
+         press directly on a button / field / eye: only that element animates, the card is not involved. */
       const actionOf = t => {
         if (t.closest('#btnLoginBtn')) return { k: 'login', el: btn };
         if (t.closest('#togglePassword')) return { k: 'eye', el: eye };
@@ -376,34 +408,42 @@
         const f = t.closest('.fl'); if (f) return { k: 'field', el: f.querySelector('input') };
         return { k: 'none', el: null };
       };
-      const skipNative = a => a.k === 'field' && a.el === document.activeElement;   /* already typing there: let the caret move normally */
+      const skipNative = a => a.k === 'field' && a.el === document.activeElement;   /* already typing there: caret moves normally, no animation */
       const inside = (e, r) => e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      function pressOn(a) { PR.on = true; card.classList.add('pr'); orb.classList.add('pr'); if (a.el && a.k !== 'field') a.el.classList.add('pr'); }
-      function pressOff() { card.classList.remove('pr'); orb.classList.remove('pr'); btn.classList.remove('pr'); eye.classList.remove('pr'); }
+      const boxOf = a => (a.el || card).getBoundingClientRect();
+      function rcRelease(a) {   /* take the pressed look off (always slow on the way back) */
+        if (a.k === 'none') { RC.held = false; rcCard('rc-down', false); }
+        else a.el.classList.remove('rc-down');
+      }
       function run(a) {
         if (a.k === 'login') window.handleLogin();
         else if (a.k === 'eye') window.togglePassVisibility();
         else if (a.k === 'field' && a.el) { LG.touched = true; a.el.focus(); }
       }
+      card.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') rcCard('rc-hov', true); });
+      card.addEventListener('pointerleave', () => rcCard('rc-hov', false));
+      document.addEventListener('pointerdown', e => { if (RC.held && !card.contains(e.target)) rcRelease({ k: 'none' }); }, true);   /* tap outside: the held card comes back */
+
       card.addEventListener('pointerdown', e => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         LG.touched = true;
         if (LG.busy) return;
         const a = actionOf(e.target);
         if (skipNative(a)) return;
-        Object.assign(PR, { on: true, id: e.pointerId, moved: false, out: false, a, x: e.clientX, y: e.clientY });
-        pressOn(a);
+        Object.assign(RC, { on: true, id: e.pointerId, a, x: e.clientX, y: e.clientY, drag: false, out: false });
+        if (a.k === 'none') rcCard('rc-down', true); else a.el.classList.add('rc-down');
       });
       document.addEventListener('pointermove', e => {
-        if (!PR.on || e.pointerId !== PR.id) return;
-        if (!inside(e, card.getBoundingClientRect())) { if (!PR.out) { PR.out = true; pressOff(); } return; }
-        if (Math.hypot(e.clientX - PR.x, e.clientY - PR.y) > 12) PR.moved = true;
+        if (!RC.on || e.pointerId !== RC.id) return;
+        if (!inside(e, boxOf(RC.a))) { if (!RC.out) { RC.out = true; rcRelease(RC.a); } return; }   /* left the border: back to normal, no action */
+        if (Math.hypot(e.clientX - RC.x, e.clientY - RC.y) > RC_DRAG_PX) RC.drag = true;
       });
       function release(e, cancel) {
-        if (!PR.on || e.pointerId !== PR.id) return;
-        const ok = !cancel && !PR.out && !PR.moved && inside(e, card.getBoundingClientRect()), a = PR.a;
-        PR.on = false; pressOff();
-        if (ok) run(a);
+        if (!RC.on || e.pointerId !== RC.id) return;
+        const a = RC.a, ok = !cancel && !RC.out && !RC.drag && inside(e, boxOf(a));
+        RC.on = false;
+        if (a.k === 'none') { if (ok) RC.held = true; else rcRelease(a); }   /* real press on empty space: card stays sunk */
+        else { rcRelease(a); if (ok) run(a); }
       }
       document.addEventListener('pointerup', e => release(e, false));
       document.addEventListener('pointercancel', e => release(e, true));
@@ -513,7 +553,7 @@
         await sleep(650);
         anim(btn, [{ translate: '0 0' }, { translate: '0 -8px', offset: .45 }, { translate: '0 0' }], 750);
         await sleep(800);
-        card.style.setProperty('transition', 'opacity .5s', 'important'); orb.style.transition = 'opacity .5s';
+        RC.held = false; card.style.setProperty('transition', 'opacity .5s', 'important'); orb.style.transition = 'opacity .5s';
         card.style.opacity = 0; orb.style.opacity = 0;
         await sleep(450);
         window.location.replace(route);
