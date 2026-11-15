@@ -99,6 +99,16 @@
   if (!want) return;
   /* Sequence: black screen -> logo fades in -> a quick gust of wind bends the tail while the colour turns to the rainbow
      (it starts white/black by theme) -> the wind dies -> one soft glow -> the logo flies to its place at the top-left. */
+  /* page settings on the script tag:  data-intro-end="dissolve"  -> the logo just fades away (portal)
+                                         default                   -> the logo shrinks and flies to the top-left and stays as a plain logo (white / black by theme)
+                                        data-logo="none"          -> no plain logo is left on the page */
+  var MODE = s.getAttribute('data-intro-end') === 'dissolve' ? 'dissolve' : 'fly', stat = null;
+  if (MODE === 'fly' && s.getAttribute('data-logo') !== 'none') {
+    var stl = document.createElement('style');
+    stl.textContent = '#thLogoStatic{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:14px;width:30px;height:30px;z-index:70;pointer-events:none;background:#fff;opacity:0;transition:opacity .4s;-webkit-mask:' + MARK + ' center/contain no-repeat;mask:' + MARK + ' center/contain no-repeat}body.light-theme #thLogoStatic{background:#000}';
+    document.head.appendChild(stl);
+    stat = document.createElement('span'); stat.id = 'thLogoStatic'; stat.setAttribute('role', 'img'); stat.setAttribute('aria-label', 'THABIT'); document.body.appendChild(stat);
+  }
   var light = ls('thabit_theme') === 'light', c = light ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.95)', wc0 = light ? 'rgba(0,0,0,' : 'rgba(255,255,255,';
   var SZ = Math.min(230, Math.round(Math.min(innerWidth, innerHeight) * .42)), dpr = Math.min(2, window.devicePixelRatio || 1);
   var st2 = document.createElement('style');
@@ -112,10 +122,10 @@
   var big = ov.querySelector('.thb-big'), halo = ov.querySelector('.thb-halo'), bg = ov.querySelector('.thb-bg'), done = false, t0 = 0;
   var PH = function (t) { return .25 * t / 1000 + .8 * Math.min(1, Math.max(0, (t - 1000) / 1500)); };   /* rainbow phase (tiles), flows faster during the gust */
   var end = function () {
-    if (done) return; done = true; ov.remove(); st2.remove(); brand.style.visibility = '';
+    if (done) return; done = true; ov.remove(); st2.remove(); brand.style.visibility = ''; if (stat) stat.style.opacity = '1';
     try { var an = mark.getAnimations && mark.getAnimations()[0]; if (an && t0) an.currentTime = (PH(performance.now() - t0) % 1) * 4000; } catch (e) {}   /* header rainbow continues from the same colours */
   };
-  ov.onclick = end; setTimeout(end, 7500);
+  ov.onclick = end; setTimeout(end, 8000);
   var F = function (b, a, x, br) { return 'blur(' + b + 'px) drop-shadow(0 0 ' + a + 'px ' + c + ') drop-shadow(0 0 ' + x + 'px ' + c + ') brightness(' + br + ')'; };
   var CSSZ = Math.round(SZ * 1.6), CW = Math.round(CSSZ * dpr);
   var cv = document.createElement('canvas'); cv.className = 'thb-cv'; cv.width = cv.height = CW; cv.style.width = cv.style.height = CSSZ + 'px'; big.appendChild(cv);
@@ -139,7 +149,7 @@
     var cx = cv.getContext('2d'), wx = wcv.getContext('2d'), W = SZ * dpr, X0 = CW / 2 - W / 2, E = .45 * W;
     var ez = function (v) { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
     var rnd = function (n) { var v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); }, R = [], k;
-    for (k = 0; k < 14; k++) R.push({ y: (rnd(k) - .5) * 1.9, l: .9 + rnd(k + 20) * 1.1, d: rnd(k + 40) * 420, u: 700 + rnd(k + 60) * 350, a: 5 + rnd(k + 80) * 9, f: .012 + rnd(k + 100) * .01, w: 1.2 + rnd(k + 120) * 1.2, p: rnd(k + 140) * 6.28 });
+    R.push({ y: -.30, l: 1.5, d: 0, u: 1100, a: 7, f: .012, w: 2, p: .5 }, { y: -.05, l: 1.9, d: 250, u: 1200, a: 9, f: .011, w: 2.2, p: 2 }, { y: .2, l: 1.3, d: 520, u: 1000, a: 6, f: .013, w: 1.8, p: 4 });   /* 3 streaks only */
     var drawWind = function (tw) {
       wx.setTransform(dpr, 0, 0, dpr, 0, 0); wx.clearRect(0, 0, innerWidth, innerHeight); if (tw < 0 || tw > 1600) return;
       var cx0 = innerWidth / 2, cy0 = innerHeight / 2; wx.lineCap = 'round';
@@ -148,30 +158,31 @@
         var len = r.l * SZ, xs = cx0 + SZ * 1.6 + len, xe = cx0 - SZ * 1.6, hx = xs + (xe - xs) * (1 - Math.pow(1 - u, 1.6)), life = Math.pow(Math.sin(Math.PI * u), .8), n = 22, ppx = 0, ppy = 0, j;
         wx.lineWidth = r.w;
         for (j = 0; j <= n; j++) {
-          var xx = hx + len * j / n, yy = cy0 + r.y * SZ + (xx - cx0) * .16 + r.a * Math.sin(xx * r.f + r.p + u * 3);
+          var xx = hx + len * j / n, yy = cy0 + r.y * SZ + (xx - cx0) * .16 + Math.pow((xx - cx0) / SZ, 2) * SZ * .07 + r.a * Math.sin(xx * r.f + r.p + u * 3);
           if (j) { wx.strokeStyle = wc0 + (.5 * life * Math.sin(Math.PI * (j - .5) / n)) + ')'; wx.beginPath(); wx.moveTo(ppx, ppy); wx.lineTo(xx, yy); wx.stroke(); }
           ppx = xx; ppy = yy;
         }
       });
     };
-    var STOPS = ['#ff5d55', '#4c8dff', '#22d3a6', '#ffc247', '#ff5d55'];
+    var STOPS = ['#c98a0b', '#fbbf24', '#fff3c4', '#fbbf24', '#c98a0b'], E2 = .5 * W;   /* gold, slowly shimmering */
     var draw = function (t) {
       var tw = t - 1000, env = 0, p = 0;
       if (tw > 0 && tw < 1500) env = .8 * (tw < 350 ? ez(tw / 350) : tw < 900 ? 1 : 1 - ez((tw - 900) / 600));
-      if (tw > 200) p = ez((tw - 200) / 1200);
+      p = ez((t - 1300) / 1200); var fo = t > 3900 ? 1 - ez((t - 3900) / 600) : 1;   /* p: gold arrives, fo: gold leaves, back to the plain colour */
       mx.clearRect(0, 0, mc.width, mc.height);
       if (env > .001) { thStep(g, Math.max(0, tw) / 1000 * 1.7, env, -.5); px.putImageData(pimg, 0, 0); mx.drawImage(sc, MG, MG); mx.drawImage(pcv, MG + g.ox, MG + g.oy); }
       else mx.drawImage(img, MG, MG);
       cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'source-over'; cx.clearRect(0, 0, CW, CW);
       cx.fillStyle = light ? '#000' : '#fff'; cx.fillRect(0, 0, CW, CW);
-      if (p > 0) {
+      if (p > 0 && fo > 0) {
         var o = (PH(t) % 1) * 3 * W, m, gr; rx.globalCompositeOperation = 'source-over'; rx.clearRect(0, 0, CW, CW);
         for (m = -1; m < 2; m++) { var xs0 = X0 - o + m * 3 * W; gr = rx.createLinearGradient(xs0, 0, xs0 + 3 * W, 0); STOPS.forEach(function (cl, n) { gr.addColorStop(n / 4, cl); }); rx.fillStyle = gr; rx.fillRect(xs0, 0, 3 * W, CW); }
-        if (p < 1) {   /* the colour spreads in the direction of the wind (right to left) */
-          var xf = X0 + W + E - p * (W + E); gr = rx.createLinearGradient(xf - E, 0, xf, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+        if (p < 1) {   /* the gold comes in from every side, edges first, then flows slowly toward the middle */
+          var rin = (1 - p) * (.75 * W), r0 = Math.max(0, rin - E2), r1 = Math.max(r0 + 1, rin);
+          gr = rx.createRadialGradient(CW / 2, CW / 2, r0, CW / 2, CW / 2, r1); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
           rx.globalCompositeOperation = 'destination-in'; rx.fillStyle = gr; rx.fillRect(0, 0, CW, CW);
         }
-        cx.drawImage(rb, 0, 0);
+        cx.globalAlpha = fo; cx.drawImage(rb, 0, 0); cx.globalAlpha = 1;
       }
       cx.globalCompositeOperation = 'destination-in'; cx.drawImage(mc, 0, 0, CW, CW); cx.globalCompositeOperation = 'source-over';
       drawWind(tw);
@@ -181,13 +192,25 @@
       if (!glowed && t >= 2500) { glowed = true; glow(); }
       requestAnimationFrame(loop);
     };
+    /* soft heartbeat (two double-beats) with a warm glow while the word is gold */
+    var G = function (a, b) { return 'drop-shadow(0 0 ' + a + 'px rgba(251,191,36,' + b + '))'; };
     var glow = function () {
-      big.animate([{ offset: 0, transform: 'scale(1)', easing: 'ease-out' }, { offset: .38, transform: 'scale(1.04)', easing: 'ease-in-out' }, { offset: 1, transform: 'scale(1)' }], { duration: 800 });   /* glow + halo removed on purpose */
-      setTimeout(fly, 800);
+      big.animate([
+        { offset: 0, transform: 'scale(1)', filter: G(0, 0) }, { offset: .10, transform: 'scale(1.10)', filter: G(26, .95) }, { offset: .22, transform: 'scale(1)', filter: G(8, .4) },
+        { offset: .32, transform: 'scale(1.06)', filter: G(18, .75) }, { offset: .46, transform: 'scale(1)', filter: G(4, .2) },
+        { offset: .58, transform: 'scale(1.10)', filter: G(26, .95) }, { offset: .70, transform: 'scale(1)', filter: G(8, .4) },
+        { offset: .80, transform: 'scale(1.06)', filter: G(18, .75) }, { offset: 1, transform: 'scale(1)', filter: G(0, 0) }
+      ], { duration: 1500, easing: 'ease-in-out' });
+      setTimeout(MODE === 'dissolve' ? dissolve : fly, 2000);   /* gold is gone by then, the word is plain white / black */
+    };
+    var dissolve = function () {   /* the word fades away, slow and cinematic; nothing flies anywhere */
+      if (done) return;
+      big.animate([{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.08)', filter: 'blur(16px)' }], { duration: 1000, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
+      bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1000, easing: 'ease-in-out', fill: 'both' }).onfinish = end;
     };
     var fly = function () {
       if (done) return;
-      var r = mark.getBoundingClientRect(), b = big.getBoundingClientRect();
+      var r = (stat || mark).getBoundingClientRect(), b = big.getBoundingClientRect();
       var dx = r.left + r.width / 2 - (b.left + b.width / 2), dy = r.top + r.height / 2 - (b.top + b.height / 2), kk = r.width / b.width;
       var a2 = big.animate([{ transform: 'none' }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + kk + ')' }], { duration: 800, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'both' });
       bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: 'ease-in-out', fill: 'both' });
