@@ -4866,3 +4866,45 @@ function mgEnsureBar() {
     ccGroupOut = function (rows) { return _go.call(this, (rows || []).filter(n => !hasTag(n))); };
   }
 })();
+
+/* ==========================================================
+   Patch 12 (end of adminpanel.js): "Can expedite" on the Task / Dandana editor (the Tasks 1-10 slots)
+   The flag rides inside the description after a hidden "@@app@@{"exp":1}" marker (no SQL change);
+   the editor hides it from the text box and brings it back on Save.
+   ========================================================== */
+(function () {
+  if (window.__p12) return; window.__p12 = 1;
+  const MK = '@@app@@';
+  const _render = dsItemsRender;
+  dsItemsRender = function () {
+    const r = _render.apply(this, arguments);
+    try {
+      const c = dsItemCtx; if (!c || !c.open) return r;
+      const body = document.getElementById('dsi_body'); if (!body || document.getElementById('dsi_exp')) return r;
+      let exp = false; const raw = body.value, i = raw.lastIndexOf(MK);
+      if (i >= 0) {
+        try {
+          const j = JSON.parse(raw.slice(i + MK.length));
+          if (j && j.exp) { exp = true; if (!('s' in j) && !('e' in j) && !('l' in j)) body.value = raw.slice(0, i).trim(); }
+        } catch (e) { }
+      }
+      const wrap = body.closest('div'); if (!wrap) return r;
+      wrap.insertAdjacentHTML('afterend', `<div><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12px;font-weight:700"><input type="checkbox" id="dsi_exp"> <span><i class="fa-solid fa-bolt" style="color:#fbbf24"></i> Can expedite · يقدر يبدأ فوراً <span style="font-weight:600;color:#94a3b8">(من غيره: أول مرة بعد نص ساعة من الرفع. وفي الحالتين بين كل مرتين نص ساعة)</span></span></label></div>`);
+      document.getElementById('dsi_exp').checked = exp;
+    } catch (e) { console.warn('[expedite]', e); }
+    return r;
+  };
+  const _save = window.dsItemSave;
+  window.dsItemSave = async function () {
+    const t = document.getElementById('dsi_body'), cb = document.getElementById('dsi_exp'); let orig = null;
+    if (t && cb) {
+      orig = t.value; const base = orig.trim(), ti = document.getElementById('dsi_title'), hasText = base || (ti && ti.value.trim());
+      const i = base.lastIndexOf(MK); let keep = base;
+      if (i >= 0) { try { const j = JSON.parse(base.slice(i + MK.length)); if (j && typeof j === 'object') { if (cb.checked) j.exp = 1; else delete j.exp; keep = base.slice(0, i) + MK + JSON.stringify(j); } } catch (e) { } }
+      else if (cb.checked && hasText) keep = (base ? base + '\n\n' : '') + MK + '{"exp":1}';
+      t.value = keep;
+    }
+    try { return await _save.apply(this, arguments); }
+    finally { if (t && orig !== null && document.getElementById('dsi_body') === t) t.value = orig; }
+  };
+})();
