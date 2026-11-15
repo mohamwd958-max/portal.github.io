@@ -427,9 +427,10 @@ const tlHtml = (p, d, s, da) => {
 const APP_MARK = '@@app@@', ATTMAP = {};
 function appSplit(body) {
   const s = String(body == null ? '' : body), i = s.lastIndexOf(APP_MARK);
-  if (i < 0) return { text: s, app: null };
+  if (i < 0) return { text: s, app: null, exp: false };
   let j = null; try { j = JSON.parse(s.slice(i + APP_MARK.length)); } catch (e) { }
-  return { text: s.slice(0, i).trim(), app: j && typeof j === 'object' ? j : null };
+  const exp = !!(j && j.exp), only = !!j && typeof j === 'object' && !('s' in j) && !('e' in j) && !('l' in j);   /* {"exp":1} alone = the "can expedite" flag of a plain task: nothing to show */
+  return { text: s.slice(0, i).trim(), app: j && typeof j === 'object' && !only ? j : null, exp };
 }
 const attOk = u => /^https?:\/\//i.test(String(u || ''));
 function fmtDT(ms) {
@@ -572,6 +573,13 @@ Object.assign(TPK.en, { used: 'Time already changed today', once: 'You can chang
 Object.assign(TPK.ar, { used: 'تم تغيير الوقت اليوم', once: 'يمكنك تغيير الأوقات مرة واحدة فقط في اليوم. بعد الحفظ لا يمكن التغيير مرة أخرى اليوم.', drag: 'اسحب النقاط إلى الوقت الذي تريده' });
 Object.assign(TPK.eg, { used: 'غيّرت الوقت النهاردة خلاص', once: 'تقدر تغيّر الأوقات مرة واحدة بس في اليوم. بعد ما تحفظ مفيش تغيير تاني النهاردة.', drag: 'اسحب النقط للوقت اللي عايزه' });
 const TK_GAP = 30 * 6e4;
+const tkExp = it => !!appSplit(it.body).exp;            /* admin pressed "Can expedite": he may do the first check right away */
+function tkUp(it) {                                      /* when the admin uploaded the task (Cairo wall-clock ms) */
+  const off = cairoNow() - Date.now(), v = it.updated_at || it.created_at || it.uploaded_at, ms = v ? Date.parse(v) : NaN;
+  if (Number.isFinite(ms)) return ms + off;
+  const p = it.plan, o0 = p && (p.opens0 || p.opens); return Math.min(cairoNow(), (o0 && o0[0]) || cairoNow());
+}
+const tkMinFirst = it => tkExp(it) ? 0 : tkUp(it) + TK_GAP;   /* earliest time for the FIRST check; between checks it is always 30 min */
 /* when the last finished check of this item happened (Cairo wall-clock ms), or null */
 function tkLastCheck(it) {
   const off = cairoNow() - Date.now(); let best = null;
@@ -624,7 +632,7 @@ function tkTimeline(id, eds) {
   wrap.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.id) return;
     const j = drag.j, r = wrap.getBoundingClientRect(), c = (e.clientX - r.left) < r.width / 2 ? 0 : 1, fy = Math.min(1, Math.max(0, (e.clientY - r.top - TOP) / H)), raw = A + c * half + fy * half;
-    const lo = Math.max(now, j > 0 ? W[j - 1] + TK_GAP : now), hi = Math.min(endMax, j + 1 < n ? W[j + 1] - TK_GAP : endMax);
+    const lo = Math.max(now, j > 0 ? W[j - 1] + TK_GAP : tkMinFirst(it)), hi = Math.min(endMax, j + 1 < n ? W[j + 1] - TK_GAP : endMax);
     if (lo > hi) return;
     let ms = Math.round(raw / 3e5) * 3e5, hit = false;
     if (ms < lo) { ms = lo; hit = j > 0 && raw < W[j - 1] + TK_GAP && raw > now; } else if (ms > hi) { ms = hi; hit = j + 1 < n && raw > W[j + 1] - TK_GAP && raw < endMax; }
@@ -651,7 +659,7 @@ function tkEditable(it) {   // indexes of the dots that can still be moved
   const p = it.plan; if (!p || (it.kind !== 'task' && it.kind !== 'dandana') || !Array.isArray(p.opens)) return [];
   const k = itState(it).k; if (k !== 'lock' && k !== 'open') return [];
   const now = cairoNow(), out = [];
-  for (let j = (it.checks || []).length; j < p.n_eff; j++) if (p.opens[j] > now) out.push(j);
+  for (let j = (it.checks || []).length; j < p.n_eff; j++) if (p.opens[j] > now || (j === 0 && !(it.checks || []).length && now < tkUp(it) + TK_GAP)) out.push(j);   /* the first check stays movable during its first 30 minutes */
   return out;
 }
 function tkEditToggle(id) { TEDIT = TEDIT === id ? null : id; render(); }
@@ -681,7 +689,7 @@ function tkPick(id, j) {
   const it = (D.items || []).find(x => x.id === id); if (!it || !it.plan) return;
   const T = TPK[lang] || TPK.en;
   if (!tkEditable(it).includes(j)) { itToast(T.gone); render(); return; }
-  const now = Math.floor(cairoNow() / 6e4) * 6e4, max = Math.floor((it.plan.deadline - 6e4) / 6e4) * 6e4;
+  const now = Math.max(Math.floor(cairoNow() / 6e4) * 6e4, j === 0 ? Math.ceil(tkMinFirst(it) / 6e4) * 6e4 : 0), max = Math.floor((it.plan.deadline - 6e4) / 6e4) * 6e4;
   if (!(max > now)) { itToast(T.gone); return; }
   const cur = Math.min(max, Math.max(now, Math.floor(it.plan.opens[j] / 6e4) * 6e4));
   TP = { id, j, min: now, max, ms: cur };
@@ -696,7 +704,7 @@ function tkPick(id, j) {
   lab();
   $('tpr').oninput = e => set(TP.min + (+e.target.value) * 6e4);
   $('tpd').onchange = e => { const v = Date.parse(e.target.value + ':00Z'); set(Number.isFinite(v) ? v : TP.ms); };
-  o.querySelector('.tpnow').onclick = () => tkTry(Math.floor(cairoNow() / 6e4) * 6e4);
+  { const nb = o.querySelector('.tpnow'); if (TP.min > cairoNow() + 6e4) nb.style.display = 'none'; nb.onclick = () => tkTry(TP.min); }   /* "do it now" only when the first 30 minutes rule allows it */
   o.querySelector('.tps').onclick = () => tkTry(TP.ms);
   o.querySelector('.tpc').onclick = tkClose;
   o.addEventListener('click', e => { if (e.target === o) tkClose(); });
@@ -6424,6 +6432,7 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     const c0 = curKey();
     if (c0 === k) { if (k === 'space') exitSpace(); else { if (k === 'home') { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } } if (window.thRefreshNow) window.thRefreshNow(); } return; }   /* tap Space again = exit */
     if (k === 'space') spPrev = c0;
+    try { if (window.__thSettle) window.__thSettle(); } catch (x) { }   /* cut any running page animation */
     if (window.thCancelRefresh) window.thCancelRefresh();
     closeAll();
     try {
@@ -6507,13 +6516,14 @@ html body #mobileFloatingBar>#feedBtn .fstar path{stroke:currentColor!important}
     if (window.__thDrag) { window.__thDrag.live = false; window.__thDrag.t = go1 ? 1 : 0; }
     NAVBUSY = true; busyAt = Date.now();                     /* a new swipe cannot start until this one has fully landed */
     let fin = false;
-    const finish = which => { if (fin) return; fin = true; try { shut(which); } catch (e) { } clr(d.ce); clr(d.ne); window.__thDragging = false; window.__thDrag = null; NAVBUSY = false; try { sync(); if (window.thFpSync) thFpSync(); } catch (e) { } };
+    const finish = which => { if (fin) return; fin = true; window.__thSettle = null; try { shut(which); } catch (e) { } clr(d.ce); clr(d.ne); window.__thDragging = false; window.__thDrag = null; NAVBUSY = false; try { sync(); if (window.thFpSync) thFpSync(); } catch (e) { } };
+    window.__thSettle = () => finish(go1 ? d.ck : d.nk);   /* a new tap / swipe lands this transition instantly */
     if (go1) { if (window.thCancelRefresh) window.thCancelRefresh(); if (d.nk === 'feed' && window.thFlyFeed) window.thFlyFeed(); put(d.ne, 0, 230); put(d.ce, -d.side * d.w, 230); setTimeout(() => finish(d.ck), 245); }
     else { put(d.ce, 0, 200); put(d.ne, d.side * d.w, 200); setTimeout(() => finish(d.nk), 215); }
   }
   window.addEventListener('touchstart', e => {   /* window + capture: runs before the pages' own "ignore taps on the empty edge" handler */
     if (dg) return;                                   /* a second finger / stray touch during a drag: ignored, the drag goes on */
-    if (NAVBUSY) { ok = false; return; }
+    if (NAVBUSY) { try { if (window.__thSettle) window.__thSettle(); } catch (x) { } NAVBUSY = false; }
     ok = e.touches.length === 1 && !(e.target.closest && e.target.closest(BLOCK)) && !document.querySelector(MODALS) && !hScroll(e.target);
     if (!ok) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st0 = Date.now(); lx = sx; lt = st0; vx = 0; lastTouch = st0;
   }, { passive: true, capture: true });
@@ -6800,7 +6810,7 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     if (!id || id === 'homeBtn') return refreshCurrent();            /* Home: the full skeleton that already exists */
     const ov = skelShow(id), t0 = Date.now();
     try { await refreshCurrent(); } catch (e) { }
-    await sleep(Math.max(0, (id === 'spaceBtn' ? 1500 : 1000) - (Date.now() - t0)));
+    await sleep(Math.max(0, (id === 'spaceBtn' ? 900 : 700) - (Date.now() - t0)));
     if (my !== rtk || activeId() !== id) { ov.remove(); return; }      /* cancelled / you left this page */
     ov.style.transition = 'opacity .6s ease'; ov.style.opacity = '0';   /* the skeleton melts away and the info under it is there: no fly-in, no second pop */
     setTimeout(() => ov.remove(), 650);
@@ -6811,13 +6821,17 @@ body.light-theme #thSkPg .thSkB{color:#0f172a}
     els.forEach((e, i) => { e.style.setProperty('--d', i * 80 + 'ms'); e.classList.remove('thFly'); void e.offsetWidth; e.classList.add('thFly'); });
     setTimeout(() => els.forEach(e => { e.classList.add('thFlyDone'); e.classList.remove('thFly'); e.style.removeProperty('--d'); }), 2600);   /* thFlyDone keeps animation:none, so removing thFly never lets the base pcIn animation start again (that was the second pop) */
   };
-  /* Home refresh: the SAME glass cards with the logo as every other page. No full-screen layer, no centred word. */
+  /* Home (open / refresh): the SAME glass cards with the logo as every other page. No full-screen layer, no centred word.
+     Shown once: the logo beats twice, then everything is there. 650 ms minimum, 2.2 s at most. */
   {
-    let hov = null, hT = 0, hk = 0;
-    const hShow = () => { if (hov && hov.isConnected && hov.style.opacity !== '0') return; if (hov) hov.remove(); hov = skelShow('homeBtn'); hT = Date.now(); hk++; };
-    const hHide = () => { const ov = hov, k = hk; if (!ov) return; setTimeout(() => { if (k !== hk || hov !== ov) return; ov.style.transition = 'opacity .6s ease'; ov.style.opacity = '0'; setTimeout(() => { if (hov === ov) hov = null; ov.remove(); }, 650); }, Math.max(0, 1000 - (Date.now() - hT))); };
+    let hov = null, hT = 0, hk = 0, hcap = 0;
+    const so = window.thSkelOv, oHide = so && typeof so.hide === 'function' ? so.hide.bind(so) : null;
+    const kill = () => { try { if (oHide) oHide(); } catch (e) { } try { document.documentElement.classList.remove('th-skel'); } catch (e) { } };
+    const hHide = now => { kill(); const ov = hov, k = hk; if (!ov) return; setTimeout(() => { if (k !== hk || hov !== ov) return; ov.style.transition = 'opacity .4s ease'; ov.style.opacity = '0'; setTimeout(() => { if (hov === ov) hov = null; ov.remove(); }, 430); }, now === true ? 0 : Math.max(0, 650 - (Date.now() - hT))); };
+    const hShow = () => { kill(); if (hov && hov.isConnected && hov.style.opacity !== '0') return; if (hov) hov.remove(); hov = skelShow('homeBtn'); hT = Date.now(); hk++; clearTimeout(hcap); const k = hk; hcap = setTimeout(() => { if (k === hk) hHide(true); }, 2200); };
     window.thSkel = on => { try { on ? hShow() : hHide(); } catch (e) { console.warn('[home skeleton]', e); } };
-    if (window.thSkelOv) { try { thSkelOv.show = hShow; thSkelOv.hide = hHide; } catch (e) { } }
+    if (so) { try { so.show = hShow; so.hide = hHide; } catch (e) { } }
+    try { if (!window.__thHomeSk0) { window.__thHomeSk0 = 1; hShow(); } } catch (e) { }   /* the first open of the page */
   }
   let g = null, cur = 0, running = false;
   window.thRefreshNow = () => { if (!running && !busy) runRefresh(); };
@@ -7279,10 +7293,10 @@ ${BB}>[data-bk].thPopIt>svg,${BB}>[data-bk].thPopIt>i,${BB}>[data-bk].thPopIt>.m
 /* --- skeleton = transparent glass; the light passes BEHIND the logo, left -> right, never in front --- */
 .th-sk{background:rgba(148,163,184,.05)!important;-webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),inset 0 1px 0 rgba(255,255,255,.12)}
 body.light-theme .th-sk{box-shadow:inset 0 0 0 1px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.6)}
-.th-sk::before{z-index:0!important;left:0!important;right:auto!important;direction:ltr;width:55%!important;background:linear-gradient(100deg,transparent,rgba(255,255,255,.16) 45%,rgba(167,243,208,.2) 58%,transparent)!important;filter:blur(7px);transform:translateX(-130%);animation:thSkSweep 1.8s ease-in-out infinite!important}
-#thSkPg .thSkB .th-sk::before{animation-duration:1.8s!important}
-.th-sk::after{z-index:2!important;opacity:.55!important;width:min(40px,55%)!important;animation:thSkPulse 1.8s ease-in-out infinite!important}
-@keyframes thSkPulse{0%{scale:1}7%{scale:1.1}14%{scale:1}21%{scale:1.1}28%{scale:1}100%{scale:1}}
+.th-sk::before{z-index:0!important;left:0!important;right:auto!important;direction:ltr;width:55%!important;background:linear-gradient(100deg,transparent,rgba(255,255,255,.16) 45%,rgba(167,243,208,.2) 58%,transparent)!important;filter:blur(7px);transform:translateX(-130%);animation:thSkSweep 1.1s ease-in-out infinite!important}
+#thSkPg .thSkB .th-sk::before{animation-duration:1.1s!important}
+.th-sk::after{z-index:2!important;opacity:.55!important;width:min(40px,55%)!important;animation:thSkPulse 1.1s ease-in-out infinite!important}
+@keyframes thSkPulse{0%{scale:1}12%{scale:1.12}24%{scale:1}36%{scale:1.12}48%{scale:1}100%{scale:1}}
 @keyframes thSkSweep{from{transform:translateX(-130%)}to{transform:translateX(300%)}}
 @media(prefers-reduced-motion:reduce){.th-sk::before,.th-sk::after{animation:none!important}}
 /* --- the bar never changes during a refresh --- */
@@ -7343,4 +7357,86 @@ body.light-theme .mgr-cell.unr .mgr-c1 b,body.light-theme .mgr-cell.unr .mgr-cp{
 body.light-theme .mgr-c1 em{color:#64748b}
 body.light-theme .mgr-ca{background:#e2e8f0}`;
   document.head.appendChild(st);
+})();
+
+/* ===== Fix v5: Messenger is glass like the other pages (it went solid black while swiping away) ===== */
+(function () {
+  const st = document.createElement('style'); st.id = 'thFixV5Css';
+  st.textContent = `
+html body .mgr-pop:not(#z):not(#y):not(#x){background:rgba(8,12,20,.5)!important;-webkit-backdrop-filter:blur(48px) saturate(1.6)!important;backdrop-filter:blur(48px) saturate(1.6)!important}
+body.light-theme .mgr-pop:not(#z):not(#y):not(#x){background:rgba(244,246,249,.55)!important}`;
+  document.head.appendChild(st);
+})();
+
+/* ===== Fix v4: admin Tags on the bar buttons + Automate (re-send) for notifications ===== */
+(function () {
+  /* hidden tag rows never appear in the feed; Automate = the same notification comes back every X until it ends */
+  const _nl = thn_noteList;
+  thn_noteList = function () {
+    const now = Date.now(), out = [];
+    _nl.apply(this, arguments).forEach(n => {
+      const m = n.meta || {};
+      if (m.tag) return;
+      const a = m.auto, ev = a && (+a.every_h) * 36e5, t0 = Date.parse(n.created_at), end = a && Date.parse(a.until);
+      if (a && ev > 0 && t0 && end && now > t0 + ev) {
+        const k = Math.floor((Math.min(now, end) - t0) / ev);
+        if (k >= 1) { out.push(Object.assign({}, n, { id: n.id + '_c' + k, read_at: null, created_at: new Date(t0 + k * ev).toISOString() })); return; }
+      }
+      out.push(n);
+    });
+    return out;
+  };
+
+  const MAP = { home: 'homeBtn', feed: 'feedBtn', msgr: 'mgrBtn', days: 'daysBtn', space: 'spaceBtn', edit: 'barEdit' };
+  const DONE = 'thabit_tagdone';
+  const done = () => { try { return JSON.parse(localStorage.getItem(DONE) || '{}') || {}; } catch (e) { return {}; } };
+  function active() {
+    const now = Date.now(), dn = done(), by = {}, out = {};
+    try { ((typeof D !== 'undefined' && D && D.notes) || []).forEach(n => { const t = n.meta && n.meta.tag; if (!t || !MAP[t.target]) return; const c = by[t.target]; if (!c || String(n.created_at) > String(c.n.created_at)) by[t.target] = { n, t }; }); } catch (e) { }
+    Object.keys(by).forEach(k => { const n = by[k].n, t = by[k].t; if (t.type === 'clear' || !(Date.parse(t.until) > now) || dn['t' + n.id]) return; out[k] = { id: n.id, type: t.type, n: t.n }; });
+    return out;
+  }
+  const st = document.createElement('style'); st.id = 'thTagCss';
+  st.textContent = `
+.thTg{position:absolute;top:0;left:calc(50% + 3px);z-index:6;pointer-events:none;font:800 8px/1.25 Inter,Cairo,sans-serif;white-space:nowrap;animation:thNewIn .5s cubic-bezier(.34,1.55,.5,1) both}
+.thTg.nw{padding:1px 5px 1.5px;border-radius:999px;letter-spacing:.4px;text-transform:uppercase;color:#04291d;background:linear-gradient(135deg,#6ee7b7,#34d399 55%,#10b981);box-shadow:0 0 0 1.5px #181c20,0 2px 8px rgba(16,185,129,.45)}
+.thTg.al,.thTg.ct{min-width:15px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:999px;font-size:10px;line-height:15px;text-align:center;color:#fff;background:#ef4444;box-shadow:0 0 0 1.5px #181c20,0 2px 6px rgba(239,68,68,.5)}
+.thTg.pos{top:9px;left:calc(50% + 12px)}
+body.light-theme .thTg.nw,body.light-theme .thTg.al,body.light-theme .thTg.ct{box-shadow:0 0 0 1.5px #fbfcfe,0 2px 6px rgba(15,23,42,.25)}
+#mobileFloatingBar>.thOv #mgrNum,#mobileFloatingBar>.thOv #daysNum{display:none!important}`;
+  document.head.appendChild(st);
+  function sync() {
+    const act = active();
+    Object.keys(MAP).forEach(k => {
+      const b = document.getElementById(MAP[k]); if (!b) return; let s = b.querySelector(':scope > .thTg'); const a = act[k];
+      b.classList.toggle('thOv', !!(a && a.type === 'count' && (k === 'msgr' || k === 'days')));
+      if (!a || (a.type === 'count' && k === 'feed')) { if (s) s.remove(); return; }
+      if (!s) { s = document.createElement('span'); b.appendChild(s); }
+      const cls = 'thTg ' + (a.type === 'new' ? 'nw' : a.type === 'alert' ? 'al' : 'ct') + (k === 'msgr' || k === 'days' ? ' pos' : '');
+      if (s.className !== cls) s.className = cls;
+      const txt = a.type === 'new' ? ((typeof lang === 'string' && lang !== 'en') ? 'جديد' : 'New') : a.type === 'alert' ? '!' : String(a.n);
+      if (s.textContent !== txt) s.textContent = txt;
+    });
+  }
+  /* the Feed button shows the tag's number instead of the real one while the tag lasts */
+  const _uf = updateFeed;
+  updateFeed = function () {
+    _uf.apply(this, arguments);
+    try {
+      const a = active().feed, fn = document.getElementById('feedNum'), b = document.getElementById('feedBtn');
+      if (a && a.type === 'count' && fn && b) { const t = String(a.n); fn.textContent = t; fn.classList.toggle('l2', t.length > 1); b.classList.add('num'); }
+    } catch (e) { }
+    sync();
+  };
+  /* opening a button clears its tag (on this device) */
+  document.addEventListener('click', e => {
+    if (typeof VIEW !== 'undefined' && VIEW) return;
+    const b = e.target.closest && e.target.closest('#mobileFloatingBar>[data-bk],#mobileFloatingBar #barEdit'); if (!b) return;
+    const k = Object.keys(MAP).find(x => MAP[x] === b.id); if (!k) return;
+    const a = active()[k]; if (!a) return;
+    const d = done(), cut = Date.now() - 40 * 864e5; d['t' + a.id] = Date.now(); Object.keys(d).forEach(x => { if (d[x] < cut) delete d[x]; });
+    try { localStorage.setItem(DONE, JSON.stringify(d)); } catch (x) { }
+    sync(); if (k === 'feed') { try { updateFeed(); } catch (x) { } }
+  }, true);
+  sync(); setInterval(sync, 1500);
 })();
