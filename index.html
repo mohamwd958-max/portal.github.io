@@ -993,6 +993,7 @@
         if (navQ !== null) { const q = navQ; navQ = null; goSec(q); }
       }
       window.thShowWip = () => goSec('wip');
+      window.thGoSec = goSec; window.thCFG = CFG;
       $('contactBtn').addEventListener('click', () => goSec(sec === 'contact' ? 'svc' : 'contact'));
       $('aboutBtn').addEventListener('click', () => goSec(sec === 'about' ? 'svc' : 'about'));
       $('langBtn').addEventListener('click', () => goSec(sec === 'lang' ? 'svc' : 'lang'));
@@ -1651,5 +1652,161 @@
       rc(bBtn, () => go('placement.html'));
     })();
     </script>
+
+<!-- =====================================================================
+     thSide: left sidebar on wide screens (bottom bar on phone / zoomed-in),
+     page scrolls to the end, Arabic overlap fixes, gentler press animation
+     ===================================================================== -->
+<style id="thSideCss">
+/* ---------- gentler press: small, slow dip; slow return ---------- */
+:root{--rc-hover-card:1.008;--rc-hover-ctl:1.02;--rc-down-card:.992;--rc-down-ctl:.975;--rc-fast:.45s;--rc-slow:.9s;--sw:288px}
+html body #mobileFloatingBar>.circle-badge-btn.pr:not(#z){scale:.95!important;translate:0 1px!important;transition:scale .5s cubic-bezier(.3,.7,.3,1),translate .5s ease-out,color .24s ease!important}
+
+/* ---------- the whole page can scroll to its end ---------- */
+html,body{height:auto!important;min-height:100%;overflow-x:hidden!important;overflow-y:auto!important}
+html body:not(#zz):not(#zy) #login-screen:not([style*="display: none"]){padding:58px 0 96px!important;min-height:100vh;min-height:100dvh}
+html body:not(#zz):not(#zy):not(#zq) #portalLayout{padding:0 0 140px!important}
+#optPanel{padding-top:64px!important}
+
+/* ---------- Arabic / RTL: nothing overlaps ---------- */
+.fl label{inset-inline-start:auto!important;left:15px!important;right:auto!important}
+#thDots,#thDots .dpill{direction:ltr}
+html body .fl input{text-align:left!important}
+body.th-rtl .fmsg{text-align:start}
+body.th-rtl #cardLogin .card-header-title{direction:rtl}
+
+/* ---------- sidebar ---------- */
+#thSide{display:none}
+body.th-side #mobileFloatingBar,body.th-side #svcStrip,body.th-side .pmscrim,body.th-side #svcMenu,body.th-side #langMenu{display:none!important}
+body.th-side{padding-inline-start:var(--sw)!important}
+body.th-side #thHead{left:var(--sw)!important;right:0!important}
+body.th-side.th-rtl #thHead{left:0!important;right:var(--sw)!important}
+body.th-side #optPanel{inset-inline-start:var(--sw);padding-bottom:40px;padding-inline:16px}
+body.th-side #thSheet{left:calc(50% + var(--sw) / 2)}
+body.th-side.th-rtl #thSheet{left:calc(50% - var(--sw) / 2)}
+body.th-side #login-screen{padding-bottom:40px!important}
+body.th-side #thSide{display:flex;position:fixed;top:0;bottom:0;inset-inline-start:0;width:var(--sw);z-index:2147483000;box-sizing:border-box;
+  background:var(--bar);border-inline-end:1px solid var(--line);color:var(--ink);overflow-y:auto;overscroll-behavior:contain;direction:ltr;
+  box-shadow:0 0 40px rgba(0,0,0,.06);opacity:0;translate:-16px 0;transition:opacity .7s ease .3s,translate .8s var(--rc-ease) .3s}
+body.th-side.th-rtl #thSide{inset-inline-start:auto;right:0;left:auto;border-inline-end:0;border-left:1px solid var(--line);translate:16px 0}
+body.th-side.th-ready #thSide{opacity:1;translate:0 0}
+#thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:68px 16px 24px;display:flex;flex-direction:column;gap:22px}
+body.th-rtl #thSide .sdin{direction:rtl}
+#thSide .sdh{display:flex;align-items:center;gap:10px;margin:0 6px 8px;font:800 .68rem Inter,Cairo,sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
+#thSide .sdh::after{content:"";flex:1;height:1px;background:var(--line)}
+#thSide .sdl{display:flex;flex-direction:column;gap:4px}
+#thSide .sdi{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:46px;box-sizing:border-box;padding:6px 10px;margin:0;border:1px solid transparent;border-radius:14px;
+  background:transparent;color:inherit;font:700 .88rem Inter,Cairo,sans-serif;text-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;
+  transition:scale var(--rc-slow) var(--rc-ease),background .3s,border-color .3s,color .3s}
+#thSide .sdi .sdt{flex:none;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--chip);font:800 .7rem Inter,Cairo,sans-serif;transition:background .3s,color .3s}
+#thSide .sdi .sdt i{font-size:15px;line-height:1}
+#thSide .sdi .sdx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#thSide .sdi .sdg{flex:none;font:700 .62rem Inter,Cairo,sans-serif;opacity:.5}
+@media(hover:hover){#thSide .sdi:hover{background:var(--chip);scale:var(--rc-hover-ctl)}}
+#thSide .sdi:active,#thSide .sdi.rc-down{scale:var(--rc-down-ctl)!important;transition:scale var(--rc-fast) ease-out,background .3s!important}
+#thSide .sdi.on{border-color:var(--line2);background:var(--card);color:var(--ink)}
+#thSide .sdi.on .sdt{background:var(--ink);color:var(--onink)}
+#thSide .sdi.on .sdg{opacity:1;color:var(--acc)}
+#thSide .sdi.main{background:var(--ink);color:var(--onink);border-color:var(--ink)}
+#thSide .sdi.main .sdt{background:rgba(128,128,128,.28);color:var(--onink)}
+#thSide .sdi.main .sdg{color:var(--onink);opacity:.7}
+@media(hover:hover){#thSide .sdi.main:hover{background:var(--ink);opacity:.93}}
+#thSide .sdi.dim{opacity:.55}
+#thSide .sdseg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;border-radius:16px;background:var(--chip)}
+#thSide .sdseg .sdi{min-height:40px;justify-content:center;padding:0 6px;border-radius:12px;gap:8px}
+#thSide .sdseg .sdi.on{background:var(--card);border-color:var(--line2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+#thSide .sdseg .sdi.on .sdt{background:transparent;color:var(--acc)}
+#thSide .sdseg .sdt{width:auto;height:auto;background:transparent;font-size:.8rem}
+#thSide .sdseg .sdx{flex:none}
+#thSide .sdi.sm{min-height:40px;font-weight:600;font-size:.82rem}
+</style>
+
+<aside id="thSide" aria-label="Menu"><div class="sdin" id="sdIn"></div></aside>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id), body = document.body, side = $('thSide'), inn = $('sdIn');
+  const T = {
+    en: { svc: 'Services', lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', soon: 'More soon',
+          tag: 'Soon', touch: 'Get in Touch', msgr: 'Thabit Messenger', best: 'Best', wa: 'WhatsApp', tg: 'Telegram', theme: 'Theme', dark: 'Dark', light: 'Light', langs: 'Language', about: 'About' },
+    ar: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'المزيد قريبًا',
+          tag: 'قريبًا', touch: 'تواصل معنا', msgr: 'ثابت ميسنجر', best: 'الأفضل', wa: 'واتساب', tg: 'تيليجرام', theme: 'المظهر', dark: 'داكن', light: 'فاتح', langs: 'اللغة', about: 'عنّا' },
+    eg: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'المزيد قريب',
+          tag: 'قريب', touch: 'كلمنا', msgr: 'ثابت ميسنجر', best: 'الأفضل', wa: 'واتساب', tg: 'تيليجرام', theme: 'المظهر', dark: 'دارك', light: 'لايت', langs: 'اللغة', about: 'عننا' }
+  };
+  const SV = [['lang', 'fa-language'], ['voice', 'fa-microphone-lines'], ['digital', 'fa-laptop-code'], ['consult', 'fa-user-tie'], ['store', 'fa-shirt'], ['soon', 'fa-hourglass-half']];
+  const LG = [['ar', 'عربي', 'العربية'], ['en', 'EN', 'English'], ['eg', 'مصر', 'مصري']];
+  const L = () => (typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en';
+  const isRtl = () => L() !== 'en';
+
+  function build() {
+    const t = T[L()];
+    const btn = (cls, tile, label, tag, attrs) => '<button type="button" class="sdi ' + cls + '" ' + attrs + '><span class="sdt">' + tile + '</span><span class="sdx">' + label + '</span><span class="sdg">' + (tag || '') + '</span></button>';
+    inn.innerHTML =
+      '<section><div class="sdh">' + t.svc + '</div><div class="sdl">' +
+        SV.map(s => btn('', '<i class="fa-solid ' + s[1] + '"></i>', t[s[0]], s[0] === 'lang' ? '' : t.tag, 'data-svc="' + s[0] + '"')).join('') + '</div></section>' +
+      '<section><div class="sdh">' + t.touch + '</div><div class="sdl">' +
+        btn('main', '<i class="fa-solid fa-paper-plane"></i>', t.msgr, t.best, 'data-act="msgr"') +
+        btn('', '<i class="fa-brands fa-whatsapp"></i>', t.wa, '', 'data-act="wa"') +
+        btn('', '<i class="fa-brands fa-telegram"></i>', t.tg, '', 'data-act="tg"') +
+        btn('sm', '<i class="fa-solid fa-circle-info"></i>', t.about, '', 'data-act="about"') + '</div></section>' +
+      '<section><div class="sdh">' + t.theme + '</div><div class="sdseg">' +
+        btn('', '<i class="fa-regular fa-moon"></i>', t.dark, '', 'data-theme="dark"') +
+        btn('', '<i class="fa-regular fa-sun"></i>', t.light, '', 'data-theme="light"') + '</div></section>' +
+      '<section><div class="sdh">' + t.langs + '</div><div class="sdseg">' +
+        LG.map(l => btn('', l[1], '', '', 'data-lang="' + l[0] + '" title="' + l[2] + '"')).join('') + '</div></section>';
+    mark();
+  }
+  function mark() {
+    const light = body.classList.contains('light-theme'), sheetOn = $('thSheet') && $('thSheet').classList.contains('on'), opt = body.dataset.opt || 'lang';
+    inn.querySelectorAll('[data-svc]').forEach(b => b.classList.toggle('on', !sheetOn && b.dataset.svc === opt));
+    inn.querySelectorAll('[data-theme]').forEach(b => b.classList.toggle('on', (b.dataset.theme === 'light') === light));
+    inn.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === L()));
+    const wa = (window.thCFG && window.thCFG.whatsapp || '').replace(/\D/g, ''), tg = (window.thCFG && window.thCFG.telegram || '').trim();
+    const w = inn.querySelector('[data-act="wa"]'), g = inn.querySelector('[data-act="tg"]'), t = T[L()];
+    if (w) { w.classList.toggle('dim', !wa); w.querySelector('.sdg').textContent = wa ? '' : t.tag; }
+    if (g) { g.classList.toggle('dim', !tg); g.querySelector('.sdg').textContent = tg ? '' : t.tag; }
+  }
+
+  async function act(b) {
+    const go = window.thGoSec;
+    if (b.dataset.svc) {
+      if (go) await go('svc');
+      const q = document.querySelector('#svcStrip .sq[data-k="' + b.dataset.svc + '"]'); if (q) q.click();
+    } else if (b.dataset.theme) {
+      if (body.classList.contains('light-theme') !== (b.dataset.theme === 'light') && typeof window.toggleTheme === 'function') window.toggleTheme();
+    } else if (b.dataset.lang) {
+      if (typeof window.setLanguage === 'function') window.setLanguage(b.dataset.lang);
+    } else if (b.dataset.act === 'msgr') {
+      if (go) { await go('contact'); const m = document.querySelector('#thSheet button.shi'); if (m) m.click(); }
+    } else if (b.dataset.act === 'about') { if (go) go('about'); }
+    else if (b.dataset.act === 'wa' || b.dataset.act === 'tg') {
+      const c = window.thCFG || {};
+      if (b.dataset.act === 'wa') { const n = (c.whatsapp || '').replace(/\D/g, ''); if (n) window.open('https://wa.me/' + n, '_blank', 'noopener'); }
+      else { const g = (c.telegram || '').trim(); if (g) window.open(/^https?:/.test(g) ? g : 'https://t.me/' + g.replace(/^@/, ''), '_blank', 'noopener'); }
+    }
+    mark();
+  }
+  inn.addEventListener('click', e => { const b = e.target.closest('.sdi'); if (b) act(b); });
+
+  /* sidebar on wide, normal-zoom screens with a mouse; bottom bar on phones and when zoomed in (~175%+) */
+  function mode() {
+    const iw = window.innerWidth, ow = window.outerWidth || iw, zoom = iw ? ow / iw : 1;
+    const wide = iw >= 900 && matchMedia('(hover:hover) and (pointer:fine)').matches && zoom < 1.7;
+    body.classList.toggle('th-side', wide);
+    body.classList.toggle('th-rtl', isRtl());
+  }
+  window.addEventListener('resize', mode);
+  const wrapSet = window.setLanguage;
+  if (typeof wrapSet === 'function') window.setLanguage = function () { const r = wrapSet.apply(this, arguments); mode(); build(); return r; };
+  new MutationObserver(mark).observe(body, { attributes: true, attributeFilter: ['class', 'data-opt'] });
+  const sh = $('thSheet'); if (sh) new MutationObserver(mark).observe(sh, { attributes: true, attributeFilter: ['class'] });
+  mode(); build();
+  window.addEventListener('load', () => { mode(); build(); setTimeout(() => { mode(); build(); }, 400); });
+})();
+</script>
+
 </body>
 </html>
