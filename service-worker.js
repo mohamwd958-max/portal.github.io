@@ -1,6 +1,6 @@
 /* Thabit service worker: offline page + push notifications.
    Deliberately does NOT cache the app files, so updates always arrive immediately. */
-const VERSION = 'thabit-sw-2';
+const VERSION = 'thabit-sw-3';
 const OFFLINE = 'offline.html';
 /* same public (anon) values the dashboard already uses: needed only to report "delivered" / "clicked" */
 const SB = 'https://vkfexceitwjmxncwceqb.supabase.co';
@@ -61,3 +61,29 @@ self.addEventListener('notificationclick', e => {
   })());
 });
 
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; }
+  catch (e) { data = { body: event.data ? event.data.text() : '' }; }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Thabit', {
+      body: data.body || '',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      data: { url: data.url || './landing.html' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || './landing.html', self.registration.scope).href;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) if (c.url.startsWith(self.registration.scope) && 'focus' in c) return c.focus();
+      return clients.openWindow(target);
+    })
+  );
+});
