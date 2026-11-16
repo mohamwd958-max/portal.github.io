@@ -2,6 +2,15 @@
 <html lang="en" dir="ltr" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
+    <script>
+/* GATE: this page opens only after landing.html let the visitor in (login, or the guest quick account). Anyone else goes to the welcome page first. */
+(function(){
+  var ok=false;
+  try{ ok = sessionStorage.getItem('thPass')==='1'; }catch(e){}
+  if(!ok){ document.documentElement.style.visibility='hidden'; location.replace('landing.html'+location.hash); }
+})();
+</script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thabit - Portal</title>
     <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
@@ -1491,7 +1500,7 @@
         switching = false;
         if (selQ !== null) { const q = selQ; selQ = null; select(q); }
       }
-      window.thSelect = select;   /* lets landing.html open a given section: home.html#voice */
+      window.thSelect = select;   /* lets landing.html open a given section: index.html#voice */
 
       /* ---------- pop-up menus ---------- */
       const scrim = document.createElement('div'); scrim.className = 'pmscrim'; body.appendChild(scrim);
@@ -1972,7 +1981,7 @@ html body:not(#zz):not(#zy) #cardLogin:not(#z){margin-left:auto!important;margin
 </style>
 
 <script>
-/* open the section named in the link (home.html#voice, #digital, #consult, #store, #lang) once the page is ready */
+/* open the section named in the link (index.html#voice, #digital, #consult, #store, #lang) once the page is ready */
 (function(){
   var k=(location.hash||'').replace('#',''); if(!/^(lang|voice|digital|consult|store)$/.test(k)||k==='lang')return;
   var n=0,t=setInterval(function(){
