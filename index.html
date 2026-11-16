@@ -567,6 +567,7 @@
   /* timings (ms) - whole loop is about half as long as before */
   var fast = false; try { fast = localStorage.getItem('thIntroSeen') === '1'; } catch (e) { }   /* first launch: the full, calm drawing. Every later launch: clearly faster */
   var N = 480, DUR = fast ? 850 : 1450, H_AT = fast ? 230 : 400, FADE = fast ? 800 : 1300, FP = 3, BEAT_AT = H_AT + DUR + (fast ? 120 : 200), BEAT_D = fast ? 380 : 600, FS = BEAT_AT + BEAT_D + (fast ? 90 : 150);
+  var GL_T = fast ? 700 : 950, GL_HOLD = fast ? 1000 : 1500, FSG = BEAT_AT + GL_T + GL_HOLD;   /* light theme: the logo turns to glass instead of glowing */
   var V_AT = fast ? 25 : 40, V_D = fast ? 150 : 240, B_AT = fast ? 150 : 250, B_D = fast ? 160 : 260;
 
   var PA = [[224,31],[210,37],[200,44],[190,57],[182,72],[180,90],[182,102],[190,116],[202,126],[217,129],[232,126],[250,122],[262,115],[275,100],[290,85],[305,70],[320,57],[332,54],[347,52],[355,57],[359,70],[360,82],[358,95],[352,112],[345,127],[336,142],[327,159],[320,175],[311,187],[307,205],[298,220],[288,235],[278,250],[269,263],[262,272],
@@ -744,6 +745,42 @@
     var stage = document.getElementById('thIntroStage');
     var hc = document.createElement('canvas'), tc = document.createElement('canvas'), dc = document.createElement('canvas');   /* H behind, T in front, drops on top */
     hc.width = hc.height = tc.width = tc.height = dc.width = dc.height = N; stage.appendChild(hc); stage.appendChild(tc); stage.appendChild(dc);
+    /* GLASS: the finished logo becomes clear purple-blue glass with bright edges and light sliding under it */
+    var gc = document.createElement('canvas'), gx, gimg, GP = null, gShown = false;
+    gc.width = gc.height = N; gc.style.visibility = 'hidden'; stage.appendChild(gc); gx = gc.getContext('2d'); gimg = gx.createImageData(N, N);
+    function buildGlass() {
+      var xs = [], ys = [], es = [], ids = [], R = 9, dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], i, x, y, k, s, e, nx, ny;
+      for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
+        i = y * N + x; if (!A[i]) continue;
+        e = A[i] < 200 ? 0 : R;
+        for (k = 0; k < 8 && e > 0; k++) for (s = 1; s < e; s++) { nx = x + dirs[k][0] * s; ny = y + dirs[k][1] * s; if (nx < 0 || ny < 0 || nx >= N || ny >= N || A[ny * N + nx] < 128) { e = s; break; } }
+        ids.push(i); xs.push(x); ys.push(y); es.push(e);
+      }
+      GP = { ids: Int32Array.from(ids), xs: Float32Array.from(xs), ys: Float32Array.from(ys), es: Float32Array.from(es) };
+    }
+    function glassFrame(t) {
+      var tg = t - BEAT_AT, d = gimg.data, n = GP.ids.length, front = -0.2 + 1.5 * cl(tg / GL_T),
+          sw = -0.3 + 1.6 * ((tg / 1700) % 1), sw2 = 1.3 - 1.5 * ((tg / 2700 + 0.35) % 1), j, o, x, y, e, u, v, mx, rim, r, g, b, a, st, b1, b2, rr, bb, L, pa;
+      for (j = 0; j < n; j++) {
+        x = GP.xs[j]; y = GP.ys[j]; e = GP.es[j]; o = GP.ids[j] * 4; pa = A[GP.ids[j]];
+        u = ((x - 25) * 0.75 + (y - 30) * 0.65) / 594; v = cl((y - 30) / 410);
+        mx = sm((front - u) / 0.14);
+        if (mx <= 0) { d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = pa; continue; }
+        rim = Math.exp(-e / 2.4);
+        st = Math.sin((x * 0.034 - y * 0.021) * 6) * 12;
+        r = 168 - 84 * v + st; g = 158 - 66 * v + st; b = 228 - 32 * v + st * 0.6;
+        if (e > 6) { r *= 0.93; g *= 0.93; b *= 0.95; }
+        b1 = Math.exp(-((u - sw) * (u - sw)) / 0.0045); b2 = Math.exp(-((u - sw2) * (u - sw2)) / 0.0016) * 0.7;
+        rr = Math.exp(-((u - sw + 0.05) * (u - sw + 0.05)) / 0.0006) * 0.45; bb = Math.exp(-((u - sw - 0.05) * (u - sw - 0.05)) / 0.0006) * 0.45;
+        L = b1 * 0.62 + b2 * 0.5;
+        r += (255 - r) * Math.min(1, L + rr); g += (255 - g) * Math.min(1, L * 0.95); b += (255 - b) * Math.min(1, L + bb);
+        r += (250 - r) * rim * 0.85; g += (246 - g) * rim * 0.85; b += (255 - b) * rim * 0.85;
+        a = Math.min(0.96, 0.56 + 0.34 * rim + 0.3 * b1 + 0.2 * b2);
+        d[o] = col[0] + (r - col[0]) * mx; d[o + 1] = col[1] + (g - col[1]) * mx; d[o + 2] = col[2] + (b - col[2]) * mx;
+        d[o + 3] = pa * (1 - mx + mx * a);
+      }
+      gx.putImageData(gimg, 0, 0);
+    }
     var hx = hc.getContext('2d'), tx = tc.getContext('2d'), dx = dc.getContext('2d'), hi, ti, col = [0, 0, 0], lastU = -9, lastT = -9, t0 = performance.now();
     var FREEZE = null;
     function rgb() { var m = (getComputedStyle(ov).backgroundColor.match(/\d+/g) || [244, 244, 244]), L = 0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]; return L > 140 ? [0, 0, 0] : [255, 255, 255]; }
@@ -763,11 +800,11 @@
     function tick(now) {
       var nb2 = pageBg(); if (nb2 !== curBg) { curBg = nb2; ov.style.background = nb2; paint(); }   /* follow the page's real theme (also if it is toggled) */
       var t = FREEZE ? +FREEZE[1] : now - t0;
-      var off = t - FS, fo = off > 0 ? 1 - cl(off / FADE) : 1;
+      var GL = col[0] === 0, off = t - (GL ? FSG : FS), fo = off > 0 ? 1 - cl(off / FADE) : 1;
       var fe = fo * fo * (3 - 2 * fo);
       /* one heartbeat with a glowing light once the logo is fully painted */
       var bx = cl((t - BEAT_AT) / BEAT_D), bp = (t < BEAT_AT || bx >= 1) ? 0 : (bx < 0.28 ? Math.sin(bx / 0.28 * Math.PI / 2) : Math.cos((bx - 0.28) / 0.72 * Math.PI / 2));
-      bp = bp * bp * (3 - 2 * bp);
+      bp = bp * bp * (3 - 2 * bp); if (GL) bp = 0;   /* light theme: no black glow */
       stage.style.opacity = fe;
       stage.style.transform = '';   /* no pop/scale on the glow: it only lights up */
       if (!window.__thLogoGot && t >= BEAT_AT) {   /* the fully drawn logo (no dots) is copied once as a plain shape for the header */
@@ -780,6 +817,13 @@
         } catch (er) { }
       }
       stage.style.filter = bp > 0 ? 'drop-shadow(0 0 ' + (4 + 26 * bp).toFixed(1) + 'px rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',' + (0.9 * bp).toFixed(3) + '))' : '';
+
+      if (GL && t >= 50 && !GP) buildGlass();
+      if (GL && GP && t >= BEAT_AT) {
+        if (!gShown) { hc.style.visibility = 'hidden'; tc.style.visibility = 'hidden'; gc.style.visibility = 'visible'; gShown = true; }
+        glassFrame(t);
+        stage.style.filter = 'drop-shadow(0 10px 16px rgba(50,50,110,' + (0.3 * cl((t - BEAT_AT) / GL_T)).toFixed(3) + '))';
+      } else if (gShown) { hc.style.visibility = ''; tc.style.visibility = ''; gc.style.visibility = 'hidden'; gShown = false; }
 
       /* T: the vertical first, then the bar */
       var tKey = t < B_AT + B_D + 40 ? t : 1e6;
@@ -813,7 +857,7 @@
         for (q = 0; q < M; q++) { w = sm((sfH - hArc[q] - hOff[q]) / FP); hd[hIdx[q] * 4 + 3] = (A[hIdx[q]] * hTex[q] * w + .5) | 0; }
         hx.putImageData(hi, 0, 0); lastU = u;
       }
-      if (t > FS + FADE) { done(); return; }
+      if (t > (GL ? FSG : FS) + FADE) { done(); return; }
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -1677,7 +1721,7 @@ body.th-rtl #cardLogin .card-header-title{direction:rtl}
 
 /* ---------- sidebar ---------- */
 #thSide{display:none}
-body.th-side #mobileFloatingBar,body.th-side #svcStrip,body.th-side .pmscrim,body.th-side #svcMenu,body.th-side #langMenu{display:none!important}
+html body.th-side #mobileFloatingBar:not(#z):not(#y):not(#x),body.th-side #svcStrip,body.th-side .pmscrim,body.th-side #svcMenu,body.th-side #langMenu{display:none!important}
 body.th-side{padding-inline-start:var(--sw)!important}
 body.th-side #thHead{left:var(--sw)!important;right:0!important}
 body.th-side.th-rtl #thHead{left:0!important;right:var(--sw)!important}
@@ -1685,18 +1729,18 @@ body.th-side #optPanel{inset-inline-start:var(--sw);padding-bottom:40px;padding-
 body.th-side #thSheet{left:calc(50% + var(--sw) / 2)}
 body.th-side.th-rtl #thSheet{left:calc(50% - var(--sw) / 2)}
 body.th-side #login-screen{padding-bottom:40px!important}
-body.th-side #thSide{display:flex;position:fixed;top:0;bottom:0;inset-inline-start:0;width:var(--sw);z-index:2147483000;box-sizing:border-box;
+body.th-side #thSide{display:flex;flex-direction:column;position:fixed;top:0;bottom:0;inset-inline-start:0;width:var(--sw);z-index:2147483000;box-sizing:border-box;
   background:var(--bar);border-inline-end:1px solid var(--line);color:var(--ink);overflow-y:auto;overscroll-behavior:contain;direction:ltr;
   box-shadow:0 0 40px rgba(0,0,0,.06);opacity:0;translate:-16px 0;transition:opacity .7s ease .3s,translate .8s var(--rc-ease) .3s}
 body.th-side.th-rtl #thSide{inset-inline-start:auto;right:0;left:auto;border-inline-end:0;border-left:1px solid var(--line);translate:16px 0}
 body.th-side.th-ready #thSide{opacity:1;translate:0 0}
-#thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:14px 16px 30px;display:flex;flex-direction:column;gap:22px}
+#thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:8px 16px 22px;display:flex;flex-direction:column;gap:16px}
 body.th-rtl #thSide .sdin{direction:rtl}
 #thSide .sdh{display:flex;align-items:center;gap:10px;margin:0 6px 8px;font:800 .68rem Inter,Cairo,sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
 body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
 #thSide .sdh::after{content:"";flex:1;height:1px;background:var(--line)}
-#thSide .sdl{display:flex;flex-direction:column;gap:4px}
-#thSide .sdi{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:46px;box-sizing:border-box;padding:6px 10px;margin:0;border:1px solid transparent;border-radius:14px;
+#thSide .sdl{display:flex;flex-direction:column;gap:2px}
+#thSide .sdi{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:42px;box-sizing:border-box;padding:6px 10px;margin:0;border:1px solid transparent;border-radius:14px;
   background:transparent;color:inherit;font:700 .88rem Inter,Cairo,sans-serif;text-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;
   transition:scale var(--rc-slow) var(--rc-ease),background .3s,border-color .3s,color .3s}
 #thSide .sdi .sdt{flex:none;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--chip);font:800 .7rem Inter,Cairo,sans-serif;transition:background .3s,color .3s}
@@ -1714,6 +1758,7 @@ body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
 @media(hover:hover){#thSide .sdi.main:hover{background:var(--ink);opacity:.93}}
 #thSide .sdi.dim{opacity:.55}
 #thSide .sdseg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;border-radius:16px;background:var(--chip)}
+#thSide .sdseg{direction:ltr}
 #thSide .sdseg .sdi{min-height:40px;justify-content:center;padding:0 6px;border-radius:12px;gap:8px}
 #thSide .sdseg .sdi.on{background:var(--card);border-color:var(--line2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 #thSide .sdseg .sdi.on .sdt{background:transparent;color:var(--acc)}
@@ -1834,6 +1879,26 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
   window.addEventListener('load', () => { mode(); build(); setTimeout(() => { mode(); build(); }, 400); });
 })();
 </script>
+
+
+<style id="thBgCss">
+/* ---------- backgrounds: light = soft grey (glass picture), dark = dusky slate wall (rock picture) ---------- */
+body{--bg:#4b505e;--card:#333847;--line:#4c5262;--line2:#5f6678;--field:#2b303c;--ink:#f4f4f6;--onink:#14161c;--muted:#b4b8c4;--bar:#2d313d;--chip:#3d4352;--acc:#fbbf24;
+  --ov1:rgba(45,49,61,.9);--ov2:rgba(45,49,61,.5);--ov3:rgba(45,49,61,0);
+  --bgimg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 60% 55% at 16% 10%,rgba(132,138,154,.5),transparent 70%),
+    radial-gradient(ellipse 55% 65% at 88% 92%,rgba(22,25,35,.6),transparent 70%),
+    linear-gradient(158deg,#646a79 0%,#4d5261 46%,#393e4c 100%);
+  --bgsz:240px 240px,100% 100%,100% 100%,100% 100%;--bgrp:repeat,no-repeat,no-repeat,no-repeat}
+body.light-theme{--bg:#cfcfd2;--card:#ececef;--line:#b8b8be;--line2:#a6a6ae;--field:#f5f5f7;--ink:#0e0e12;--onink:#ffffff;--muted:#54545c;--bar:#e1e1e5;--chip:#d3d3d8;--acc:#b45309;
+  --ov1:rgba(236,236,239,.92);--ov2:rgba(236,236,239,.5);--ov3:rgba(236,236,239,0);
+  --bgimg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 70% 50% at 70% 85%,rgba(228,228,232,.55),transparent 72%),
+    radial-gradient(ellipse 60% 45% at 20% 5%,rgba(176,176,181,.45),transparent 70%),
+    linear-gradient(180deg,#c5c5c8 0%,#cdcdd0 55%,#d5d5d8 100%)}
+html body:not(#zz):not(#zy):not(#zq){background-color:var(--bg)!important;background-image:var(--bgimg)!important;background-size:var(--bgsz)!important;background-repeat:var(--bgrp)!important;background-attachment:fixed!important}
+html body #thIntro{background-color:var(--bg)!important;background-image:var(--bgimg)!important;background-size:var(--bgsz)!important;background-repeat:var(--bgrp)!important;background-attachment:fixed!important}
+</style>
 
 </body>
 </html>
