@@ -511,6 +511,14 @@
     html body:not(#zz):not(#zy) .xcard.bcard{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
     html body:not(#zz):not(#zy) .bcard .xq{margin:0;text-align:start;opacity:1;font-weight:600;font-size:.9rem}
     html body:not(#zz):not(#zy) .bcard .xbtn{width:auto!important;height:38px;margin:0;padding:0 16px;font-size:.84rem}
+    /* "You're not Thabit yet?" card: the rope picture is its background; a soft veil on the text side keeps the words readable */
+    body{--ov1:rgba(11,11,12,.82);--ov2:rgba(11,11,12,.45);--ov3:rgba(11,11,12,0)}
+    body.light-theme{--ov1:rgba(255,255,255,.9);--ov2:rgba(255,255,255,.4);--ov3:rgba(255,255,255,0)}
+    html body:not(#zz):not(#zy) .xcard.bcard{min-height:84px;overflow:hidden;background-color:var(--card)!important;
+      background-image:linear-gradient(90deg,var(--ov1) 0%,var(--ov2) 40%,var(--ov3) 72%),url("assets/be-thabit-bg.jpg")!important;
+      background-size:cover,cover!important;background-position:center,center 82%!important;background-repeat:no-repeat!important}
+    html body:not(#zz):not(#zy) .bcard .xbtn{background:var(--ink)!important;color:var(--onink)!important;border:0!important}
+    html body:not(#zz):not(#zy) .bcard .xbtn:hover{background:var(--ink)!important;opacity:.92}
     </style>
 </head>
 
