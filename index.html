@@ -1187,7 +1187,7 @@
       /* measure where the card really is and slide the whole stack until it is dead centre of the usable page */
       function fixCenter() {
         const b = document.body, vw = document.documentElement.clientWidth, sideOn = b.classList.contains('th-side'), sw = sideOn ? 288 : 0;
-        const target = sideOn ? (b.classList.contains('th-rtl') ? (vw - sw) / 2 : sw + (vw - sw) / 2) : vw / 2;
+        const target = sideOn ? sw + (vw - sw) / 2 : vw / 2;
         par.style.setProperty('translate', '0 0', 'important');
         const pr = par.getBoundingClientRect(); if (!card.offsetWidth) return 0;
         const d = target - (pr.left + card.offsetLeft + card.offsetWidth / 2);
@@ -1450,6 +1450,8 @@
         if (known === false) markBad(uFl, 'U', L().userBad);
         else { if (known === true) { uFl.classList.remove('bad'); uFl.classList.add('ok'); } markBad(pFl, 'P', known === true ? L().pwBad : L().both); }
       };
+      /* safety net: a normal click on Get In always starts the login (handleLogin ignores a second call while busy) */
+      btn.addEventListener('click', () => { try { window.handleLogin(); } catch (e) { console.error('login failed to start', e); } });
     })();
     </script>
 
@@ -1765,18 +1767,14 @@ body.th-rtl #cardLogin .card-header-title{direction:rtl}
 html body.th-side #mobileFloatingBar:not(#z):not(#y):not(#x),body.th-side #svcStrip,body.th-side .pmscrim,body.th-side #svcMenu,body.th-side #langMenu{display:none!important}
 body.th-side{padding-inline-start:var(--sw)!important}
 body.th-side #thHead{left:var(--sw)!important;right:0!important}
-body.th-side.th-rtl #thHead{left:0!important;right:var(--sw)!important}
 body.th-side #optPanel{inset-inline-start:var(--sw);padding-bottom:40px;padding-inline:16px}
 body.th-side #thSheet{left:calc(50% + var(--sw) / 2)}
-body.th-side.th-rtl #thSheet{left:calc(50% - var(--sw) / 2)}
 body.th-side #login-screen{padding-bottom:40px!important}
 body.th-side #thSide{display:flex;flex-direction:column;position:fixed;top:0;bottom:0;inset-inline-start:0;width:var(--sw);z-index:2147483000;box-sizing:border-box;
   background:var(--bar);border-inline-end:1px solid var(--line);color:var(--ink);overflow-y:auto;overscroll-behavior:contain;direction:ltr;
   box-shadow:0 0 40px rgba(0,0,0,.06);opacity:0;translate:-16px 0;transition:opacity .7s ease .3s,translate .8s var(--rc-ease) .3s}
-body.th-side.th-rtl #thSide{inset-inline-start:auto;right:0;left:auto;border-inline-end:0;border-left:1px solid var(--line);translate:16px 0}
 body.th-side.th-ready #thSide{opacity:1;translate:0 0}
 #thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:8px 16px 22px;display:flex;flex-direction:column;gap:16px}
-body.th-rtl #thSide .sdin{direction:rtl}
 #thSide .sdh{display:flex;align-items:center;gap:10px;margin:0 6px 8px;font:800 .68rem Inter,Cairo,sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
 body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
 #thSide .sdh::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -1973,6 +1971,10 @@ html body:not(#zz):not(#zy):not(#zq):not(#zp) :is(#mobileFloatingBar:not(#z):not
 html body:not(#zz):not(#zy):not(#zq):not(#zp) #sdTop{background:transparent!important}
 .glw{display:none!important}
 
+/* ---------- language switch: icons, buttons and boxes NEVER move; only the written text lines read right-to-left ---------- */
+html,html[dir]{direction:ltr!important}
+body.th-rtl :is(.card-header-title,.fmsg,.gcard h2,.gcard p,.bcard .xq,#optPanel .optcard h2,#optPanel .optcard p,#thSheet h2,#thSheet p){direction:rtl}
+
 /* ---------- cards: dead centre, every screen ---------- */
 html body #login-screen>div{width:100%!important;align-items:center!important}
 html body:not(#zz):not(#zy) #portalLayout{position:relative!important;left:auto!important;right:auto!important;inset-inline:auto!important;margin-left:auto!important;margin-right:auto!important;align-self:center!important}
@@ -1989,6 +1991,11 @@ html body:not(#zz):not(#zy) #cardLogin:not(#z){margin-left:auto!important;margin
     if(document.body.classList.contains('th-ready')&&window.thSelect){clearInterval(t);setTimeout(function(){window.thSelect(k);},350);}
   },150);
 })();
+</script>
+<script>
+/* portal.js flips <html dir> to rtl for Arabic: put it back, so nothing that depends on it can move */
+(function(){ var r=document.documentElement; function f(){ if(r.getAttribute('dir')!=='ltr') r.setAttribute('dir','ltr'); } f();
+  new MutationObserver(f).observe(r,{attributes:true,attributeFilter:['dir']}); })();
 </script>
 </body>
 </html>
