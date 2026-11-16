@@ -1104,6 +1104,7 @@
     <script>
     (function () {
       'use strict';
+      return;   /* light-through-glass animation paused (delete this line to bring it back) */
       const CYCLE = 20000, DUR = 3000;
       let t0 = 0, lit = false;
       const bar = document.getElementById('mobileFloatingBar');
@@ -1898,6 +1899,21 @@ body.light-theme{--bg:#cfcfd2;--card:#ececef;--line:#b8b8be;--line2:#a6a6ae;--fi
     linear-gradient(180deg,#c5c5c8 0%,#cdcdd0 55%,#d5d5d8 100%)}
 html body:not(#zz):not(#zy):not(#zq){background-color:var(--bg)!important;background-image:var(--bgimg)!important;background-size:var(--bgsz)!important;background-repeat:var(--bgrp)!important;background-attachment:fixed!important}
 html body #thIntro{background-color:var(--bg)!important;background-image:var(--bgimg)!important;background-size:var(--bgsz)!important;background-repeat:var(--bgrp)!important;background-attachment:fixed!important}
+</style>
+
+
+<style id="thPebbleCss">
+/* ---------- frosted pebbled glass on containers, header, bars and sidebar (buttons are not touched) ---------- */
+body{--pebble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='h' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='2.4' diffuseConstant='1' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='225' elevation='60'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.3 0 0 0 -0.26'/%3E%3C/filter%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='2.4' diffuseConstant='1' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='225' elevation='60'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.3 0 0 0 0.26'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23s%29'/%3E%3Crect width='100%25' height='100%25' filter='url%28%23h%29'/%3E%3C/svg%3E");--pbl:72%;--pbs:blur(16px) saturate(1.25)}
+body.light-theme{--pebble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='h' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='2.4' diffuseConstant='1' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='225' elevation='60'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.18 0 0 0 -0.156'/%3E%3C/filter%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='2.4' diffuseConstant='1' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='225' elevation='60'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.18 0 0 0 0.156'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23s%29'/%3E%3Crect width='100%25' height='100%25' filter='url%28%23h%29'/%3E%3C/svg%3E");--pbl:70%}
+html body:not(#zz):not(#zy):not(#zq):not(#zp) :is(.portal-card:not(#z),.gcard,#optPanel .optcard,#thSheet,.pm,#thHead,#thSide,#svcStrip){
+  background-color:color-mix(in srgb,var(--card) var(--pbl),transparent)!important;background-image:var(--pebble)!important;background-size:220px 220px!important;background-repeat:repeat!important;
+  -webkit-backdrop-filter:var(--pbs)!important;backdrop-filter:var(--pbs)!important}
+html body:not(#zz):not(#zy):not(#zq) #mobileFloatingBar:not(#z):not(#y){
+  background-color:color-mix(in srgb,var(--bar) var(--pbl),transparent)!important;background-image:var(--pebble)!important;background-size:220px 220px!important;background-repeat:repeat!important;
+  -webkit-backdrop-filter:var(--pbs)!important;backdrop-filter:var(--pbs)!important}
+html body:not(#zz):not(#zy):not(#zq):not(#zp) #thSide{background-color:color-mix(in srgb,var(--bar) 80%,transparent)!important}
+.glw{display:none!important}
 </style>
 
 </body>
