@@ -1746,6 +1746,8 @@ body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
   transition:scale var(--rc-slow) var(--rc-ease),background .3s,border-color .3s,color .3s}
 #thSide .sdi .sdt{flex:none;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--chip);font:800 .7rem Inter,Cairo,sans-serif;transition:background .3s,color .3s}
 #thSide .sdi .sdt i{font-size:15px;line-height:1}
+#thSide .sdi .sdt svg{display:block;flex:none}
+#thSide .sdseg .sdt svg{width:17px;height:17px}
 #thSide .sdi .sdx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #thSide .sdi .sdg{flex:none;font:700 .62rem Inter,Cairo,sans-serif;opacity:.5}
 @media(hover:hover){#thSide .sdi:hover{background:var(--chip);scale:var(--rc-hover-ctl)}}
@@ -1801,21 +1803,37 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
   const LG = [['ar', 'عربي', 'العربية'], ['en', 'EN', 'English'], ['eg', 'مصر', 'مصري']];
   const L = () => (typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en';
   const isRtl = () => L() !== 'en';
+  /* thin line icons (outline style, same stroke as the reference picture) */
+  const P = {
+    lang: '<circle cx="10" cy="14" r="8"/><ellipse cx="10" cy="14" rx="3.3" ry="8"/><path d="M2 14h16M3.2 9.5h13.6M3.2 18.5h13.6"/><path d="M19 2.5a3 3 0 0 1 3 3c0 2.2-3 5-3 5s-3-2.8-3-5a3 3 0 0 1 3-3z"/><circle cx="19" cy="5.5" r=".9"/>',
+    voice: '<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
+    digital: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 8.5h18M7 13h10M7 16.5h6"/><circle cx="6" cy="6.3" r=".5"/>',
+    consult: '<circle cx="12" cy="9" r="6"/><circle cx="12" cy="9" r="2.4"/><path d="M12 15v3.5M7 21c1-2.2 3-2.5 5-2.5s4 .3 5 2.5"/>',
+    store: '<path d="M8.5 3.5 3 6l2 4.5 2.5-1v11h9v-11l2.5 1L21 6l-5.5-2.5a3.5 3.5 0 0 1-7 0z"/>',
+    soon: '<path d="M6.5 3h11M6.5 21h11M7.5 3c0 5 4.5 6 4.5 9s-4.5 4-4.5 9M16.5 3c0 5-4.5 6-4.5 9s4.5 4 4.5 9"/>',
+    msgr: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 8.5h7M8.5 11.5h4.5"/>',
+    wa: '<path d="M3.5 20.5l1.3-4.2A8.6 8.6 0 1 1 8 19.5z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1.2-1.6-2-1.1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1.1-2z"/>',
+    tg: '<path d="M21.5 3.5 2.5 10.8l6.3 2.4 2 6.5 3-3.7 4.5 3.3z"/><path d="M8.8 13.2 21.5 3.5"/>',
+    about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>'
+  };
+  const ico = k => '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[k] + '</svg>';
 
   function build() {
     const t = T[L()];
     const btn = (cls, tile, label, tag, attrs) => '<button type="button" class="sdi ' + cls + '" ' + attrs + '><span class="sdt">' + tile + '</span><span class="sdx">' + label + '</span><span class="sdg">' + (tag || '') + '</span></button>';
     inn.innerHTML =
       '<section><div class="sdh">' + t.svc + '</div><div class="sdl">' +
-        SV.map(s => btn('', '<i class="fa-solid ' + s[1] + '"></i>', t[s[0]], s[0] === 'lang' ? '' : t.tag, 'data-svc="' + s[0] + '"')).join('') + '</div></section>' +
+        SV.map(s => btn('', ico(s[0]), t[s[0]], s[0] === 'lang' ? '' : t.tag, 'data-svc="' + s[0] + '"')).join('') + '</div></section>' +
       '<section><div class="sdh">' + t.touch + '</div><div class="sdl">' +
-        btn('main', '<i class="fa-solid fa-paper-plane"></i>', t.msgr, t.best, 'data-act="msgr"') +
-        btn('', '<i class="fa-brands fa-whatsapp"></i>', t.wa, '', 'data-act="wa"') +
-        btn('', '<i class="fa-brands fa-telegram"></i>', t.tg, '', 'data-act="tg"') +
-        btn('sm', '<i class="fa-solid fa-circle-info"></i>', t.about, '', 'data-act="about"') + '</div></section>' +
+        btn('main', ico('msgr'), t.msgr, t.best, 'data-act="msgr"') +
+        btn('', ico('wa'), t.wa, '', 'data-act="wa"') +
+        btn('', ico('tg'), t.tg, '', 'data-act="tg"') +
+        btn('sm', ico('about'), t.about, '', 'data-act="about"') + '</div></section>' +
       '<section><div class="sdh">' + t.theme + '</div><div class="sdseg">' +
-        btn('', '<i class="fa-regular fa-moon"></i>', t.dark, '', 'data-theme="dark"') +
-        btn('', '<i class="fa-regular fa-sun"></i>', t.light, '', 'data-theme="light"') + '</div></section>' +
+        btn('', ico('moon'), t.dark, '', 'data-theme="dark"') +
+        btn('', ico('sun'), t.light, '', 'data-theme="light"') + '</div></section>' +
       '<section><div class="sdh">' + t.langs + '</div><div class="sdseg">' +
         LG.map(l => btn('', l[1], '', '', 'data-lang="' + l[0] + '" title="' + l[2] + '"')).join('') + '</div></section>';
     mark();
