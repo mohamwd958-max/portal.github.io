@@ -41,7 +41,7 @@ body.ar{font-family:Cairo,Inter,system-ui,sans-serif}
 body.light .vd{opacity:0}body.light .vl{opacity:1}
 body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.4s ease,color 1.4s ease,border-color 1.4s ease,box-shadow 1.4s ease,fill 1.4s ease,stroke 1.4s ease,opacity 1.4s ease!important}
 
-main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:max(9vh,44px) 0 calc(30px + env(safe-area-inset-bottom,0px));text-align:center}
+main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(9vh,44px) 0 calc(30px + env(safe-area-inset-bottom,0px));text-align:center}
 main>.hello,main>.brand,main>.tag{padding:0 20px}
 
 /* ---------- title ---------- */
@@ -76,7 +76,7 @@ body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,
 body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:70deg}
 
 /* ---------- the two cards: always one under the other, almost full width ---------- */
-.wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
+.wrap{margin:0;padding:0 clamp(12px,2vw,28px);width:100%;display:flex;flex-direction:column;align-items:center}
 .stack{width:100%;display:flex;flex-direction:column;gap:10px;direction:ltr}
 .card{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(64px) saturate(1.5);backdrop-filter:blur(64px) saturate(1.5);box-shadow:0 10px 40px rgba(0,0,0,.18);
   position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
@@ -91,15 +91,26 @@ body.ar .tag{font-family:Cairo,Inter,sans-serif}
 body.ar .card.ready{font-family:Cairo,Inter,sans-serif}
 @media(hover:hover){.card.ready:hover{scale:1.01}}
 .card.ready:active{scale:.98}
+.stack .rise{animation-duration:.7s}.stack .rise2{animation-duration:.6s}
+.hlogo{position:fixed;z-index:5;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat;pointer-events:none;transition:left .9s cubic-bezier(.65,0,.35,1),top .9s cubic-bezier(.65,0,.35,1),width .9s cubic-bezier(.65,0,.35,1),height .9s cubic-bezier(.65,0,.35,1)}
+.hlogo.fin{left:16px;top:max(14px,env(safe-area-inset-top,0px));width:30px;height:30px}
+.gl{position:fixed;inset:0;z-index:4;display:none;align-items:center;justify-content:center;padding:70px 16px 24px;overflow:auto;overscroll-behavior:contain;background:rgba(14,16,22,.55);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}
+body.light .gl{background:rgba(236,232,222,.6)}
+.gl.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
+.gl .card{max-width:640px;margin:auto}
+body.lock{overflow:hidden;height:100%}
+.card>.gform{max-width:560px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 14px}
+.gform .btn{grid-column:1/-1;width:100%;max-width:340px;justify-self:center;margin-top:14px}
+.gform .btn+.btn{margin-top:8px}
 .q{font:600 clamp(1rem,2.4vw,1.2rem)/1.3 Inter,Cairo,sans-serif;text-align:center;color:var(--ink);padding:0 12px;text-shadow:0 1px 12px rgba(0,0,0,.55)}
 body.ar .q{font-family:Cairo,Inter,sans-serif}
 body.light .q{text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
 .q2{margin-top:14px}
 .rise2{opacity:0;translate:0 22px;animation:rise2 1s cubic-bezier(.16,1,.3,1) forwards}
 @keyframes rise2{to{opacity:1;translate:0 0}}
-.sky{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 body.light .sky{display:none}
-.meteor{position:absolute;width:140px;height:2px;border-radius:2px;transform-origin:100% 50%;opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(190,215,255,.85) 70%,#fff);box-shadow:0 0 10px 1px rgba(170,200,255,.45)}
+.meteor{position:absolute;width:90px;height:1.5px;border-radius:2px;transform-origin:100% 50%;opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(190,215,255,.85) 70%,#fff);box-shadow:0 0 6px 1px rgba(170,200,255,.3)}
 body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.7)}
 .pop .btn+.btn{margin-top:10px}
 .ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
@@ -198,13 +209,13 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   <h1 class="brand hold"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
   <div class="tag hold" data-t="tag"></div>
 
-  <div class="wrap">
+  <div class="wrap hid" id="wrap">
     <button class="card ready hold" id="ready" type="button" data-t="ready"></button>
     <div class="stack hid" id="stack">
 
-        <h3 class="q rise" data-t="q1" style="animation-delay:.1s"></h3>
+        <h3 class="q rise" data-t="q1" style="animation-delay:.05s"></h3>
         <!-- card 1: Login (same card, fields and effects as the portal) -->
-        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:.5s">
+        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:.2s">
           <h2 data-t="loginT"></h2>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
@@ -227,8 +238,8 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
         </section>
 
         <!-- card 2: not a Thabit yet -->
-        <h3 class="q q2 rise" data-t="q2" style="animation-delay:1.4s"></h3>
-        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:1.9s">
+        <h3 class="q q2 rise" data-t="q2" style="animation-delay:.55s"></h3>
+        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:.75s">
           <div class="nact">
             <button class="btn" id="joinBtn" type="button" data-t="join"></button>
             <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
@@ -261,6 +272,16 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   </div>
 </div>
 
+<div class="gl" id="gl" role="dialog" aria-modal="true">
+  <section class="card" id="gc" aria-label="Guest">
+    <h2 data-t="gTitle"></h2>
+    <div class="gform"><div class="fl" id="fg_fn"><input type="text" id="g_fn" dir="ltr" placeholder=" " autocomplete="given-name" autocapitalize="off" spellcheck="false"><label for="g_fn" data-t="gFirst"></label><div class="fmsg" id="mg_fn"></div></div><div class="fl" id="fg_ln"><input type="text" id="g_ln" dir="ltr" placeholder=" " autocomplete="family-name" autocapitalize="off" spellcheck="false"><label for="g_ln" data-t="gLast"></label><div class="fmsg" id="mg_ln"></div></div><div class="fl" id="fg_ph"><input type="text" id="g_ph" dir="ltr" placeholder=" " autocomplete="tel" autocapitalize="off" spellcheck="false"><label for="g_ph" data-t="gPhone"></label><div class="fmsg" id="mg_ph"></div></div><div class="fl" id="fg_em"><input type="text" id="g_em" dir="ltr" placeholder=" " autocomplete="email" autocapitalize="off" spellcheck="false"><label for="g_em" data-t="gEmail"></label><div class="fmsg" id="mg_em"></div></div>
+      <button class="btn" id="gGo" type="button" data-t="gGo"></button>
+      <button class="btn ghost" id="gBack" type="button" data-t="back"></button>
+    </div>
+  </section>
+</div>
+
 <script src="js/nav.js" data-page="landing"></script>
 <script src="js/portal.js"></script>
 <script>
@@ -275,12 +296,12 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { ready: 'Ready?', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready?', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { ready: 'جاهز؟', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز؟', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -305,7 +326,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     const t = T(); setDir(); body.classList.toggle('ar', LANG === 'ar');
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t]; });
     $('lg').textContent = t.name; document.title = LANG === 'ar' ? 'مرحبًا بك في ثابت' : 'Welcome to Thabit';
-    ['c0', 'c1'].forEach(id => { $(id).dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
+    ['c0', 'c1', 'gc'].forEach(id => { $(id).dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
     document.querySelectorAll('.q').forEach(q => { q.dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
     $('c0').querySelectorAll('input').forEach(i => { i.dir = 'ltr'; });
   }
@@ -330,15 +351,24 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ intro: words gather out of tiny dots, then the tagline, then "Ready?" ============ */
   const qs = s => document.querySelector(s);
-  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack');
+  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack'), wrapEl = $('wrap');
   let introShown = false;
   const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
-  const showReady = () => { introShown = true; readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
+  const showReady = () => { introShown = true; wrapEl.classList.remove('hid'); readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
   function revealAll() { if (introShown) return; [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
   readyEl.onclick = () => {
     readyEl.style.pointerEvents = 'none';
     readyEl.animate([{ opacity: 1, scale: 1 }, { opacity: 0, scale: .96 }], { duration: 350, fill: 'forwards' }).finished.then(() => { readyEl.style.display = 'none'; stackEl.classList.remove('hid'); });
   };
+  /* the words fade away and the TH mark glides to its usual place, top left */
+  async function toHeader() {
+    const mk = brandEl.querySelector('.mk'), q = mk.getBoundingClientRect();
+    const hl = document.createElement('i'); hl.className = 'hlogo'; hl.style.cssText = 'left:' + q.left + 'px;top:' + q.top + 'px;width:' + q.width + 'px;height:' + q.height + 'px';
+    document.body.appendChild(hl); mk.style.opacity = 0;
+    [helloEl, brandEl, tagEl].forEach(e => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: 'ease-in-out', fill: 'forwards' }));
+    await sleep(500); void hl.offsetWidth; hl.style.cssText = ''; hl.classList.add('fin');
+    await sleep(900); [helloEl, brandEl, tagEl].forEach(e => { e.style.display = 'none'; });
+  }
   async function particles() {
     const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2), rtl = root.dir === 'rtl';
     const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true });
@@ -360,7 +390,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
         pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: delay + Math.random() * .7, du: 1 + Math.random() * .7, s: size });
       }
     }
-    sample(helloEl, 1, 1.3, 0); sample(brandEl, 2, 1.9, 1.1);
+    sample(brandEl, 2, 1.9, .2);
     const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;transition:opacity .7s';
     cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
     const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = getComputedStyle(body).color;
@@ -370,30 +400,54 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
       for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4); g.fillRect(p.sx + (p.tx - p.sx) * e, p.sy + (p.ty - p.sy) * e, p.s, p.s); }
       if (t < end) requestAnimationFrame(f); else res();
     })(t0); });
-    [helloEl, brandEl].forEach(e => { e.style.transition = 'opacity .7s'; e.classList.remove('hold'); });
+    brandEl.style.transition = 'opacity .7s'; brandEl.classList.remove('hold');
     cv.style.opacity = 0; await sleep(750); cv.remove();
   }
   (async () => {
     try {
       if (matchMedia('(prefers-reduced-motion:reduce)').matches) return revealAll();
-      await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(500);
-      await particles(); await sleep(250); showTag(); await sleep(1000); showReady();
+      await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(300);
+      helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await sleep(700);
+      await particles(); await sleep(250); showTag(); await sleep(1100); await toHeader(); showReady();
     } catch (e) { revealAll(); }
   })();
   setTimeout(revealAll, 15000);   /* safety: whatever happens, the page never stays empty */
 
   /* ============ a small shooting star every 10-20 seconds (night theme only) ============ */
-  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, $('main'));
+  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, qs('.vd'));
   function meteor() {
     if (!document.hidden && !body.classList.contains('light') && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
       const m = document.createElement('i'), W = innerWidth, H = innerHeight, a = 24 + Math.random() * 14, r = a * Math.PI / 180, d = 280 + Math.random() * 200;
       m.className = 'meteor'; m.style.left = (W * (.1 + Math.random() * .7)) + 'px'; m.style.top = (H * (.04 + Math.random() * .3)) + 'px'; sky.appendChild(m);
       const tr = p => 'translate(' + (Math.cos(r) * d * p) + 'px,' + (Math.sin(r) * d * p) + 'px) rotate(' + a + 'deg)';
-      try { m.animate([{ transform: tr(0), opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: .9, offset: .65 }, { transform: tr(1), opacity: 0 }], { duration: 1300 + Math.random() * 400, easing: 'ease-in' }).finished.then(() => m.remove(), () => m.remove()); } catch (e) { m.remove(); }
+      try { m.animate([{ transform: tr(0), opacity: 0 }, { opacity: .7, offset: .2 }, { opacity: .45, offset: .55 }, { transform: tr(1), opacity: 0 }], { duration: 1800 + Math.random() * 500, easing: 'ease-in' }).finished.then(() => m.remove(), () => m.remove()); } catch (e) { m.remove(); }
     }
-    setTimeout(meteor, 10000 + Math.random() * 10000);
+    setTimeout(meteor, 19000 + Math.random() * 2000);
   }
-  setTimeout(meteor, 5000);
+  setTimeout(meteor, 7000);
+
+  /* ============ guest form: a layer on this same page, Back closes it ============ */
+  const gl = $('gl'); let glOpen = false;
+  function openGuest() { if (glOpen) return; glOpen = true; history.pushState({ thG: 1 }, ''); gl.classList.add('on'); body.classList.add('lock'); }
+  function closeGuest() { if (!glOpen) return; glOpen = false; gl.classList.remove('on'); body.classList.remove('lock'); }
+  window.addEventListener('popstate', closeGuest);
+  $('gBack').onclick = () => history.back();
+  const gIds = ['g_fn', 'g_ln', 'g_ph', 'g_em'];
+  const gRules = { g_fn: v => !!v, g_ln: v => !!v, g_ph: v => /^\+?[0-9\s\-()]{7,18}$/.test(v) && v.replace(/\D/g, '').length >= 7, g_em: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) };
+  gIds.forEach(k => {
+    const i = $(k), f = $('f' + k);
+    i.addEventListener('focus', () => f.classList.add('act')); i.addEventListener('blur', () => f.classList.remove('act'));
+    i.addEventListener('input', () => { f.classList.remove('bad'); $('m' + k).classList.remove('show'); });
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('gGo').click(); } });
+  });
+  $('gGo').onclick = () => {
+    const t = T(), d = {}; let ok = true;
+    gIds.forEach(k => { const v = $(k).value.trim(); d[k] = v; if (!gRules[k](v)) { ok = false; $('f' + k).classList.add('bad'); const m = $('m' + k); m.textContent = !v ? t.gReq : (k === 'g_ph' ? t.gBadPh : t.gBadEm); m.classList.add('show'); } });
+    if (!ok) return;
+    /* guest data lives only in this tab: gone when the page is closed */
+    try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em, at: Date.now() })); } catch (e) { }
+    go(GUEST_HOME, true);   /* replace: Back from the index comes to this page */
+  };
 
   /* ============ guest session: asked again when he comes back to this page ============ */
   const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'index.html';
@@ -410,7 +464,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   $('soonBack').onclick = () => ov.classList.remove('on');
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.classList.remove('on'); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') ov.classList.remove('on'); });
-  $('guestBtn').onclick = () => go(ROUTES.guest);
+  $('guestBtn').onclick = () => openGuest();
 
   /* ============ LOGIN (same behaviour as the portal card) ============ */
   const uIn = $('lgU'), pIn = $('lgP'), btn = $('lgGo'), eye = $('lgEye'), uFl = $('flU'), pFl = $('flP'), box = $('lgAlert');
