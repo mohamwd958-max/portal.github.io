@@ -1305,7 +1305,7 @@ async function loadReportsList() {
     const box = $id('reportsContainer'); if (!box) return;
     box.textContent = '...';
     try {
-        const rows = await fetchAllRows('reports?select=*&order=created_at.desc');
+        const rows = await fetchAllRows('trainee_reports?select=*&order=created_at.desc');
         box.innerHTML = rows.length ? rows.map(r => `
           <div style="border:1px solid rgba(148,163,184,.3);border-radius:12px;padding:10px;margin-bottom:8px;text-align:start">
             <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.75rem">
@@ -1327,7 +1327,7 @@ async function mutate(path, method, body) {
 }
 async function deleteReport(id) {
     if (!confirm('تمسح التقرير ده؟')) return;
-    try { await mutate(`reports?id=eq.${enc(id)}`, 'DELETE'); showToast('اتمسح ✓'); loadReportsList(); }
+    try { await mutate(`trainee_reports?id=eq.${enc(id)}`, 'DELETE'); showToast('اتمسح ✓'); loadReportsList(); }
     catch (e) { showToast('فشل المسح: ' + e.message, true); }
 }
 
@@ -3139,7 +3139,7 @@ async function dbCount(t) {
 async function dbRender() {
   const w = WSE.db; if (!w) return;
   const ref = (String(SUPABASE_URL).match(/^https:\/\/([^.]+)\./) || [])[1] || '';
-  const TABLES = [PROFILES_TABLE, DAILY_SUPPLY_TABLE, ARCHIVE_TABLE, 'supply_items', 'notifications', 'reports', 'words_table', 'due_words_table', 'broken_words_table'];
+  const TABLES = [PROFILES_TABLE, DAILY_SUPPLY_TABLE, ARCHIVE_TABLE, 'supply_items', 'notifications', 'trainee_reports', 'words_table', 'due_words_table', 'broken_words_table'];
   w.body.innerHTML = `<div class="p5-g">
     <div class="p5-c"><h6><span class="p5-dot" id="dbDot"></span>Supabase</h6>
       <div id="dbRows" class="text-xs text-slate-400">جاري الفحص...</div>
@@ -4242,7 +4242,7 @@ async function ccRender() {
   $id('ccList').innerHTML = '<div class="tha-note">جاري التحميل...</div>';
   const [out, inn, studs] = await Promise.all([
     fetchAllRows('notifications?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل الإشعارات: ' + e.message, true); return []; }),
-    fetchAllRows('reports?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل البلاغات: ' + e.message, true); return []; }),
+    fetchAllRows('trainee_reports?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل البلاغات: ' + e.message, true); return []; }),
     fetchAllRows(`${PROFILES_TABLE}?select=id,trainee`).catch(() => [])
   ]);
   cc.out = out; cc.inn = inn; cc.names = new Map(studs.map(s => [String(s.id), s.trainee || '']));
@@ -4288,7 +4288,7 @@ window.ccDelOut = async function (gid) {
 };
 window.ccDelIn = async function (id) {
   if (!confirm('تمسح البلاغ ده؟')) return;
-  try { await mutate(`reports?id=eq.${enc(id)}`, 'DELETE'); cc.inn = cc.inn.filter(r => String(r.id) !== String(id)); ccPaint(); showToast('اتمسح ✓'); }
+  try { await mutate(`trainee_reports?id=eq.${enc(id)}`, 'DELETE'); cc.inn = cc.inn.filter(r => String(r.id) !== String(id)); ccPaint(); showToast('اتمسح ✓'); }
   catch (e) { showToast('فشل المسح: ' + e.message, true); }
 };
 
@@ -4678,296 +4678,62 @@ function mgEnsureBar() {
 }
 
 /* ==========================================================
-   Patch 11 (end of adminpanel.js): smart Update button, Tag, Automate
-   - Announcements > Update: only for trainees who are NOT in an update yet; if all of them already are, it becomes "إلغاء التحديث"
-   - Announcements > Tag: put a small tag (New / ! / a number) on a button of the trainee's bar for a chosen time
-     (rides in the notifications table as a hidden row: meta.tag, no SQL change)
-   - Notifications > Automate: the same notification is sent again every X for N days (meta.auto, no SQL change)
-   ========================================================== */
-(function () {
-  if (window.__p11) return; window.__p11 = 1;
-  const css = document.createElement('style'); css.id = 'p11Css';
-  css.textContent = `
-.p11-ov{position:fixed;inset:0;z-index:2147483160;background:rgba(2,6,23,.72);display:flex;align-items:center;justify-content:center;padding:12px}
-.p11-box{width:min(520px,100%);max-height:92vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:16px;padding:14px;color:#e2e8f0;font:600 13px Cairo,sans-serif}
-.p11-h{color:#fbbf24;font-weight:800;font-size:13px;margin:0 0 4px}
-.p11-l{display:block;font-size:11px;color:#94a3b8;margin:12px 0 6px}
-.p11-c{display:flex;flex-wrap:wrap;gap:6px}
-.p11-chip{padding:6px 12px;border-radius:999px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;cursor:pointer;font:700 12px Cairo,sans-serif}
-.p11-chip.on{border-color:#fbbf24;background:rgba(251,191,36,.15);color:#fbbf24}
-.p11-in{width:90px;padding:6px 10px;border-radius:10px;border:1px solid #334155;background:#020617;color:#f1f5f9;font:inherit}
-.p11-row{display:flex;gap:8px;margin-top:14px}
-.p11-auto{margin-top:10px;padding:10px;border:1px dashed #475569;border-radius:12px}
-.p11-auto select{padding:5px 8px;border-radius:8px;border:1px solid #334155;background:#020617;color:#f1f5f9;font:inherit}`;
-  document.head.appendChild(css);
-  const hasTag = n => !!(n && n.meta && n.meta.tag);
-  const post = rows => sbFetch('notifications', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
-  const patchIn = (ids, body) => sbFetch(`notifications?id=in.(${ids.map(enc).join(',')})`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(body) });
-  const overlay = html => { const ov = document.createElement('div'); ov.className = 'p11-ov'; ov.innerHTML = `<div class="p11-box">${html}</div>`; ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); }); document.body.appendChild(ov); return ov; };
-  const chips = (g, list) => `<div class="p11-c" data-g="${g}">${list.map(([v, t]) => `<span class="p11-chip" data-v="${v}">${t}</span>`).join('')}</div>`;
-  const pickIn = (ov, st) => ov.addEventListener('click', e => { const c = e.target.closest('.p11-chip'); if (!c) return; const g = c.parentNode.dataset.g; st[g] = c.dataset.v; c.parentNode.querySelectorAll('.p11-chip').forEach(x => x.classList.toggle('on', x === c)); if (ov._after) ov._after(g); });
-
-  /* ---------- who is already in an update? (needs the maintenance file to expose it) ---------- */
-  async function mtOnSet(ids) {
-    try {
-      if (typeof window.mtStatus === 'function') {
-        const r = await window.mtStatus(ids);
-        if (r instanceof Set) return new Set([...r].map(String));
-        if (Array.isArray(r)) return new Set(r.map(String));
-        if (r && typeof r === 'object') return new Set(Object.keys(r).filter(k => r[k]).map(String));
-      }
-      if (typeof window.mtIsOn === 'function') { const s = new Set(); for (const id of ids) { if (await window.mtIsOn(id)) s.add(String(id)); } return s; }
-    } catch (e) { console.warn('[announce] update state unavailable', e); }
-    return null;   /* unknown: the button behaves as before */
-  }
-
-  /* ---------- Announcements menu ---------- */
-  window.anMenu = async function (btn, who) {
-    window.anClose();
-    const ids = who === 'sel' ? [...mpState.sel].map(String) : [String(who)]; if (!ids.length) return;
-    const set = await Promise.race([mtOnSet(ids), new Promise(r => setTimeout(() => r(null), 900))]);
-    const on = set ? ids.filter(i => set.has(i)) : [], off = set ? ids.filter(i => !set.has(i)) : ids;
-    const m = document.createElement('div'); m.id = 'anMenu';
-    m.style.cssText = 'position:fixed;z-index:2147483150;min-width:210px;padding:6px;border-radius:12px;background:#0f172a;border:1px solid rgba(245,158,11,.5);box-shadow:0 16px 50px rgba(0,0,0,.6);font:700 .8rem Cairo,sans-serif;color:#f1f5f9';
-    const it = (a, ic, t, c) => `<div data-a="${a}" style="padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;gap:8px;align-items:center;${c || ''}" onmouseover="this.style.background='rgba(148,163,184,.2)'" onmouseout="this.style.background=''"><i class="fa-solid ${ic}" style="width:16px;text-align:center"></i>${t}</div>`;
-    let h = it('notify', 'fa-bell', 'إشعار');
-    if (set && !off.length) h += it('end', 'fa-circle-xmark', 'إلغاء التحديث', 'color:#f87171');
-    else {
-      h += it('start', 'fa-screwdriver-wrench', set && on.length ? `تحديث (${off.length})` : 'تحديث', 'color:#fbbf24');
-      if (!set || on.length) h += it('end', 'fa-circle-check', set ? `إنهاء التحديث (${on.length})` : 'إنهاء التحديث');
-    }
-    h += it('tag', 'fa-tag', 'Tag', 'color:#34d399') + it('updates', 'fa-arrows-rotate', 'Updates');
-    m.innerHTML = h; document.body.appendChild(m);
-    const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
-    m.style.left = Math.max(6, Math.min(r.left, innerWidth - mr.width - 6)) + 'px';
-    m.style.top = (r.bottom + 6 + mr.height > innerHeight - 6 ? Math.max(6, r.top - mr.height - 6) : r.bottom + 6) + 'px';
-    m.addEventListener('click', e => {
-      const f = e.target.closest('[data-a]'); if (!f) return; window.anClose(); const a = f.dataset.a;
-      if (a === 'notify') return openNotify(ids);
-      if (a === 'tag') return anTag(ids);
-      if (a === 'start' || a === 'end') {
-        const fn = a === 'start' ? window.mtSend : window.mtEnd;
-        if (typeof fn !== 'function') { showToast('ملف adminpanelmaint.js مش متحمّل', true); return; }
-        return fn(a === 'start' ? off : (set && on.length ? on : ids));
-      }
-      showToast('Updates: لسه مفيش وظيفة متوصّلة بيه', true, true);
-    });
-    setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { window.anClose(); document.removeEventListener('pointerdown', off, true); } }, true), 0);
-  };
-
-  /* ---------- Tag ---------- */
-  const eod = add => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime() + add * 864e5; };
-  const TG_T = [['home', 'الرئيسية · Home'], ['feed', 'الفيد · Feed'], ['msgr', 'ميسنجر · Messenger'], ['days', 'الوقت · Time'], ['space', 'Space'], ['edit', 'المزيد · More']];
-  const TG_Y = [['new', 'New · جديد'], ['alert', '! مهم'], ['count', 'إشعار (رقم)'], ['clear', 'إزالة التاج']];
-  const TG_D = [['ساعة', () => Date.now() + 36e5], ['ساعتين', () => Date.now() + 72e5], ['النهارده', () => eod(0)], ['بكره', () => eod(1)], ['3 أيام', () => Date.now() + 3 * 864e5], ['أسبوع', () => Date.now() + 7 * 864e5]];
-  window.anTag = function (ids) {
-    const st = { t: '', y: '', d: '2' };
-    const ov = overlay(`<div class="p11-h"><i class="fa-solid fa-tag"></i> Tag · ${ids.length} ${ids.length === 1 ? 'طالب' : 'طلاب'}</div>
-      <span class="p11-l">الزرار في البار</span>${chips('t', TG_T)}
-      <span class="p11-l">نوع التاج</span>${chips('y', TG_Y)}
-      <div id="p11N" style="display:none"><span class="p11-l">الرقم (بيغطّي الرقم الحقيقي طول المدة)</span><input id="p11Num" class="p11-in" type="number" min="1" max="99" value="1"></div>
-      <div id="p11D"><span class="p11-l">المدة (بتفضل لحد ما الطالب يفتح الزرار)</span>${chips('d', TG_D.map((x, i) => [String(i), x[0]]))}</div>
-      <div class="p11-row"><button type="button" class="ds-b green" id="p11Go"><i class="fa-solid fa-paper-plane"></i> تطبيق</button><button type="button" class="ds-b ghost" id="p11X">إلغاء</button></div>`);
-    pickIn(ov, st);
-    ov._after = g => { if (g === 'y') { ov.querySelector('#p11N').style.display = st.y === 'count' ? '' : 'none'; ov.querySelector('#p11D').style.display = st.y === 'clear' ? 'none' : ''; } };
-    ov.querySelector('[data-g="d"] [data-v="2"]').classList.add('on');
-    ov.querySelector('#p11X').onclick = () => ov.remove();
-    ov.querySelector('#p11Go').onclick = async () => {
-      if (!st.t || !st.y) { showToast('اختار الزرار ونوع التاج', true, true); return; }
-      const tag = { target: st.t, type: st.y, until: new Date(st.y === 'clear' ? Date.now() + 30 * 864e5 : TG_D[+st.d][1]()).toISOString() };
-      if (st.y === 'count') { const n = parseInt(ov.querySelector('#p11Num').value, 10); if (!(n >= 1 && n <= 99)) { showToast('الرقم من 1 لـ 99', true, true); return; } tag.n = n; }
-      const b = ov.querySelector('#p11Go'); b.disabled = true;
-      try { await post(ids.map(id => ({ trainee_id: id, kind: 'message', title: null, body: '·', meta: { tag, hidden: true, category: 'system' } }))); showToast(st.y === 'clear' ? 'اتشال التاج ✓' : 'اتحط التاج ✓'); ov.remove(); }
-      catch (e) { showToast('فشل: ' + e.message, true); b.disabled = false; }
-    };
-  };
-
-  /* ---------- Automate ---------- */
-  const A_DUR = [['1', '1 يوم'], ['2', '2 يوم'], ['3', '3 أيام'], ['4', '4 أيام'], ['5', '5 أيام'], ['7', 'أسبوع'], ['14', 'أسبوعين']];
-  const A_EVERY = [['6', 'كل 6 ساعات'], ['12', 'كل 12 ساعة'], ['24', 'كل يوم'], ['48', 'كل يومين']];
-  const sel = (id, list, cur) => `<select id="${id}">${list.map(([v, t]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
-  const autoOn = m => !!(m && m.auto && Date.parse(m.auto.until) > Date.now());
-  const autoBtn = (kind, ref, m) => `<button type="button" class="ds-b" style="color:${autoOn(m) ? '#34d399' : '#fbbf24'}!important" title="Automate" onclick="anAuto('${kind}','${ref}')"><i class="fa-solid fa-clock-rotate-left"></i> Automate${autoOn(m) ? ' ✓' : ''}</button>`;
-  window.anAuto = function (kind, ref) {
-    let ids, meta;
-    if (kind === 'cc') { const g = cc.groups.get(ref); if (!g) return; ids = g.rows.map(r => r.id); meta = g.first.meta || {}; }
-    else { const n = (window.ntRows || {})[ref]; if (!n) return; ids = [n.id]; meta = n.meta || {}; }
-    const cur = autoOn(meta) ? meta.auto : null;
-    const ov = overlay(`<div class="p11-h"><i class="fa-solid fa-clock-rotate-left"></i> Automate</div>
-      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">بيتبعت الإشعار ده تاني تلقائياً. لو الطالب داس "فهمت" بيختفي عادي وبيرجع يتبعت في الميعاد الجاي.</div>
-      <span class="p11-l">يفضل يتبعت لمدة</span>${sel('p11Dur', A_DUR, '3')}
-      <span class="p11-l">كل قد إيه</span>${sel('p11Ev', A_EVERY, cur ? String(cur.every_h) : '24')}
-      <div class="p11-row"><button type="button" class="ds-b green" id="p11AGo">${cur ? 'تحديث' : 'تفعيل'}</button>${cur ? '<button type="button" class="ds-b" style="color:#f43f5e!important" id="p11AOff">إيقاف</button>' : ''}<button type="button" class="ds-b ghost" id="p11AX">إلغاء</button></div>`);
-    const save = async auto => {
-      const m2 = Object.assign({}, meta); if (auto) m2.auto = auto; else delete m2.auto;
-      try {
-        await patchIn(ids, { meta: m2 });
-        if (kind === 'cc') { const g = cc.groups.get(ref); g.rows.forEach(r => { r.meta = Object.assign({}, r.meta || {}, m2); }); g.first.meta = m2; ccPaint(); }
-        else { window.ntRows[ref].meta = m2; ntLoadSent(); }
-        showToast(auto ? 'اتفعّل الـ Automate ✓' : 'اتوقّف الـ Automate ✓'); ov.remove();
-      } catch (e) { showToast('فشل: ' + e.message, true); }
-    };
-    ov.querySelector('#p11AX').onclick = () => ov.remove();
-    ov.querySelector('#p11AGo').onclick = () => save({ every_h: +ov.querySelector('#p11Ev').value, until: new Date(Date.now() + (+ov.querySelector('#p11Dur').value) * 864e5).toISOString() });
-    const off = ov.querySelector('#p11AOff'); if (off) off.onclick = () => save(null);
-  };
-
-  /* Automate option inside the Notification window (new notifications) */
-  { const prev = openNotify;
-    openNotify = async function () {
-      const r = await prev.apply(this, arguments);
-      const send = $id('ntSend');
-      if (send && !$id('ntAuto')) {
-        send.parentNode.insertAdjacentHTML('beforebegin', `<label style="display:flex;gap:6px;align-items:center;margin-top:10px;font-size:12px;cursor:pointer"><input type="checkbox" id="ntAuto"> Automate · إعادة إرسال تلقائي</label>
-          <div class="p11-auto" id="ntAutoBox" style="display:none">لمدة ${sel('ntAutoDur', A_DUR, '3')} &nbsp; ${sel('ntAutoEvery', A_EVERY, '24')}</div>`);
-        $id('ntAuto').onchange = e => { $id('ntAutoBox').style.display = e.target.checked ? '' : 'none'; };
-      }
-      return r;
-    };
-  }
-  const _send0 = window.ntSend;
-  window.ntSend = async function () {
-    const c = ntCur; if (!c) return;
-    const body = $id('ntBody').value.trim(), title = $id('ntTitle').value.trim(), cat = ccCatVal('ntCat');
-    if (!body) { showToast('اكتب الرسالة الأول', true, true); return; }
-    const auto = $id('ntAuto') && $id('ntAuto').checked ? { every_h: +$id('ntAutoEvery').value, until: new Date(Date.now() + (+$id('ntAutoDur').value) * 864e5).toISOString() } : null;
-    const btn = $id('ntSend'); btn.disabled = true;
-    try {
-      if (c.editId) {
-        const old = (window.ntRows || {})[c.editId] || {}, meta = Object.assign({}, old.meta || {}, { category: cat }); if (auto) meta.auto = auto;
-        await sbFetch(`notifications?id=eq.${enc(c.editId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ title: title || null, body, meta }) });
-        showToast('اتعدّل الإشعار ✓'); ntEditDone();
-      } else {
-        await post(c.ids.map(id => ({ trainee_id: id, kind: 'message', title: title || null, body, meta: Object.assign({ category: cat }, auto ? { auto } : {}) })));
-        showToast(c.ids.length > 1 ? `اتبعت الإشعار لـ ${c.ids.length} طلاب ✓` : 'اتبعت الإشعار ✓');
-      }
-      $id('ntBody').value = ''; $id('ntTitle').value = ''; dsRefreshPf('ntBody'); ccCatPick('ntCat', 'general');
-      const pf = $id('ntBody_pf'); if (pf) { pf.textContent = PF_EMPTY; pf.classList.add('empty'); }
-      if ($id('ntAuto')) { $id('ntAuto').checked = false; $id('ntAutoBox').style.display = 'none'; }
-      ntLoadSent();
-    } catch (e) { showToast('فشل الإرسال: ' + e.message + ' (شغّل 02_notifications.sql لو لسه)', true); }
-    btn.disabled = false;
-  };
-
-  /* Automate button on already-sent notifications (trainee window list + Contact Center Outbound); hidden tag rows never show */
-  { const _ls = ntLoadSent;
-    ntLoadSent = async function () {
-      await _ls.apply(this, arguments);
-      const box = document.getElementById('ntSent'); if (!box) return;
-      box.querySelectorAll('.nt-row').forEach(row => {
-        const d = row.querySelector('button[onclick^="ntDel("]'); if (!d) return;
-        const id = (d.getAttribute('onclick').match(/ntDel\((\d+)\)/) || [])[1]; const n = id && (window.ntRows || {})[id];
-        if (!n) return;
-        if (hasTag(n)) { row.remove(); return; }
-        if (n.kind === 'message' && !row.querySelector('[onclick^="anAuto("]')) d.insertAdjacentHTML('beforebegin', autoBtn('nt', id, n.meta));
-      });
-    };
-    const _oc = ccOutCard;
-    ccOutCard = function (g, gid) {
-      const h = _oc.apply(this, arguments);
-      if (!g || !g.first || g.first.kind !== 'message') return h;
-      return h.replace(/<button[^>]*onclick="ccDelOut\(/, m0 => autoBtn('cc', gid, g.first.meta) + m0);
-    };
-    const _go = ccGroupOut;
-    ccGroupOut = function (rows) { return _go.call(this, (rows || []).filter(n => !hasTag(n))); };
-  }
-})();
-
-/* ==========================================================
-   Patch 12 (end of adminpanel.js): "Can expedite" on the Task / Dandana editor (the Tasks 1-10 slots)
-   The flag rides inside the description after a hidden "@@app@@{"exp":1}" marker (no SQL change);
-   the editor hides it from the text box and brings it back on Save.
-   ========================================================== */
-(function () {
-  if (window.__p12) return; window.__p12 = 1;
-  const MK = '@@app@@';
-  const _render = dsItemsRender;
-  dsItemsRender = function () {
-    const r = _render.apply(this, arguments);
-    try {
-      const c = dsItemCtx; if (!c || !c.open) return r;
-      const body = document.getElementById('dsi_body'); if (!body || document.getElementById('dsi_exp')) return r;
-      let exp = false; const raw = body.value, i = raw.lastIndexOf(MK);
-      if (i >= 0) {
-        try {
-          const j = JSON.parse(raw.slice(i + MK.length));
-          if (j && j.exp) { exp = true; if (!('s' in j) && !('e' in j) && !('l' in j)) body.value = raw.slice(0, i).trim(); }
-        } catch (e) { }
-      }
-      const wrap = body.closest('div'); if (!wrap) return r;
-      wrap.insertAdjacentHTML('afterend', `<div><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12px;font-weight:700"><input type="checkbox" id="dsi_exp"> <span><i class="fa-solid fa-bolt" style="color:#fbbf24"></i> Can expedite · يقدر يبدأ فوراً <span style="font-weight:600;color:#94a3b8">(من غيره: أول مرة بعد نص ساعة من الرفع. وفي الحالتين بين كل مرتين نص ساعة)</span></span></label></div>`);
-      document.getElementById('dsi_exp').checked = exp;
-    } catch (e) { console.warn('[expedite]', e); }
-    return r;
-  };
-  const _save = window.dsItemSave;
-  window.dsItemSave = async function () {
-    const t = document.getElementById('dsi_body'), cb = document.getElementById('dsi_exp'); let orig = null;
-    if (t && cb) {
-      orig = t.value; const base = orig.trim(), ti = document.getElementById('dsi_title'), hasText = base || (ti && ti.value.trim());
-      const i = base.lastIndexOf(MK); let keep = base;
-      if (i >= 0) { try { const j = JSON.parse(base.slice(i + MK.length)); if (j && typeof j === 'object') { if (cb.checked) j.exp = 1; else delete j.exp; keep = base.slice(0, i) + MK + JSON.stringify(j); } } catch (e) { } }
-      else if (cb.checked && hasText) keep = (base ? base + '\n\n' : '') + MK + '{"exp":1}';
-      t.value = keep;
-    }
-    try { return await _save.apply(this, arguments); }
-    finally { if (t && orig !== null && document.getElementById('dsi_body') === t) t.value = orig; }
-  };
-})();
-
-/* Expedite now lives in the Options button for Tasks + Dandana: hide the old checkbox rows (they stay as the state holder) and show the count on the button */
-(function () {
-  if (window.__p13) return; window.__p13 = 1;
-  const st = document.createElement('style'); st.id = 'p13css';
-  st.textContent = 'label:has(> #tkExp), label:has(> #dsi_exp){display:none !important}';
-  document.head.appendChild(st);
-  const sync = () => {
-    [['tkSend', 'tkExp'], ['dsi_body', 'dsi_exp']].forEach(([anchor, cbid]) => {
-      const cb = document.getElementById(cbid); if (!cb) return;
-      const btn = cbid === 'tkExp' ? document.querySelector('.sp-opt[data-where="task"]') : document.querySelector('.sp-opt[data-where="slot"]'); if (!btn) return;
-      const set = btn._opts || (btn._opts = new Set());
-      if (cb.checked) set.add('expedite'); else set.delete('expedite');
-      btn.classList.toggle('sp-has', set.size > 0); btn.dataset.n = set.size;
-    });
-  };
-  let q = 0;
-  new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { sync(); } catch (e) { } }); }).observe(document.body || document.documentElement, { childList: true, subtree: true });
-})();
-
-/* ==========================================================
    Patch 11: Contact Center → "Guests" (third place, next to Outbound / Inbound)
-   Inside: [Guests] the people who entered as guests (name, phone, email)
-           [Guest messages] what they sent through Messenger / WhatsApp / Telegram
-   Data: tables portal_guests + guest_chat_messages (see 11_guests.sql)
+   Two halves inside:  [Credentials] who entered (name, phone, email, time) + what they looked at (statistics)
+                       [Messages]    what they sent through Thabit Messenger / WhatsApp / Telegram (full page)
+   Data: portal_guests, guest_views, guest_chat_messages (see 11_guests.sql)
    ========================================================== */
 (function () {
   'use strict';
-  const gs = { loaded: false, guests: [], msgs: [], sub: 'guests', filt: 'all' };
+  const gs = { guests: [], msgs: [], views: [], sub: 'cred', filt: 'all' };
   window.gs = gs;
   const CH = { messenger: ['Messenger', '#38bdf8', 'fa-solid fa-paper-plane'], whatsapp: ['WhatsApp', '#22c55e', 'fa-brands fa-whatsapp'], telegram: ['Telegram', '#0ea5e9', 'fa-brands fa-telegram'], other: ['أخرى', '#94a3b8', 'fa-solid fa-comment'] };
+  const PG = { lang: 'تدريب لغات', voice: 'تعليق صوتي', digital: 'حلول رقمية', consult: 'استشارة', store: 'المتجر', 'home.html': 'الصفحة الرئيسية', 'placement.html': 'تحديد المستوى', 'index.html': 'البورتال' };
+  const pgName = v => { const [f, h] = String(v || '').split('#'); const base = PG[f] || f; return h ? (PG[h] || h) + ' (' + base + ')' : base; };
   const inRange = v => { const [a, b] = ccBounds(), k = ccDayKey(v); return k && k >= a && k <= b; };
   const digits = s => String(s || '').replace(/[^\d+]/g, '');
   const waLink = p => { const d = digits(p).replace(/^\+/, ''); return d ? 'https://wa.me/' + d : ''; };
+  const safe = (p, label) => fetchAllRows(p).catch(e => { showToast('تعذّر تحميل ' + label + ' (شغّل 11_guests.sql؟): ' + e.message, true); return []; });
 
   async function gLoad() {
-    const [g, m] = await Promise.all([
-      fetchAllRows('portal_guests?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل الضيوف (شغّل 11_guests.sql؟): ' + e.message, true); return []; }),
-      fetchAllRows('guest_chat_messages?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل رسائل الضيوف: ' + e.message, true); return []; })
+    const [g, m, v] = await Promise.all([
+      safe('portal_guests?select=*&order=created_at.desc', 'الضيوف'),
+      safe('guest_chat_messages?select=*&order=created_at.desc', 'رسائل الضيوف'),
+      safe('guest_views?select=guest_id,page,created_at&order=created_at.desc', 'إحصائيات الزيارات')
     ]);
-    gs.guests = g; gs.msgs = m; gs.loaded = true;
+    gs.guests = g; gs.msgs = m; gs.views = v;
   }
 
+  /* ---------- Credentials half ---------- */
+  function viewsOf(id) {
+    const m = new Map(); gs.views.forEach(v => { if (String(v.guest_id) === String(id)) m.set(v.page, (m.get(v.page) || 0) + 1); });
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }
+  function statsBlock(G) {
+    const ids = new Set(G.map(g => String(g.id)));
+    const V = gs.views.filter(v => ids.has(String(v.guest_id)) && inRange(v.created_at));
+    const top = a => [...a.reduce((m, k) => m.set(k, (m.get(k) || 0) + 1), new Map()).entries()].sort((x, y) => y[1] - x[1]).slice(0, 6);
+    const pages = top(V.map(v => pgName(v.page))), ints = top(G.map(g => g.interest).filter(Boolean).map(i => PG[i] || i));
+    const bars = (rows, color) => { const mx = Math.max(1, ...rows.map(r => r[1])); return rows.length ? rows.map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11.5px"><span style="width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" dir="auto">${esc(k)}</span><div style="flex:1;background:#1e293b;border-radius:6px;height:10px"><div style="width:${Math.round(n / mx * 100)}%;height:100%;border-radius:6px;background:${color}"></div></div><b style="min-width:22px;text-align:end">${n}</b></div>`).join('') : '<div style="font-size:11px;color:#64748b">لسه مفيش بيانات</div>'; };
+    return `<div class="cc-card" style="margin-bottom:10px"><div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:210px"><b style="color:#fbbf24;font-size:12px"><i class="fa-solid fa-eye"></i> أكتر الصفحات زيارة</b>${bars(pages, '#38bdf8')}</div>
+      <div style="flex:1;min-width:210px"><b style="color:#fbbf24;font-size:12px"><i class="fa-solid fa-heart"></i> أكتر اهتمام اختاروه</b>${bars(ints, '#22c55e')}</div></div>
+      <div style="margin-top:8px;font-size:11px;color:#94a3b8">${G.length} ضيف · ${V.length} زيارة صفحة</div></div>`;
+  }
   function guestCard(r) {
-    const nm = r.name || '—', wa = waLink(r.phone);
+    const nm = r.name || '—', wa = waLink(r.phone), vs = viewsOf(r.id);
     return `<div class="cc-card"><div class="cc-meta"><div class="cc-av">${esc(String(nm).trim().charAt(0).toUpperCase() || '?')}</div>
       <div style="flex:1;min-width:0"><b dir="auto" style="color:#f1f5f9;font-size:13px">${esc(nm)}</b>
-        <div>${esc(ccDayKey(r.created_at))} · ${esc(ccTime(r.created_at))}${r.visits > 1 ? ' · دخل ' + esc(r.visits) + ' مرات' : ''}${r.interest ? ' · ' + esc(r.interest) : ''}</div></div>
+        <div>دخل ${esc(ccDayKey(r.created_at))} · ${esc(ccTime(r.created_at))}${r.visits > 1 ? ' · ' + esc(r.visits) + ' مرات' : ''}</div></div>
       <button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="gsDelGuest('${esc(r.id)}')"><i class="fa-solid fa-trash"></i></button></div>
     <div class="cc-to" style="gap:10px">
       <a href="tel:${esc(digits(r.phone))}" dir="ltr" style="color:#fbbf24"><i class="fa-solid fa-phone"></i> ${esc(r.phone)}</a>
       ${wa ? `<a href="${esc(wa)}" target="_blank" rel="noopener" style="color:#22c55e"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
-      ${r.email ? `<a href="mailto:${esc(r.email)}" dir="ltr" style="color:#38bdf8"><i class="fa-solid fa-envelope"></i> ${esc(r.email)}</a>` : ''}</div></div>`;
+      ${r.email ? `<a href="mailto:${esc(r.email)}" dir="ltr" style="color:#38bdf8"><i class="fa-solid fa-envelope"></i> ${esc(r.email)}</a>` : ''}</div>
+    <div class="cc-to"><span>شاف:</span>${vs.length ? vs.slice(0, 8).map(([p, n]) => `<span class="nt-chip" dir="auto">${esc(pgName(p))}${n > 1 ? ' ×' + n : ''}</span>`).join('') : (r.interest ? `<span class="nt-chip" dir="auto">${esc(PG[r.interest] || r.interest)}</span>` : '<span>—</span>')}</div></div>`;
   }
+
+  /* ---------- Messages half ---------- */
   function msgCard(r) {
     const c = CH[r.channel] || CH.other, nm = r.name || 'ضيف', ph = r.phone || r.contact || '', wa = waLink(ph);
     return `<div class="cc-card" ${r.is_read ? '' : 'style="border-color:#fbbf2466"'}><div class="cc-meta">
@@ -4994,21 +4760,22 @@ function mgEnsureBar() {
     document.querySelectorAll('#ccRanges .cc-chip').forEach(b => b.classList.toggle('on', b.dataset.r === cc.range));
     const cr = $id('ccCatRow'); if (cr) cr.style.display = 'none';
     const cnt = $id('ccCntGuests'); if (cnt) cnt.textContent = gs.guests.length;
-    const chip = (on, onclick, label) => `<button type="button" class="cc-chip${on ? ' on' : ''}" onclick="${onclick}">${label}</button>`;
-    let html = `<div class="cc-row" style="margin-bottom:8px">
-      ${chip(gs.sub === 'guests', "gsSub('guests')", `<i class="fa-solid fa-user-group"></i> Guests <small>${G.length}</small>`)}
-      ${chip(gs.sub === 'msgs', "gsSub('msgs')", `<i class="fa-solid fa-comments"></i> Guest messages <small>${M.length}</small>${unread ? ` <small style="color:#fbbf24">● ${unread}</small>` : ''}`)}</div>`;
-    if (gs.sub === 'msgs') {
-      html += `<div class="cc-row" style="margin-bottom:8px">${[['all', 'الكل'], ['messenger', 'Messenger'], ['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['other', 'أخرى']].map(([k, l]) => chip(gs.filt === k, `gsFilt('${k}')`, l)).join('')}</div>`;
+    const half = (on, fn, icon, label, n, extra) => `<button type="button" class="cc-tab${on ? ' on' : ''}" style="flex:1" onclick="${fn}"><i class="${icon}"></i> ${label} <small>${n}</small>${extra || ''}</button>`;
+    let html = `<div class="cc-tabs" style="margin-bottom:10px">${half(gs.sub === 'cred', "gsSub('cred')", 'fa-solid fa-id-card', 'Credentials', G.length)}
+      ${half(gs.sub === 'msgs', "gsSub('msgs')", 'fa-solid fa-comments', 'Messages', M.length, unread ? ` <small style="color:#fbbf24">● ${unread}</small>` : '')}</div>`;
+    let items;
+    if (gs.sub === 'cred') { items = G; html += statsBlock(G); }
+    else {
+      items = M;
+      html += `<div class="cc-row" style="margin-bottom:8px">${[['all', 'الكل'], ['messenger', 'Messenger'], ['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['other', 'أخرى']].map(([k, l]) => `<button type="button" class="cc-chip${gs.filt === k ? ' on' : ''}" onclick="gsFilt('${k}')">${l}</button>`).join('')}</div>`;
     }
-    const items = gs.sub === 'guests' ? G : M;
-    if (!items.length) html += `<div class="tha-note">${gs.sub === 'guests' ? 'مفيش ضيوف في الفترة دي.' : 'مفيش رسائل من ضيوف في الفترة دي.'}</div>`;
+    if (!items.length) html += `<div class="tha-note">${gs.sub === 'cred' ? 'مفيش ضيوف في الفترة دي.' : 'مفيش رسائل من ضيوف في الفترة دي.'}</div>`;
     else {
       let shown = 0;
       for (const d of ccByDay(items, it => it.created_at)) {
         if (shown >= cc.limit) break;
         const part = d.items.slice(0, cc.limit - shown); shown += part.length;
-        html += `<div class="cc-day"><span>${esc(ccDayLabel(d.k))} · ${d.items.length}</span></div>` + part.map(gs.sub === 'guests' ? guestCard : msgCard).join('');
+        html += `<div class="cc-day"><span>${esc(ccDayLabel(d.k))} · ${d.items.length}</span></div>` + part.map(gs.sub === 'cred' ? guestCard : msgCard).join('');
       }
       if (shown < items.length) html += `<div style="text-align:center;margin:10px"><button type="button" class="ds-b ghost" onclick="cc.limit+=200;ccPaint()">عرض المزيد (${items.length - shown})</button></div>`;
     }
@@ -5024,7 +4791,6 @@ function mgEnsureBar() {
     const cnt = $id('ccCntGuests'); if (cnt) cnt.textContent = gs.guests.length;
   }
 
-  /* hook into the Contact Center paint / render */
   const prevPaint = ccPaint;
   ccPaint = function () {
     ensureTab();
