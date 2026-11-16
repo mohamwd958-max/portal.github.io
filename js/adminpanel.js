@@ -4933,3 +4933,128 @@ function mgEnsureBar() {
   let q = 0;
   new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { sync(); } catch (e) { } }); }).observe(document.body || document.documentElement, { childList: true, subtree: true });
 })();
+
+/* ==========================================================
+   Patch 11: Contact Center → "Guests" (third place, next to Outbound / Inbound)
+   Inside: [Guests] the people who entered as guests (name, phone, email)
+           [Guest messages] what they sent through Messenger / WhatsApp / Telegram
+   Data: tables portal_guests + guest_messages (see 11_guests.sql)
+   ========================================================== */
+(function () {
+  'use strict';
+  const gs = { loaded: false, guests: [], msgs: [], sub: 'guests', filt: 'all' };
+  window.gs = gs;
+  const CH = { messenger: ['Messenger', '#38bdf8', 'fa-solid fa-paper-plane'], whatsapp: ['WhatsApp', '#22c55e', 'fa-brands fa-whatsapp'], telegram: ['Telegram', '#0ea5e9', 'fa-brands fa-telegram'], other: ['أخرى', '#94a3b8', 'fa-solid fa-comment'] };
+  const inRange = v => { const [a, b] = ccBounds(), k = ccDayKey(v); return k && k >= a && k <= b; };
+  const digits = s => String(s || '').replace(/[^\d+]/g, '');
+  const waLink = p => { const d = digits(p).replace(/^\+/, ''); return d ? 'https://wa.me/' + d : ''; };
+
+  async function gLoad() {
+    const [g, m] = await Promise.all([
+      fetchAllRows('portal_guests?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل الضيوف (شغّل 11_guests.sql؟): ' + e.message, true); return []; }),
+      fetchAllRows('guest_messages?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل رسائل الضيوف: ' + e.message, true); return []; })
+    ]);
+    gs.guests = g; gs.msgs = m; gs.loaded = true;
+  }
+
+  function guestCard(r) {
+    const nm = r.name || '—', wa = waLink(r.phone);
+    return `<div class="cc-card"><div class="cc-meta"><div class="cc-av">${esc(String(nm).trim().charAt(0).toUpperCase() || '?')}</div>
+      <div style="flex:1;min-width:0"><b dir="auto" style="color:#f1f5f9;font-size:13px">${esc(nm)}</b>
+        <div>${esc(ccDayKey(r.created_at))} · ${esc(ccTime(r.created_at))}${r.visits > 1 ? ' · دخل ' + esc(r.visits) + ' مرات' : ''}${r.interest ? ' · ' + esc(r.interest) : ''}</div></div>
+      <button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="gsDelGuest('${esc(r.id)}')"><i class="fa-solid fa-trash"></i></button></div>
+    <div class="cc-to" style="gap:10px">
+      <a href="tel:${esc(digits(r.phone))}" dir="ltr" style="color:#fbbf24"><i class="fa-solid fa-phone"></i> ${esc(r.phone)}</a>
+      ${wa ? `<a href="${esc(wa)}" target="_blank" rel="noopener" style="color:#22c55e"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+      ${r.email ? `<a href="mailto:${esc(r.email)}" dir="ltr" style="color:#38bdf8"><i class="fa-solid fa-envelope"></i> ${esc(r.email)}</a>` : ''}</div></div>`;
+  }
+  function msgCard(r) {
+    const c = CH[r.channel] || CH.other, nm = r.name || 'ضيف', ph = r.phone || r.contact || '', wa = waLink(ph);
+    return `<div class="cc-card" ${r.is_read ? '' : 'style="border-color:#fbbf2466"'}><div class="cc-meta">
+      <div class="cc-av">${esc(String(nm).trim().charAt(0).toUpperCase() || '?')}</div>
+      <div style="flex:1;min-width:0"><b dir="auto" style="color:#f1f5f9;font-size:13px">${esc(nm)}</b>${r.is_read ? '' : ' <span style="color:#fbbf24;font-size:10px">● جديدة</span>'}
+        <div>${esc(ccDayKey(r.created_at))} · ${esc(ccTime(r.created_at))}</div></div>
+      <span class="cc-cat" style="color:${c[1]};border-color:${c[1]};background:${c[1]}22"><i class="${c[2]}"></i> ${esc(c[0])}</span>
+      ${r.is_read ? '' : `<button type="button" class="ds-b blue" title="تمت القراءة" onclick="gsRead('${esc(r.id)}')"><i class="fa-solid fa-check"></i></button>`}
+      <button type="button" class="ds-b" style="color:#f43f5e!important" title="مسح" onclick="gsDelMsg('${esc(r.id)}')"><i class="fa-solid fa-trash"></i></button></div>
+    <div class="cc-body" dir="auto">${esc(r.body || '')}</div>
+    <div class="cc-to" style="gap:10px">${ph ? `<a href="tel:${esc(digits(ph))}" dir="ltr" style="color:#fbbf24"><i class="fa-solid fa-phone"></i> ${esc(ph)}</a>` : ''}
+      ${wa ? `<a href="${esc(wa)}" target="_blank" rel="noopener" style="color:#22c55e"><i class="fa-brands fa-whatsapp"></i> رد</a>` : ''}
+      ${r.email ? `<a href="mailto:${esc(r.email)}" dir="ltr" style="color:#38bdf8"><i class="fa-solid fa-envelope"></i> ${esc(r.email)}</a>` : ''}</div></div>`;
+  }
+
+  function gPaint() {
+    const list = $id('ccList'); if (!list) return;
+    const q = (cc.q || '').trim().toLowerCase();
+    const G = gs.guests.filter(r => inRange(r.created_at) && (!q || [r.name, r.phone, r.email, r.interest].join(' ').toLowerCase().includes(q)));
+    const M = gs.msgs.filter(r => inRange(r.created_at) && (gs.filt === 'all' || r.channel === gs.filt || (gs.filt === 'other' && !CH[r.channel]))
+      && (!q || [r.name, r.phone, r.email, r.contact, r.body].join(' ').toLowerCase().includes(q)));
+    const unread = gs.msgs.filter(r => !r.is_read).length;
+    document.querySelectorAll('#ccFrame .cc-tab').forEach(b => b.classList.toggle('on', b.dataset.t === 'guests'));
+    document.querySelectorAll('#ccRanges .cc-chip').forEach(b => b.classList.toggle('on', b.dataset.r === cc.range));
+    const cr = $id('ccCatRow'); if (cr) cr.style.display = 'none';
+    const cnt = $id('ccCntGuests'); if (cnt) cnt.textContent = gs.guests.length;
+    const chip = (on, onclick, label) => `<button type="button" class="cc-chip${on ? ' on' : ''}" onclick="${onclick}">${label}</button>`;
+    let html = `<div class="cc-row" style="margin-bottom:8px">
+      ${chip(gs.sub === 'guests', "gsSub('guests')", `<i class="fa-solid fa-user-group"></i> Guests <small>${G.length}</small>`)}
+      ${chip(gs.sub === 'msgs', "gsSub('msgs')", `<i class="fa-solid fa-comments"></i> Guest messages <small>${M.length}</small>${unread ? ` <small style="color:#fbbf24">● ${unread}</small>` : ''}`)}</div>`;
+    if (gs.sub === 'msgs') {
+      html += `<div class="cc-row" style="margin-bottom:8px">${[['all', 'الكل'], ['messenger', 'Messenger'], ['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['other', 'أخرى']].map(([k, l]) => chip(gs.filt === k, `gsFilt('${k}')`, l)).join('')}</div>`;
+    }
+    const items = gs.sub === 'guests' ? G : M;
+    if (!items.length) html += `<div class="tha-note">${gs.sub === 'guests' ? 'مفيش ضيوف في الفترة دي.' : 'مفيش رسائل من ضيوف في الفترة دي.'}</div>`;
+    else {
+      let shown = 0;
+      for (const d of ccByDay(items, it => it.created_at)) {
+        if (shown >= cc.limit) break;
+        const part = d.items.slice(0, cc.limit - shown); shown += part.length;
+        html += `<div class="cc-day"><span>${esc(ccDayLabel(d.k))} · ${d.items.length}</span></div>` + part.map(gs.sub === 'guests' ? guestCard : msgCard).join('');
+      }
+      if (shown < items.length) html += `<div style="text-align:center;margin:10px"><button type="button" class="ds-b ghost" onclick="cc.limit+=200;ccPaint()">عرض المزيد (${items.length - shown})</button></div>`;
+    }
+    list.innerHTML = html;
+  }
+
+  function ensureTab() {
+    const bar = document.querySelector('#ccFrame .cc-tabs'); if (!bar || bar.querySelector('[data-t="guests"]')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'cc-tab'; b.dataset.t = 'guests';
+    b.setAttribute('onclick', "ccTab('guests')");
+    b.innerHTML = '<i class="fa-solid fa-user-group"></i> Guests <small id="ccCntGuests">0</small>';
+    bar.appendChild(b);
+    const cnt = $id('ccCntGuests'); if (cnt) cnt.textContent = gs.guests.length;
+  }
+
+  /* hook into the Contact Center paint / render */
+  const prevPaint = ccPaint;
+  ccPaint = function () {
+    ensureTab();
+    if (cc.tab === 'guests') { gPaint(); return; }
+    const r = prevPaint.apply(this, arguments);
+    const cnt = $id('ccCntGuests'); if (cnt) cnt.textContent = gs.guests.length;
+    return r;
+  };
+  window.ccPaint = ccPaint;
+  const prevRender = ccRender;
+  ccRender = async function () {
+    const r = await prevRender.apply(this, arguments);
+    ensureTab(); await gLoad(); ccPaint();
+    return r;
+  };
+
+  window.gsSub = s => { gs.sub = s; cc.limit = 200; gPaint(); };
+  window.gsFilt = f => { gs.filt = f; cc.limit = 200; gPaint(); };
+  window.gsRead = async id => {
+    try { await mutate(`guest_messages?id=eq.${enc(id)}`, 'PATCH', { is_read: true }); const m = gs.msgs.find(x => String(x.id) === String(id)); if (m) m.is_read = true; gPaint(); }
+    catch (e) { showToast('فشل: ' + e.message, true); }
+  };
+  window.gsDelMsg = async id => {
+    if (!confirm('تمسح رسالة الضيف دي؟')) return;
+    try { await mutate(`guest_messages?id=eq.${enc(id)}`, 'DELETE'); gs.msgs = gs.msgs.filter(x => String(x.id) !== String(id)); gPaint(); showToast('اتمسح ✓'); }
+    catch (e) { showToast('فشل المسح: ' + e.message, true); }
+  };
+  window.gsDelGuest = async id => {
+    if (!confirm('تمسح الضيف ده؟ (رسائله هتفضل موجودة)')) return;
+    try { await mutate(`portal_guests?id=eq.${enc(id)}`, 'DELETE'); gs.guests = gs.guests.filter(x => String(x.id) !== String(id)); gPaint(); showToast('اتمسح ✓'); }
+    catch (e) { showToast('فشل المسح: ' + e.message, true); }
+  };
+})();
