@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script src="js/thabit-loader.js"></script>
+<script src="js/loader.js"></script>
 <title>Welcome to Thabit</title>
 <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -313,7 +313,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   /* ============ WHERE EACH BUTTON GOES (change freely) ============ */
-  const ROUTES = { guest: 'guest.html' };      // "Take a look as a guest" -> the guest questions page
+  const ROUTES = { guest: 'thguest.html' };      // "Take a look as a guest" -> the guest questions page
   const AFTER_LOGIN = 'home.html';             // used only if the login system gives no route
 
   /* ============ language: automatic, then the visitor's own choice ============ */
