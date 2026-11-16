@@ -50,6 +50,10 @@ main>.hello,main>.brand,main>.tag{padding:0 20px}
 body.ar .hello{font:600 clamp(1.3rem,4.6vw,2rem)/1.2 Cairo,sans-serif;letter-spacing:0}
 body.ar .brand{font:900 clamp(3.6rem,17vw,8.2rem)/1.15 Cairo,sans-serif;letter-spacing:0}
 body.ar .tag{letter-spacing:.04em;text-transform:none;font-size:clamp(.95rem,3.2vw,1.15rem)}
+/* name | TH logo: so it is clear this is the Thabit program */
+.brand{display:flex;align-items:center;justify-content:center;gap:.2em}
+.brand .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
+.brand .mk{flex:none;width:.74em;height:.74em;background:var(--ink);-webkit-mask:url(assets/thabit-favicon.svg) center/contain no-repeat;mask:url(assets/thabit-favicon.svg) center/contain no-repeat}
 .rise{opacity:0;filter:blur(14px);translate:0 18px;animation:rise 1.1s cubic-bezier(.16,1,.3,1) forwards}
 .hello.rise{animation-delay:.5s}.brand.rise{animation-delay:.8s}.tag.rise{animation-delay:1.25s}
 .wrap.rise{animation-delay:1.8s}
@@ -174,7 +178,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
 <main id="main">
   <div class="hello rise" data-t="hello"></div>
-  <h1 class="brand rise" data-t="brand"></h1>
+  <h1 class="brand rise"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
   <div class="tag rise" data-t="tag"></div>
 
   <div class="wrap rise">
