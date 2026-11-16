@@ -179,7 +179,7 @@
       -webkit-user-select:none;user-select:none;direction:ltr;display:none;align-items:center;border-radius:14px}
     .fl.show .pwv{display:flex}
     .pwi{display:flex;white-space:pre;font:500 .92rem Cairo,Inter,sans-serif}
-    .pwi span{display:inline-block;transition:filter 1s ease,opacity 1s ease}
+    .pwi span{display:inline-block;transition:filter .55s ease,opacity .55s ease}
     .pwi span.bl{filter:blur(9px);opacity:.25}
 
     /* ---------- login button: square -> circle -> check ---------- */
@@ -298,10 +298,33 @@
        BAR ORDER: Services (left) | Language (exact center) | Theme (right)
        BIG LOGO REMOVED (small logo lives in the header) + LOGIN GROUP CENTERED
        ===================================================================== */
-    html body #mobileFloatingBar:not(#z):not(#y){display:grid!important;grid-template-columns:1fr 1fr 1fr!important;justify-items:center!important;justify-content:stretch!important}
+    html body #mobileFloatingBar:not(#z):not(#y){display:grid!important;grid-template-columns:repeat(5,1fr)!important;justify-items:center!important;justify-content:stretch!important}
     html body #thabitPortalLogo{display:none!important}
     html body #login-screen:not([style*="display: none"]){min-height:100vh;min-height:100dvh;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center;
       padding-top:46px;padding-bottom:calc(54px + env(safe-area-inset-bottom,0px))}
+
+    /* bar buttons: icon on top, name underneath */
+    html body #mobileFloatingBar>.circle-badge-btn.lbl:not(#z){flex-direction:column!important;gap:3px!important;height:46px!important;max-width:86px!important;width:100%!important;padding:0 2px!important;border-radius:14px!important;font:700 10.5px/1.1 Cairo,Inter,sans-serif!important}
+    html body #mobileFloatingBar>.circle-badge-btn.lbl i{font-size:18px!important}
+    html body #mobileFloatingBar>.circle-badge-btn.lbl span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ---------- Contact / About sheet ---------- */
+    #thShScrim{position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.34);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s ease}
+    html body.light-theme #thShScrim{background:rgba(255,255,255,.35)}
+    #thShScrim.on{opacity:1;pointer-events:auto}
+    #thSheet{position:fixed;left:50%;top:50%;z-index:2147483002;width:min(88vw,340px);box-sizing:border-box;padding:24px 18px 18px;border-radius:24px;text-align:center;color:#f1f5f9;
+      background:rgba(28,30,36,.78);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 18px 50px rgba(0,0,0,.55);
+      opacity:0;pointer-events:none;translate:-50% calc(-50% + 14px);scale:.92;transition:opacity .25s ease,scale .45s cubic-bezier(.34,1.4,.64,1),translate .45s var(--rc-ease)}
+    html body.light-theme #thSheet{color:#0f172a;background:rgba(255,255,255,.85);border-color:rgba(15,23,42,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 16px 44px rgba(15,23,42,.22)}
+    #thSheet.on{opacity:1;pointer-events:auto;translate:-50% -50%;scale:1}
+    #thSheet h3{margin:0 0 6px;font:800 1.1rem Cairo,Inter,sans-serif}
+    #thSheet p{margin:0 0 16px;font:500 .84rem/1.5 Cairo,Inter,sans-serif;opacity:.65}
+    #thSheet .shi{display:flex;align-items:center;gap:13px;min-height:52px;margin-top:8px;padding:6px 12px;border-radius:16px;box-sizing:border-box;text-decoration:none;color:inherit;
+      background:rgba(148,163,184,.12);font:700 .92rem Cairo,Inter,sans-serif;-webkit-tap-highlight-color:transparent;transition:background .25s,scale var(--rc-slow) var(--rc-ease)}
+    #thSheet .shi i{flex:none;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(251,191,36,.16);color:#fbbf24}
+    html body.light-theme #thSheet .shi i{color:#b45309}
+    @media(hover:hover){#thSheet .shi:hover{background:rgba(148,163,184,.22);scale:var(--rc-hover-ctl)}}
 
     /* ---------- small glass header ---------- */
     #thHead{position:fixed;top:0;left:0;right:0;height:46px;z-index:50;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;padding:0 14px;direction:ltr;
@@ -318,6 +341,10 @@
       -webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat}
     #thHead.has #thHeadLogo{display:block}
     html body.light-theme #thHeadLogo{background:#0f172a}
+    #thHeadTxt{display:flex;align-items:baseline;gap:9px;margin-left:10px;min-width:0;white-space:nowrap;overflow:hidden;color:#f1f5f9;direction:ltr}
+    html body.light-theme #thHeadTxt{color:#0f172a}
+    #thHeadTxt b{font:800 .95rem 'Plus Jakarta Sans',Cairo,sans-serif;letter-spacing:.3px}
+    #thHeadTxt i{font:500 .72rem 'Plus Jakarta Sans',Cairo,sans-serif;font-style:normal;opacity:.6;overflow:hidden;text-overflow:ellipsis}
 
     /* ---------- ONE light that travels through all the glass: bar -> cards -> header ---------- */
     body{--lc:255,255,255}
@@ -337,8 +364,10 @@
 
     <!-- Bottom glass bar: language + theme + placement (TH logo) -->
     <div class="mobile-floating-bar" id="mobileFloatingBar">
-        <button type="button" id="svcBtn" class="circle-badge-btn pmbtn" aria-haspopup="menu" aria-expanded="false" title="Services"><i class="fa-solid fa-grip" aria-hidden="true"></i><span id="svcBtnTxt">Services</span></button>
-        <button type="button" id="langBtn" class="circle-badge-btn pmbtn" aria-haspopup="menu" aria-expanded="false" title="Language"><i class="fa-solid fa-globe" aria-hidden="true"></i><span id="langBtnTxt">EN</span></button>
+        <button type="button" id="svcBtn" class="circle-badge-btn pmbtn lbl" aria-haspopup="menu" aria-expanded="false" title="Services"><i class="fa-solid fa-grip" aria-hidden="true"></i><span id="svcBtnTxt">Services</span></button>
+        <button type="button" id="contactBtn" class="circle-badge-btn lbl" title="Contact"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i><span id="contactBtnTxt">Contact</span></button>
+        <button type="button" id="langBtn" class="circle-badge-btn pmbtn lbl" aria-haspopup="menu" aria-expanded="false" title="Language"><i class="fa-solid fa-globe" aria-hidden="true"></i><span id="langBtnTxt">EN</span></button>
+        <button type="button" id="aboutBtn" class="circle-badge-btn lbl" title="About"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="aboutBtnTxt">About</span></button>
         <button type="button" onclick="toggleTheme()" id="floatBtnTheme" title="Light / Dark" data-i18n-title="themeTitle" class="circle-badge-btn theme-btn">
             <i id="themeIcon" class="fa-regular fa-moon" aria-hidden="true"></i>
         </button>
@@ -357,7 +386,7 @@
     </div>
 
     <!-- Small glass header with the small logo (fades in shortly after the page opens) -->
-    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span></header>
+    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span><span id="thHeadTxt"><b>Thabit</b><i>good for now, good forever</i></span></header>
 
     <div id="thIntro" class="thb-ov" aria-hidden="true"><div id="thIntroStage"></div></div>
     <style>
@@ -679,6 +708,59 @@
 
     <script src="js/portal.js"></script>
 
+    <div id="thShScrim"></div>
+    <div id="thSheet" role="dialog" aria-modal="true"><h3 id="shT"></h3><p id="shP"></p><div id="shL"></div></div>
+    <!-- Contact / About buttons -->
+    <script>
+    (function () {
+      'use strict';
+      /* FILL THESE IN: leave a value empty and that option is simply hidden.
+         telegram : your bot / channel link or @username  (e.g. 'https://t.me/YourBot' or '@YourBot')
+         whatsapp : your number with country code, digits only (e.g. '201001234567') - opens your chat directly
+         phone    : your number with country code (e.g. '+201001234567') - starts a normal phone call */
+      const CFG = { telegram: '', whatsapp: '', phone: '' };
+      const $ = id => document.getElementById(id);
+      const T = {
+        en: { contact: 'Contact', about: 'About', ct: 'Get in touch', cs: 'Choose how you want to reach us', tg: 'Telegram', wa: 'WhatsApp', ph: 'Phone call', soon: 'Coming soon', at: 'About Thabit', as: 'Coming soon.' },
+        ar: { contact: 'تواصل', about: 'عنّا', ct: 'تواصل معنا', cs: 'اختر الطريقة المناسبة للتواصل', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة هاتفية', soon: 'قريبًا', at: 'عن ثابت', as: 'قريبًا.' },
+        eg: { contact: 'تواصل', about: 'عننا', ct: 'كلمنا', cs: 'اختار تتواصل معانا إزاي', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة', soon: 'قريب', at: 'عن ثابت', as: 'قريب.' }
+      };
+      const tr = () => T[(typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en'];
+      const sheet = $('thSheet'), scrim = $('thShScrim');
+      let mode = '';
+      function fill() {
+        const t = tr();
+        $('contactBtnTxt').textContent = t.contact; $('aboutBtnTxt').textContent = t.about;
+        $('contactBtn').title = t.contact; $('aboutBtn').title = t.about;
+        if (mode === 'contact') build('contact'); else if (mode === 'about') build('about');
+      }
+      function build(k) {
+        const t = tr(), L = $('shL'); L.textContent = '';
+        if (k === 'about') { $('shT').textContent = t.at; $('shP').textContent = t.as; $('shP').style.marginBottom = '4px'; return; }
+        $('shT').textContent = t.ct; $('shP').textContent = t.cs; $('shP').style.marginBottom = '16px';
+        const tg = CFG.telegram.trim(), wa = CFG.whatsapp.replace(/\D/g, ''), ph = CFG.phone.replace(/[^\d+]/g, '');
+        const items = [];
+        if (tg) items.push(['fa-brands fa-telegram', t.tg, /^https?:/.test(tg) ? tg : 'https://t.me/' + tg.replace(/^@/, '')]);
+        if (wa) items.push(['fa-brands fa-whatsapp', t.wa, 'https://wa.me/' + wa]);
+        if (ph) items.push(['fa-solid fa-phone', t.ph, 'tel:' + ph]);
+        items.forEach(([ic, tx, href]) => {
+          const a = document.createElement('a'); a.className = 'shi'; a.href = href; if (href.startsWith('http')) { a.target = '_blank'; a.rel = 'noopener'; }
+          a.innerHTML = '<i class="' + ic + '" aria-hidden="true"></i><span></span>'; a.lastChild.textContent = tx; L.appendChild(a);
+        });
+        if (!items.length) { $('shP').textContent = t.soon; }
+      }
+      function open(k) { mode = k; build(k); sheet.classList.add('on'); scrim.classList.add('on'); }
+      function close() { mode = ''; sheet.classList.remove('on'); scrim.classList.remove('on'); }
+      $('contactBtn').addEventListener('click', () => mode === 'contact' ? close() : open('contact'));
+      $('aboutBtn').addEventListener('click', () => mode === 'about' ? close() : open('about'));
+      scrim.addEventListener('click', close);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+      const origSet = window.setLanguage;
+      if (typeof origSet === 'function') window.setLanguage = function () { const r = origSet.apply(this, arguments); fill(); return r; };
+      fill(); window.addEventListener('load', () => { fill(); setTimeout(fill, 400); });
+    })();
+    </script>
+
     <!-- thGlassLight: ONE soft light (width = 1/4 of the bar, centered) rising through the glass from the bottom bar up to the header every 10 s. Never leaves a piece's border. -->
     <script>
     (function () {
@@ -874,7 +956,7 @@
         pwi.textContent = '';
         [...pIn.value].forEach((ch, i) => {
           const s = document.createElement('span'); s.textContent = ch === ' ' ? '\u00a0' : ch;
-          if (fade) { s.className = 'bl'; s.style.transitionDelay = (i * 110) + 'ms'; }
+          if (fade) { s.className = 'bl'; s.style.transitionDelay = (i * 55) + 'ms'; }
           pwi.appendChild(s);
         });
         if (fade) requestAnimationFrame(() => requestAnimationFrame(() => pwi.querySelectorAll('.bl').forEach(s => s.classList.remove('bl'))));
