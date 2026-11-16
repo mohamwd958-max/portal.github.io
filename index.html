@@ -550,7 +550,7 @@
     </div>
 
     <!-- Small glass header with the small logo (fades in shortly after the page opens) -->
-    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span><span id="thHeadTxt"><i>good for now, good forever</i></span></header>
+    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span><span id="thHeadTxt"><i>good for now, good forever</i></span><div id="thAnn" data-slot="announcements"></div></header>
 
     <div id="thIntro" class="thb-ov" aria-hidden="true"><div id="thIntroStage"></div></div>
     <style>
@@ -1690,7 +1690,7 @@ body.th-side #thSide{display:flex;position:fixed;top:0;bottom:0;inset-inline-sta
   box-shadow:0 0 40px rgba(0,0,0,.06);opacity:0;translate:-16px 0;transition:opacity .7s ease .3s,translate .8s var(--rc-ease) .3s}
 body.th-side.th-rtl #thSide{inset-inline-start:auto;right:0;left:auto;border-inline-end:0;border-left:1px solid var(--line);translate:16px 0}
 body.th-side.th-ready #thSide{opacity:1;translate:0 0}
-#thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:68px 16px 24px;display:flex;flex-direction:column;gap:22px}
+#thSide .sdin{margin:auto 0;width:100%;box-sizing:border-box;padding:14px 16px 30px;display:flex;flex-direction:column;gap:22px}
 body.th-rtl #thSide .sdin{direction:rtl}
 #thSide .sdh{display:flex;align-items:center;gap:10px;margin:0 6px 8px;font:800 .68rem Inter,Cairo,sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
 body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
@@ -1720,9 +1720,24 @@ body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
 #thSide .sdseg .sdt{width:auto;height:auto;background:transparent;font-size:.8rem}
 #thSide .sdseg .sdx{flex:none}
 #thSide .sdi.sm{min-height:40px;font-weight:600;font-size:.82rem}
+/* sidebar: no scrollbar, soft fade at the bottom when more is below */
+#thSide{scrollbar-width:none;-ms-overflow-style:none}
+#thSide::-webkit-scrollbar{display:none}
+#thSide.more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 46px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 46px),transparent)}
+/* logo lives inside the sidebar, same spot as the old header logo */
+#sdTop{position:sticky;top:0;z-index:2;flex:none;height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;box-sizing:border-box;background:var(--bar);direction:ltr}
+#sdLogo{display:none;flex:none;width:34px;height:34px;background:var(--ink);-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat}
+#sdTop.has #sdLogo{display:block}
+#sdTag{font:600 .8rem 'Plus Jakarta Sans',Cairo,sans-serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* slogan hidden for now (delete this one line to bring it back) */
+#sdTag,#thHeadTxt{display:none!important}
+/* header in sidebar mode: empty glass strip, ready for announcements / discounts */
+#thAnn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 .84rem Inter,Cairo,sans-serif;color:var(--ink)}
+body.th-side #thHead>:not(#thAnn){display:none!important}
+html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srgb,var(--bg) 52%,transparent)!important;-webkit-backdrop-filter:blur(20px) saturate(1.5)!important;backdrop-filter:blur(20px) saturate(1.5)!important;padding:0 16px;justify-content:center}
 </style>
 
-<aside id="thSide" aria-label="Menu"><div class="sdin" id="sdIn"></div></aside>
+<aside id="thSide" aria-label="Menu"><div id="sdTop"><span id="sdLogo" role="img" aria-label="Thabit"></span><span id="sdTag">good for now, good forever</span></div><div class="sdin" id="sdIn"></div></aside>
 
 <script>
 (function () {
@@ -1803,6 +1818,18 @@ body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
   if (typeof wrapSet === 'function') window.setLanguage = function () { const r = wrapSet.apply(this, arguments); mode(); build(); return r; };
   new MutationObserver(mark).observe(body, { attributes: true, attributeFilter: ['class', 'data-opt'] });
   const sh = $('thSheet'); if (sh) new MutationObserver(mark).observe(sh, { attributes: true, attributeFilter: ['class'] });
+
+  /* copy the finished logo (made by the intro) into the sidebar; scroll-fade hint; announcement slot */
+  const hd = $('thHead'), top = $('sdTop');
+  let lt = 0; const lg = setInterval(() => {
+    const v = hd && getComputedStyle(hd).getPropertyValue('--thlogo').trim();
+    if (v) { top.style.setProperty('--thlogo', v); top.classList.add('has'); clearInterval(lg); } else if (++lt > 100) clearInterval(lg);
+  }, 250);
+  const more = () => side.classList.toggle('more', side.scrollHeight - side.clientHeight - side.scrollTop > 4);
+  side.addEventListener('scroll', more, { passive: true }); window.addEventListener('resize', more);
+  if (window.ResizeObserver) new ResizeObserver(more).observe(inn);
+  setTimeout(more, 300); setTimeout(more, 1500);
+  window.thAnnounce = html => { const a = $('thAnn'); if (a) a.innerHTML = html || ''; };
   mode(); build();
   window.addEventListener('load', () => { mode(); build(); setTimeout(() => { mode(); build(); }, 400); });
 })();
