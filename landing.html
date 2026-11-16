@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Welcome to Thabit</title>
+<link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   WELCOME PAGE  -  first thing a visitor sees
+   Edit the ROUTES in the script at the bottom to change where people go.
+   ========================================================= */
+:root{
+  --ink:#ece8df;            /* off-white (dark theme) */
+  --ink2:rgba(236,232,223,.72);
+  --veil1:rgba(4,8,22,.55); --veil2:rgba(4,8,22,.15); --veil3:rgba(4,8,22,.6);
+  --gbg:rgba(255,255,255,.08); --gbd:rgba(255,255,255,.14); --gfield:rgba(255,255,255,.1);
+  --btn:#ece8df; --onbtn:#15130f; --acc:#fbbf24; --bad:#f87171;
+}
+body.light{
+  --ink:#1c1a16;            /* off-black (light theme) */
+  --ink2:rgba(28,26,22,.7);
+  --veil1:rgba(244,241,234,.86); --veil2:rgba(244,241,234,.5); --veil3:rgba(244,241,234,.78);
+  --gbg:rgba(255,255,255,.42); --gbd:rgba(28,26,22,.1); --gfield:rgba(255,255,255,.55);
+  --btn:#1c1a16; --onbtn:#f4f1ea; --acc:#b45309; --bad:#dc2626;
+}
+/* portal.js flips the page to RTL when the visitor last picked Arabic; this page is English-only, so keep it LTR */
+html,html[dir]{direction:ltr!important}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%;background:#050914}
+body{font-family:Inter,Cairo,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.bg{position:fixed;inset:0;z-index:0;background:#050914 url(assets/welcome-bg.jpg) 50% 22%/cover no-repeat;opacity:0;animation:fadeIn 1.4s ease .1s forwards}
+.veil{position:fixed;inset:0;z-index:1;background:linear-gradient(180deg,var(--veil1) 0%,var(--veil2) 38%,var(--veil3) 100%);transition:background .6s}
+main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:max(9vh,44px) 20px calc(34px + env(safe-area-inset-bottom,0px));text-align:center}
+
+/* ---------- title ---------- */
+.hello{font:italic 500 clamp(1.3rem,4.6vw,2rem)/1 'Playfair Display',Georgia,serif;letter-spacing:.5px;color:var(--ink2)}
+.brand{font:800 clamp(3.6rem,17vw,8.2rem)/1 'Playfair Display',Georgia,serif;letter-spacing:-.02em;margin:.08em 0 .14em;color:var(--ink)}
+.tag{font:600 clamp(.72rem,2.6vw,.95rem)/1 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:var(--ink2)}
+.rise{opacity:0;filter:blur(14px);translate:0 18px;animation:rise 1.1s cubic-bezier(.16,1,.3,1) forwards}
+.hello.rise{animation-delay:.5s}.brand.rise{animation-delay:.8s}.tag.rise{animation-delay:1.25s}
+.card.rise{animation-delay:1.8s}.peek.rise{animation-delay:2.2s}
+@keyframes rise{to{opacity:1;filter:blur(0);translate:0 0}}
+@keyframes fadeIn{to{opacity:1}}
+
+/* ---------- login card ---------- */
+.card{margin-top:auto;width:min(100%,380px);padding:24px 24px 22px;border-radius:22px;background:var(--gbg);border:1px solid var(--gbd);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);text-align:start}
+.card h2{font:600 .95rem/1.4 Inter,sans-serif;text-align:center;margin-bottom:16px;letter-spacing:.2px}
+.f{position:relative;margin-bottom:12px}
+.f input{width:100%;height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:500 .95rem Inter,sans-serif;outline:0;transition:border-color .25s,box-shadow .25s}
+.f input::placeholder{color:var(--ink2);opacity:.8}
+.f input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(128,128,128,.18)}
+.f.bad input{border-color:var(--bad)}
+.btn{width:100%;height:50px;border:0;border-radius:13px;background:var(--btn);color:var(--onbtn);font:700 .95rem Inter,sans-serif;cursor:pointer;transition:opacity .25s,scale .6s cubic-bezier(.16,1,.3,1)}
+.btn:hover{opacity:.93}.btn:active{scale:.98}.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--gbd)}
+.err{min-height:18px;margin:2px 0 8px;font:500 .8rem Inter,sans-serif;color:var(--bad);text-align:center}
+.peek{margin-top:16px;width:min(100%,380px);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font:500 .88rem Inter,sans-serif;color:var(--ink2)}
+.peek button{border:0;background:none;color:var(--ink);font:700 .88rem Inter,sans-serif;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+
+/* theme toggle */
+.tg{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;width:40px;height:40px;border-radius:50%;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font-size:17px;
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:0;animation:fadeIn .8s ease 2.4s forwards}
+
+/* ---------- popup (guest flow) ---------- */
+.ov{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.ov.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
+.pop{width:min(100%,400px);max-height:92dvh;overflow-y:auto;padding:26px 24px 22px;border-radius:24px;background:var(--gbg);border:1px solid var(--gbd);color:var(--ink);text-align:center;
+  -webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);animation:pop .5s cubic-bezier(.16,1,.3,1)}
+body.light .pop{background:rgba(250,248,243,.86)}
+body:not(.light) .pop{background:rgba(18,22,34,.72)}
+@keyframes pop{from{opacity:0;scale:.94;translate:0 14px}to{opacity:1;scale:1;translate:0 0}}
+.pop h3{font:700 1.2rem/1.35 Inter,sans-serif;margin-bottom:6px}
+.pop p{font:500 .88rem/1.55 Inter,sans-serif;color:var(--ink2);margin-bottom:18px}
+.pop .btn+.btn{margin-top:10px}
+.step{display:none}.step.on{display:block}
+.opt{margin-top:-6px;margin-bottom:12px;font:500 .74rem Inter,sans-serif;color:var(--ink2);text-align:start}
+.ints{display:grid;gap:9px;text-align:start}
+.int{display:flex;align-items:center;gap:13px;width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:600 .9rem/1.3 Inter,sans-serif;cursor:pointer;text-align:start;transition:scale .5s cubic-bezier(.16,1,.3,1),border-color .25s}
+.int:hover{scale:1.015;border-color:var(--ink)}.int:active{scale:.985}
+.int span{font-size:1.35rem;flex:none;width:30px;text-align:center}
+.int small{display:block;font-weight:500;font-size:.74rem;color:var(--ink2);margin-top:2px}
+.x{position:absolute;top:12px;right:14px;border:0;background:none;color:var(--ink2);font-size:22px;cursor:pointer;line-height:1}
+.pop{position:relative}
+@media(prefers-reduced-motion:reduce){.rise,.bg,.tg{animation-duration:.01s!important;animation-delay:0s!important}}
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem('thThemeChoice')!=='dark')document.body.classList.add('light')}catch(e){document.body.classList.add('light')}</script>
+<div class="bg"></div><div class="veil"></div>
+<button class="tg" id="tg" type="button" aria-label="Theme">◐</button>
+
+<main>
+  <div class="hello rise">Welcome to</div>
+  <h1 class="brand rise">Thabit</h1>
+  <div class="tag rise">Your partner in success</div>
+
+  <section class="card rise" aria-label="Login">
+    <h2>Login to resume where you stopped</h2>
+    <div class="f" id="fU"><input id="u" type="text" placeholder="Username" autocomplete="username" autocapitalize="off" spellcheck="false" dir="ltr"></div>
+    <div class="f" id="fP"><input id="p" type="password" placeholder="Password" autocomplete="current-password" dir="ltr"></div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn" id="go" type="button">Get In</button>
+  </section>
+
+  <div class="peek rise"><span>New here? Want to take a peek?</span><button type="button" id="peekBtn">Take a look</button></div>
+</main>
+
+<!-- guest flow: question -> quick account -> interests -->
+<div class="ov" id="ov" role="dialog" aria-modal="true">
+  <div class="pop">
+    <button class="x" id="x" type="button" aria-label="Close">×</button>
+
+    <div class="step on" id="s1">
+      <h3>Want to take a peek?</h3>
+      <p>Look around Thabit without a password. It takes less than a minute.</p>
+      <button class="btn" id="guestBtn" type="button">Get in as a guest</button>
+      <button class="btn ghost" id="back1" type="button">Not now</button>
+    </div>
+
+    <div class="step" id="s2">
+      <h3>Quick account</h3>
+      <p>Tell us who you are so we can welcome you properly.</p>
+      <div class="f" id="gN"><input id="gName" type="text" placeholder="First and last name" autocomplete="name"></div>
+      <div class="f" id="gP"><input id="gPhone" type="tel" placeholder="Phone number" autocomplete="tel" dir="ltr"></div>
+      <div class="f"><input id="gMail" type="email" placeholder="Email (optional)" autocomplete="email" dir="ltr"></div>
+      <div class="err" id="gErr"></div>
+      <button class="btn" id="gNext" type="button">Continue</button>
+    </div>
+
+    <div class="step" id="s3">
+      <h3>What are you interested in?</h3>
+      <p>Choose what brought you here and we will take you straight to it.</p>
+      <div class="ints" id="ints"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/portal.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id), body = document.body;
+
+  /* ============ WHERE EACH CHOICE GOES (change these freely) ============ */
+  const ROUTES = {
+    lang:    'home.html#lang',      // language training
+    voice:   'home.html#voice',     // voice-over
+    digital: 'home.html#digital',   // digital solutions: learning platforms, custom app / web page
+    consult: 'home.html#consult',   // personal consultation
+    store:   'home.html#store'      // the store
+  };
+  const INTERESTS = [
+    ['lang', '🗣️', 'Language training', 'Improve your English'],
+    ['voice', '🎙️', 'Voice-over', 'Discuss a voice-over project'],
+    ['digital', '💻', 'Digital solutions', 'Learning platforms, your own app or web page'],
+    ['consult', '🤝', 'Personal consultation', 'Talk to me directly'],
+    ['store', '👕', 'The store', 'Browse what we have']
+  ];
+  const AFTER_LOGIN = 'home.html';   // used only if the login system gives no route
+
+  /* ---------- theme ---------- */
+  $('tg').onclick = () => { body.classList.toggle('light'); try { localStorage.setItem('thThemeChoice', body.classList.contains('light') ? 'light' : 'dark'); } catch (e) { } };
+
+  /* ---------- leave the page softly ---------- */
+  function go(url) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { location.href = url; }, 330); }
+
+  /* ---------- login (same server calls as the portal; they come from js/portal.js) ---------- */
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function say(m) { $('err').textContent = m || ''; }
+  async function attempt(u, p) {
+    try {
+      if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return { ok: false, msg: 'Login service is not available right now.' };
+      if (u.includes('@')) {
+        const res = await staffSignIn(u, p);
+        if (res.ok) {
+          const role = await fetchMyRole(res.session.access_token);
+          if (role) { saveStaffSession(res.session, role); return { ok: true, route: ROLE_ROUTES[role] }; }
+          return { ok: false, msg: 'Wrong username or password.' };
+        }
+        if (res.status === 429) return { ok: false, msg: 'Too many attempts. Please wait a little.' };
+      }
+      const uname = u.includes('@') ? u : u + '@thabit.com';
+      const r = await fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/trainee_login', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_username: uname, p_password: p }) });
+      const d = await r.json().catch(() => null);
+      if (r.ok && d && d.token) {
+        localStorage.setItem('thabit_trainee_token', d.token);
+        localStorage.setItem('currentTrainee', JSON.stringify(d.profile));
+        return { ok: true, route: ROLE_ROUTES.trainee };
+      }
+      if (d && d.message === 'too_many_attempts') return { ok: false, msg: 'Too many attempts. Please wait a little.' };
+      if (!r.ok) return { ok: false, msg: 'Server error ' + r.status };
+      return { ok: false, msg: 'Wrong username or password.' };
+    } catch (e) { return { ok: false, msg: 'Connection problem. Check your internet and try again.' }; }
+  }
+  let busy = false;
+  async function login() {
+    if (busy) return;
+    const u = $('u').value.trim(), p = $('p').value;
+    $('fU').classList.toggle('bad', !u); $('fP').classList.toggle('bad', !p);
+    if (!u || !p) { say('Enter your username and password.'); return; }
+    busy = true; say(''); $('go').disabled = true; $('go').textContent = '...';
+    const r = await attempt(u, p);
+    if (r.ok) {
+      $('go').textContent = '✓';
+      await sleep(500);
+      let last = ''; try { last = localStorage.getItem('thLastPage') || ''; } catch (e) { }   /* the last page they had open, if a page saved it */
+      go(last || r.route || AFTER_LOGIN);
+      return;
+    }
+    busy = false; $('go').disabled = false; $('go').textContent = 'Get In';
+    $('fP').classList.add('bad'); say(r.msg);
+  }
+  $('go').onclick = login;
+  ['u', 'p'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); id === 'u' ? $('p').focus() : login(); } }));
+  ['u', 'p'].forEach(id => $(id).addEventListener('input', () => { $('fU').classList.remove('bad'); $('fP').classList.remove('bad'); say(''); }));
+
+  /* ---------- guest flow ---------- */
+  const ov = $('ov');
+  function step(n) { ['s1', 's2', 's3'].forEach(k => $(k).classList.toggle('on', k === 's' + n)); }
+  function openPop() { step(1); ov.classList.add('on'); }
+  function closePop() { ov.classList.remove('on'); }
+  $('peekBtn').onclick = openPop; $('x').onclick = closePop; $('back1').onclick = closePop;
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) closePop(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+  $('guestBtn').onclick = () => { step(2); setTimeout(() => $('gName').focus(), 60); };
+
+  $('gNext').onclick = () => {
+    const name = $('gName').value.trim().replace(/\s+/g, ' '), phone = $('gPhone').value.trim(), mail = $('gMail').value.trim();
+    const okName = name.split(' ').length >= 2 && name.length >= 3, okPhone = phone.replace(/\D/g, '').length >= 7, okMail = !mail || /^\S+@\S+\.\S+$/.test(mail);
+    $('gN').classList.toggle('bad', !okName); $('gP').classList.toggle('bad', !okPhone);
+    if (!okName) { $('gErr').textContent = 'Please write your first and last name.'; return; }
+    if (!okPhone) { $('gErr').textContent = 'Please enter a valid phone number.'; return; }
+    if (!okMail) { $('gErr').textContent = 'That email does not look right (or leave it empty).'; return; }
+    $('gErr').textContent = '';
+    try { localStorage.setItem('thGuest', JSON.stringify({ name, phone, email: mail, at: Date.now() })); } catch (e) { }
+    step(3);
+  };
+  [$('gName'), $('gPhone'), $('gMail')].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('gNext').click(); } }));
+
+  $('ints').innerHTML = INTERESTS.map(i => '<button class="int" type="button" data-k="' + i[0] + '"><span>' + i[1] + '</span><div>' + i[2] + '<small>' + i[3] + '</small></div></button>').join('');
+  $('ints').addEventListener('click', e => {
+    const b = e.target.closest('.int'); if (!b) return;
+    const k = b.dataset.k;
+    try { const g = JSON.parse(localStorage.getItem('thGuest') || '{}'); g.interest = k; localStorage.setItem('thGuest', JSON.stringify(g)); } catch (er) { }
+    go(ROUTES[k]);
+  });
+})();
+</script>
+</body>
+</html>
