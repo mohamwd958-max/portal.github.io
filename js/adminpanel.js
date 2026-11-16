@@ -4938,7 +4938,7 @@ function mgEnsureBar() {
    Patch 11: Contact Center → "Guests" (third place, next to Outbound / Inbound)
    Inside: [Guests] the people who entered as guests (name, phone, email)
            [Guest messages] what they sent through Messenger / WhatsApp / Telegram
-   Data: tables portal_guests + guest_messages (see 11_guests.sql)
+   Data: tables portal_guests + guest_chat_messages (see 11_guests.sql)
    ========================================================== */
 (function () {
   'use strict';
@@ -4952,7 +4952,7 @@ function mgEnsureBar() {
   async function gLoad() {
     const [g, m] = await Promise.all([
       fetchAllRows('portal_guests?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل الضيوف (شغّل 11_guests.sql؟): ' + e.message, true); return []; }),
-      fetchAllRows('guest_messages?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل رسائل الضيوف: ' + e.message, true); return []; })
+      fetchAllRows('guest_chat_messages?select=*&order=created_at.desc').catch(e => { showToast('تعذّر تحميل رسائل الضيوف: ' + e.message, true); return []; })
     ]);
     gs.guests = g; gs.msgs = m; gs.loaded = true;
   }
@@ -5044,12 +5044,12 @@ function mgEnsureBar() {
   window.gsSub = s => { gs.sub = s; cc.limit = 200; gPaint(); };
   window.gsFilt = f => { gs.filt = f; cc.limit = 200; gPaint(); };
   window.gsRead = async id => {
-    try { await mutate(`guest_messages?id=eq.${enc(id)}`, 'PATCH', { is_read: true }); const m = gs.msgs.find(x => String(x.id) === String(id)); if (m) m.is_read = true; gPaint(); }
+    try { await mutate(`guest_chat_messages?id=eq.${enc(id)}`, 'PATCH', { is_read: true }); const m = gs.msgs.find(x => String(x.id) === String(id)); if (m) m.is_read = true; gPaint(); }
     catch (e) { showToast('فشل: ' + e.message, true); }
   };
   window.gsDelMsg = async id => {
     if (!confirm('تمسح رسالة الضيف دي؟')) return;
-    try { await mutate(`guest_messages?id=eq.${enc(id)}`, 'DELETE'); gs.msgs = gs.msgs.filter(x => String(x.id) !== String(id)); gPaint(); showToast('اتمسح ✓'); }
+    try { await mutate(`guest_chat_messages?id=eq.${enc(id)}`, 'DELETE'); gs.msgs = gs.msgs.filter(x => String(x.id) !== String(id)); gPaint(); showToast('اتمسح ✓'); }
     catch (e) { showToast('فشل المسح: ' + e.message, true); }
   };
   window.gsDelGuest = async id => {
