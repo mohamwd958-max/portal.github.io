@@ -76,13 +76,22 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 
 /* ---------- the two cards: always one under the other, almost full width ---------- */
 .wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
-.stack{width:100%;display:flex;flex-direction:column;gap:16px;direction:ltr}
+.stack{width:100%;display:flex;flex-direction:column;gap:10px;direction:ltr}
 .card{background:rgba(24,27,34,.55);-webkit-backdrop-filter:blur(46px) saturate(1.4);backdrop-filter:blur(46px) saturate(1.4);
   position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
 .card>*{position:relative;z-index:2;width:100%;max-width:340px}
 .card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:14px}
 .ncard{text-align:center}
+.q{font:600 clamp(1rem,2.4vw,1.2rem)/1.3 Inter,Cairo,sans-serif;text-align:center;color:var(--ink);padding:0 12px;text-shadow:0 1px 12px rgba(0,0,0,.55)}
+body.ar .q{font-family:Cairo,Inter,sans-serif}
+body.light .q{text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
+.q2{margin-top:14px}
+.rise2{opacity:0;translate:0 22px;animation:rise2 1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes rise2{to{opacity:1;translate:0 0}}
+.sky{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+body.light .sky{display:none}
+.meteor{position:absolute;width:140px;height:2px;border-radius:2px;transform-origin:100% 50%;opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(190,215,255,.85) 70%,#fff);box-shadow:0 0 10px 1px rgba(170,200,255,.45)}
 body.light .card{background:rgba(226,221,210,.55)}
 .pop .btn+.btn{margin-top:10px}
 .ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
@@ -161,7 +170,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 .gears svg:first-child{width:46px;height:42px;animation:spin 5s linear infinite}
 .gears svg:last-child{width:32px;height:32px;margin-bottom:2px;animation:spin 3.4s linear infinite reverse}
 @keyframes spin{to{rotate:360deg}}
-@media(prefers-reduced-motion:reduce){.rise,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
+@media(prefers-reduced-motion:reduce){.rise,.rise2,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
 </style>
 </head>
 <body>
@@ -181,11 +190,12 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   <h1 class="brand rise"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
   <div class="tag rise" data-t="tag"></div>
 
-  <div class="wrap rise">
+  <div class="wrap">
     <div class="stack">
 
+        <h3 class="q rise" data-t="q1" style="animation-delay:1.8s"></h3>
         <!-- card 1: Login (same card, fields and effects as the portal) -->
-        <section class="card lcard" id="c0" aria-label="Login">
+        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:2.4s">
           <h2 data-t="loginT"></h2>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
@@ -208,8 +218,8 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
         </section>
 
         <!-- card 2: not a Thabit yet -->
-        <section class="card ncard" id="c1" aria-label="Join">
-          <h2 data-t="notT"></h2>
+        <h3 class="q q2 rise" data-t="q2" style="animation-delay:3.4s"></h3>
+        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:4s">
           <div class="nact">
             <button class="btn" id="joinBtn" type="button" data-t="join"></button>
             <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
@@ -256,12 +266,12 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your partner in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your partner in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'شريكك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'شريكك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -287,6 +297,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t]; });
     $('lg').textContent = t.name; document.title = LANG === 'ar' ? 'مرحبًا بك في ثابت' : 'Welcome to Thabit';
     ['c0', 'c1'].forEach(id => { $(id).dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
+    document.querySelectorAll('.q').forEach(q => { q.dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
     $('c0').querySelectorAll('input').forEach(i => { i.dir = 'ltr'; });
   }
   $('lg').onclick = () => {
@@ -307,6 +318,19 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ leave the page softly ============ */
   function go(url, replace) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { replace ? location.replace(url) : (location.href = url); }, 330); }
+
+  /* ============ a small shooting star every 10-20 seconds (night theme only) ============ */
+  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, $('main'));
+  function meteor() {
+    if (!document.hidden && !body.classList.contains('light') && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
+      const m = document.createElement('i'), W = innerWidth, H = innerHeight, a = 24 + Math.random() * 14, r = a * Math.PI / 180, d = 280 + Math.random() * 200;
+      m.className = 'meteor'; m.style.left = (W * (.1 + Math.random() * .7)) + 'px'; m.style.top = (H * (.04 + Math.random() * .3)) + 'px'; sky.appendChild(m);
+      const tr = p => 'translate(' + (Math.cos(r) * d * p) + 'px,' + (Math.sin(r) * d * p) + 'px) rotate(' + a + 'deg)';
+      try { m.animate([{ transform: tr(0), opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: .9, offset: .65 }, { transform: tr(1), opacity: 0 }], { duration: 1300 + Math.random() * 400, easing: 'ease-in' }).finished.then(() => m.remove(), () => m.remove()); } catch (e) { m.remove(); }
+    }
+    setTimeout(meteor, 10000 + Math.random() * 10000);
+  }
+  setTimeout(meteor, 5000);
 
   /* ============ guest session: asked again when he comes back to this page ============ */
   const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'index.html';
@@ -431,7 +455,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     await sleep(800); btnState('done'); await sleep(650);
     anim(btn, [{ translate: '0 0' }, { translate: '0 -8px', offset: .45 }, { translate: '0 0' }], 750);
     await sleep(800);
-    $('c0').style.transition = 'opacity .5s'; $('c0').style.opacity = 0; await sleep(450);
+    $('c0').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }); await sleep(450);
     let last = ''; try { last = localStorage.getItem('thLastPage') || ''; } catch (e) { }   /* the last page they had open, if a page saved it */
     go(last || route || AFTER_LOGIN, true);   /* replace: the landing is not in history, so Back leaves the app */
   }
