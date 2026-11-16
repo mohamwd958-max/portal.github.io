@@ -58,7 +58,7 @@
       color:#fff!important;opacity:1!important;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:none!important;
       touch-action:manipulation;-webkit-user-select:none;user-select:none;
       font:700 13px/1 Cairo,Inter,sans-serif!important;letter-spacing:0!important;
-      transition:color .24s ease,scale .55s cubic-bezier(.34,1.56,.64,1),translate .32s ease!important}
+      transition:color .24s ease,scale .95s cubic-bezier(.22,1,.36,1),translate .95s cubic-bezier(.22,1,.36,1)!important}
     html body.light-theme #mobileFloatingBar>.circle-badge-btn:not(#z){color:#0f172a!important}
     html body #mobileFloatingBar>.circle-badge-btn::before,html body #mobileFloatingBar>.circle-badge-btn::after{content:none!important;display:none!important}
     html body #mobileFloatingBar>.circle-badge-btn i{font-size:21px!important;line-height:1!important;color:inherit!important}
@@ -68,7 +68,7 @@
       html body #mobileFloatingBar>.circle-badge-btn:not(.active):not(#z):hover{scale:1.2;translate:0 -2px}
     }
     /* pressed: sinks a little, springs back when released */
-    html body #mobileFloatingBar>.circle-badge-btn.pr:not(#z){scale:.84!important;translate:0 1px!important;transition:scale .35s cubic-bezier(.25,.8,.3,1),translate .35s ease,color .24s ease!important}
+    html body #mobileFloatingBar>.circle-badge-btn.pr:not(#z){scale:.84!important;translate:0 1px!important;transition:scale .6s cubic-bezier(.3,.7,.3,1),translate .6s ease-out,color .24s ease!important}
     html body #mobileFloatingBar #floatBtnTheme{color:#fff!important}
     html body.light-theme #mobileFloatingBar #floatBtnTheme{color:#0f172a!important}
     html body #mobileFloatingBar #themeIcon{font-weight:400!important}
@@ -361,6 +361,25 @@
     #thDots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.25;transition:opacity .5s,scale .5s;color:#f1f5f9}
     html body.light-theme #thDots i{color:#0f172a}
     #thDots i.on{opacity:.85;scale:1.2}
+
+    /* quick-access strip of service circles above the bar */
+    #svcStrip{position:fixed;left:50%;bottom:calc(54px + env(safe-area-inset-bottom,0px) + 12px);z-index:2147482990;display:flex;gap:9px;padding:8px;border-radius:999px;box-sizing:border-box;max-width:calc(100vw - 16px);color:#f1f5f9;
+      background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px rgba(0,0,0,.4);
+      opacity:0;visibility:hidden;translate:-50% 16px;scale:.92;transition:opacity .4s ease,scale .7s var(--rc-ease),translate .7s var(--rc-ease),visibility 0s .7s}
+    html body.light-theme #svcStrip{color:#0f172a;background:rgba(255,255,255,.6);border-color:rgba(15,23,42,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 10px 28px rgba(15,23,42,.16)}
+    #svcStrip.on{opacity:1;visibility:visible;translate:-50% 0;scale:1;transition-delay:0s}
+    #svcStrip .sq{position:relative;flex:none;width:42px;height:42px;padding:0;margin:0;border-radius:50%;border:1px solid rgba(148,163,184,.3);background:rgba(148,163,184,.12);color:inherit;
+      display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+      opacity:0;translate:0 10px;transition:opacity .4s ease calc(var(--i) * 45ms + 80ms),translate .6s var(--rc-ease) calc(var(--i) * 45ms + 80ms),scale var(--rc-slow) var(--rc-ease),background .3s,border-color .3s,color .3s}
+    #svcStrip.on .sq{opacity:1;translate:0 0}
+    @media(hover:hover){#svcStrip .sq:hover{scale:var(--rc-hover-ctl);background:rgba(148,163,184,.22)}}
+    #svcStrip .sq:active{scale:var(--rc-down-ctl);transition:scale var(--rc-fast) ease-out}
+    #svcStrip .sq.on{color:#fbbf24;border-color:rgba(251,191,36,.7);background:rgba(251,191,36,.16)}
+    html body.light-theme #svcStrip .sq.on{color:#b45309;border-color:rgba(180,83,9,.6)}
+    #svcStrip .sq .pin{position:absolute;top:-7px;right:-4px;font-size:13px;color:#fbbf24;opacity:0;scale:.3;transition:opacity .4s,scale .5s var(--rc-ease);filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+    html body.light-theme #svcStrip .sq .pin{color:#b45309}
+    #svcStrip .sq.on .pin{opacity:1;scale:1}
 
     /* theme switch: slower, softer colour change */
     body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.3s ease,color 1.3s ease,border-color 1.3s ease,box-shadow 1.3s ease,fill 1.3s ease,stroke 1.3s ease!important}
@@ -1163,7 +1182,7 @@
       const SV = [['lang', 'fa-language'], ['voice', 'fa-microphone-lines'], ['digital', 'fa-laptop-code'], ['consult', 'fa-user-tie'], ['store', 'fa-shirt'], ['soon', 'fa-hourglass-half']];
       const LANGS = [['ar', 'العربية', 'عربي'], ['en', 'English', 'EN'], ['eg', 'مصري', 'مصر']];
       const L = () => (typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en';
-      let cur = 'lang', switching = false, openM = null;
+      let cur = 'lang', switching = false, openM = null, quick = false, stripOn = false;
 
       /* ---------- service pages (login stays the first one) ---------- */
       const dramatic = (el, show) => el.animate(
@@ -1178,7 +1197,7 @@
         try { await dramatic(out, false).finished; } catch (e) { }
         if (cur === 'lang') login.style.display = 'none'; else panel.style.display = 'none';
         out.getAnimations().forEach(a => a.cancel());
-        cur = k; body.dataset.opt = k;
+        cur = k; body.dataset.opt = k; markStrip();
         let inn;
         if (k === 'lang') { login.style.display = ''; inn = login; }
         else { $('opIcon').className = 'fa-solid ' + SV.find(x => x[0] === k)[1]; labels(); panel.style.display = 'flex'; inn = panel.firstElementChild; }
@@ -1194,14 +1213,15 @@
       }
       const svc = mk($('svcBtn'), 'svcMenu', 292,
         () => SV.map(x => ({ k: x[0], tile: '<i class="fa-solid ' + x[1] + '"></i>', label: T[L()][x[0]], tag: x[0] === 'lang' ? '' : T[L()].tag })),
-        () => cur, k => select(k));
+        () => cur, k => { select(k); quick = true; setStrip(true); });
+      svc.pin = true;
       const lng = mk($('langBtn'), 'langMenu', 216,
         () => LANGS.map(x => ({ k: x[0], tile: x[2], label: x[1], tag: '' })),
         () => L(), c => { if (typeof window.setLanguage === 'function') window.setLanguage(c); labels(); });
 
       function render(m) {
         const c = m.curKey();
-        m.el.innerHTML = m.items().map((it, i) => '<div class="pmi' + (it.k === c ? ' on' : '') + '" role="menuitem" tabindex="-1" data-k="' + it.k + '" style="--i:' + i + '"><span class="pmt">' + it.tile + '</span><span class="pml">' + it.label + '</span><span class="pmc">' + (it.k === c ? '<i class="fa-solid fa-check"></i>' : it.tag) + '</span></div>').join('');
+        m.el.innerHTML = m.items().map((it, i) => '<div class="pmi' + (it.k === c ? ' on' : '') + '" role="menuitem" tabindex="-1" data-k="' + it.k + '" style="--i:' + i + '"><span class="pmt">' + it.tile + '</span><span class="pml">' + it.label + '</span><span class="pmc">' + (it.k === c ? '<i class="fa-solid ' + (m.pin ? 'fa-location-dot' : 'fa-check') + '"></i>' : it.tag) + '</span></div>').join('');
       }
       function place(m) {
         const r = m.anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
@@ -1210,6 +1230,7 @@
         m.el.style.transformOrigin = (r.left + r.width / 2 - left) + 'px 100%';
       }
       function open(m) {
+        if (m === svc && quick) { if (openM) close(openM); setStrip(!stripOn); return; }   /* after the first choice the list lives above the bar: the button just shows / hides it */
         if (openM && openM !== m) close(openM);
         render(m); place(m); m.el.style.display = 'block'; void m.el.offsetWidth;
         m.el.classList.add('open'); scrim.classList.add('on'); m.anchor.classList.add('open'); m.anchor.setAttribute('aria-expanded', 'true'); openM = m;
@@ -1273,6 +1294,14 @@
         m.el.addEventListener('contextmenu', e => e.preventDefault());
       }
       [svc, lng].forEach(m => { wireAnchor(m); wireItems(m); });
+
+      /* ---------- quick-access strip: small circles above the bar, no blur behind; the pin shows where you are ---------- */
+      const strip = document.createElement('div'); strip.id = 'svcStrip'; strip.setAttribute('role', 'toolbar'); body.appendChild(strip);
+      strip.innerHTML = SV.map((x, i) => '<button type="button" class="sq' + (x[0] === cur ? ' on' : '') + '" data-k="' + x[0] + '" style="--i:' + i + '"><i class="fa-solid ' + x[1] + '"></i><i class="fa-solid fa-location-dot pin"></i></button>').join('');
+      function markStrip() { strip.querySelectorAll('.sq').forEach(b => b.classList.toggle('on', b.dataset.k === cur)); }
+      function titleStrip() { strip.querySelectorAll('.sq').forEach(b => { const t = T[L()][b.dataset.k]; b.title = t; b.setAttribute('aria-label', t); }); }
+      function setStrip(on) { stripOn = on; strip.classList.toggle('on', on); svc.anchor.classList.toggle('open', on); svc.anchor.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+      strip.addEventListener('click', e => { const b = e.target.closest('.sq'); if (b) select(b.dataset.k); });
       document.addEventListener('pointerdown', e => { if (openM && !openM.el.contains(e.target) && !openM.anchor.contains(e.target)) close(openM); }, true);   /* tap anywhere else: closes */
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && openM) close(openM); });
       window.addEventListener('resize', () => { if (openM) place(openM); });
@@ -1284,6 +1313,7 @@
         $('langBtn').title = $('langBtn').ariaLabel = t.langT; $('svcBtn').title = $('svcBtn').ariaLabel = t.svc;
         if (cur !== 'lang') { $('opTitle').textContent = t[cur]; $('opText').textContent = t[cur + 'Text'] || t.empty; }
         if (openM) render(openM);
+        titleStrip();
       }
       const origSet = window.setLanguage;
       if (typeof origSet === 'function') window.setLanguage = function () { const r = origSet.apply(this, arguments); labels(); return r; };
