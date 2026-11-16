@@ -300,8 +300,11 @@
        ===================================================================== */
     html body #mobileFloatingBar:not(#z):not(#y){display:grid!important;grid-template-columns:repeat(5,1fr)!important;justify-items:center!important;justify-content:stretch!important}
     html body #thabitPortalLogo{display:none!important}
-    html body #login-screen:not([style*="display: none"]){min-height:100vh;min-height:100dvh;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center;
-      padding-top:46px;padding-bottom:calc(54px + env(safe-area-inset-bottom,0px))}
+    html body #login-screen:not([style*="display: none"]){min-height:100vh;min-height:100dvh;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center;padding:0}
+    html body{padding-bottom:0!important}
+    /* login card closes right under the Get In button */
+    html body #cardLogin:not(#z){min-height:0!important;height:auto!important;padding-bottom:26px!important}
+    html body #cardLogin>div{min-height:0!important;height:auto!important}
 
     /* bar buttons: icon on top, name underneath */
     html body #mobileFloatingBar>.circle-badge-btn.lbl:not(#z){flex-direction:column!important;gap:3px!important;height:46px!important;max-width:86px!important;width:100%!important;padding:0 2px!important;border-radius:14px!important;font:700 10.5px/1.1 Cairo,Inter,sans-serif!important}
@@ -341,6 +344,27 @@
     #thSheet .shm{min-height:18px;text-align:center;font:600 .78rem Cairo,Inter,sans-serif}
     #thSheet .shm.ok{color:#34d399}#thSheet .shm.bad{color:#f87171}
 
+    /* ---------- slide 2 of the login stack (guest) + small Be Thabit card ---------- */
+    .gcard{position:absolute;z-index:1;box-sizing:border-box;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 38px;color:#f1f5f9;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 10px 30px rgba(0,0,0,.45);visibility:hidden;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+      transition:scale var(--rc-slow) var(--rc-ease)}
+    html body.light-theme .gcard{color:#0f172a;background:rgba(255,255,255,.55);border-color:rgba(15,23,42,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(15,23,42,.1)}
+    @media(hover:hover){html body .gcard:hover{scale:var(--rc-hover-card)}}
+    .gcard h2{margin:0 0 8px;font:800 1.15rem Cairo,Inter,sans-serif;letter-spacing:1px}
+    .gcard p{margin:0 0 22px;font:500 .88rem/1.6 Cairo,Inter,sans-serif;opacity:.65}
+    html body .xcard.bcard{position:absolute;z-index:1}
+    .xbtn.gold{border-color:rgba(251,191,36,.7);background:rgba(251,191,36,.1);color:#fbbf24}
+    html body.light-theme .xbtn.gold{color:#92400e;border-color:rgba(180,83,9,.6);background:rgba(251,191,36,.18)}
+    @media(hover:hover){.xbtn.gold:hover{background:rgba(251,191,36,.2);box-shadow:0 0 22px rgba(251,191,36,.25)}}
+    #thDots{position:absolute;z-index:1;display:flex;justify-content:center;gap:7px;pointer-events:none}
+    #thDots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.25;transition:opacity .5s,scale .5s;color:#f1f5f9}
+    html body.light-theme #thDots i{color:#0f172a}
+    #thDots i.on{opacity:.85;scale:1.2}
+
+    /* theme switch: slower, softer colour change */
+    body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.3s ease,color 1.3s ease,border-color 1.3s ease,box-shadow 1.3s ease,fill 1.3s ease,stroke 1.3s ease!important}
+
     /* ---------- small glass header ---------- */
     #thHead{position:fixed;top:0;left:0;right:0;height:46px;z-index:50;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;padding:0 14px;direction:ltr;
       background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);
@@ -359,7 +383,7 @@
     #thHeadTxt{display:flex;align-items:baseline;gap:9px;margin-left:10px;min-width:0;white-space:nowrap;overflow:hidden;color:#f1f5f9;direction:ltr}
     html body.light-theme #thHeadTxt{color:#0f172a}
     #thHeadTxt b{font:800 .95rem 'Plus Jakarta Sans',Cairo,sans-serif;letter-spacing:.3px}
-    #thHeadTxt i{font:500 .72rem 'Plus Jakarta Sans',Cairo,sans-serif;font-style:normal;opacity:.6;overflow:hidden;text-overflow:ellipsis}
+    #thHeadTxt i{font:600 .8rem 'Plus Jakarta Sans',Cairo,sans-serif;font-style:normal;opacity:.85;overflow:hidden;text-overflow:ellipsis}
 
     /* ---------- ONE light that travels through all the glass: bar -> cards -> header ---------- */
     body{--lc:255,255,255}
@@ -401,7 +425,7 @@
     </div>
 
     <!-- Small glass header with the small logo (fades in shortly after the page opens) -->
-    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span><span id="thHeadTxt"><b>Thabit</b><i>good for now, good forever</i></span></header>
+    <header id="thHead"><span class="thabit-logo-mark" role="img" aria-label="TH logo"></span><span id="thHeadLogo" role="img" aria-label="Thabit"></span><span id="thHeadTxt"><i>good for now, good forever</i></span></header>
 
     <div id="thIntro" class="thb-ov" aria-hidden="true"><div id="thIntroStage"></div></div>
     <style>
@@ -795,6 +819,11 @@
       $('aboutBtn').addEventListener('click', () => mode === 'about' ? close() : open('about'));
       scrim.addEventListener('click', close);
       document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+      const origTheme = window.toggleTheme;
+      if (typeof origTheme === 'function') window.toggleTheme = function () {
+        document.body.classList.add('th-fade'); clearTimeout(window.__thFadeT); window.__thFadeT = setTimeout(() => document.body.classList.remove('th-fade'), 1500);
+        return origTheme.apply(this, arguments);
+      };
       const origSet = window.setLanguage;
       if (typeof origSet === 'function') window.setLanguage = function () { const r = origSet.apply(this, arguments); fill(); return r; };
       fill(); window.addEventListener('load', () => { fill(); setTimeout(fill, 400); });
@@ -808,7 +837,7 @@
       const CYCLE = 20000, DUR = 3000;
       let t0 = 0;
       const bar = document.getElementById('mobileFloatingBar');
-      const sel = '#mobileFloatingBar,.portal-card,.xcard,#optPanel .optcard,#thHead,[data-glass]';   /* any glass piece, whatever its size or count */
+      const sel = '#mobileFloatingBar,.portal-card,.xcard,.gcard,#optPanel .optcard,#thHead,[data-glass]';   /* any glass piece, whatever its size or count */
       const ready = setInterval(() => { if (document.body.classList.contains('th-ready')) { clearInterval(ready); t0 = performance.now() + 1500; requestAnimationFrame(tick); } }, 100);
       function blobOf(el) {
         let g = el.querySelector(':scope > .glw');
@@ -1262,41 +1291,80 @@
     })();
     </script>
 
-    <!-- Cards under login: "Are you a guest?" and "Want to become one of us?" (Real-click animation on their buttons) -->
+    <!-- Login stack: swipe left on the Login card for "Are you a guest?" (same size, blur-out / fade-in); small "Be Thabit" card sits under it -->
     <script>
     (function () {
       'use strict';
       const $ = id => document.getElementById(id);
-      const lay = $('portalLayout'), card = $('cardLogin'), getIn = $('btnLoginBtn');
+      const par = $('portalLayout'), card = $('cardLogin'), getIn = $('btnLoginBtn');
+      if (getComputedStyle(par).position === 'static') par.style.position = 'relative';
       const T = {
-        en: { guestBtn: 'Are you a guest?', q: 'Want to become one of us?', be: 'Be Thabit' },
-        ar: { guestBtn: 'هل أنت ضيف؟', q: 'هل تريد أن تصبح واحدًا منا؟', be: 'كن ثابت' },
-        eg: { guestBtn: 'إنت ضيف؟', q: 'عايز تبقى واحد مننا؟', be: 'كن ثابت' }
+        en: { gt: 'Are you a guest?', gs: 'Take a look around without an account.', gb: 'Continue as guest', q: "You're not Thabit yet?", be: 'Be Thabit' },
+        ar: { gt: 'هل أنت ضيف؟', gs: 'تصفّح بدون حساب.', gb: 'المتابعة كضيف', q: 'لست من ثابت بعد؟', be: 'كن ثابت' },
+        eg: { gt: 'إنت ضيف؟', gs: 'اتفرج من غير حساب.', gb: 'كمّل كضيف', q: 'لسه مش من ثابت؟', be: 'كن ثابت' }
       };
-      const wrap = document.createElement('div'); wrap.className = 'xwrap'; wrap.id = 'xWrap';
-      wrap.innerHTML =
-        '<div class="xcard" style="--xd:.25s"><div class="xbtn" id="xGuest" role="button" tabindex="0"></div></div>' +
-        '<div class="xcard" style="--xd:.45s"><p class="xq" id="xQ"></p><div class="xbtn" id="xBe" role="button" tabindex="0"></div></div>';
-      lay.parentNode.appendChild(wrap);
-      const gBtn = $('xGuest'), bBtn = $('xBe'), q = $('xQ');
+      const tr = () => T[(typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en'];
 
-      /* same width as the login card, same button width / height as "Get In" */
-      function size() {
-        const w = card.offsetWidth, bw = getIn.offsetWidth;
-        if (!w || !bw) return;
-        wrap.style.width = w + 'px';
+      /* the login card goes into a wrapper so the blur can be animated on it */
+      const wLogin = document.createElement('div'); wLogin.id = 'sLogin';
+      card.parentNode.insertBefore(wLogin, card); wLogin.appendChild(card);
+
+      const guest = document.createElement('div'); guest.className = 'gcard'; guest.setAttribute('data-glass', '');
+      guest.innerHTML = '<h2 id="gT"></h2><p id="gS"></p><div class="xbtn" id="xGuest" role="button" tabindex="0"></div>';
+      const be = document.createElement('div'); be.className = 'xcard bcard'; be.style.setProperty('--xd', '.3s');
+      be.innerHTML = '<p class="xq" id="xQ"></p><div class="xbtn gold" id="xBe" role="button" tabindex="0"></div>';
+      const dots = document.createElement('div'); dots.id = 'thDots'; dots.innerHTML = '<i class="on"></i><i></i>';
+      par.appendChild(guest); par.appendChild(be); par.appendChild(dots);
+      const gBtn = $('xGuest'), bBtn = $('xBe');
+
+      /* guest card = exactly the login card's box; Be Thabit card sits under it */
+      function place() {
+        const w = card.offsetWidth, h = card.offsetHeight, bw = getIn.offsetWidth;
+        if (!w || !h) return;
+        guest.style.left = card.offsetLeft + 'px'; guest.style.top = card.offsetTop + 'px'; guest.style.width = w + 'px'; guest.style.height = h + 'px';
+        const y = card.offsetTop + h;
+        dots.style.left = card.offsetLeft + 'px'; dots.style.width = w + 'px'; dots.style.top = (y + 10) + 'px';
+        be.style.left = card.offsetLeft + 'px'; be.style.width = w + 'px'; be.style.top = (y + 28) + 'px';
         [gBtn, bBtn].forEach(b => { b.style.width = bw + 'px'; });
       }
-      size(); window.addEventListener('resize', size); [300, 1200, 2500].forEach(t => setTimeout(size, t));
-      if (window.ResizeObserver) { const ro = new ResizeObserver(size); ro.observe(card); ro.observe(getIn); }
+      place(); window.addEventListener('resize', place); [300, 1200, 2500].forEach(t => setTimeout(place, t));
+      if (window.ResizeObserver) { const ro = new ResizeObserver(place); ro.observe(card); ro.observe(getIn); }
 
       function labels() {
-        const t = T[(typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en'];
-        gBtn.textContent = t.guestBtn; q.textContent = t.q; bBtn.textContent = t.be;
+        const t = tr();
+        $('gT').textContent = t.gt; $('gS').textContent = t.gs; gBtn.textContent = t.gb; $('xQ').textContent = t.q; bBtn.textContent = t.be;
       }
       const origSet = window.setLanguage;
       if (typeof origSet === 'function') window.setLanguage = function () { const r = origSet.apply(this, arguments); labels(); return r; };
       labels(); window.addEventListener('load', () => { labels(); setTimeout(labels, 400); });
+
+      /* ---------- swipe between the two cards: current one blurs out, the next one clears up slowly ---------- */
+      let cur = 0, busy = false;
+      async function show(i) {
+        if (busy || i === cur) return; busy = true;
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        const out = cur === 0 ? wLogin : guest, inn = i === 0 ? wLogin : guest;
+        try { await out.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(14px)' }], { duration: 320, easing: 'ease-in', fill: 'forwards' }).finished; } catch (e) { }
+        out.style.visibility = 'hidden'; out.style.pointerEvents = 'none'; out.getAnimations().forEach(a => a.cancel());
+        inn.style.visibility = 'visible'; inn.style.pointerEvents = 'auto';
+        dots.children[cur].classList.remove('on'); dots.children[i].classList.add('on');
+        try { await inn.animate([{ opacity: 0, filter: 'blur(14px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 750, easing: 'cubic-bezier(.16,1,.3,1)' }).finished; } catch (e) { }
+        cur = i; busy = false;
+      }
+      par.style.touchAction = 'pan-y';
+      let sx = 0, sy = 0, sid = null;
+      par.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.target.closest('input,textarea')) return;
+        sid = e.pointerId; sx = e.clientX; sy = e.clientY;
+      });
+      document.addEventListener('pointerup', e => {
+        if (e.pointerId !== sid) return; sid = null;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+        if (dx < 0 && cur === 0) show(1); else if (dx > 0 && cur === 1) show(0);
+      });
+      document.addEventListener('pointercancel', e => { if (e.pointerId === sid) sid = null; });
 
       let leaving = false;
       function go(url) {
@@ -1323,7 +1391,6 @@
       }
       rc(gBtn, () => { if (window.thShowWip) window.thShowWip(); });
       rc(bBtn, () => go('placement.html'));
-
     })();
     </script>
 </body>
