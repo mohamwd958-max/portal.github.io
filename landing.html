@@ -50,6 +50,9 @@ main>.hello,main>.brand,main>.tag{padding:0 20px}
 body.ar .hello{font:600 clamp(1.3rem,4.6vw,2rem)/1.2 Cairo,sans-serif;letter-spacing:0}
 body.ar .brand{font:900 clamp(3.6rem,17vw,8.2rem)/1.15 Cairo,sans-serif;letter-spacing:0}
 body.ar .tag{letter-spacing:.04em;text-transform:none;font-size:clamp(.95rem,3.2vw,1.15rem)}
+body.light .hello,body.light .tag{color:var(--ink);text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
+body.light .tag{font-weight:700}
+body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,.55)}
 /* name | TH logo: so it is clear this is the Thabit program */
 .brand{display:flex;align-items:center;justify-content:center;gap:.2em}
 .brand .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
@@ -73,20 +76,12 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 /* ---------- the two cards: always one under the other, almost full width ---------- */
 .wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
 .stack{width:100%;display:flex;flex-direction:column;gap:16px;direction:ltr}
-.card{--ink:#f4f1ea;--ink2:rgba(244,241,234,.8);--gbd:rgba(255,255,255,.24);--gfield:rgba(255,255,255,.14);--btn:#f4f1ea;--onbtn:#15130f;--bad:#fca5a5;
-  position:relative;isolation:isolate;overflow:hidden;width:100%;min-height:clamp(280px,36vh,400px);padding:34px 20px;border-radius:28px;border:1px solid rgba(255,255,255,.14);
+.card{background:var(--gbg);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+  position:relative;isolation:isolate;overflow:hidden;width:100%;min-height:clamp(280px,36vh,400px);padding:34px 20px;border-radius:28px;border:1px solid var(--gbd);
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
 .card>*{position:relative;z-index:2;width:100%;max-width:380px}
 .card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:22px}
-/* login card: rocks in the middle, the sides continue with the picture's own colour */
-.lcard{background:linear-gradient(90deg,#616473 20%,#3f4658 80%)}
-.lcard::before{content:"";position:absolute;inset:0;z-index:0;background:url(assets/rocks-bg.jpg) center/auto 100% no-repeat;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 80%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 80%,transparent 100%)}
-.lcard::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(520px 280px at 50% 50%,rgba(18,22,38,.6),rgba(18,22,38,.25) 60%,transparent 100%)}
-/* second card: blue grain gradient, centred text and buttons */
-.ncard{min-height:clamp(210px,26vh,270px);text-align:center;
-  background:radial-gradient(60% 130% at 12% 95%,#22a6e0 0%,transparent 60%),radial-gradient(50% 130% at 88% 85%,#29a3dc 0%,transparent 65%),radial-gradient(40% 110% at 50% 0%,#b9b6c8 0%,transparent 70%),linear-gradient(90deg,#0f2a66,#1f63c9 45%,#3aa0d8)}
-.ncard::after{content:"";position:absolute;inset:0;z-index:1;opacity:.35;mix-blend-mode:overlay;pointer-events:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.ncard{min-height:clamp(210px,26vh,270px);text-align:center}
 .ncard h2{margin-bottom:20px;font-size:clamp(1.25rem,2.4vw,1.8rem);font-weight:600}
 .card>.nact{width:auto;max-width:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .nact .btn{width:auto;min-width:160px;padding:0 24px}
@@ -167,7 +162,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 </style>
 </head>
 <body>
-<script>try{if(localStorage.getItem('thThemeChoice')!=='dark')document.body.classList.add('light')}catch(e){document.body.classList.add('light')}</script>
+<script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
 <div class="bg"></div><div class="vd"></div><div class="vl"></div>
 
 <div class="ctl">
