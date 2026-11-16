@@ -1431,11 +1431,11 @@
       }, 80);
 
       const T = {
-        en: { svc: 'Services', lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', soon: 'Coming soon', tag: 'Soon', empty: 'Nothing here yet. This page is coming soon.', storeText: 'Thabit merch: T-shirts and more. Coming soon.', langT: 'Language' },
-        ar: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'قريبًا', tag: 'قريبًا', empty: 'لا يوجد شيء هنا حتى الآن. هذه الصفحة قريبًا.', storeText: 'منتجات ثابت: تيشيرتات وغيرها. قريبًا.', langT: 'اللغة' },
-        eg: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'قريبًا', tag: 'قريب', empty: 'لسه مفيش حاجة هنا. الصفحة دي قريب.', storeText: 'منتجات ثابت: تيشيرتات وحاجات تانية. قريب.', langT: 'اللغة' }
+        en: { svc: 'Services', lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'Coming soon', tag: 'Soon', empty: 'Nothing here yet. This page is coming soon.', storeText: 'Thabit merch: T-shirts and more. Coming soon.', langT: 'Language' },
+        ar: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'قريبًا', tag: 'قريبًا', empty: 'لا يوجد شيء هنا حتى الآن. هذه الصفحة قريبًا.', storeText: 'منتجات ثابت: تيشيرتات وغيرها. قريبًا.', langT: 'اللغة' },
+        eg: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'قريبًا', tag: 'قريب', empty: 'لسه مفيش حاجة هنا. الصفحة دي قريب.', storeText: 'منتجات ثابت: تيشيرتات وحاجات تانية. قريب.', langT: 'اللغة' }
       };
-      const SV = [['lang', 'fa-language'], ['voice', 'fa-microphone-lines'], ['digital', 'fa-laptop-code'], ['consult', 'fa-user-tie'], ['store', 'fa-shirt'], ['soon', 'fa-hourglass-half']];
+      const SV = [['lang', 'fa-language'], ['dict', 'fa-wave-square'], ['mirror', 'fa-clone'], ['voice', 'fa-microphone-lines'], ['digital', 'fa-laptop-code'], ['consult', 'fa-user-tie'], ['store', 'fa-shirt'], ['soon', 'fa-hourglass-half']];
       const LANGS = [['ar', 'العربية', 'عربي'], ['en', 'English', 'EN'], ['eg', 'مصري', 'مصر']];
       const L = () => (typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en';
       let cur = 'lang', switching = false, openM = null, quick = false, stripOn = false;
@@ -1471,7 +1471,7 @@
         return { anchor, el, w, items, curKey, pick };
       }
       const svc = mk($('svcBtn'), 'svcMenu', 292,
-        () => SV.map(x => ({ k: x[0], tile: '<i class="fa-solid ' + x[1] + '"></i>', label: T[L()][x[0]], tag: x[0] === 'lang' ? '' : T[L()].tag })),
+        () => SV.map(x => ({ k: x[0], tile: '<i class="fa-solid ' + x[1] + '"></i>', label: T[L()][x[0]], tag: ['lang', 'dict', 'mirror'].includes(x[0]) ? '' : T[L()].tag })),
         () => cur, k => { select(k); quick = true; setStrip(true); });
       svc.pin = true;
       const lng = mk($('langBtn'), 'langMenu', 216,
@@ -1559,7 +1559,7 @@
       strip.innerHTML = SV.map((x, i) => '<button type="button" class="sq' + (x[0] === cur ? ' on' : '') + '" data-k="' + x[0] + '" style="--i:' + i + '"><i class="fa-solid ' + x[1] + '"></i><i class="fa-solid fa-location-dot pin"></i></button>').join('');
       function markStrip() { strip.querySelectorAll('.sq').forEach(b => b.classList.toggle('on', b.dataset.k === cur)); }
       function titleStrip() { strip.querySelectorAll('.sq').forEach(b => { const t = T[L()][b.dataset.k]; b.title = t; b.setAttribute('aria-label', t); }); }
-      window.thSvc = { strip: on => setStrip(on) };
+      window.thSvc = { strip: on => setStrip(on), select: k => select(k) };
       function setStrip(on) { stripOn = on; strip.classList.toggle('on', on); svc.anchor.classList.toggle('open', on); svc.anchor.setAttribute('aria-expanded', on ? 'true' : 'false'); }
       strip.addEventListener('click', e => { const b = e.target.closest('.sq'); if (b) select(b.dataset.k); });
       document.addEventListener('pointerdown', e => { if (openM && !openM.el.contains(e.target) && !openM.anchor.contains(e.target)) close(openM); }, true);   /* tap anywhere else: closes */
@@ -1770,6 +1770,17 @@ body.th-rtl #thSide .sdh{letter-spacing:0;font-size:.74rem;text-transform:none}
 #thSide .sdseg .sdt{width:auto;height:auto;background:transparent;font-size:.8rem}
 #thSide .sdseg .sdx{flex:none}
 #thSide .sdi.sm{min-height:40px;font-weight:600;font-size:.82rem}
+/* Language Training: a button that opens its three tools underneath */
+#thSide .sdsub{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--rc-ease)}
+#thSide .sdsub.open{grid-template-rows:1fr}
+#thSide .sdsub>div{overflow:hidden;min-height:0;display:flex;flex-direction:column;gap:2px;padding-inline-start:18px}
+#thSide .sdsub.open>div{padding-top:2px}
+#thSide .sdsub .sdi{opacity:0;translate:0 -6px;transition:opacity .4s ease,translate .5s var(--rc-ease),scale var(--rc-slow) var(--rc-ease),background .3s,border-color .3s,color .3s}
+#thSide .sdsub.open .sdi{opacity:1;translate:0 0}
+#thSide .sdsub.open .sdi:nth-child(2){transition-delay:.05s,.05s,0s,0s,0s,0s}
+#thSide .sdsub.open .sdi:nth-child(3){transition-delay:.1s,.1s,0s,0s,0s,0s}
+#thSide .sdch{font-size:.7rem;transition:rotate .45s var(--rc-ease)}
+#thSide .sdi.exp .sdch{rotate:180deg}
 /* sidebar: no scrollbar, soft fade at the bottom when more is below */
 #thSide{scrollbar-width:none;-ms-overflow-style:none}
 #thSide::-webkit-scrollbar{display:none}
@@ -1794,11 +1805,11 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
   'use strict';
   const $ = id => document.getElementById(id), body = document.body, side = $('thSide'), inn = $('sdIn');
   const T = {
-    en: { svc: 'Services', lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', soon: 'More soon',
+    en: { svc: 'Services', lang: 'Language Training', voice: 'Voice-Over', digital: 'Digital Solutions', consult: 'Personal Consultations', store: 'Our Store', dash: 'Dashboard', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'More soon',
           tag: 'Soon', touch: 'Get in Touch', msgr: 'Thabit Messenger', best: 'Best', wa: 'WhatsApp', tg: 'Telegram', theme: 'Theme', dark: 'Dark', light: 'Light', langs: 'Language', about: 'About' },
-    ar: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'المزيد قريبًا',
+    ar: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', dash: 'الداشبورد', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'المزيد قريبًا',
           tag: 'قريبًا', touch: 'تواصل معنا', msgr: 'ثابت ميسنجر', best: 'الأفضل', wa: 'واتساب', tg: 'تيليجرام', theme: 'المظهر', dark: 'داكن', light: 'فاتح', langs: 'اللغة', about: 'عنّا' },
-    eg: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', soon: 'المزيد قريب',
+    eg: { svc: 'الخدمات', lang: 'التدريب اللغوي', voice: 'التعليق الصوتي', digital: 'الحلول الإلكترونية', consult: 'الاستشارات الشخصية', store: 'متجرنا', dash: 'الداشبورد', dict: 'Dictation Pal', mirror: 'Mirroring Room', soon: 'المزيد قريب',
           tag: 'قريب', touch: 'كلمنا', msgr: 'ثابت ميسنجر', best: 'الأفضل', wa: 'واتساب', tg: 'تيليجرام', theme: 'المظهر', dark: 'دارك', light: 'لايت', langs: 'اللغة', about: 'عننا' }
   };
   const SV = [['lang', 'fa-language'], ['voice', 'fa-microphone-lines'], ['digital', 'fa-laptop-code'], ['consult', 'fa-user-tie'], ['store', 'fa-shirt'], ['soon', 'fa-hourglass-half']];
@@ -1817,17 +1828,28 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
     wa: '<path d="M3.5 20.5l1.3-4.2A8.6 8.6 0 1 1 8 19.5z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1.2-1.6-2-1.1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1.1-2z"/>',
     tg: '<path d="M21.5 3.5 2.5 10.8l6.3 2.4 2 6.5 3-3.7 4.5 3.3z"/><path d="M8.8 13.2 21.5 3.5"/>',
     about: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/>',
+    dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+    dict: '<path d="M3 12h2M7 8v8M11 4.5v15M15 8.5v7M19 11v2"/>',
+    mirror: '<rect x="5.5" y="2.5" width="13" height="16" rx="6.5"/><path d="M9.5 7c.8-.8 1.7-1.2 2.7-1.2M12 18.5V21M8.5 21.5h7"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>'
   };
   const ico = k => '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[k] + '</svg>';
 
+  let langOpen = false;
+  const DASH_URL = (typeof ROLE_ROUTES !== 'undefined' && ROLE_ROUTES.trainee) || 'dashboard.html';
+  /* Language Training = a button; under it: Dashboard, Dictation Pal, Mirroring Room (nothing else) */
+  function langGroup(t) {
+    const sub = k => '<button type="button" class="sdi sm" data-sub="' + k + '"><span class="sdt">' + ico(k) + '</span><span class="sdx">' + t[k] + '</span><span class="sdg"></span></button>';
+    return '<button type="button" class="sdi' + (langOpen ? ' exp' : '') + '" data-exp="lang"><span class="sdt">' + ico('lang') + '</span><span class="sdx">' + t.lang + '</span><span class="sdg"><i class="fa-solid fa-chevron-down sdch"></i></span></button>' +
+      '<div class="sdsub' + (langOpen ? ' open' : '') + '"><div>' + sub('dash') + sub('dict') + sub('mirror') + '</div></div>';
+  }
   function build() {
     const t = T[L()];
     const btn = (cls, tile, label, tag, attrs) => '<button type="button" class="sdi ' + cls + '" ' + attrs + '><span class="sdt">' + tile + '</span><span class="sdx">' + label + '</span><span class="sdg">' + (tag || '') + '</span></button>';
     inn.innerHTML =
       '<section><div class="sdh">' + t.svc + '</div><div class="sdl">' +
-        SV.map(s => btn('', ico(s[0]), t[s[0]], s[0] === 'lang' ? '' : t.tag, 'data-svc="' + s[0] + '"')).join('') + '</div></section>' +
+        SV.filter(s => s[0] !== 'dict' && s[0] !== 'mirror').map(s => s[0] === 'lang' ? langGroup(t) : btn('', ico(s[0]), t[s[0]], t.tag, 'data-svc="' + s[0] + '"')).join('') + '</div></section>' +
       '<section><div class="sdh">' + t.touch + '</div><div class="sdl">' +
         btn('main', ico('msgr'), t.msgr, t.best, 'data-act="msgr"') +
         btn('', ico('wa'), t.wa, '', 'data-act="wa"') +
@@ -1843,6 +1865,8 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
   function mark() {
     const light = body.classList.contains('light-theme'), sheetOn = $('thSheet') && $('thSheet').classList.contains('on'), opt = body.dataset.opt || 'lang';
     inn.querySelectorAll('[data-svc]').forEach(b => b.classList.toggle('on', !sheetOn && b.dataset.svc === opt));
+    inn.querySelectorAll('[data-sub]').forEach(b => b.classList.toggle('on', !sheetOn && b.dataset.sub === opt));
+    const ex = inn.querySelector('[data-exp]'); if (ex) ex.classList.toggle('on', !sheetOn && (opt === 'lang' || opt === 'dict' || opt === 'mirror'));
     inn.querySelectorAll('[data-theme]').forEach(b => b.classList.toggle('on', (b.dataset.theme === 'light') === light));
     inn.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === L()));
     const wa = (window.thCFG && window.thCFG.whatsapp || '').replace(/\D/g, ''), tg = (window.thCFG && window.thCFG.telegram || '').trim();
@@ -1853,6 +1877,17 @@ html body.th-side:not(#zz):not(#zy):not(#zq) #thHead{background:color-mix(in srg
 
   async function act(b) {
     const go = window.thGoSec;
+    if (b.dataset.exp) {   /* Language Training: open / close its three tools */
+      langOpen = !langOpen; b.classList.toggle('exp', langOpen);
+      const s = inn.querySelector('.sdsub'); if (s) s.classList.toggle('open', langOpen);
+      return;
+    }
+    if (b.dataset.sub === 'dash') { window.location.href = DASH_URL; return; }
+    if (b.dataset.sub) {   /* Dictation Pal / Mirroring Room: open their page in the middle */
+      if (go) await go('svc');
+      if (window.thSvc) window.thSvc.select(b.dataset.sub);
+      mark(); return;
+    }
     if (b.dataset.svc) {
       if (go) await go('svc');
       const q = document.querySelector('#svcStrip .sq[data-k="' + b.dataset.svc + '"]'); if (q) q.click();
