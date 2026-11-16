@@ -326,6 +326,21 @@
     html body.light-theme #thSheet .shi i{color:#b45309}
     @media(hover:hover){#thSheet .shi:hover{background:rgba(148,163,184,.22);scale:var(--rc-hover-ctl)}}
 
+    #thSheet button.shi{width:100%;border:0;cursor:pointer;font-family:inherit;text-align:start}
+    #thSheet .shg{display:flex;justify-content:center;align-items:flex-end;gap:2px;margin:14px 0 6px;color:#fbbf24;font-size:34px;line-height:1}
+    #thSheet .shg i:first-child{animation:shSpin 5s linear infinite}
+    #thSheet .shg i:last-child{font-size:24px;margin-bottom:2px;animation:shSpin 3.4s linear infinite reverse}
+    html body.light-theme #thSheet .shg{color:#b45309}
+    @keyframes shSpin{to{rotate:360deg}}
+    #thSheet .shf{display:flex;flex-direction:column;gap:8px;text-align:start}
+    #thSheet .shf input,#thSheet .shf textarea{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:14px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.08);color:inherit;font:500 .9rem Cairo,Inter,sans-serif;outline:0;resize:none}
+    #thSheet .shf input:focus,#thSheet .shf textarea:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.16)}
+    #thSheet .shs{height:46px;border-radius:14px;border:1px solid rgba(251,191,36,.6);background:rgba(251,191,36,.1);color:#fbbf24;font:800 .92rem Cairo,Inter,sans-serif;cursor:pointer}
+    html body.light-theme #thSheet .shs{color:#92400e;border-color:rgba(180,83,9,.55);background:rgba(251,191,36,.18)}
+    #thSheet .shs:disabled{opacity:.6;cursor:default}
+    #thSheet .shm{min-height:18px;text-align:center;font:600 .78rem Cairo,Inter,sans-serif}
+    #thSheet .shm.ok{color:#34d399}#thSheet .shm.bad{color:#f87171}
+
     /* ---------- small glass header ---------- */
     #thHead{position:fixed;top:0;left:0;right:0;height:46px;z-index:50;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;padding:0 14px;direction:ltr;
       background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);
@@ -721,9 +736,9 @@
       const CFG = { telegram: '', whatsapp: '', phone: '' };
       const $ = id => document.getElementById(id);
       const T = {
-        en: { contact: 'Contact', about: 'About', ct: 'Get in touch', cs: 'Choose how you want to reach us', tg: 'Telegram', wa: 'WhatsApp', ph: 'Phone call', soon: 'Coming soon', at: 'About Thabit', as: 'Coming soon.' },
-        ar: { contact: 'تواصل', about: 'عنّا', ct: 'تواصل معنا', cs: 'اختر الطريقة المناسبة للتواصل', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة هاتفية', soon: 'قريبًا', at: 'عن ثابت', as: 'قريبًا.' },
-        eg: { contact: 'تواصل', about: 'عننا', ct: 'كلمنا', cs: 'اختار تتواصل معانا إزاي', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة', soon: 'قريب', at: 'عن ثابت', as: 'قريب.' }
+        en: { contact: 'Contact', about: 'About', ct: 'Get in touch', cs: 'Choose how you want to reach us', tg: 'Telegram', wa: 'WhatsApp', ph: 'Phone call', soon: 'Coming soon', at: 'About Thabit', as: 'Coming soon.', mg: 'Thabit Messenger', ms: 'Send us a message directly', nm: 'Your name (optional)', ct2: 'Phone or email (optional)', mph: 'Write your message...', sd: 'Send', sng: 'Sending...', sent: 'Sent. Thank you!', fail: 'Could not send. Try again.', wt: 'Still in progress', ws: 'We are still working on this page. It will be ready soon.' },
+        ar: { contact: 'تواصل', about: 'عنّا', ct: 'تواصل معنا', cs: 'اختر الطريقة المناسبة للتواصل', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة هاتفية', soon: 'قريبًا', at: 'عن ثابت', as: 'قريبًا.', mg: 'ثابت ميسنجر', ms: 'أرسل لنا رسالة مباشرة', nm: 'اسمك (اختياري)', ct2: 'هاتف أو بريد (اختياري)', mph: 'اكتب رسالتك...', sd: 'إرسال', sng: 'جارٍ الإرسال...', sent: 'تم الإرسال. شكرًا لك!', fail: 'تعذر الإرسال. حاول مرة أخرى.', wt: 'قيد العمل', ws: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.' },
+        eg: { contact: 'تواصل', about: 'عننا', ct: 'كلمنا', cs: 'اختار تتواصل معانا إزاي', tg: 'تيليجرام', wa: 'واتساب', ph: 'مكالمة', soon: 'قريب', at: 'عن ثابت', as: 'قريب.', mg: 'ثابت ميسنجر', ms: 'ابعتلنا رسالة على طول', nm: 'اسمك (اختياري)', ct2: 'تليفون أو إيميل (اختياري)', mph: 'اكتب رسالتك...', sd: 'إرسال', sng: 'بيتبعت...', sent: 'اتبعتت. شكرًا ليك!', fail: 'معرفناش نبعت. جرب تاني.', wt: 'لسه بنشتغل عليها', ws: 'لسه بنشتغل على الصفحة دي. هتبقى جاهزة قريب.' }
       };
       const tr = () => T[(typeof currentLang !== 'undefined' && T[currentLang]) ? currentLang : 'en'];
       const sheet = $('thSheet'), scrim = $('thShScrim');
@@ -732,23 +747,48 @@
         const t = tr();
         $('contactBtnTxt').textContent = t.contact; $('aboutBtnTxt').textContent = t.about;
         $('contactBtn').title = t.contact; $('aboutBtn').title = t.about;
-        if (mode === 'contact') build('contact'); else if (mode === 'about') build('about');
+        if (mode === 'contact' || mode === 'about' || mode === 'wip') build(mode);
       }
       function build(k) {
-        const t = tr(), L = $('shL'); L.textContent = '';
-        if (k === 'about') { $('shT').textContent = t.at; $('shP').textContent = t.as; $('shP').style.marginBottom = '4px'; return; }
-        $('shT').textContent = t.ct; $('shP').textContent = t.cs; $('shP').style.marginBottom = '16px';
+        const t = tr(), L = $('shL'), P = $('shP'); L.textContent = ''; P.style.marginBottom = '16px';
+        if (k === 'about') { $('shT').innerHTML = ''; $('shT').textContent = t.at; P.textContent = t.as; P.style.marginBottom = '4px'; return; }
+        if (k === 'wip') {
+          $('shT').textContent = t.wt; P.textContent = t.ws; P.style.marginBottom = '4px';
+          const g = document.createElement('div'); g.className = 'shg'; g.innerHTML = '<i class="fa-solid fa-gear"></i><i class="fa-solid fa-gear"></i>'; L.appendChild(g); return;
+        }
+        if (k === 'msgr') {
+          $('shT').textContent = t.mg; P.textContent = t.ms;
+          L.innerHTML = '<div class="shf"><input id="mgName" maxlength="80" autocomplete="name"><input id="mgCt" maxlength="120" dir="ltr"><textarea id="mgTx" maxlength="2000" rows="4"></textarea><button type="button" class="shs" id="mgSend"></button><div class="shm" id="mgMsg"></div></div>';
+          $('mgName').placeholder = t.nm; $('mgCt').placeholder = t.ct2; $('mgTx').placeholder = t.mph; $('mgSend').textContent = t.sd;
+          $('mgSend').addEventListener('click', sendGuest); return;
+        }
+        $('shT').textContent = t.ct; P.textContent = t.cs;
         const tg = CFG.telegram.trim(), wa = CFG.whatsapp.replace(/\D/g, ''), ph = CFG.phone.replace(/[^\d+]/g, '');
         const items = [];
+        items.push(['fa-solid fa-paper-plane', t.mg, 'msgr']);
         if (tg) items.push(['fa-brands fa-telegram', t.tg, /^https?:/.test(tg) ? tg : 'https://t.me/' + tg.replace(/^@/, '')]);
         if (wa) items.push(['fa-brands fa-whatsapp', t.wa, 'https://wa.me/' + wa]);
         if (ph) items.push(['fa-solid fa-phone', t.ph, 'tel:' + ph]);
         items.forEach(([ic, tx, href]) => {
-          const a = document.createElement('a'); a.className = 'shi'; a.href = href; if (href.startsWith('http')) { a.target = '_blank'; a.rel = 'noopener'; }
+          const a = document.createElement(href === 'msgr' ? 'button' : 'a'); a.className = 'shi';
+          if (href === 'msgr') { a.type = 'button'; a.addEventListener('click', () => { mode = 'msgr'; build('msgr'); }); }
+          else { a.href = href; if (href.startsWith('http')) { a.target = '_blank'; a.rel = 'noopener'; } }
           a.innerHTML = '<i class="' + ic + '" aria-hidden="true"></i><span></span>'; a.lastChild.textContent = tx; L.appendChild(a);
         });
-        if (!items.length) { $('shP').textContent = t.soon; }
       }
+      /* Thabit Messenger for visitors: goes to the server function portal_guest_message (SQL file provided) */
+      async function sendGuest() {
+        const t = tr(), btn = $('mgSend'), msg = $('mgMsg'), txt = $('mgTx').value.trim();
+        if (txt.length < 2) { $('mgTx').focus(); return; }
+        btn.disabled = true; btn.textContent = t.sng; msg.textContent = ''; msg.className = 'shm';
+        try {
+          const r = await fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/portal_guest_message', { method: 'POST', headers: sbHeaders(),
+            body: JSON.stringify({ p_name: $('mgName').value.trim(), p_contact: $('mgCt').value.trim(), p_text: txt }) });
+          if (!r.ok) throw new Error('http ' + r.status);
+          msg.textContent = t.sent; msg.className = 'shm ok'; $('mgTx').value = ''; btn.textContent = t.sd; setTimeout(() => { btn.disabled = false; }, 2500);
+        } catch (e) { msg.textContent = t.fail; msg.className = 'shm bad'; btn.disabled = false; btn.textContent = t.sd; }
+      }
+      window.thShowWip = () => open('wip');
       function open(k) { mode = k; build(k); sheet.classList.add('on'); scrim.classList.add('on'); }
       function close() { mode = ''; sheet.classList.remove('on'); scrim.classList.remove('on'); }
       $('contactBtn').addEventListener('click', () => mode === 'contact' ? close() : open('contact'));
@@ -1281,7 +1321,7 @@
         document.addEventListener('pointercancel', e => up(e, true));
         b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
       }
-      rc(gBtn, () => go('guest.html'));
+      rc(gBtn, () => { if (window.thShowWip) window.thShowWip(); });
       rc(bBtn, () => go('placement.html'));
 
     })();
