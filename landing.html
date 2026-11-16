@@ -65,7 +65,8 @@ body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,
 @keyframes fadeIn{to{opacity:1}}
 
 /* ---------- top buttons: theme (sun / moon) + language name ---------- */
-.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;animation:fadeIn .8s ease 2.4s forwards}
+.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;transition:opacity .8s}
+.ctl.on{opacity:1}
 .cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
   display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
 .cb:hover{scale:1.05}.cb:active{scale:.94}
@@ -77,12 +78,19 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 /* ---------- the two cards: always one under the other, almost full width ---------- */
 .wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
 .stack{width:100%;display:flex;flex-direction:column;gap:10px;direction:ltr}
-.card{background:rgba(24,27,34,.55);-webkit-backdrop-filter:blur(46px) saturate(1.4);backdrop-filter:blur(46px) saturate(1.4);
+.card{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(64px) saturate(1.5);backdrop-filter:blur(64px) saturate(1.5);box-shadow:0 10px 40px rgba(0,0,0,.18);
   position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
 .card>*{position:relative;z-index:2;width:100%;max-width:340px}
 .card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:14px}
 .ncard{text-align:center}
+.hold{opacity:0}.hid{display:none}
+.tag,body.ar .tag,body.light .tag{font:600 clamp(.95rem,2.8vw,1.1rem)/1.4 Inter,Cairo,sans-serif;letter-spacing:0;text-transform:none;color:var(--ink)}
+body.ar .tag{font-family:Cairo,Inter,sans-serif}
+.card.ready{min-height:0;padding:12px 20px;cursor:pointer;appearance:none;-webkit-appearance:none;font:700 1rem Inter,Cairo,sans-serif;color:var(--ink);margin-bottom:10px;-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
+body.ar .card.ready{font-family:Cairo,Inter,sans-serif}
+@media(hover:hover){.card.ready:hover{scale:1.01}}
+.card.ready:active{scale:.98}
 .q{font:600 clamp(1rem,2.4vw,1.2rem)/1.3 Inter,Cairo,sans-serif;text-align:center;color:var(--ink);padding:0 12px;text-shadow:0 1px 12px rgba(0,0,0,.55)}
 body.ar .q{font-family:Cairo,Inter,sans-serif}
 body.light .q{text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
@@ -92,7 +100,7 @@ body.light .q{text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255
 .sky{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
 body.light .sky{display:none}
 .meteor{position:absolute;width:140px;height:2px;border-radius:2px;transform-origin:100% 50%;opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(190,215,255,.85) 70%,#fff);box-shadow:0 0 10px 1px rgba(170,200,255,.45)}
-body.light .card{background:rgba(226,221,210,.55)}
+body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.7)}
 .pop .btn+.btn{margin-top:10px}
 .ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
 .card>.nact{width:auto;max-width:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
@@ -186,16 +194,17 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 </div>
 
 <main id="main">
-  <div class="hello rise" data-t="hello"></div>
-  <h1 class="brand rise"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
-  <div class="tag rise" data-t="tag"></div>
+  <div class="hello hold" data-t="hello"></div>
+  <h1 class="brand hold"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
+  <div class="tag hold" data-t="tag"></div>
 
   <div class="wrap">
-    <div class="stack">
+    <button class="card ready hold" id="ready" type="button" data-t="ready"></button>
+    <div class="stack hid" id="stack">
 
-        <h3 class="q rise" data-t="q1" style="animation-delay:1.8s"></h3>
+        <h3 class="q rise" data-t="q1" style="animation-delay:.1s"></h3>
         <!-- card 1: Login (same card, fields and effects as the portal) -->
-        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:2.4s">
+        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:.5s">
           <h2 data-t="loginT"></h2>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
@@ -218,8 +227,8 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
         </section>
 
         <!-- card 2: not a Thabit yet -->
-        <h3 class="q q2 rise" data-t="q2" style="animation-delay:3.4s"></h3>
-        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:4s">
+        <h3 class="q q2 rise" data-t="q2" style="animation-delay:1.4s"></h3>
+        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:1.9s">
           <div class="nact">
             <button class="btn" id="joinBtn" type="button" data-t="join"></button>
             <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
@@ -266,12 +275,12 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your partner in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { ready: 'Ready?', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your information will be deleted as soon as you close the page, and you may need to log in or enter it again.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'شريكك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { ready: 'جاهز؟', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستُحذف معلوماتك بمجرد إغلاق الصفحة، وقد تضطر إلى تسجيل الدخول أو إدخالها مرة أخرى.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -318,6 +327,60 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ leave the page softly ============ */
   function go(url, replace) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { replace ? location.replace(url) : (location.href = url); }, 330); }
+
+  /* ============ intro: words gather out of tiny dots, then the tagline, then "Ready?" ============ */
+  const qs = s => document.querySelector(s);
+  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack');
+  let introShown = false;
+  const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
+  const showReady = () => { introShown = true; readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
+  function revealAll() { if (introShown) return; [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
+  readyEl.onclick = () => {
+    readyEl.style.pointerEvents = 'none';
+    readyEl.animate([{ opacity: 1, scale: 1 }, { opacity: 0, scale: .96 }], { duration: 350, fill: 'forwards' }).finished.then(() => { readyEl.style.display = 'none'; stackEl.classList.remove('hid'); });
+  };
+  async function particles() {
+    const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2), rtl = root.dir === 'rtl';
+    const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true });
+    let logo = null; try { logo = new Image(); logo.src = 'assets/thabit-logo.png'; await logo.decode(); } catch (e) { logo = null; }
+    const pts = [];
+    function sample(el, gap, size, delay) {
+      const tn = el.matches('[data-t]') ? el : el.querySelector('[data-t]'), c = getComputedStyle(tn), r = document.createRange(); r.selectNodeContents(tn);
+      const rc = r.getBoundingClientRect(), b = el.getBoundingClientRect();
+      o.clearRect(0, 0, W, H); o.fillStyle = '#000'; o.font = c.fontStyle + ' ' + c.fontWeight + ' ' + c.fontSize + ' ' + c.fontFamily; o.textAlign = 'left'; o.textBaseline = 'alphabetic'; o.direction = rtl ? 'rtl' : 'ltr';
+      try { o.letterSpacing = c.letterSpacing === 'normal' ? '0px' : c.letterSpacing; } catch (e) { }
+      const t = tn.textContent, m = o.measureText(t); o.fillText(t, rc.left, rc.top + (m.fontBoundingBoxAscent || rc.height * .8));
+      const bar = el.querySelector('.bar'), mk = el.querySelector('.mk');
+      if (bar) { const q = bar.getBoundingClientRect(); o.fillRect(q.left, q.top, q.width, q.height); }
+      if (mk && logo) { const q = mk.getBoundingClientRect(); o.drawImage(logo, q.left, q.top, q.width, q.height); }
+      const x0 = Math.max(0, Math.floor(b.left) - 6), y0 = Math.max(0, Math.floor(b.top) - 6), w = Math.min(W - x0, Math.ceil(b.width) + 12), h = Math.min(H - y0, Math.ceil(b.height) + 12);
+      const d = o.getImageData(x0, y0, w, h).data;
+      for (let y = 0; y < h; y += gap) for (let x = 0; x < w; x += gap) if (d[(y * w + x) * 4 + 3] > 140) {
+        const a = Math.random() * 6.283, rad = 50 + Math.random() * 200;
+        pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: delay + Math.random() * .7, du: 1 + Math.random() * .7, s: size });
+      }
+    }
+    sample(helloEl, 1, 1.3, 0); sample(brandEl, 2, 1.9, 1.1);
+    const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;transition:opacity .7s';
+    cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = getComputedStyle(body).color;
+    const end = Math.max(...pts.map(p => p.d + p.du)) + .2, t0 = performance.now();
+    await new Promise(res => { (function f(now) {
+      const t = (now - t0) / 1000; g.clearRect(0, 0, W, H);
+      for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4); g.fillRect(p.sx + (p.tx - p.sx) * e, p.sy + (p.ty - p.sy) * e, p.s, p.s); }
+      if (t < end) requestAnimationFrame(f); else res();
+    })(t0); });
+    [helloEl, brandEl].forEach(e => { e.style.transition = 'opacity .7s'; e.classList.remove('hold'); });
+    cv.style.opacity = 0; await sleep(750); cv.remove();
+  }
+  (async () => {
+    try {
+      if (matchMedia('(prefers-reduced-motion:reduce)').matches) return revealAll();
+      await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(500);
+      await particles(); await sleep(250); showTag(); await sleep(1000); showReady();
+    } catch (e) { revealAll(); }
+  })();
+  setTimeout(revealAll, 15000);   /* safety: whatever happens, the page never stays empty */
 
   /* ============ a small shooting star every 10-20 seconds (night theme only) ============ */
   const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, $('main'));
