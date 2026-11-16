@@ -77,13 +77,13 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 /* ---------- the two cards: always one under the other, almost full width ---------- */
 .wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
 .stack{width:100%;display:flex;flex-direction:column;gap:16px;direction:ltr}
-.card{background:rgba(24,27,34,.55);-webkit-backdrop-filter:blur(46px) saturate(1.4);backdrop-filter:blur(46px) saturate(1.4);
+.card{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(64px) saturate(1.5);backdrop-filter:blur(64px) saturate(1.5);box-shadow:0 10px 40px rgba(0,0,0,.18);
   position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
 .card>*{position:relative;z-index:2;width:100%;max-width:340px}
 .card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:14px}
 .ncard{text-align:center}
-body.light .card{background:rgba(226,221,210,.55)}
+body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.7)}
 .pop .btn+.btn{margin-top:10px}
 .ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
 .card>.nact{width:auto;max-width:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
