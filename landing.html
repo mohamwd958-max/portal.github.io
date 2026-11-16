@@ -58,6 +58,7 @@ main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex
 .btn{width:100%;height:50px;border:0;border-radius:13px;background:var(--btn);color:var(--onbtn);font:700 .95rem Inter,sans-serif;cursor:pointer;transition:opacity .25s,scale .6s cubic-bezier(.16,1,.3,1)}
 .btn:hover{opacity:.93}.btn:active{scale:.98}.btn:disabled{opacity:.55;cursor:default}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--gbd)}
+.gnote{margin:8px 0 0;padding:9px 12px;border-radius:12px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);font:600 .76rem/1.55 Inter,Cairo,sans-serif;text-align:center;color:inherit}
 .err{min-height:18px;margin:2px 0 8px;font:500 .8rem Inter,sans-serif;color:var(--bad);text-align:center}
 .peek{margin-top:16px;width:min(100%,380px);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font:500 .88rem Inter,sans-serif;color:var(--ink2)}
 .peek button{border:0;background:none;color:var(--ink);font:700 .88rem Inter,sans-serif;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
@@ -129,6 +130,7 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
       <div class="f" id="gP"><input id="gPhone" type="tel" placeholder="Phone number" autocomplete="tel" dir="ltr"></div>
       <div class="f"><input id="gMail" type="email" placeholder="Email (optional)" autocomplete="email" dir="ltr"></div>
       <div class="err" id="gErr"></div>
+      <p class="gnote" id="gNote2"></p>
       <button class="btn" id="gNext" type="button">Continue</button>
     </div>
 
@@ -136,10 +138,12 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
       <h3>What are you interested in?</h3>
       <p>Choose what brought you here and we will take you straight to it.</p>
       <div class="ints" id="ints"></div>
+      <p class="gnote" id="gNote3"></p>
     </div>
   </div>
 </div>
 
+<script src="js/nav.js" data-page="landing"></script>
 <script src="js/portal.js"></script>
 <script>
 (function () {
@@ -148,11 +152,11 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
 
   /* ============ WHERE EACH CHOICE GOES (change these freely) ============ */
   const ROUTES = {
-    lang:    'index.html#lang',      // language training
-    voice:   'index.html#voice',     // voice-over
-    digital: 'index.html#digital',   // digital solutions: learning platforms, custom app / web page
-    consult: 'index.html#consult',   // personal consultation
-    store:   'index.html#store'      // the store
+    lang:    'home.html#lang',      // language training
+    voice:   'home.html#voice',     // voice-over
+    digital: 'home.html#digital',   // digital solutions: learning platforms, custom app / web page
+    consult: 'home.html#consult',   // personal consultation
+    store:   'home.html#store'      // the store
   };
   const INTERESTS = [
     ['lang', '🗣️', 'Language training', 'Improve your English'],
@@ -161,14 +165,13 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
     ['consult', '🤝', 'Personal consultation', 'Talk to me directly'],
     ['store', '👕', 'The store', 'Browse what we have']
   ];
-  const AFTER_LOGIN = 'index.html';   // used only if the login system gives no route
+  const AFTER_LOGIN = 'home.html';   // used only if the login system gives no route
 
   /* ---------- theme ---------- */
   $('tg').onclick = () => { body.classList.toggle('light'); try { localStorage.setItem('thThemeChoice', body.classList.contains('light') ? 'light' : 'dark'); } catch (e) { } };
 
   /* ---------- leave the page softly ---------- */
-  function pass() { try { sessionStorage.setItem('thPass', '1'); } catch (e) { } }   /* lets this visit open the main page */
-  function go(url) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { location.href = url; }, 330); }
+  function go(url, replace) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { replace ? location.replace(url) : (location.href = url); }, 330); }
 
   /* ---------- login (same server calls as the portal; they come from js/portal.js) ---------- */
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -209,9 +212,8 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
     if (r.ok) {
       $('go').textContent = '✓';
       await sleep(500);
-      pass();
       let last = ''; try { last = localStorage.getItem('thLastPage') || ''; } catch (e) { }   /* the last page they had open, if a page saved it */
-      go(last || r.route || AFTER_LOGIN);
+      go(last || r.route || AFTER_LOGIN, true);   /* replace: the landing is not in history, so Back leaves the app */
       return;
     }
     busy = false; $('go').disabled = false; $('go').textContent = 'Get In';
@@ -223,6 +225,8 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
 
   /* ---------- guest flow ---------- */
   const ov = $('ov');
+  function setNotes() { const t = window.thGuestNotice ? window.thGuestNotice() : ''; ['gNote2', 'gNote3'].forEach(id => { $(id).textContent = t; }); }
+  setNotes();
   function step(n) { ['s1', 's2', 's3'].forEach(k => $(k).classList.toggle('on', k === 's' + n)); }
   function openPop() { step(1); ov.classList.add('on'); }
   function closePop() { ov.classList.remove('on'); }
@@ -231,6 +235,22 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
   $('guestBtn').onclick = () => { step(2); setTimeout(() => $('gName').focus(), 60); };
 
+  /* save the guest on the server (never blocks the guest; if it fails they just carry on) */
+  function registerGuest(g) {
+    try {
+      if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return;
+      fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/guest_register', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_name: g.name, p_phone: g.phone, p_email: g.email || null }) })
+        .then(r => r.ok ? r.json() : null)
+        .then(id => { if (id) { try { const o = JSON.parse(localStorage.getItem('thGuest') || '{}'); o.id = id; localStorage.setItem('thGuest', JSON.stringify(o)); } catch (e) { } } })
+        .catch(() => { });
+    } catch (e) { }
+  }
+  function saveInterest(k) {
+    try {
+      const g = JSON.parse(localStorage.getItem('thGuest') || '{}'); if (!g.id || typeof REPORT_SUPABASE_URL === 'undefined') return;
+      fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/guest_set_interest', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_id: g.id, p_interest: k }), keepalive: true }).catch(() => { });
+    } catch (e) { }
+  }
   $('gNext').onclick = () => {
     const name = $('gName').value.trim().replace(/\s+/g, ' '), phone = $('gPhone').value.trim(), mail = $('gMail').value.trim();
     const okName = name.split(' ').length >= 2 && name.length >= 3, okPhone = phone.replace(/\D/g, '').length >= 7, okMail = !mail || /^\S+@\S+\.\S+$/.test(mail);
@@ -240,7 +260,8 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
     if (!okMail) { $('gErr').textContent = 'That email does not look right (or leave it empty).'; return; }
     $('gErr').textContent = '';
     try { localStorage.setItem('thGuest', JSON.stringify({ name, phone, email: mail, at: Date.now() })); } catch (e) { }
-    pass(); step(3);
+    registerGuest({ name, phone, email: mail });
+    step(3);
   };
   [$('gName'), $('gPhone'), $('gMail')].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('gNext').click(); } }));
 
@@ -249,7 +270,9 @@ body:not(.light) .pop{background:rgba(18,22,34,.72)}
     const b = e.target.closest('.int'); if (!b) return;
     const k = b.dataset.k;
     try { const g = JSON.parse(localStorage.getItem('thGuest') || '{}'); g.interest = k; localStorage.setItem('thGuest', JSON.stringify(g)); } catch (er) { }
-    go(ROUTES[k]);
+    saveInterest(k);
+    if (window.thGuestMode) window.thGuestMode();   /* guest flag: lives until the app is closed */
+    go(ROUTES[k]);        /* normal navigation: Back returns here step by step */
   });
 })();
 </script>
