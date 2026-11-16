@@ -46,8 +46,21 @@
     if (li) { ss('thGuestSession', null); return; }
     if (page === 'login') { if (!ss('thLanded') && !guest) location.replace(LANDING); return; }   /* the portal/login page itself */
     if (!guest) { location.replace(LANDING); return; }                                           /* first open / after logout */
-    notice();
+    notice(); track();
   }
+  /* statistics: tell the server which page (and section) the guest opened */
+  var lastTracked = '';
+  function track() {
+    try {
+      var g = JSON.parse(ls('thGuest') || '{}'); if (!g.id || typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return;
+      var pg = (location.pathname.split('/').pop() || 'index.html') + (location.hash || '');
+      if (pg === lastTracked) return; lastTracked = pg;
+      fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/guest_track', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_guest_id: g.id, p_page: pg }), keepalive: true }).catch(function () { });
+    } catch (e) { }
+  }
+  window.addEventListener('hashchange', function () { if (ss('thGuestSession') === '1' && !loggedIn()) track(); });
+  /* portal.js loads after this file, so send once the page is ready */
+  window.addEventListener('load', function () { lastTracked = ''; if (ss('thGuestSession') === '1' && !loggedIn()) track(); });
   function notice() {
     function show() {
       if (document.getElementById('thGuestNote')) return;
