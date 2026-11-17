@@ -67,12 +67,12 @@ body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,
 @keyframes fadeIn{to{opacity:1}}
 
 /* ---------- top buttons: theme (sun / moon) + language name ---------- */
-.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;transition:opacity .8s}
+.ctl{position:fixed;top:max(9px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;transition:opacity .8s}
 .ctl.on{opacity:1}
-.cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
+.cb{position:relative;height:34px;min-width:34px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
   display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
 .cb:hover{scale:1.05}.cb:active{scale:.94}
-.cb.ic{width:36px;padding:0}
+.cb.ic{width:34px;padding:0}
 .cb svg{position:absolute;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:opacity 1.2s ease,rotate 1.2s var(--ease)}
 .cb .sun{opacity:0;rotate:-70deg}.cb .moon{opacity:1;rotate:0deg}
 body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:70deg}
@@ -96,7 +96,7 @@ body.ar .card.ready{font-family:Cairo,Inter,sans-serif}
 .stack .rise{animation-duration:.7s}.stack .rise2{animation-duration:.6s}
 .hlogo{position:fixed;z-index:5;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat;pointer-events:none;transition:left .9s cubic-bezier(.65,0,.35,1),top .9s cubic-bezier(.65,0,.35,1),width .9s cubic-bezier(.65,0,.35,1),height .9s cubic-bezier(.65,0,.35,1)}
 .hlogo.fin{left:16px;top:max(14px,env(safe-area-inset-top,0px));width:30px;height:30px}
-.gl{position:fixed;inset:0;z-index:4;display:none;align-items:center;justify-content:center;padding:70px 16px 24px;overflow:auto;overscroll-behavior:contain;background:rgba(14,16,22,.55);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}
+.gl{position:fixed;inset:0;z-index:4;display:none;align-items:center;justify-content:center;padding:62px 16px 24px;overflow:auto;overscroll-behavior:contain;background:rgba(14,16,22,.55);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}
 body.light .gl{background:rgba(236,232,222,.6)}
 .gl.on{display:flex;animation:fadeFrom .35s ease}
 .gl .card{width:100%;max-width:none;margin:auto;padding:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
@@ -217,11 +217,11 @@ body.ar .rbtn{font-family:Cairo,Inter,sans-serif}
 @media(hover:hover){.rbtn:hover{scale:1.015}}
 
 /* the cards layer: a new layer on the same page, cards start from the top */
-.wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;padding:calc(64px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(64px + env(safe-area-inset-bottom,0px))}
-.wrap.on{animation:fadeFrom .6s ease}
+.wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;padding:calc(58px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(64px + env(safe-area-inset-bottom,0px))}
+.wrap.on{animation:none}
 
 /* invisible header: appears (thin, bottom border + heavy blur) only when something passes under it */
-.hdr{position:fixed;top:0;left:0;right:0;z-index:4;height:calc(62px + env(safe-area-inset-top,0px));pointer-events:none;opacity:0;
+.hdr{position:fixed;top:0;left:0;right:0;z-index:4;height:calc(max(9px,env(safe-area-inset-top,0px)) + 43px);pointer-events:none;opacity:0;
   border-bottom:1px solid var(--gbd);background:rgba(18,20,26,.28);-webkit-backdrop-filter:blur(28px) saturate(1.4);backdrop-filter:blur(28px) saturate(1.4);transition:opacity .35s ease}
 body.light .hdr{background:rgba(244,241,234,.4)}
 .hdr.on{opacity:1}
@@ -267,6 +267,47 @@ html,body{height:100%;overflow:hidden}
 /* pop-ups: the dark scrim is a separate layer, so the pop-up glass can really blur the page behind it */
 .ov{background:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 .ov::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+
+/* =========================================================
+   v4: brand in the top-left, saved-passwords pop-up, green autofill
+   ========================================================= */
+:root{--sugbg:rgba(20,24,36,.9)}
+body.light{--sugbg:rgba(250,248,243,.94)}
+
+/* the name + logo fade in at the top-left (left -> right) once "Ready" is pressed */
+.hb{position:fixed;z-index:5;left:16px;top:max(9px,env(safe-area-inset-top,0px));height:34px;display:flex;align-items:center;gap:.38em;pointer-events:none;color:var(--ink);
+  font:800 1.25rem/1 'Playfair Display',Georgia,serif;letter-spacing:-.01em;white-space:nowrap;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
+body.ar .hb{font:900 1.3rem/1.2 Cairo,Inter,sans-serif;letter-spacing:0}
+.hb .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
+.hb .mk{flex:none;width:.82em;height:.82em;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
+.hb.on{animation:hbIn 1.4s cubic-bezier(.22,1,.36,1) .25s forwards}
+.hb.out{animation:hbOut .35s ease forwards}
+@keyframes hbIn{0%{opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}55%{opacity:1}100%{opacity:1;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}}
+@keyframes hbOut{from{opacity:1;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}to{opacity:0;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}}
+@media(prefers-reduced-motion:reduce){.hb.on{animation-duration:.01s!important;animation-delay:0s!important}}
+
+/* login card: lets the saved-passwords pop-up sit above the next card */
+#c0{overflow:visible;z-index:3}
+#flU{z-index:4}
+
+/* saved passwords pop-up: same width as the username field, a small gap under it, height = its content */
+.sug{position:absolute;left:0;right:0;top:66px;z-index:6;direction:ltr;padding:6px;border-radius:16px;border:1px solid var(--gbd);background:var(--sugbg);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);box-shadow:0 14px 36px rgba(0,0,0,.28);
+  opacity:0;visibility:hidden;translate:0 -6px;pointer-events:none;transition:opacity .22s ease,translate .3s var(--ease),visibility 0s .22s}
+.sug.on{opacity:1;visibility:visible;translate:0 0;pointer-events:auto;transition:opacity .22s ease,translate .3s var(--ease),visibility 0s}
+.sugt{padding:4px 8px 6px;font:700 .66rem Inter,Cairo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);text-align:left}
+body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:none;font-size:.74rem}
+.si{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:38px;padding:0 10px;border:0;border-radius:11px;background:none;color:var(--ink);
+  font:600 .86rem Inter,Cairo,sans-serif;cursor:pointer;text-align:left;transition:background .2s,scale .9s var(--ease)}
+.sug.on .si{animation:fadeUp .3s ease backwards;animation-delay:calc(var(--n)*.05s + .04s)}
+@media(hover:hover){.si:hover{background:var(--gfield)}}
+.si:active{background:var(--gfield);scale:.97;transition:background .2s,scale .12s ease-out}
+.sn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd{flex:none;font-size:.7rem;letter-spacing:.12em;opacity:.45}
+
+/* fields filled from a saved password: green, until the person edits them */
+.fl.af:not(.bad) input{border-color:var(--ok);background:rgba(52,211,153,.16);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
+.fl.af:not(.bad) label{color:var(--ok);opacity:1}
 </style>
 </head>
 <body>
@@ -280,6 +321,7 @@ html,body{height:100%;overflow:hidden}
   </button>
   <button class="cb" id="lg" type="button" aria-label="Language"></button>
 </div>
+<div class="hb" id="hb" aria-hidden="true"><span data-t="brand"></span><i class="bar"></i><i class="mk"></i></div>
 
 <main id="main">
   <div class="intro">
@@ -301,12 +343,13 @@ html,body{height:100%;overflow:hidden}
           <h3 class="q q1" data-t="q1"></h3>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
-            <input type="text" id="lgU" dir="ltr" placeholder=" " autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input type="text" id="lgU" name="th_user_field" dir="ltr" placeholder=" " autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" autocapitalize="off" spellcheck="false">
             <label for="lgU" data-t="user"></label>
             <div class="fmsg" id="msgU"></div>
+            <div class="sug" id="sug" role="listbox"><div class="sugt" data-t="sugT"></div><div id="sugL"></div></div>
           </div>
           <div class="fl pw" id="flP">
-            <input type="password" id="lgP" dir="ltr" placeholder=" " autocomplete="current-password">
+            <input type="password" id="lgP" name="th_pass_field" dir="ltr" placeholder=" " autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
             <label for="lgP" data-t="pass"></label>
             <button type="button" class="eye" id="lgEye" aria-label="Show password" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12S5.8 5.5 12 5.5 21.8 12 21.8 12 18.2 18.5 12 18.5 2.2 12 2.2 12z"/><circle class="pup" cx="12" cy="12" r="3"/></svg>
@@ -399,12 +442,12 @@ html,body{height:100%;overflow:hidden}
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { sugT: 'Saved passwords', gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { sugT: 'كلمات المرور المحفوظة', gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -458,7 +501,7 @@ html,body{height:100%;overflow:hidden}
 
   /* ============ intro: words gather out of tiny dots, then the tagline, then "Ready?" ============ */
   const qs = s => document.querySelector(s);
-  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), introEl = qs('.intro'), stackEl = $('stack'), wrapEl = $('wrap');
+  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), introEl = qs('.intro'), stackEl = $('stack'), wrapEl = $('wrap'), hbEl = $('hb');
   let introShown = false;
   let skipped = false, skipRes = null; const skipP = new Promise(r => { skipRes = r; });
   const wait = ms => Promise.race([sleep(ms), skipP]);
@@ -482,12 +525,14 @@ html,body{height:100%;overflow:hidden}
   let cardsOpen = false;
   function closeCards() {
     cardsOpen = false; const m = $('main');
+    hbEl.classList.remove('on'); hbEl.classList.add('out'); setTimeout(() => hbEl.classList.remove('out'), 400);
     wrapEl.classList.add('hid'); wrapEl.classList.remove('on'); wrapEl.scrollTop = 0; hdrEl.classList.remove('on');
     m.getAnimations().forEach(a => a.cancel()); m.style.display = ''; readyEl.style.pointerEvents = '';
     try { m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }); } catch (e) { }
   }
   readyEl.onclick = () => {
     if (cardsOpen) return; cardsOpen = true; readyEl.style.pointerEvents = 'none'; pushLayer(closeCards);
+    hbEl.classList.remove('out'); hbEl.classList.add('on');   /* name + logo start fading in at the top-left right away */
     const m = $('main');
     try { m.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-in', fill: 'forwards' }); } catch (e) { }
     setTimeout(() => {   /* not tied to the animation finishing, so it always opens */
@@ -514,11 +559,14 @@ html,body{height:100%;overflow:hidden}
       ctx.fillText(t, rc.left, base);
       const bar = brandEl.querySelector('.bar'), mk = brandEl.querySelector('.mk');
       if (bar) { const q = bar.getBoundingClientRect(); ctx.globalAlpha = .45; ctx.fillRect(q.left, q.top, q.width, q.height); ctx.globalAlpha = 1; }
-      if (mk && logo) { const q = mk.getBoundingClientRect(); ctx.drawImage(logo, q.left, q.top, q.width, q.height); }
+      if (mk && logo) {   /* same fit as the page's mask (contain, centred): the logo keeps its proportions, so it lands at its real size */
+        const q = mk.getBoundingClientRect(), k = Math.min(q.width / logo.naturalWidth, q.height / logo.naturalHeight), lw = logo.naturalWidth * k, lh = logo.naturalHeight * k;
+        ctx.drawImage(logo, q.left + (q.width - lw) / 2, q.top + (q.height - lh) / 2, lw, lh);
+      }
     }
     /* every dot IS one pixel of the finished word (with its own softness), so when they all land the word is already there */
     const DW = Math.round(W * dpr), DH = Math.round(H * dpr);
-    const off = document.createElement('canvas'); off.width = DW; off.height = DH; const o = off.getContext('2d', { willReadFrequently: true }); o.scale(dpr, dpr); paint(o);
+    const off = document.createElement('canvas'); off.width = DW; off.height = DH; const o = off.getContext('2d', { willReadFrequently: true }); o.scale(dpr, dpr); o.imageSmoothingEnabled = true; o.imageSmoothingQuality = 'high'; paint(o);
     const b = brandEl.getBoundingClientRect(), pad = Math.round(8 * dpr);
     const x0 = Math.max(0, Math.floor(b.left * dpr) - pad), y0 = Math.max(0, Math.floor(b.top * dpr) - pad), w = Math.min(DW - x0, Math.ceil(b.width * dpr) + pad * 2), h = Math.min(DH - y0, Math.ceil(b.height * dpr) + pad * 2);
     const d = o.getImageData(x0, y0, w, h).data, LV = 6, groups = Array.from({ length: LV }, () => []); let left = 0;
@@ -662,13 +710,13 @@ html,body{height:100%;overflow:hidden}
   /* hint that types itself once */
   function cancelHint() { clearInterval(S.hintT); clearTimeout(S.hintX); const s = uFl.querySelector('.fhint'); if (s) s.remove(); }
   function hint() {
-    if (S.hinted || uIn.value) return; S.hinted = true; cancelHint();
+    if (uIn.value || document.activeElement !== uIn) return; cancelHint();   /* types itself once every time the field is opened empty */
     const s = document.createElement('span'); s.className = 'fhint'; s.setAttribute('aria-hidden', 'true'); uFl.appendChild(s);
     let i = 0;
     S.hintT = setInterval(() => { i++; s.textContent = HINT.slice(0, i); if (i >= HINT.length) { clearInterval(S.hintT); S.hintX = setTimeout(() => { s.style.opacity = 0; setTimeout(() => s.remove(), 350); }, 800); } }, 38);
   }
-  $('c0').addEventListener('focusin', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.add('act'); if (t === uIn) setTimeout(hint, 250); });
-  $('c0').addEventListener('focusout', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.remove('act'); cancelHint(); if (t === uIn) onUserBlur(); });
+  $('c0').addEventListener('focusin', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.add('act'); if (t === uIn) { showSug(); setTimeout(hint, 250); } });
+  $('c0').addEventListener('focusout', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.remove('act'); cancelHint(); if (t === uIn) { hideSug(); onUserBlur(); } });
 
   /* shown password: blurred letters that clear one by one, no copy */
   const pwv = document.createElement('div'); pwv.className = 'pwv'; pwv.setAttribute('aria-hidden', 'true'); pwv.innerHTML = '<div class="pwi"></div>';
@@ -697,13 +745,59 @@ html,body{height:100%;overflow:hidden}
   const hideMsg = fl => fl.querySelector('.fmsg').classList.remove('show');
   function markOk(fl) { fl.classList.remove('bad'); fl.classList.add('ok'); hideMsg(fl); bob(fl); }
   function markBad(fl, key, txt) {
-    fl.classList.remove('ok'); fl.classList.add('bad'); shake(fl);
+    fl.classList.remove('ok', 'af'); fl.classList.add('bad'); shake(fl);
     const n = key === 'U' ? ++S.failU : ++S.failP, m = fl.querySelector('.fmsg');
     if (n >= 2) { m.textContent = txt; m.classList.add('show'); }   /* first time: only the red shake, no words */
   }
-  uIn.addEventListener('input', () => { cancelHint(); uFl.classList.remove('ok', 'bad'); hideMsg(uFl); S.uShown = ''; });
-  uIn.addEventListener('keydown', e => { cancelHint(); if (e.key === 'Enter') { e.preventDefault(); pIn.focus(); } });
-  pIn.addEventListener('input', () => { pFl.classList.remove('ok', 'bad'); hideMsg(pFl); });
+  uIn.addEventListener('input', e => {
+    cancelHint(); hideSug(); uFl.classList.remove('ok', 'bad', 'af'); hideMsg(uFl); S.uShown = '';
+    /* typing "@" completes the domain at once (selected, so typing another domain simply replaces it) */
+    const v = uIn.value;
+    if (!/^delete/.test(e.inputType || '') && v.length > 1 && v.indexOf('@') === v.length - 1) {
+      const DOM = 'thabit.com'; uIn.value = v + DOM;
+      const sel = () => { try { uIn.setSelectionRange(v.length, v.length + DOM.length); } catch (x) { } };
+      sel(); requestAnimationFrame(sel);
+    }
+  });
+  uIn.addEventListener('keydown', e => { cancelHint(); hideSug(); if (e.key === 'Enter') { e.preventDefault(); pIn.focus(); } });
+  uIn.addEventListener('pointerdown', () => { if (document.activeElement === uIn) hideSug(); });   /* tapping the field again = "I will type myself" */
+  pIn.addEventListener('input', () => { pFl.classList.remove('ok', 'bad', 'af'); hideMsg(pFl); });
+
+  /* a tap anywhere outside the two fields (and the pop-up) closes the keyboard and puts everything back */
+  let pdn = null;
+  document.addEventListener('pointerdown', e => { const t = e.target; pdn = { x: e.clientX, y: e.clientY, inside: !!(t.closest && t.closest('#flU,#flP,#sug')) }; }, true);
+  document.addEventListener('pointerup', e => {
+    const a = document.activeElement; if (!pdn || (a !== uIn && a !== pIn)) return;
+    if (!pdn.inside && Math.hypot(e.clientX - pdn.x, e.clientY - pdn.y) < 10) a.blur();
+  }, true);
+
+  /* ============ saved passwords: our own small pop-up under the username field ============ */
+  const SAVED_KEY = 'thSavedLogins', sug = $('sug'), sugL = $('sugL');
+  const getSaved = () => { try { const a = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.u && x.p) : []; } catch (e) { return []; } };
+  function saveLogin(u, p) { try { const a = getSaved().filter(x => x.u.toLowerCase() !== u.toLowerCase()); a.unshift({ u, p }); localStorage.setItem(SAVED_KEY, JSON.stringify(a.slice(0, 4))); } catch (e) { } }
+  function hideSug() { sug.classList.remove('on'); }
+  function showSug() {
+    const all = getSaved(), q = uIn.value.trim().toLowerCase();
+    const list = (!q || all.some(x => x.u.toLowerCase() === q)) ? all : all.filter(x => x.u.toLowerCase().startsWith(q));
+    if (!list.length) { hideSug(); return; }
+    sugL.textContent = '';
+    list.forEach((x, n) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'si'; b.setAttribute('role', 'option'); b.style.setProperty('--n', n);
+      const a = document.createElement('span'); a.className = 'sn'; a.textContent = x.u;
+      const d = document.createElement('span'); d.className = 'sd'; d.setAttribute('aria-hidden', 'true'); d.textContent = '••••••••';
+      b.append(a, d);
+      b.addEventListener('mousedown', e => e.preventDefault());   /* the field keeps focus until the choice is made */
+      b.addEventListener('click', () => pickSaved(x));
+      sugL.appendChild(b);
+    });
+    sug.classList.add('on');
+  }
+  function pickSaved(x) {   /* fills both fields in green; it never logs in by itself */
+    cancelHint(); uIn.value = x.u; pIn.value = x.p; S.uShown = '';
+    [uFl, pFl].forEach(f => { f.classList.remove('bad'); f.classList.add('af'); }); hideMsg(uFl); hideMsg(pFl);
+    if (shown) buildPw(false);
+    hideSug(); uIn.blur();
+  }
   pIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); login(); } });
 
   /* username check (server function portal_username_exists; without it everything else still works) */
@@ -752,7 +846,8 @@ html,body{height:100%;overflow:hidden}
       return { ok: false, kind: 'wrong' };
     } catch (err) { return { ok: false, kind: 'net', msg: T().conn }; }
   }
-  async function win(route) {
+  async function win(route, u, p) {
+    saveLogin(u, p);
     uFl.classList.remove('bad'); hideMsg(uFl); hideMsg(pFl); uFl.classList.add('ok'); markOk(pFl);
     await sleep(800); btnState('done'); await sleep(650);
     anim(btn, [{ translate: '0 0' }, { translate: '0 -8px', offset: .45 }, { translate: '0 0' }], 750);
@@ -769,7 +864,7 @@ html,body{height:100%;overflow:hidden}
     if (empty) return;
     S.busy = true; btnState('busy'); say('');
     const [res, known] = await Promise.all([attempt(u, p), ensureUser(u)]);
-    if (res.ok) { await win(res.route); return; }
+    if (res.ok) { await win(res.route, u, p); return; }
     btnState('idle'); S.busy = false;
     if (res.kind === 'rate') { say(T().rate); return; }
     if (res.kind === 'server' || res.kind === 'net') { say(res.msg); return; }
