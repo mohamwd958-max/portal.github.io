@@ -274,12 +274,9 @@ html,body{height:100%;overflow:hidden}
 :root{--sugbg:rgba(20,24,36,.9)}
 body.light{--sugbg:rgba(250,248,243,.94)}
 
-/* the name + logo fade in at the top-left (left -> right) once "Ready" is pressed */
-.hb{position:fixed;z-index:5;left:16px;top:max(9px,env(safe-area-inset-top,0px));height:34px;display:flex;align-items:center;gap:.38em;pointer-events:none;color:var(--ink);
-  font:800 1.25rem/1 'Playfair Display',Georgia,serif;letter-spacing:-.01em;white-space:nowrap;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
-body.ar .hb{font:900 1.3rem/1.2 Cairo,Inter,sans-serif;letter-spacing:0}
-.hb .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
-.hb .mk{flex:none;width:.82em;height:.82em;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
+/* the logo alone fades in at the top-left (left -> right) once "Ready" is pressed; same size as the theme circle */
+.hb{position:fixed;z-index:5;left:14px;top:max(9px,env(safe-area-inset-top,0px));width:34px;height:34px;pointer-events:none;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
+.hb .mk{display:block;width:100%;height:100%;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
 .hb.on{animation:hbIn 1.4s cubic-bezier(.22,1,.36,1) .25s forwards}
 .hb.out{animation:hbOut .35s ease forwards}
 @keyframes hbIn{0%{opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}55%{opacity:1}100%{opacity:1;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}}
@@ -308,11 +305,38 @@ body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:non
 /* fields filled from a saved password: green, until the person edits them */
 .fl.af:not(.bad) input{border-color:var(--ok);background:rgba(52,211,153,.16);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
 .fl.af:not(.bad) label{color:var(--ok);opacity:1}
+
+/* =========================================================
+   v5: real daytime for the light theme + twinkling stars at night
+   ========================================================= */
+/* light theme = the view from a door that opens onto the sky (sky-diver's point of view): bright horizon + sun, clouds streaming past both sides, darker edges */
+.day{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
+  background:
+    radial-gradient(circle at 70% 84%,#fffef2 0,#fff7d2 3%,rgba(255,235,165,.9) 7%,rgba(255,216,140,.42) 20%,rgba(255,216,140,0) 48%),
+    radial-gradient(ellipse 130% 55% at 50% 108%,rgba(255,226,165,.95) 0,rgba(255,226,165,0) 72%),
+    linear-gradient(180deg,#1f5fa8 0%,#3f8fdb 28%,#7ebdf0 58%,#cfe9fb 86%,#fff0cc 100%)}
+body.light .day{opacity:1}
+.day::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 90% 82% at 50% 64%,rgba(10,40,90,0) 42%,rgba(10,40,90,.42) 100%)}
+.cl{position:absolute;top:100%;width:340px;height:150px;opacity:var(--o,1);scale:var(--s,1);filter:blur(5px);will-change:translate;animation:cup var(--d,30s) linear infinite;animation-delay:var(--w,0s);
+  background:
+    radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 0 62%/56% 100% no-repeat,
+    radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 28% 18%/52% 115% no-repeat,
+    radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 64% 52%/56% 105% no-repeat,
+    radial-gradient(closest-side,#f3f9ff 0,rgba(243,249,255,0) 100%) 100% 70%/46% 92% no-repeat}
+@keyframes cup{from{translate:0 0}to{translate:0 -190vh}}
+body:not(.light) .cl{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.cl{animation-play-state:paused!important}}
+body.light .vl{background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,0) 40%,rgba(255,255,255,.08) 100%)}
+body.light .intro::before{background:radial-gradient(ellipse 62% 38% at 50% 50%,rgba(255,255,255,.42) 0%,rgba(255,255,255,.2) 45%,rgba(255,255,255,0) 100%)}
+body.light .gl{background:rgba(220,238,252,.5)}
+.twk{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 5px 1px rgba(200,220,255,.8);opacity:0;pointer-events:none}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
-<div class="bg"></div><div class="vd"></div><div class="vl"></div>
+<div class="bg"></div>
+<div class="day" id="day" aria-hidden="true"></div>
+<div class="vd"></div><div class="vl"></div>
 
 <div class="ctl">
   <button class="cb ic" id="tg" type="button" aria-label="Theme">
@@ -321,7 +345,7 @@ body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:non
   </button>
   <button class="cb" id="lg" type="button" aria-label="Language"></button>
 </div>
-<div class="hb" id="hb" aria-hidden="true"><span data-t="brand"></span><i class="bar"></i><i class="mk"></i></div>
+<div class="hb" id="hb" aria-hidden="true"><i class="mk"></i></div>
 
 <main id="main">
   <div class="intro">
@@ -624,6 +648,33 @@ body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:non
     setTimeout(meteor, 19000 + Math.random() * 2000);
   }
   setTimeout(meteor, 7000);
+
+  /* ============ daytime clouds (light theme): big near ones rush by on the sides, small far ones drift in the middle ============ */
+  (function () {
+    const day = $('day'); if (!day) return;
+    const R = (a, b) => a + Math.random() * (b - a);
+    for (let i = 0; i < 18; i++) {
+      const near = i < 8, mid = !near && i < 13, c = document.createElement('i'); c.className = 'cl';
+      const side = Math.random() < .5 ? -1 : 1;
+      const x = near ? (side < 0 ? R(-18, 14) : R(70, 100)) : mid ? (side < 0 ? R(-6, 32) : R(58, 94)) : R(18, 70);
+      const sc = near ? R(1.7, 2.7) : mid ? R(1, 1.5) : R(.5, .9), d = near ? R(14, 22) : mid ? R(24, 34) : R(36, 50);
+      c.style.cssText = 'left:' + x + '%;--s:' + sc.toFixed(2) + ';--d:' + d.toFixed(1) + 's;--w:-' + R(0, d).toFixed(1) + 's;--o:' + (near ? 1 : mid ? .85 : .6);
+      day.appendChild(c);
+    }
+  })();
+
+  /* ============ every 10 seconds, three tiny stars twinkle at random places (night theme only) ============ */
+  function twinkle() {
+    if (!document.hidden && !body.classList.contains('light') && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
+      for (let i = 0; i < 3; i++) {
+        const st = document.createElement('i'), z = 1.8 + Math.random() * 1.3;
+        st.className = 'twk'; st.style.cssText = 'left:' + (3 + Math.random() * 94) + '%;top:' + (3 + Math.random() * 62) + '%;width:' + z + 'px;height:' + z + 'px'; sky.appendChild(st);
+        try { st.animate([{ opacity: 0, scale: .5 }, { opacity: 1, scale: 1.25, offset: .3 }, { opacity: .35, scale: .85, offset: .55 }, { opacity: 1, scale: 1.15, offset: .75 }, { opacity: 0, scale: .5 }], { duration: 1700 + Math.random() * 900, delay: Math.random() * 1800, easing: 'ease-in-out', fill: 'both' }).finished.then(() => st.remove(), () => st.remove()); } catch (e) { st.remove(); }
+      }
+    }
+    setTimeout(twinkle, 10000);
+  }
+  setTimeout(twinkle, 3000);
 
   /* ============ guest form: a layer on this same page, Back closes it ============ */
   const gl = $('gl'); let glOpen = false;
