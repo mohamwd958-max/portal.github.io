@@ -163,6 +163,53 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 @keyframes spin{to{rotate:360deg}}
 @media(prefers-reduced-motion:reduce){.rise,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
 </style>
+<style id="thApp">
+:root{--sw:272px}
+html:has(body.app){background:#2a2d38}
+html:has(body.app.light){background:#cfd2da}
+body.app{min-height:100vh;background:linear-gradient(160deg,#4d5262 0%,#383c49 45%,#2a2d38 100%);--sb:rgba(255,255,255,.1);--sbd:rgba(255,255,255,.13);--chip:rgba(255,255,255,.14);--pcard:rgba(255,255,255,.12)}
+body.app.light{background:linear-gradient(160deg,#eef0f4 0%,#dfe1e7 60%,#d0d3db 100%);--sb:rgba(255,255,255,.6);--sbd:rgba(28,26,22,.1);--chip:rgba(28,26,22,.08);--pcard:rgba(255,255,255,.65)}
+body.app .bg,body.app .vd,body.app .vl,body.app main,body.app>.ctl{display:none}
+#app{display:none}
+body.app #app{display:block;opacity:0;animation:fadeIn .7s ease forwards}
+/* sidebar */
+#side{position:fixed;top:0;bottom:0;left:0;width:var(--sw);z-index:30;display:flex;flex-direction:column;background:var(--sb);border-right:1px solid var(--sbd);
+  -webkit-backdrop-filter:blur(30px) saturate(1.4);backdrop-filter:blur(30px) saturate(1.4);overflow-y:auto;scrollbar-width:none;color:var(--ink)}
+#side::-webkit-scrollbar{display:none}
+#sdTop{height:58px;flex:none;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--sbd);direction:ltr}
+.sdlogo{width:34px;height:34px;background:var(--ink);-webkit-mask:url(assets/thabit-favicon.svg) center/contain no-repeat;mask:url(assets/thabit-favicon.svg) center/contain no-repeat}
+#sdin{padding:16px 14px 28px;display:flex;flex-direction:column;gap:4px}
+.sdh{font:700 .72rem Cairo,Inter,sans-serif;color:var(--ink2);margin:6px 12px 6px}
+.sdgap{height:30px;flex:none}
+.sdi{display:flex;align-items:center;gap:14px;width:100%;height:52px;padding:0 14px;margin:0;border:0;border-radius:14px;background:transparent;color:var(--ink);font:600 .98rem Cairo,Inter,sans-serif;text-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .8s var(--ease)}
+.sdi svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.sdi span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(hover:hover){.sdi:hover{background:var(--chip)}}
+.sdi:active{scale:.975;transition:scale .3s ease-out}
+.sdi.on{background:var(--chip)}
+/* header (name + theme + language) */
+#hdr{position:fixed;top:14px;right:20px;z-index:25;display:flex;gap:8px;align-items:center;direction:ltr}
+.chipw{position:relative}
+.chip{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 18px;border-radius:22px;border:1px solid var(--sbd);background:var(--chip);color:var(--ink);font:700 .8rem Inter,Cairo,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent}
+.chip svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#cmenu{position:absolute;top:52px;right:0;min-width:210px;padding:6px;border-radius:16px;border:1px solid var(--sbd);background:var(--sb);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);box-shadow:0 12px 36px rgba(0,0,0,.25);opacity:0;visibility:hidden;translate:0 -6px;transition:opacity .25s,translate .35s var(--ease),visibility 0s .25s}
+#cmenu.on{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
+#cmenu button{width:100%;height:42px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:600 .86rem Cairo,Inter,sans-serif;cursor:pointer;text-align:start}
+#cmenu button:hover{background:var(--chip)}
+#burger{display:none;position:fixed;top:14px;left:14px;z-index:25}
+#sbs{position:fixed;inset:0;z-index:28;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .4s}
+/* page */
+#pg{margin-left:var(--sw);padding:84px 32px 48px}
+#ptitle{font:800 1.35rem Cairo,Inter,sans-serif;text-align:center;color:var(--ink);margin-bottom:26px}
+.pcard{max-width:1250px;margin:0 auto;min-height:180px;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:28px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);font:500 1rem Cairo,Inter,sans-serif;color:var(--ink2);text-align:center}
+@media(max-width:860px){
+  #side{translate:-100% 0;transition:translate .5s var(--ease)}
+  body.sbo #side{translate:0 0}
+  body.sbo #sbs{opacity:1;pointer-events:auto}
+  #burger{display:flex}
+  #pg{margin-left:0;padding:84px 16px 40px}
+}
+</style>
 </head>
 <body>
 <script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
@@ -184,6 +231,24 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     </section></div>
   </div>
 </main>
+<div id="app">
+  <aside id="side" aria-label="Menu"><div id="sdTop"><span class="sdlogo" role="img" aria-label="Thabit"></span></div><nav id="sdin"></nav></aside>
+  <div id="sbs"></div>
+  <button class="cb ic" id="burger" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <div id="hdr">
+    <button class="cb ic js-tg" type="button" aria-label="Theme">
+      <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>
+    </button>
+    <button class="cb js-lg" type="button" aria-label="Language"></button>
+    <div class="chipw">
+      <button class="chip" id="chip" type="button"><span id="uname"></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2"/></svg></button>
+      <div id="cmenu"><button type="button" id="swName" data-t="switchN"></button></div>
+    </div>
+  </div>
+  <section id="pg"><h1 id="ptitle"></h1><div class="pcard" data-t="soonc"></div></section>
+</div>
+
 <style>
 .card>.gform{max-width:560px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 14px}
 .gform .btn{grid-column:1/-1;width:100%;max-width:340px;justify-self:center;margin-top:18px}
@@ -191,24 +256,66 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 </style>
 <script>
 (function(){'use strict';
-const $=id=>document.getElementById(id),body=document.body,root=document.documentElement,AR_TZ=/^(Africa\/(Cairo|Tripoli|Tunis|Algiers|Casablanca|El_Aaiun|Khartoum|Djibouti|Nouakchott|Mogadishu)|Asia\/(Riyadh|Dubai|Baghdad|Amman|Beirut|Damascus|Kuwait|Qatar|Bahrain|Muscat|Aden|Gaza|Hebron)|Indian\/Comoro)$/;
-const STR={en:{title:'Tell us about you',first:'First name',last:'Last name',phone:'Phone number',email:'Email',go:'Continue',name:'English',req:'This field is required',badPh:'Enter a valid phone number',badEm:'Enter a valid email'},
-ar:{title:'عرّفنا بنفسك',first:'الاسم الأول',last:'الاسم الأخير',phone:'رقم الهاتف',email:'البريد الإلكتروني',go:'متابعة',name:'العربية',req:'هذا الحقل مطلوب',badPh:'أدخل رقم هاتف صحيح',badEm:'أدخل بريدًا إلكترونيًا صحيحًا'}};
+const $=id=>document.getElementById(id),body=document.body,root=document.documentElement,AR_TZ=/^(Africa\/(Cairo|Tripoli|Tunis|Algiers|Casablanca|El_Aaiun|Khartoum|Djibouti|Nouakchott|Mogadishu)|Asia\/(Riyadh|Dubai|Baghdad|Amman|Beirut|Damascus|Kuwait|Qatar|Bahrain|Muscat|Aden|Gaza|Hebron)|Indian\/Comoro)$/,KEY='thGuest';
+const STR={en:{title:'Tell us about you',first:'First name',last:'Last name',phone:'Phone number',email:'Email',go:'Continue',name:'English',req:'This field is required',badPh:'Enter a valid phone number',badEm:'Enter a valid email',brand:'Thabit',
+  grp:'Language & Training Services',i_train:'Language Training',i_dict:'Dictation Pal',i_mirror:'Mirroring Room',i_translate:'Translation',i_free:'Free Space',i_voice:'Voice-Over',i_digital:'Digital Solutions',i_consult:'Consultations',i_contact:'Contact Us',i_gallery:'Gallery',i_about:'About Thabit',soonc:'Content will be here.',switchN:'Not you? Change name'},
+ar:{title:'عرّفنا بنفسك',first:'الاسم الأول',last:'الاسم الأخير',phone:'رقم الهاتف',email:'البريد الإلكتروني',go:'متابعة',name:'العربية',req:'هذا الحقل مطلوب',badPh:'أدخل رقم هاتف صحيح',badEm:'أدخل بريدًا إلكترونيًا صحيحًا',brand:'ثابت',
+  grp:'خدمات اللغة والتدريب',i_train:'التدريب اللغوي',i_dict:'رفيق الإملاء',i_mirror:'غرفة المرآة',i_translate:'الترجمة',i_free:'المساحة الحرة',i_voice:'التعليق الصوتي',i_digital:'الحلول الرقمية',i_consult:'الاستشارات',i_contact:'تواصل معنا',i_gallery:'المعرض',i_about:'عن ثابت',soonc:'سيكون المحتوى هنا.',switchN:'لست أنت؟ غيّر الاسم'}};
 function detect(){try{const v=localStorage.getItem('thLandLang');if(v==='ar'||v==='en')return v}catch(e){}let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}return(AR_TZ.test(tz)||(navigator.language||'').toLowerCase().indexOf('ar')===0)?'ar':'en'}
-let L=detect();
-function apply(){const t=STR[L];root.dir=L==='ar'?'rtl':'ltr';root.lang=L;body.classList.toggle('ar',L==='ar');document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t[e.dataset.t]);$('lg').textContent=t.name;document.title=t.title;$('c0').dir=root.dir;document.querySelectorAll('.fl input').forEach(i=>i.dir='ltr')}
-$('lg').onclick=()=>{L=L==='ar'?'en':'ar';try{localStorage.setItem('thLandLang',L)}catch(e){}apply()};
-$('tg').onclick=()=>{body.classList.add('th-fade');setTimeout(()=>body.classList.remove('th-fade'),1600);body.classList.toggle('light');try{localStorage.setItem('thThemeChoice',body.classList.contains('light')?'light':'dark')}catch(e){}};
-apply();
+let L=detect(),cur='train';
+
+/* ---------- sidebar ---------- */
+const IC={train:'<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
+dict:'<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 6.5h4M10 10h4M10 13.5h4"/>',
+mirror:'<rect x="5.5" y="2.5" width="13" height="16" rx="6.5"/><path d="M9.5 7c.8-.8 1.7-1.2 2.7-1.2M12 18.5V21M8.5 21.5h7"/>',
+translate:'<circle cx="10" cy="14" r="8"/><ellipse cx="10" cy="14" rx="3.3" ry="8"/><path d="M2 14h16M3.2 9.5h13.6M3.2 18.5h13.6"/><path d="M19 2.5a3 3 0 0 1 3 3c0 2.2-3 5-3 5s-3-2.8-3-5a3 3 0 0 1 3-3z"/><circle cx="19" cy="5.5" r=".9"/>',
+free:'<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/><circle cx="12" cy="12" r="2.5"/>',
+voice:'<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
+digital:'<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
+consult:'<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 6.5h4M10 10h4M10 13.5h4"/>',
+contact:'<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
+gallery:'<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10h14V9M10 13h4"/>',
+about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/>'};
+const GR=[['grp',['train','dict','mirror','translate','free']],[null,['voice','digital','consult']],[null,['contact','gallery','about']]];
+$('sdin').innerHTML=GR.map(g=>(g[0]?'<div class="sdh" data-t="'+g[0]+'"></div>':'<div class="sdgap"></div>')+g[1].map(k=>'<button type="button" class="sdi" data-k="'+k+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC[k]+'</svg><span data-t="i_'+k+'"></span></button>').join('')).join('');
+
+function apply(){const t=STR[L];root.dir=L==='ar'?'rtl':'ltr';root.lang=L;body.classList.toggle('ar',L==='ar');
+  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t[e.dataset.t]);
+  document.querySelectorAll('.js-lg').forEach(b=>b.textContent=t.name);
+  document.title=body.classList.contains('app')?t.brand:t.title;
+  $('c0').dir=root.dir;$('side').dir=root.dir;$('ptitle').textContent=t['i_'+cur];
+  document.querySelectorAll('.fl input').forEach(i=>i.dir='ltr')}
+document.querySelectorAll('.js-lg').forEach(b=>b.onclick=()=>{L=L==='ar'?'en':'ar';try{localStorage.setItem('thLandLang',L)}catch(e){}apply()});
+document.querySelectorAll('.js-tg').forEach(b=>b.onclick=()=>{body.classList.add('th-fade');setTimeout(()=>body.classList.remove('th-fade'),1600);body.classList.toggle('light');try{localStorage.setItem('thThemeChoice',body.classList.contains('light')?'light':'dark')}catch(e){}});
+$('tg').onclick=()=>document.querySelector('.js-tg').click();
+$('lg').onclick=()=>document.querySelector('.js-lg').click();
+
+function setPage(k,quiet){cur=k;document.querySelectorAll('.sdi').forEach(b=>b.classList.toggle('on',b.dataset.k===k));$('ptitle').textContent=STR[L]['i_'+k];
+  body.classList.remove('sbo');
+  if(!quiet)try{$('pg').animate([{opacity:0,filter:'blur(8px)'},{opacity:1,filter:'blur(0)'}],{duration:380,easing:'ease-out'})}catch(e){}}
+$('sdin').addEventListener('click',e=>{const b=e.target.closest('.sdi');if(b)setPage(b.dataset.k)});
+$('burger').onclick=()=>body.classList.toggle('sbo');$('sbs').onclick=()=>body.classList.remove('sbo');
+
+/* ---------- remembered guest ---------- */
+function load(){try{const g=JSON.parse(localStorage.getItem(KEY)||'null');return g&&g.firstName?g:null}catch(e){return null}}
+function showApp(g){$('uname').textContent=g.firstName;body.classList.add('app');apply();setPage(cur,true);window.scrollTo(0,0)}
+function showForm(){body.classList.remove('app','sbo');apply()}
+$('chip').onclick=e=>{e.stopPropagation();$('cmenu').classList.toggle('on')};
+document.addEventListener('click',()=>$('cmenu').classList.remove('on'));
+$('swName').onclick=()=>{try{localStorage.removeItem(KEY);sessionStorage.removeItem('thabitGuest')}catch(e){}ids.forEach(k=>{$(k).value='';$('f_'+k).classList.remove('bad','act')});$('cmenu').classList.remove('on');showForm()};
+
+/* ---------- the form ---------- */
 const ids=['fn','ln','ph','em'],rules={fn:v=>!!v,ln:v=>!!v,ph:v=>/^\+?[0-9\s\-()]{7,18}$/.test(v)&&v.replace(/\D/g,'').length>=7,em:v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)};
 ids.forEach(k=>{const i=$(k),f=$('f_'+k);i.addEventListener('focus',()=>f.classList.add('act'));i.addEventListener('blur',()=>f.classList.remove('act'));i.addEventListener('input',()=>{f.classList.remove('bad');$('m_'+k).classList.remove('show')});i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('go').click()}})});
 $('go').onclick=()=>{let ok=true;const t=STR[L],d={};
 ids.forEach(k=>{const v=$(k).value.trim();d[k]=v;if(!rules[k](v)){ok=false;$('f_'+k).classList.add('bad');const m=$('m_'+k);m.textContent=!v?t.req:(k==='ph'?t.badPh:t.badEm);m.classList.add('show')}});
 if(!ok)return;
-/* guest data lives only in this tab: it is gone when the page is closed */
-try{sessionStorage.setItem('thabitGuest',JSON.stringify({firstName:d.fn,lastName:d.ln,phone:d.ph,email:d.em,at:Date.now()}))}catch(e){}
-document.body.animate([{opacity:1},{opacity:0}],{duration:320,easing:'ease-in',fill:'forwards'});
-setTimeout(()=>location.replace('index.html'),330)};  /* replace: Back from index goes to the landing */
+const g={id:(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2),firstName:d.fn,lastName:d.ln,name:(d.fn+' '+d.ln).trim(),phone:d.ph,email:d.em,at:Date.now()};
+/* remembered on this device: the landing page asks "are you X?" next time */
+try{localStorage.setItem(KEY,JSON.stringify(g));sessionStorage.setItem('thabitGuest',JSON.stringify({firstName:d.fn,lastName:d.ln,phone:d.ph,email:d.em,at:g.at}))}catch(e){}
+showApp(g)};
+
+const g0=load();if(g0)showApp(g0);else apply();
 window.addEventListener('pageshow',()=>document.body.getAnimations().forEach(a=>a.cancel()));
 })();
 </script>
