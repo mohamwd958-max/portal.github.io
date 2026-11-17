@@ -32,7 +32,10 @@ body.th-fade,body.th-fade *{transition:background-color 1s ease,color 1s ease,bo
 
 /* top band (phone: logo + profile) */
 .top{position:fixed;top:0;left:0;right:0;z-index:20;height:calc(50px + env(safe-area-inset-top,0px));display:flex;align-items:flex-end;justify-content:space-between;direction:ltr;padding:0 16px 9px;background:var(--bar);border-bottom:1px solid var(--gbd);-webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4)}
-.prof{width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.prof{min-width:32px;height:32px;padding:0 10px;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:8px}
+.prof.solo{padding:0;width:32px}
+.pn{font:600 .8rem Inter,Cairo,sans-serif;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pn:empty{display:none}
 
 /* phone: sections */
 main{position:relative;z-index:2;padding:calc(68px + env(safe-area-inset-top,0px)) 16px calc(78px + env(safe-area-inset-bottom,0px));touch-action:pan-y}
@@ -57,9 +60,12 @@ main{position:relative;z-index:2;padding:calc(68px + env(safe-area-inset-top,0px
 .oi{display:flex;align-items:center;gap:12px}
 
 /* computer: side bar on the left, logo cell on top, the rest is free for an ad */
-.side{position:fixed;left:0;top:0;bottom:0;width:280px;z-index:20;display:none;flex-direction:column;background:var(--bar);border-right:1px solid var(--gbd);-webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4)}
-.sh{height:60px;flex:none;display:flex;align-items:center;padding:0 24px;background:var(--cell);border-bottom:1px solid var(--gbd)}
-.sn{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.side{position:fixed;left:0;top:0;bottom:0;width:240px;z-index:20;display:none;flex-direction:column;background:var(--bar);border-right:1px solid var(--gbd);-webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4)}
+.sh{height:46px;flex:none;display:flex;align-items:center;padding:0 24px;background:var(--cell);border-bottom:1px solid var(--gbd)}
+.side{direction:ltr}
+[dir=rtl] .sn{direction:rtl}
+.sn{position:relative;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
+.sn::-webkit-scrollbar{display:none}
 .sl{padding:14px 12px 6px;font:700 .68rem/1 Inter,Cairo,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);opacity:.65}
 body.ar .sl{letter-spacing:0;text-transform:none;font-size:.78rem}
 .si{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:12px;color:var(--ink2);font-weight:600;text-align:start}
@@ -71,9 +77,9 @@ button:active{scale:.975}
 .ic{display:inline-grid;color:#fbbf24}
 @media(min-width:1101px){
   .side{display:flex}.bar,#pages,.top .logo{display:none}
-  .prof{width:36px;height:36px}.sh .logo{width:30px;height:30px}
-  .top{left:280px;height:60px;align-items:center;padding:0 24px;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-end}
-  main{margin-left:280px;padding:84px 40px 48px}
+  .prof{height:36px}.prof.solo{width:36px}.sh .logo{width:24px;height:24px}
+  .top{left:240px;height:60px;align-items:center;padding:0 24px;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-end}
+  main{margin-left:240px;padding:84px 40px 48px}
   #dpage{display:block;max-width:1000px;margin:0 auto}
   #dpage .soon{padding:60px 24px}
 }
@@ -108,12 +114,12 @@ button:active{scale:.975}
 
 <header class="top">
   <i class="logo" role="img" aria-label="Thabit"></i>
-  <button class="prof glass" id="prof" type="button" aria-label="Profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
+  <button class="prof glass" id="prof" type="button" aria-label="Profile"><span class="pn" id="pn"></span><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
 </header>
 
 <main id="main">
   <div id="pages">
-    <section class="pg on" id="p0"><h1 class="ph" data-t="tLang"></h1><div class="opts"><button class="opt glass" style="--i:0" data-open="train" type="button"><span class="oi"><i class="ico" data-ic="cap"></i><span data-t="train"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:1" data-open="dict" type="button"><span class="oi"><i class="ico" data-ic="recorder"></i><span data-t="dict"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:2" data-open="mirror" type="button"><span class="oi"><i class="ico" data-ic="webcam"></i><span data-t="mirror"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:3" data-open="trans" type="button"><span class="oi"><i class="ico" data-ic="globe"></i><span data-t="trans"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button></div></section>
+    <section class="pg on" id="p0"><h1 class="ph" data-t="tLang"></h1><div class="opts"><button class="opt glass" style="--i:0" data-open="train" type="button"><span class="oi"><i class="ico" data-ic="cap"></i><span data-t="train"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:1" data-open="dict" type="button"><span class="oi"><i class="ico" data-ic="recorder"></i><span data-t="dict"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:2" data-open="mirror" type="button"><span class="oi"><i class="ico" data-ic="webcam"></i><span data-t="mirror"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:3" data-open="trans" type="button"><span class="oi"><i class="ico" data-ic="globe"></i><span data-t="trans"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button><button class="opt glass" style="--i:4" data-open="free" type="button"><span class="oi"><i class="ico" data-ic="free"></i><span data-t="free"></span></span><i class="chev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></i></button></div></section>
     <section class="pg" id="p1"><h1 class="ph" data-t="tVo"></h1><div class="soon glass" data-t="soon"></div></section>
     <section class="pg" id="p2"><h1 class="ph" data-t="tDig"></h1><div class="soon glass" data-t="soon"></div></section>
     <section class="pg" id="p3"><h1 class="ph" data-t="tCons"></h1><div class="soon glass" data-t="soon"></div></section>
@@ -141,12 +147,12 @@ button:active{scale:.975}
   'use strict';
   const $ = id => document.getElementById(id), body = document.body, root = document.documentElement, AR_TZ = /^(Africa\/(Cairo|Tripoli|Tunis|Algiers|Casablanca|El_Aaiun|Khartoum|Djibouti|Nouakchott|Mogadishu)|Asia\/(Riyadh|Dubai|Baghdad|Amman|Beirut|Damascus|Kuwait|Qatar|Bahrain|Muscat|Aden|Gaza|Hebron)|Indian\/Comoro)$/;
   const D = {
-    en: { tLang: 'Language', tVo: 'Voice Over', tDig: 'Digital Solutions', tCons: 'Personal Consultation', vo: 'Voice Over', dig: 'Digital Solutions', cons: 'Personal Consultation', more: 'More', svcLang: 'Language services',
-      train: 'Language Training', dict: 'Dictation Pal', mirror: 'Mirroring Room', trans: 'Translation', contact: 'Contact', store: 'Our Store', about: 'About', theme: 'Theme', dark: 'Dark', light: 'Light',
+    en: { tLang: 'Language & Training', tVo: 'Voice Over', tDig: 'Digital Solutions', tCons: 'Personal Consultation', vo: 'Voice Over', dig: 'Digital Solutions', cons: 'Personal Consultation', more: 'More', svcLang: 'Language & Training', free: 'Free Space',
+      train: 'Language Training', dict: 'Dictation Pal', mirror: 'Mirroring Room', trans: 'Translation', contact: 'Contact', store: 'Showroom', about: 'About', theme: 'Theme', dark: 'Dark', light: 'Light',
       guest: 'Guest', gnote: 'You are exploring as a guest', fn: 'First name', ln: 'Last name', ph: 'Phone', em: 'Email',
       soon: 'Services will appear here', soon2: 'The content will be here.', dash: 'The dashboard will be here.', contactTxt: 'Contact details will be here.', aboutTxt: 'Information about the Thabit program will be here.' },
-    ar: { tLang: 'اللغة', tVo: 'التعليق الصوتي', tDig: 'الحلول الرقمية', tCons: 'الاستشارات', vo: 'التعليق الصوتي', dig: 'الحلول الرقمية', cons: 'الاستشارات', more: 'المزيد', svcLang: 'خدمات اللغة',
-      train: 'التدريب اللغوي', dict: 'رفيق الإملاء', mirror: 'غرفة المرآة', trans: 'الترجمة', contact: 'تواصل معنا', store: 'متجرنا', about: 'عن ثابت', theme: 'المظهر', dark: 'داكن', light: 'فاتح',
+    ar: { tLang: 'اللغة والتدريب', tVo: 'التعليق الصوتي', tDig: 'الحلول الرقمية', tCons: 'الاستشارات', vo: 'التعليق الصوتي', dig: 'الحلول الرقمية', cons: 'الاستشارات', more: 'المزيد', svcLang: 'خدمات اللغة والتدريب', free: 'المساحة الحرة',
+      train: 'التدريب اللغوي', dict: 'رفيق الإملاء', mirror: 'غرفة المرآة', trans: 'الترجمة', contact: 'تواصل معنا', store: 'المعرض', about: 'عن ثابت', theme: 'المظهر', dark: 'داكن', light: 'فاتح',
       guest: 'ضيف', gnote: 'أنت تستكشف كضيف', fn: 'الاسم الأول', ln: 'الاسم الأخير', ph: 'الهاتف', em: 'البريد الإلكتروني',
       soon: 'ستظهر الخدمات هنا', soon2: 'سيكون المحتوى هنا.', dash: 'ستكون لوحة التحكم هنا.', contactTxt: 'ستكون بيانات التواصل هنا.', aboutTxt: 'هنا ستكون المعلومات عن برنامج ثابت.' }
   };
@@ -168,9 +174,10 @@ button:active{scale:.975}
     store: '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 8h18M6 6h.01M18 6h.01M8 12h8l-1 5H9z"/>',
     chat: '<path d="M4 5h16v11H9l-5 4z"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    free: '<path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="1.6"/>',
     plus: '<path d="M12 5v14M5 12h14"/>'
   };
-  const KI = { train: 'cap', dict: 'recorder', mirror: 'webcam', trans: 'globe', vo: 'mic', dig: 'cloud', cons: 'phone', contact: 'chat', store: 'store', about: 'info' };
+  const KI = { train: 'cap', dict: 'recorder', mirror: 'webcam', trans: 'globe', vo: 'mic', dig: 'cloud', cons: 'phone', free: 'free', contact: 'chat', store: 'store', about: 'info' };
   const ico = n => { const i = el('i', 'ico'); i.innerHTML = '<svg viewBox="0 0 24 24">' + IC[n] + '</svg>'; return i; };
   document.querySelectorAll('[data-ic]').forEach(e => { e.innerHTML = '<svg viewBox="0 0 24 24">' + IC[e.dataset.ic] + '</svg>'; });
   const chev = () => { const i = el('i', 'chev'); i.innerHTML = svg('<path d="M9 6l6 6-6 6"/>'); return i; };
@@ -191,12 +198,22 @@ button:active{scale:.975}
     const n = $('sn'); n.textContent = '';
     const add = (k, txt) => { const b = el('button', 'si' + (k === dkey ? ' on' : '')); b.type = 'button'; b.dataset.k = k; b.append(ico(KI[k]), document.createTextNode(txt)); n.append(b); };
     n.append(el('div', 'sl', t('svcLang')));
-    ['train', 'dict', 'mirror', 'trans'].forEach(k => add(k, t(k)));
+    ['train', 'dict', 'mirror', 'trans', 'free'].forEach(k => add(k, t(k)));
     n.append(el('div', 'sep')); ['vo', 'dig', 'cons'].forEach(k => add(k, t(k)));
     n.append(el('div', 'sep')); ['contact', 'store', 'about'].forEach(k => add(k, t(k))); n.append(el('div', 'sep'));
     const th = el('button', 'si'); th.type = 'button'; th.dataset.act = 'theme'; th.append(themeIc(), document.createTextNode(t('theme') + ' · ' + (isLight() ? t('light') : t('dark')))); n.append(th);
     const lg = el('button', 'si'); lg.type = 'button'; lg.dataset.act = 'lang'; lg.append(ico('langsw'), document.createTextNode(L === 'ar' ? 'English' : 'العربية')); n.append(lg);
+    fitSide();
   }
+  function fitSide() {
+    const s = $('side'), n = $('sn'); if (getComputedStyle(s).display === 'none') return;
+    n.style.height = ''; const avail = s.clientHeight - s.querySelector('.sh').offsetHeight;
+    if (n.scrollHeight <= avail + 1) return;
+    const c = [...n.querySelectorAll('.si')].find(b => b.offsetTop + b.offsetHeight > avail + 1);
+    if (c) n.style.height = Math.round(c.offsetTop + c.offsetHeight * .25) + 'px';   /* the last visible cell shows a quarter only */
+  }
+  window.addEventListener('resize', fitSide);
+  window.addEventListener('load', fitSide); if (document.fonts) document.fonts.ready.then(fitSide);
   function fillDesk() { $('dt').textContent = t(dkey); $('dp').textContent = bodyText(dkey); document.querySelectorAll('.si[data-k]').forEach(b => b.classList.toggle('on', b.dataset.k === dkey)); }
   function showDesk(k) {
     if (k === dkey) return; dkey = k; const p = $('dpage'); p.getAnimations().forEach(x => x.cancel()); fillDesk();
@@ -212,6 +229,7 @@ button:active{scale:.975}
     if (k === 'more') {
       p.append(el('h3', 'pt', t('more')));
       ['contact', 'store', 'about'].forEach(a => { const b = el('button', 'pi'); b.type = 'button'; b.dataset.act = a; b.append(ico(KI[a]), document.createTextNode(t(a)), chev()); p.append(b); });
+      p.append(el('div', 'sep'));
       const th = el('button', 'pi'); th.type = 'button'; th.dataset.act = 'theme'; th.append(themeIc(), document.createTextNode(t('theme') + ' · ' + (isLight() ? t('light') : t('dark')))); p.append(th);
       const lg = el('button', 'pi'); lg.type = 'button'; lg.dataset.act = 'lang'; lg.append(ico('langsw'), document.createTextNode(L === 'ar' ? 'English' : 'العربية')); p.append(lg);
     } else {
@@ -271,6 +289,7 @@ button:active{scale:.975}
     root.lang = L; root.dir = L === 'ar' ? 'rtl' : 'ltr'; body.classList.toggle('ar', L === 'ar');
     document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
     document.querySelectorAll('[data-al]').forEach(b => b.setAttribute('aria-label', t(b.dataset.al)));
+    $('pn').textContent = G && G.firstName ? G.firstName : ''; $('prof').classList.toggle('solo', !(G && G.firstName));
     document.title = 'Thabit'; buildSide(); fillDesk(); ui();
   }
   apply();
