@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="js/thabit-loader.js"></script>
 <title>Welcome to Thabit</title>
 <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,31 +30,35 @@ body.light{
   --ov1:rgba(244,241,234,.92); --ov2:rgba(244,241,234,.55)
 }
 *{box-sizing:border-box;margin:0}
-html,body{min-height:100%;background:#050914}
+html{font-size:90%}
+html,body{min-height:100%;background:#121419}
 body{font-family:Inter,Cairo,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.ar{font-family:Cairo,Inter,system-ui,sans-serif}
-.bg{position:fixed;inset:0;z-index:0;background:#050914 url(assets/welcome-bg.jpg) 50% 22%/cover no-repeat;opacity:0;animation:fadeIn 1.4s ease .1s forwards}
+.bg{position:fixed;inset:0;z-index:0;background:#121419 url(assets/welcome-bg.jpg) 50% 22%/cover no-repeat;opacity:0;animation:fadeIn 1.4s ease .1s forwards}
 /* two veils that cross-fade, so the theme changes slowly and softly */
 .vd,.vl{position:fixed;inset:0;z-index:1;pointer-events:none;transition:opacity 1.4s ease}
-.vd{background:linear-gradient(180deg,rgba(4,8,22,.55) 0%,rgba(4,8,22,.15) 38%,rgba(4,8,22,.6) 100%);opacity:1}
-.vl{background:linear-gradient(180deg,rgba(244,241,234,.86) 0%,rgba(244,241,234,.5) 38%,rgba(244,241,234,.78) 100%);opacity:0}
+.vd{background:linear-gradient(180deg,rgba(18,20,26,.55) 0%,rgba(18,20,26,.15) 38%,rgba(18,20,26,.6) 100%);opacity:1}
+.vl{background:linear-gradient(180deg,rgba(236,232,222,.92) 0%,rgba(236,232,222,.62) 38%,rgba(236,232,222,.86) 100%);opacity:0}
 body.light .vd{opacity:0}body.light .vl{opacity:1}
 body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.4s ease,color 1.4s ease,border-color 1.4s ease,box-shadow 1.4s ease,fill 1.4s ease,stroke 1.4s ease,opacity 1.4s ease!important}
 
-main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:max(9vh,44px) 0 calc(30px + env(safe-area-inset-bottom,0px));text-align:center}
+main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;text-align:center}
 main>.hello,main>.brand,main>.tag{padding:0 20px}
 
 /* ---------- title ---------- */
 .hello{font:italic 500 clamp(1.3rem,4.6vw,2rem)/1 'Playfair Display',Georgia,serif;letter-spacing:.5px;color:var(--ink2)}
-.brand{font:800 clamp(3.6rem,17vw,8.2rem)/1 'Playfair Display',Georgia,serif;letter-spacing:-.02em;margin:.08em 0 .14em;color:var(--ink)}
+.brand{font:800 clamp(3.2rem,15vw,7rem)/1 'Playfair Display',Georgia,serif;letter-spacing:-.02em;margin:.08em 0 .14em;color:var(--ink)}
 .tag{font:600 clamp(.72rem,2.6vw,.95rem)/1.2 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:var(--ink2)}
 body.ar .hello{font:600 clamp(1.3rem,4.6vw,2rem)/1.2 Cairo,sans-serif;letter-spacing:0}
-body.ar .brand{font:900 clamp(3.6rem,17vw,8.2rem)/1.15 Cairo,sans-serif;letter-spacing:0}
+body.ar .brand{font:900 clamp(3.2rem,15vw,7rem)/1.15 Cairo,sans-serif;letter-spacing:0}
 body.ar .tag{letter-spacing:.04em;text-transform:none;font-size:clamp(.95rem,3.2vw,1.15rem)}
+body.light .hello,body.light .tag{color:var(--ink);text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
+body.light .tag{font-weight:700}
+body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,.55)}
 /* name | TH logo: so it is clear this is the Thabit program */
 .brand{display:flex;align-items:center;justify-content:center;gap:.2em}
 .brand .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
-.brand .mk{flex:none;width:.74em;height:.74em;background:var(--ink);-webkit-mask:url(assets/thabit-favicon.svg) center/contain no-repeat;mask:url(assets/thabit-favicon.svg) center/contain no-repeat}
+.brand .mk{flex:none;width:.74em;height:.74em;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
 .rise{opacity:0;filter:blur(14px);translate:0 18px;animation:rise 1.1s cubic-bezier(.16,1,.3,1) forwards}
 .hello.rise{animation-delay:.5s}.brand.rise{animation-delay:.8s}.tag.rise{animation-delay:1.25s}
 .wrap.rise{animation-delay:1.8s}
@@ -61,33 +66,72 @@ body.ar .tag{letter-spacing:.04em;text-transform:none;font-size:clamp(.95rem,3.2
 @keyframes fadeIn{to{opacity:1}}
 
 /* ---------- top buttons: theme (sun / moon) + language name ---------- */
-.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;animation:fadeIn .8s ease 2.4s forwards}
-.cb{position:relative;height:40px;min-width:40px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
+.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;transition:opacity .8s}
+.ctl.on{opacity:1}
+.cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
   display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
 .cb:hover{scale:1.05}.cb:active{scale:.94}
-.cb.ic{width:40px;padding:0}
-.cb svg{position:absolute;width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:opacity 1.2s ease,rotate 1.2s var(--ease)}
+.cb.ic{width:36px;padding:0}
+.cb svg{position:absolute;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:opacity 1.2s ease,rotate 1.2s var(--ease)}
 .cb .sun{opacity:0;rotate:-70deg}.cb .moon{opacity:1;rotate:0deg}
 body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:70deg}
 
-/* ---------- the two cards (Login + Not a Thabit yet) ---------- */
-.wrap{margin-top:auto;padding-top:28px;width:100%;display:flex;flex-direction:column;align-items:center}
-.deck{width:min(100vw,480px);overflow:hidden;padding:14px 0 12px;direction:ltr;touch-action:pan-y}
-.track{display:flex;gap:16px;align-items:stretch;transition:transform .8s var(--ease);will-change:transform}
-.card{position:relative;flex:none;width:var(--w,340px);padding:24px 26px 24px;border-radius:22px;background:var(--gbg);border:1px solid var(--gbd);text-align:start;color:var(--ink);
-  -webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
-  transition:opacity .7s ease,filter .7s ease,scale .9s var(--ease)}
-@media(hover:hover){.card:not(.off):hover{scale:1.008}}
-.card.off{opacity:.55;filter:blur(1.2px);cursor:pointer}
-.card.off *{pointer-events:none}
-.card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:22px}
-.dots{display:flex;gap:8px;margin-top:10px}
-.dots i{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.28;cursor:pointer;transition:opacity .5s,scale .5s}
-.dots i.on{opacity:.9;scale:1.25}
+/* ---------- the two cards: always one under the other, almost full width ---------- */
+.wrap{margin:0;padding:0 clamp(12px,2vw,28px);width:100%;display:flex;flex-direction:column;align-items:center}
+.stack{width:100%;display:flex;flex-direction:column;gap:10px;direction:ltr}
+.card{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(64px) saturate(1.5);backdrop-filter:blur(64px) saturate(1.5);box-shadow:0 10px 40px rgba(0,0,0,.18);
+  position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
+.card>*{position:relative;z-index:2;width:100%;max-width:340px}
+.card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:14px}
+.ncard{text-align:center}
+.hold{opacity:0}.hid{display:none}
+.tag,body.ar .tag,body.light .tag{font:italic 500 clamp(1.05rem,3.6vw,1.5rem)/1.5 'Playfair Display',Georgia,serif;letter-spacing:0;text-transform:none;color:var(--ink2)}
+body.ar .tag{font:600 clamp(1.1rem,3.8vw,1.5rem)/1.6 Cairo,Inter,sans-serif}
+.card.ready{min-height:0;padding:12px 20px;cursor:pointer;appearance:none;-webkit-appearance:none;font:700 1rem Inter,Cairo,sans-serif;color:var(--ink);margin-bottom:10px;-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
+body.ar .card.ready{font-family:Cairo,Inter,sans-serif}
+@media(hover:hover){.card.ready:hover{scale:1.01}}
+.card.ready:active{scale:.98}
+.stack .rise{animation-duration:.7s}.stack .rise2{animation-duration:.6s}
+.hlogo{position:fixed;z-index:5;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat;pointer-events:none;transition:left .9s cubic-bezier(.65,0,.35,1),top .9s cubic-bezier(.65,0,.35,1),width .9s cubic-bezier(.65,0,.35,1),height .9s cubic-bezier(.65,0,.35,1)}
+.hlogo.fin{left:16px;top:max(14px,env(safe-area-inset-top,0px));width:30px;height:30px}
+.gl{position:fixed;inset:0;z-index:4;display:none;align-items:center;justify-content:center;padding:70px 16px 24px;overflow:auto;overscroll-behavior:contain;background:rgba(14,16,22,.55);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}
+body.light .gl{background:rgba(236,232,222,.6)}
+.gl.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
+.gl .card{width:100%;max-width:none;margin:auto;padding:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
+.gl .card h2{margin-bottom:6px}
+.gl .fl{opacity:1}
+.gl.on .fl{animation:gdrop .45s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i)*.09s + .1s)}
+.gl.on .card h2{animation:fadeUp .4s ease backwards}
+.gl.on .gform .btn{animation:fadeUp .4s ease 1s backwards}
+.gl.on .gform .btn+.btn{animation-delay:1.08s}
+@keyframes gdrop{from{opacity:0;translate:0 -60px}to{opacity:1;translate:0 0}}
+@keyframes fadeUp{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+body.lock{overflow:hidden;height:100%}
+.card>.gform{max-width:none;display:grid;grid-template-columns:1fr;gap:0}
+.gform .btn{grid-column:1/-1;width:100%;max-width:340px;justify-self:center;margin-top:14px}
+.gform .btn+.btn{margin-top:8px}
+.gform .rem{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;font:600 .85rem Inter,Cairo,sans-serif;color:var(--ink2);cursor:pointer}
+.rem input{width:18px;height:18px;accent-color:var(--ink)}
+.gl.on .rem{animation:fadeUp .4s ease .95s backwards}
+.q{font:600 clamp(1rem,2.4vw,1.2rem)/1.3 Inter,Cairo,sans-serif;text-align:center;color:var(--ink);padding:0 12px;text-shadow:0 1px 12px rgba(0,0,0,.55)}
+body.ar .q{font-family:Cairo,Inter,sans-serif}
+body.light .q{text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
+.q2{margin-top:14px}
+.rise2{opacity:0;translate:0 22px;animation:rise2 1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes rise2{to{opacity:1;translate:0 0}}
+.sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+body.light .sky{display:none}
+.meteor{position:absolute;width:90px;height:1.5px;border-radius:2px;transform-origin:100% 50%;opacity:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(190,215,255,.85) 70%,#fff);box-shadow:0 0 6px 1px rgba(170,200,255,.3)}
+body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.7)}
+.pop .btn+.btn{margin-top:10px}
+.ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
+.card>.nact{width:auto;max-width:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.nact .btn{width:auto;min-width:140px;padding:0 24px}
 
 /* login card: floating labels */
 .fl{position:relative;padding-top:18px;margin:0 0 2px}
-.fl input{display:block;width:100%;height:46px;padding:0 14px;border-radius:14px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:500 .92rem Inter,Cairo,sans-serif;outline:0;text-align:left;direction:ltr;
+.fl input{display:block;width:100%;height:42px;padding:0 14px;border-radius:14px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:500 .92rem Inter,Cairo,sans-serif;outline:0;text-align:left;direction:ltr;
   caret-color:var(--ink);-webkit-text-fill-color:var(--ink);transition:border-color .3s,box-shadow .3s,background .3s,scale .9s var(--ease)}
 .fl input::placeholder{color:transparent}
 .fl.pw input{padding-right:46px}
@@ -95,7 +139,7 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 .fl input:active{scale:.975;transition:scale .45s ease-out}
 .fl input:-webkit-autofill,.fl input:-webkit-autofill:focus{-webkit-text-fill-color:var(--ink)!important;caret-color:var(--ink);transition:background-color 600000s 0s,color 600000s 0s}
 .fl.act input{border-color:var(--ink);box-shadow:0 0 0 3px rgba(128,128,128,.16)}
-.fl label{position:absolute;left:15px;top:41px;transform:translateY(-50%);margin:0;font:500 .92rem Inter,Cairo,sans-serif;opacity:.6;pointer-events:none;white-space:nowrap;transition:top .3s var(--ease),font-size .3s,opacity .3s,color .3s}
+.fl label{position:absolute;left:15px;top:39px;transform:translateY(-50%);margin:0;font:500 .92rem Inter,Cairo,sans-serif;opacity:.6;pointer-events:none;white-space:nowrap;transition:top .3s var(--ease),font-size .3s,opacity .3s,color .3s}
 .fl.act label,.fl input:not(:placeholder-shown)+label,.fl input:-webkit-autofill+label{top:6px;font-size:.72rem;font-weight:700;opacity:.9}
 .fl.act label{color:var(--ink);opacity:1}
 .fl.ok input{border-color:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
@@ -104,29 +148,29 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 .fl.bad label{color:var(--bad);opacity:1}
 .fmsg{max-height:0;overflow:hidden;opacity:0;color:var(--bad);font:600 .72rem Inter,Cairo,sans-serif;transition:max-height .3s,opacity .3s,margin .3s}
 .fmsg.show{max-height:24px;opacity:1;margin-top:6px}
-.fhint{position:absolute;left:15px;top:41px;transform:translateY(-50%);direction:ltr;white-space:nowrap;pointer-events:none;font:500 .92rem Inter,sans-serif;opacity:.4;transition:opacity .35s}
+.fhint{position:absolute;left:15px;top:39px;transform:translateY(-50%);direction:ltr;white-space:nowrap;pointer-events:none;font:500 .92rem Inter,sans-serif;opacity:.4;transition:opacity .35s}
 .lalert{max-height:0;overflow:hidden;opacity:0;margin:0;font:600 .8rem/1.4 Inter,Cairo,sans-serif;color:var(--bad);text-align:center;transition:max-height .3s,opacity .3s,margin .3s}
 .lalert.show{max-height:60px;opacity:1;margin:0 0 6px}
 /* eye */
-.eye{position:absolute;right:10px;top:41px;translate:0 -50%;width:34px;height:34px;padding:0;border:0;background:none;color:var(--ink);opacity:.65;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:scale .9s var(--ease),opacity .25s}
+.eye{position:absolute;right:10px;top:39px;translate:0 -50%;width:30px;height:30px;padding:0;border:0;background:none;color:var(--ink);opacity:.65;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:scale .9s var(--ease),opacity .25s}
 @media(hover:hover){.eye:hover{opacity:1;scale:1.05}}
 .eye:active{scale:.94;transition:scale .45s ease-out}
-.eye svg{width:22px;height:22px;display:block;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.eye svg{width:19px;height:19px;display:block;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .eye .pup{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center}
 .eye.glow .pup{animation:pupGlow 1.3s ease-in-out 1}
 @keyframes pupGlow{0%{fill:currentColor;filter:none;scale:1}35%{fill:#fbbf24;filter:drop-shadow(0 0 3px #fbbf24) drop-shadow(0 0 8px rgba(251,191,36,.9));scale:1.5}100%{fill:currentColor;filter:none;scale:1}}
 .fl.show input{color:transparent;-webkit-text-fill-color:transparent}
-.pwv{position:absolute;left:0;right:0;top:18px;height:46px;padding:0 46px 0 14px;overflow:hidden;pointer-events:none;-webkit-user-select:none;user-select:none;direction:ltr;display:none;align-items:center}
+.pwv{position:absolute;left:0;right:0;top:18px;height:42px;padding:0 46px 0 14px;overflow:hidden;pointer-events:none;-webkit-user-select:none;user-select:none;direction:ltr;display:none;align-items:center}
 .fl.show .pwv{display:flex}
 .pwi{display:flex;white-space:pre;font:500 .92rem Inter,Cairo,sans-serif;color:var(--ink)}
 .pwi span{display:inline-block;transition:filter .55s ease,opacity .55s ease}
 .pwi span.bl{filter:blur(9px);opacity:.25}
 /* Get In: square -> circle -> check */
-.lbtn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:100%;height:46px;margin:18px auto 0;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;
+.lbtn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:100%;height:42px;margin:18px auto 0;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;
   transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,color .3s,opacity .3s,scale .9s var(--ease)}
 @media(hover:hover){.lbtn[data-state=idle]:hover{scale:1.03;opacity:.93}}
 .lbtn[data-state=idle]:active{scale:.975;transition:scale .45s ease-out,width .5s,border-radius .5s}
-.lbtn[data-state=busy],.lbtn[data-state=done]{width:46px;border-radius:23px}
+.lbtn[data-state=busy],.lbtn[data-state=done]{width:42px;border-radius:21px}
 .lbtn .bt{white-space:nowrap;transition:opacity .15s}
 .lbtn[data-state=busy] .bt,.lbtn[data-state=done] .bt{opacity:0}
 .lbtn .sp{position:absolute;left:50%;top:50%;translate:-50% -50%;width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:0;animation:lgSpin .8s linear infinite;transition:opacity .25s}
@@ -137,11 +181,7 @@ body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:
 .lbtn[data-state=done] .ck{opacity:1}.lbtn[data-state=done] .ck path{stroke-dashoffset:0}
 @keyframes lgSpin{to{rotate:360deg}}
 
-/* second card */
-.ncard{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0;overflow:hidden;
-  background-image:linear-gradient(180deg,var(--ov1) 0%,var(--ov1) 36%,var(--ov2) 100%),url(assets/be-thabit-bg.jpg);background-size:cover,cover;background-position:center,center 85%;background-repeat:no-repeat}
-.ncard h2{margin-bottom:18px}
-.btn{width:100%;height:46px;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;transition:opacity .25s,scale .9s var(--ease)}
+.btn{width:100%;height:42px;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;transition:opacity .25s,scale .9s var(--ease)}
 @media(hover:hover){.btn:hover{opacity:.93;scale:1.02}}
 .btn:active{scale:.975;transition:scale .45s ease-out}
 .btn.ghost{background:var(--gfield);color:var(--ink);border:1px solid var(--gbd)}
@@ -158,15 +198,41 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 .pop p{font:500 .88rem/1.6 Inter,Cairo,sans-serif;color:var(--ink2);margin-bottom:18px}
 .gears{display:flex;justify-content:center;align-items:flex-end;gap:2px;color:var(--acc);margin-bottom:8px}
 .gears svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.gears svg:first-child{width:46px;height:46px;animation:spin 5s linear infinite}
+.gears svg:first-child{width:46px;height:42px;animation:spin 5s linear infinite}
 .gears svg:last-child{width:32px;height:32px;margin-bottom:2px;animation:spin 3.4s linear infinite reverse}
 @keyframes spin{to{rotate:360deg}}
-.pop .btn+.btn{margin-top:10px}
-@media(prefers-reduced-motion:reduce){.rise,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
+@media(prefers-reduced-motion:reduce){.rise,.rise2,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
+
+/* =========================================================
+   NEW FLOW: intro centered -> "Ready" at the bottom -> layer with the two cards
+   ========================================================= */
+/* language / theme buttons stay hidden (and untouchable) until the intro ends */
+.ctl{pointer-events:none}.ctl.on{pointer-events:auto}
+
+/* the Ready button: almost full width, a finger of space on each side */
+.rbtn{position:fixed;z-index:3;left:28px;right:28px;bottom:calc(26px + env(safe-area-inset-bottom,0px));height:54px;border-radius:20px;border:1px solid var(--gbd);
+  background:var(--gbg);color:var(--ink);font:700 1.05rem Inter,Cairo,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4);
+  box-shadow:0 10px 40px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
+body.ar .rbtn{font-family:Cairo,Inter,sans-serif}
+@media(hover:hover){.rbtn:hover{scale:1.015}}
+.rbtn:active{scale:.98}
+
+/* the cards layer: a new layer on the same page, cards start from the top */
+.wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;justify-content:flex-start;
+  padding:calc(64px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(24px + env(safe-area-inset-bottom,0px))}
+.wrap.on{opacity:0;animation:fadeIn .6s ease forwards}
+
+/* both cards: see-through glass with a strong blur */
+.stack .card{background:rgba(255,255,255,.04);-webkit-backdrop-filter:blur(90px) saturate(1.5);backdrop-filter:blur(90px) saturate(1.5);border-color:rgba(255,255,255,.16);box-shadow:0 10px 40px rgba(0,0,0,.14)}
+body.light .stack .card{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.6)}
+
+/* "Become one of us" layer text */
+.jp{grid-column:1/-1;text-align:center;font:500 1rem/1.7 Inter,Cairo,sans-serif;color:var(--ink);margin:10px 0 6px}
+body.ar .jp{font-family:Cairo,Inter,sans-serif}
 </style>
 </head>
 <body>
-<script>try{if(localStorage.getItem('thThemeChoice')!=='dark')document.body.classList.add('light')}catch(e){document.body.classList.add('light')}</script>
+<script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
 <div class="bg"></div><div class="vd"></div><div class="vl"></div>
 
 <div class="ctl">
@@ -178,16 +244,16 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 </div>
 
 <main id="main">
-  <div class="hello rise" data-t="hello"></div>
-  <h1 class="brand rise"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
-  <div class="tag rise" data-t="tag"></div>
+  <div class="hello hold" data-t="hello"></div>
+  <h1 class="brand hold"><span data-t="brand"></span><i class="bar" aria-hidden="true"></i><i class="mk" role="img" aria-label="TH"></i></h1>
+  <div class="tag hold" data-t="tag"></div>
 
-  <div class="wrap rise">
-    <div class="deck" id="deck">
-      <div class="track" id="track">
+  <div class="wrap hid" id="wrap">
+    <div class="stack" id="stack">
 
+        <h3 class="q rise" data-t="q1" style="animation-delay:.05s"></h3>
         <!-- card 1: Login (same card, fields and effects as the portal) -->
-        <section class="card lcard" id="c0" aria-label="Login">
+        <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:.2s">
           <h2 data-t="loginT"></h2>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
@@ -210,20 +276,33 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
         </section>
 
         <!-- card 2: not a Thabit yet -->
-        <section class="card ncard off" id="c1" aria-label="Join">
-          <h2 data-t="notT"></h2>
-          <button class="btn" id="joinBtn" type="button" data-t="join"></button>
-          <div class="or"><span data-t="or"></span></div>
-          <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
+        <h3 class="q q2 rise" data-t="q2" style="animation-delay:.55s"></h3>
+        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:.75s">
+          <div class="nact">
+            <button class="btn" id="joinBtn" type="button" data-t="join"></button>
+            <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
+          </div>
         </section>
 
-      </div>
     </div>
-    <div class="dots" id="dots"><i class="on"></i><i></i></div>
   </div>
 </main>
 
-<!-- "ready soon" pop-up (Become one of us) -->
+<!-- "Ready" button: appears at the bottom when the intro is over -->
+<button class="rbtn hold" id="ready" type="button" data-t="ready"></button>
+
+<!-- "Become one of us" layer -->
+<div class="gl" id="jl" role="dialog" aria-modal="true">
+  <section class="card" id="jc" aria-label="Join">
+    <h2 data-t="jTitle"></h2>
+    <div class="gform">
+      <p class="jp" data-t="jP"></p>
+      <button class="btn ghost" id="jBack" type="button" data-t="back"></button>
+    </div>
+  </section>
+</div>
+
+<!-- "ready soon" pop-up (not used any more) -->
 <div class="ov" id="ov" role="dialog" aria-modal="true">
   <div class="pop">
     <div class="gears" aria-hidden="true">
@@ -236,13 +315,31 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   </div>
 </div>
 
-<!-- returning guest: "are you X?" -->
-<div class="ov" id="ovG" role="dialog" aria-modal="true">
+<div class="ov" id="gov" role="dialog" aria-modal="true">
   <div class="pop">
-    <h3 id="gbT"></h3>
-    <p id="gbP"></p>
-    <button class="btn" id="gbYes" type="button" data-t="backYes"></button>
-    <button class="btn ghost" id="gbNo" type="button" data-t="backNo"></button>
+    <h3 data-t="gT"></h3>
+    <p data-t="gP"></p>
+    <button class="btn" id="gStay" type="button" data-t="gStay"></button>
+    <button class="btn ghost" id="gLeave" type="button" data-t="gLeave"></button>
+  </div>
+</div>
+
+<div class="gl" id="gl" role="dialog" aria-modal="true">
+  <section class="card" id="gc" aria-label="Guest">
+    <h2 data-t="gTitle"></h2>
+    <div class="gform"><div class="fl" id="fg_fn" style="--i:0"><input type="text" id="g_fn" dir="ltr" placeholder=" " autocomplete="given-name" autocapitalize="off" spellcheck="false"><label for="g_fn" data-t="gFirst"></label><div class="fmsg" id="mg_fn"></div></div><div class="fl" id="fg_ln" style="--i:1"><input type="text" id="g_ln" dir="ltr" placeholder=" " autocomplete="family-name" autocapitalize="off" spellcheck="false"><label for="g_ln" data-t="gLast"></label><div class="fmsg" id="mg_ln"></div></div><div class="fl" id="fg_ph" style="--i:2"><input type="text" id="g_ph" dir="ltr" placeholder=" " autocomplete="tel" autocapitalize="off" spellcheck="false"><label for="g_ph" data-t="gPhone"></label><div class="fmsg" id="mg_ph"></div></div><div class="fl" id="fg_em" style="--i:3"><input type="text" id="g_em" dir="ltr" placeholder=" " autocomplete="email" autocapitalize="off" spellcheck="false"><label for="g_em" data-t="gEmail"></label><div class="fmsg" id="mg_em"></div></div>
+      <button class="btn" id="gGo" type="button" data-t="gGo"></button>
+      <button class="btn ghost" id="gBack" type="button" data-t="back"></button>
+    </div>
+  </section>
+</div>
+
+<div class="ov" id="rov" role="dialog" aria-modal="true">
+  <div class="pop">
+    <h3 id="rT"></h3>
+    <p id="rP"></p>
+    <button class="btn" id="rYes" type="button" data-t="rYes"></button>
+    <button class="btn ghost" id="rNo" type="button" data-t="rNo"></button>
   </div>
 </div>
 
@@ -260,15 +357,13 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { hello: 'Welcome to', brand: 'Thabit', tag: 'Your partner in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
-      backT: 'Welcome back,', backP: 'Are you {n}? Continue with the same name, or start fresh.', backYes: 'Yes, continue', backNo: "No, that's not me",
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'شريكك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
-      backT: 'أهلاً بعودتك،', backP: 'هل أنت {n}؟ تحب تكمل بنفس الاسم أم تدخل بيانات جديدة؟', backYes: 'نعم، أكمل', backNo: 'لا، لست أنا',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
       rate: 'محاولات كثيرة. حاول بعد 15 دقيقة.', conn: 'مشكلة في الاتصال. تأكد من الإنترنت وحاول مرة أخرى.', srv: 'خطأ في الخادم', na: 'خدمة الدخول غير متاحة الآن.' }
@@ -292,7 +387,8 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     const t = T(); setDir(); body.classList.toggle('ar', LANG === 'ar');
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t]; });
     $('lg').textContent = t.name; document.title = LANG === 'ar' ? 'مرحبًا بك في ثابت' : 'Welcome to Thabit';
-    ['c0', 'c1'].forEach(id => { $(id).dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
+    ['c0', 'c1', 'gc', 'jc'].forEach(id => { $(id).dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
+    document.querySelectorAll('.q').forEach(q => { q.dir = LANG === 'ar' ? 'rtl' : 'ltr'; });
     $('c0').querySelectorAll('input').forEach(i => { i.dir = 'ltr'; });
   }
   $('lg').onclick = () => {
@@ -311,60 +407,163 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     try { localStorage.setItem('thThemeChoice', body.classList.contains('light') ? 'light' : 'dark'); } catch (e) { }
   };
 
-  /* ============ the two cards: login on the left, a quarter of the next one peeks on the right ============ */
-  const deck = $('deck'), track = $('track'), cards = [$('c0'), $('c1')], dotEls = Array.from($('dots').children);
-  let cur = 0;
-  function layout() {
-    const D = deck.clientWidth, W = Math.min(D - 96, 380);
-    deck.style.setProperty('--w', W + 'px'); track.style.setProperty('--w', W + 'px');
-    cards.forEach(c => { c.style.setProperty('--w', W + 'px'); });
-    const tx = cur === 0 ? 20 : (D - W) / 2 - (W + 16);
-    track.style.transform = 'translateX(' + tx + 'px)';
-  }
-  function show(i) {
-    if (i === cur) return;
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    cur = i; cards.forEach((c, k) => c.classList.toggle('off', k !== cur));
-    dotEls.forEach((d, k) => d.classList.toggle('on', k === cur)); layout();
-  }
-  window.addEventListener('resize', layout); layout(); setTimeout(layout, 300); setTimeout(layout, 1500);
-  cards.forEach((c, k) => c.addEventListener('click', () => { if (c.classList.contains('off')) show(k); }));
-  dotEls.forEach((d, k) => d.addEventListener('click', () => show(k)));
-  let sx = 0, sy = 0, sid = null;
-  deck.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const ti = e.target.closest && e.target.closest('input'); if (ti && ti === document.activeElement) return;
-    sid = e.pointerId; sx = e.clientX; sy = e.clientY;
-  });
-  document.addEventListener('pointerup', e => {
-    if (e.pointerId !== sid) return; sid = null;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
-    if (dx < 0) show(1); else show(0);
-  });
-  document.addEventListener('pointercancel', e => { if (e.pointerId === sid) sid = null; });
-
   /* ============ leave the page softly ============ */
-  function go(url, replace) { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(() => { replace ? location.replace(url) : (location.href = url); }, 330); }
+  function go(url, replace) {
+    const nav = () => { replace ? location.replace(url) : (location.href = url); };
+    if (window.thLoader) window.thLoader.show().then(nav);
+    else { document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }); setTimeout(nav, 330); }
+  }
+
+  /* ============ intro: words gather out of tiny dots, then the tagline, then "Ready?" ============ */
+  const qs = s => document.querySelector(s);
+  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack'), wrapEl = $('wrap');
+  let introShown = false;
+  const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
+  const showReady = () => { introShown = true; readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
+  function revealAll() { if (introShown) return; [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
+  readyEl.onclick = () => {
+    readyEl.style.pointerEvents = 'none';
+    readyEl.animate([{ opacity: 1, scale: 1 }, { opacity: 0, scale: .96 }], { duration: 350, fill: 'forwards' }).finished.then(() => {
+      readyEl.style.display = 'none'; $('main').style.display = 'none';
+      wrapEl.classList.remove('hid'); wrapEl.classList.add('on'); wrapEl.scrollTop = 0;
+    });
+  };
+  /* the words fade away softly */
+  async function toHeader() {
+    [helloEl, brandEl, tagEl].forEach(e => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: 'ease-in-out', fill: 'forwards' }));
+    await sleep(850); [helloEl, brandEl, tagEl].forEach(e => { e.style.display = 'none'; });
+  }
+  async function particles() {
+    const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2), rtl = root.dir === 'rtl';
+    const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true });
+    let logo = null; try { logo = new Image(); logo.src = 'assets/thabit-logo.png'; await logo.decode(); } catch (e) { logo = null; }
+    const pts = [];
+    function sample(el, gap, size, delay) {
+      const tn = el.matches('[data-t]') ? el : el.querySelector('[data-t]'), c = getComputedStyle(tn), r = document.createRange(); r.selectNodeContents(tn);
+      const rc = r.getBoundingClientRect(), b = el.getBoundingClientRect();
+      o.clearRect(0, 0, W, H); o.fillStyle = '#000'; o.font = c.fontStyle + ' ' + c.fontWeight + ' ' + c.fontSize + ' ' + c.fontFamily; o.textAlign = 'left'; o.textBaseline = 'alphabetic'; o.direction = rtl ? 'rtl' : 'ltr';
+      try { o.letterSpacing = c.letterSpacing === 'normal' ? '0px' : c.letterSpacing; } catch (e) { }
+      const t = tn.textContent, m = o.measureText(t); o.fillText(t, rc.left, rc.top + (m.fontBoundingBoxAscent || rc.height * .8));
+      const bar = el.querySelector('.bar'), mk = el.querySelector('.mk');
+      if (bar) { const q = bar.getBoundingClientRect(); o.fillRect(q.left, q.top, q.width, q.height); }
+      if (mk && logo) { const q = mk.getBoundingClientRect(); o.drawImage(logo, q.left, q.top, q.width, q.height); }
+      const x0 = Math.max(0, Math.floor(b.left) - 6), y0 = Math.max(0, Math.floor(b.top) - 6), w = Math.min(W - x0, Math.ceil(b.width) + 12), h = Math.min(H - y0, Math.ceil(b.height) + 12);
+      const d = o.getImageData(x0, y0, w, h).data;
+      for (let y = 0; y < h; y += gap) for (let x = 0; x < w; x += gap) if (d[(y * w + x) * 4 + 3] > 140) {
+        const a = Math.random() * 6.283, rad = 50 + Math.random() * 200;
+        pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: delay + Math.random() * .7, du: 1 + Math.random() * .7, s: size });
+      }
+    }
+    sample(brandEl, 2, 1.9, .2);
+    const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;transition:opacity .7s';
+    cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = getComputedStyle(body).color;
+    const end = Math.max(...pts.map(p => p.d + p.du)) + .2, t0 = performance.now();
+    await new Promise(res => { (function f(now) {
+      const t = (now - t0) / 1000; g.clearRect(0, 0, W, H);
+      for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4); g.fillRect(p.sx + (p.tx - p.sx) * e, p.sy + (p.ty - p.sy) * e, p.s, p.s); }
+      if (t < end) requestAnimationFrame(f); else res();
+    })(t0); });
+    brandEl.style.transition = 'opacity .7s'; brandEl.classList.remove('hold');
+    cv.style.opacity = 0; await sleep(750); cv.remove();
+  }
+  (async () => {
+    try {
+      if (matchMedia('(prefers-reduced-motion:reduce)').matches) return revealAll();
+      await Promise.race([window.thLoader ? window.thLoader.ready : 0, sleep(5000)]); await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(300);
+      helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await sleep(700);
+      await particles(); await sleep(250); showTag(); await sleep(1100); await toHeader(); showReady();
+    } catch (e) { revealAll(); }
+  })();
+  setTimeout(revealAll, 15000);   /* safety: whatever happens, the page never stays empty */
+
+  /* ============ a small shooting star every 10-20 seconds (night theme only) ============ */
+  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, qs('.vd'));
+  function meteor() {
+    if (!document.hidden && !body.classList.contains('light') && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
+      const m = document.createElement('i'), W = innerWidth, H = innerHeight, a = 24 + Math.random() * 14, r = a * Math.PI / 180, d = 280 + Math.random() * 200;
+      m.className = 'meteor'; m.style.left = (W * (.1 + Math.random() * .7)) + 'px'; m.style.top = (H * (.04 + Math.random() * .3)) + 'px'; sky.appendChild(m);
+      const tr = p => 'translate(' + (Math.cos(r) * d * p) + 'px,' + (Math.sin(r) * d * p) + 'px) rotate(' + a + 'deg)';
+      try { m.animate([{ transform: tr(0), opacity: 0 }, { opacity: .7, offset: .2 }, { opacity: .45, offset: .55 }, { transform: tr(1), opacity: 0 }], { duration: 1800 + Math.random() * 500, easing: 'ease-in' }).finished.then(() => m.remove(), () => m.remove()); } catch (e) { m.remove(); }
+    }
+    setTimeout(meteor, 19000 + Math.random() * 2000);
+  }
+  setTimeout(meteor, 7000);
+
+  /* ============ guest form: a layer on this same page, Back closes it ============ */
+  const gl = $('gl'); let glOpen = false;
+  const gTm = [];
+  const gLabels = () => gIds.map(k => $('f' + k).querySelector('label'));
+  function gRestore() { gTm.splice(0).forEach(id => { clearTimeout(id); clearInterval(id); }); gLabels().forEach(l => { l.textContent = T()[l.dataset.t]; }); }
+  function gType() {   /* the empty cells drop in first, then their words are typed */
+    gRestore();
+    gLabels().forEach((l, n) => {
+      const txt = T()[l.dataset.t]; let i = 0; l.textContent = '';
+      gTm.push(setTimeout(() => { gTm.push(setInterval(() => { i++; l.textContent = txt.slice(0, i); if (i >= txt.length) l.textContent = txt; }, 22)); }, 800 + n * 70));
+    });
+  }
+  function openGuest() { if (glOpen) return; glOpen = true; history.pushState({ thG: 1 }, ''); gl.classList.add('on'); body.classList.add('lock'); gType(); }
+  function closeGuest() { if (!glOpen) return; glOpen = false; gl.classList.remove('on'); body.classList.remove('lock'); gRestore(); }
+  window.addEventListener('popstate', closeGuest);
+  $('gBack').onclick = () => history.back();
+  const gIds = ['g_fn', 'g_ln', 'g_ph', 'g_em'];
+  const gRules = { g_fn: v => !!v, g_ln: v => !!v, g_ph: v => /^\+?[0-9\s\-()]{7,18}$/.test(v) && v.replace(/\D/g, '').length >= 7, g_em: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) };
+  gIds.forEach(k => {
+    const i = $(k), f = $('f' + k);
+    i.addEventListener('focus', () => f.classList.add('act')); i.addEventListener('blur', () => f.classList.remove('act'));
+    i.addEventListener('input', () => { f.classList.remove('bad'); $('m' + k).classList.remove('show'); });
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('gGo').click(); } });
+  });
+  $('gGo').onclick = async () => {
+    const t = T(), d = {}; let ok = true;
+    gIds.forEach(k => { const v = $(k).value.trim(); d[k] = v; if (!gRules[k](v)) { ok = false; $('f' + k).classList.add('bad'); const m = $('m' + k); m.textContent = !v ? t.gReq : (k === 'g_ph' ? t.gBadPh : t.gBadEm); m.classList.add('show'); } });
+    if (!ok) return;
+    {   /* always remembered on this device at once; Supabase is only a bonus */
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em })); } catch (e) { }
+      rpc('guest_remember', { p_first: d.g_fn, p_last: d.g_ln, p_phone: d.g_ph, p_email: d.g_em }).then(tk => { if (typeof tk === 'string') { try { localStorage.setItem(TOKEN_KEY, tk); } catch (e) { } } });
+    }
+    /* guest data lives only in this tab: gone when the page is closed */
+    try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em, at: Date.now() })); } catch (e) { }
+    go(GUEST_HOME, true);   /* replace: Back from the index comes to this page */
+  };
+
+  /* ============ a guest we remember ============ */
+  const TOKEN_KEY = 'thabitGuestToken', PROFILE_KEY = 'thabitGuestProfile';
+  function rpc(fn, body) {
+    if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return Promise.resolve(null);
+    return fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) }).then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const deviceProfile = () => { try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); return p && p.firstName ? p : null; } catch (e) { return null; } };
+  try { const tk = localStorage.getItem(TOKEN_KEY); if (tk && !deviceProfile()) rpc('guest_recall', { p_token: tk }).then(d => { if (d && d.firstName) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(d)); } catch (e) { } } }); } catch (e) { }
+  function askWho(d) {   /* never enters on its own: someone else may be using this computer */
+    const t = T(); $('rT').textContent = t.rT; $('rP').textContent = t.rP.replace('{f}', d.firstName).replace('{l}', d.lastName);
+    $('rov').classList.add('on');
+    $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(GUEST_HOME, true); };
+    $('rNo').onclick = () => { $('rov').classList.remove('on'); openGuest(); };   /* a new person: the form, and he is remembered instead */
+  }
+
+  /* ============ guest session: asked again when he comes back to this page ============ */
+  const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'index.html';
+  const isGuest = () => { try { return !!sessionStorage.getItem(GUEST_KEY); } catch (e) { return false; } };
+  const checkGuest = () => { if (isGuest()) $('gov').classList.add('on'); };
+  $('gStay').onclick = () => go(GUEST_HOME);
+  $('gLeave').onclick = () => { try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { } $('gov').classList.remove('on'); };
+  window.addEventListener('pageshow', () => { document.body.getAnimations().forEach(a => a.cancel()); checkGuest(); });
+  checkGuest();
 
   /* ============ the buttons of card 2 ============ */
   const ov = $('ov');
-  $('joinBtn').onclick = () => ov.classList.add('on');
+  /* "Become one of us": a new layer; Back returns to the two cards where we stopped */
+  const jl = $('jl'); let jlOpen = false;
+  function openJoin() { if (jlOpen) return; jlOpen = true; history.pushState({ thJ: 1 }, ''); jl.classList.add('on'); body.classList.add('lock'); }
+  function closeJoin() { if (!jlOpen) return; jlOpen = false; jl.classList.remove('on'); body.classList.remove('lock'); }
+  window.addEventListener('popstate', closeJoin);
+  $('jBack').onclick = () => history.back();
+  $('joinBtn').onclick = openJoin;
   $('soonBack').onclick = () => ov.classList.remove('on');
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.classList.remove('on'); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') ov.classList.remove('on'); });
-  /* a guest who came before is remembered on this device: ask before continuing */
-  const ovG = $('ovG');
-  function readGuest() { try { const g = JSON.parse(localStorage.getItem('thGuest') || 'null'); return g && g.firstName ? g : null; } catch (e) { return null; } }
-  $('guestBtn').onclick = () => {
-    const g = readGuest(); if (!g) { go(ROUTES.guest); return; }
-    $('gbT').textContent = T().backT + ' ' + g.firstName;
-    $('gbP').textContent = T().backP.replace('{n}', (g.firstName + ' ' + (g.lastName || '')).trim());
-    ovG.classList.add('on');
-  };
-  $('gbYes').onclick = () => { ovG.classList.remove('on'); go(ROUTES.guest); };
-  $('gbNo').onclick = () => { try { localStorage.removeItem('thGuest'); sessionStorage.removeItem('thabitGuest'); } catch (e) { } ovG.classList.remove('on'); go(ROUTES.guest); };
-  ovG.addEventListener('pointerdown', e => { if (e.target === ovG) ovG.classList.remove('on'); });
+  $('guestBtn').onclick = () => { const d = deviceProfile(); d ? askWho(d) : openGuest(); };
 
   /* ============ LOGIN (same behaviour as the portal card) ============ */
   const uIn = $('lgU'), pIn = $('lgP'), btn = $('lgGo'), eye = $('lgEye'), uFl = $('flU'), pFl = $('flP'), box = $('lgAlert');
@@ -472,9 +671,9 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     await sleep(800); btnState('done'); await sleep(650);
     anim(btn, [{ translate: '0 0' }, { translate: '0 -8px', offset: .45 }, { translate: '0 0' }], 750);
     await sleep(800);
-    $('c0').style.transition = 'opacity .5s'; $('c0').style.opacity = 0; await sleep(450);
+    $('c0').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }); await sleep(450);
     let last = ''; try { last = localStorage.getItem('thLastPage') || ''; } catch (e) { }   /* the last page they had open, if a page saved it */
-    go(last || route || AFTER_LOGIN, true);   /* replace: the landing is not in history, so Back leaves the app */
+    go(GUEST_HOME, true);   /* replace: the landing is not in history, so Back leaves the app */
   }
   async function login() {
     if (S.busy) return;
