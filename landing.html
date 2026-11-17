@@ -39,15 +39,9 @@ body.ar{font-family:Cairo,Inter,system-ui,sans-serif}
 .bg .bn{background-image:url(assets/welcome-bg.jpg)}
 .bg .bd{background-image:url(assets/welcome-bg-day.jpg);opacity:0}
 body.light .bg .bd{opacity:1}   /* light theme: the day photo fades in over the night one */
-/* phones / tall screens: the photo fills the screen; --dx (set by the script) slides it sideways so the stairs sit in the middle */
-.bg .bs{inset:0;background-size:cover;background-position:var(--dx,50%) 22%}
-.bg .bb{display:none}
-/* laptops / wide screens: the WHOLE photo at its real proportions, its soft edges melt into a blurred copy of itself */
-@media(min-aspect-ratio:4/5){
-  .bg .bb{display:block;inset:-120px;background-size:cover;background-position:center;filter:blur(80px) saturate(1.1)}
-  .bg .bs{inset:0 auto 0 50%;width:auto;height:100%;aspect-ratio:1122/1402;translate:-50% 0;background-size:contain;background-position:center;
-    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%)}
-}
+/* the photo always FILLS the screen (no frame). The script slides it so the door + stairs stay in view:
+   sideways on phones (stairs in the middle), up/down on laptops (door near the top edge) */
+.bg .bs{inset:0;background-size:cover;background-position:var(--dx,50%) var(--dy,50%)}
 /* two veils that cross-fade, so the theme changes slowly and softly */
 .vd,.vl{position:fixed;inset:0;z-index:1;pointer-events:none;transition:opacity 1.4s ease}
 .vd{background:linear-gradient(180deg,rgba(18,20,26,.55) 0%,rgba(18,20,26,.15) 38%,rgba(18,20,26,.6) 100%);opacity:1}
@@ -354,7 +348,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 </head>
 <body>
 <script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
-<div class="bg" id="bg" aria-hidden="true"><i class="bb bn"></i><i class="bb bd"></i><i class="bs bn"></i><i class="bs bd"></i></div>
+<div class="bg" id="bg" aria-hidden="true"><i class="bs bn"></i><i class="bs bd"></i></div>
 <div class="vd"></div><div class="vl"></div>
 
 <div class="ctl">
@@ -538,9 +532,10 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
   /* ============ phones: slide the photo sideways so the staircase is exactly in the middle of the screen ============ */
   function fitBg() {
-    const AR = 1122 / 1402, STAIRS = .575, W = innerWidth, H = innerHeight; let dx = 50;
-    if (W / H < AR) { const I = H * AR; dx = Math.max(0, Math.min(100, (STAIRS * I - W / 2) / (I - W) * 100)); }
-    root.style.setProperty('--dx', dx.toFixed(1) + '%');
+    const AR = 1122 / 1402, STAIRS = .575, DOOR_TOP = .185, W = innerWidth, H = innerHeight; let dx = 50, dy = 50;
+    if (W / H < AR) { const I = H * AR; dx = Math.max(0, Math.min(100, (STAIRS * I - W / 2) / (I - W) * 100)); }   /* tall screen: slide sideways */
+    else { const v = H / (W / AR); dy = v >= 1 ? 50 : Math.max(0, Math.min(1 - v, DOOR_TOP)) / (1 - v) * 100; }       /* wide screen: the door stays just under the top edge */
+    root.style.setProperty('--dx', dx.toFixed(1) + '%'); root.style.setProperty('--dy', dy.toFixed(1) + '%');
   }
   fitBg(); addEventListener('resize', fitBg);
 
