@@ -149,6 +149,7 @@ body.ar .sl{letter-spacing:0;text-transform:none;font-size:.78rem}
   let L = 'en'; try { const v = localStorage.getItem('thLandLang'); if (v === 'ar' || v === 'en') L = v; else { let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { } L = (AR_TZ.test(tz) || (navigator.language || '').toLowerCase().indexOf('ar') === 0) ? 'ar' : 'en'; } } catch (e) { }
   const t = k => D[L][k];
   let G = null; try { G = JSON.parse(sessionStorage.getItem('thabitGuest') || 'null'); } catch (e) { }
+  window.thabitUser = G ? { isGuest: true, firstName: G.firstName, lastName: G.lastName, name: (G.firstName + ' ' + G.lastName).trim(), phone: G.phone, email: G.email } : null;   /* use it wherever a name is needed: account, messages, simulation... */
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const svg = p => '<svg viewBox="0 0 24 24">' + p + '</svg>';
   const chev = () => { const i = el('i', 'chev'); i.innerHTML = svg('<path d="M9 6l6 6-6 6"/>'); return i; };
@@ -193,7 +194,7 @@ body.ar .sl{letter-spacing:0;text-transform:none;font-size:.78rem}
       const th = el('button', 'pi'); th.type = 'button'; th.dataset.act = 'theme'; th.append(themeIc(), document.createTextNode(t('theme') + ' · ' + (isLight() ? t('light') : t('dark')))); p.append(th);
       const lg = el('button', 'pi', L === 'ar' ? 'English' : 'العربية'); lg.type = 'button'; lg.dataset.act = 'lang'; p.append(lg);
     } else {
-      p.append(el('h3', 'pt', t('guest'))); p.append(el('p', 'pn', t('gnote')));
+      p.append(el('h3', 'pt', G ? (G.firstName + ' ' + G.lastName).trim() : t('guest'))); p.append(el('p', 'pn', t('gnote')));
       [['fn', G && G.firstName], ['ln', G && G.lastName], ['ph', G && G.phone], ['em', G && G.email]].forEach(([k2, v]) => { const r = el('div', 'pr'), s = el('span', null, v || '—'); s.dir = 'ltr'; r.append(el('span', null, t(k2)), s); p.append(r); });
     }
   }
