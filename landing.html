@@ -288,7 +288,6 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   <section class="card" id="gc" aria-label="Guest">
     <h2 data-t="gTitle"></h2>
     <div class="gform"><div class="fl" id="fg_fn" style="--i:0"><input type="text" id="g_fn" dir="ltr" placeholder=" " autocomplete="given-name" autocapitalize="off" spellcheck="false"><label for="g_fn" data-t="gFirst"></label><div class="fmsg" id="mg_fn"></div></div><div class="fl" id="fg_ln" style="--i:1"><input type="text" id="g_ln" dir="ltr" placeholder=" " autocomplete="family-name" autocapitalize="off" spellcheck="false"><label for="g_ln" data-t="gLast"></label><div class="fmsg" id="mg_ln"></div></div><div class="fl" id="fg_ph" style="--i:2"><input type="text" id="g_ph" dir="ltr" placeholder=" " autocomplete="tel" autocapitalize="off" spellcheck="false"><label for="g_ph" data-t="gPhone"></label><div class="fmsg" id="mg_ph"></div></div><div class="fl" id="fg_em" style="--i:3"><input type="text" id="g_em" dir="ltr" placeholder=" " autocomplete="email" autocapitalize="off" spellcheck="false"><label for="g_em" data-t="gEmail"></label><div class="fmsg" id="mg_em"></div></div>
-      <label class="rem"><input type="checkbox" id="g_rem" checked><span data-t="gRem"></span></label>
       <button class="btn" id="gGo" type="button" data-t="gGo"></button>
       <button class="btn ghost" id="gBack" type="button" data-t="back"></button>
     </div>
@@ -318,12 +317,12 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { gRem: 'Remember me next time', rT: 'Welcome back, {n}', rP: 'We remember you as {f} {l}. Continue as a guest with these details?', rYes: 'Yes, that is me', rNo: 'Not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready?', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready?', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك يا {n}', rP: 'نتذكرك باسم {f} {l}. هل تريد المتابعة كضيف بنفس البيانات؟', rYes: 'نعم، هذا أنا', rNo: 'لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز؟', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز؟', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -380,7 +379,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack'), wrapEl = $('wrap');
   let introShown = false;
   const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
-  const showReady = () => { introShown = true; wrapEl.classList.remove('hid'); readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); maybeRecall(); };
+  const showReady = () => { introShown = true; wrapEl.classList.remove('hid'); readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
   function revealAll() { if (introShown) return; [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
   readyEl.onclick = () => {
     readyEl.style.pointerEvents = 'none';
@@ -476,7 +475,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     const t = T(), d = {}; let ok = true;
     gIds.forEach(k => { const v = $(k).value.trim(); d[k] = v; if (!gRules[k](v)) { ok = false; $('f' + k).classList.add('bad'); const m = $('m' + k); m.textContent = !v ? t.gReq : (k === 'g_ph' ? t.gBadPh : t.gBadEm); m.classList.add('show'); } });
     if (!ok) return;
-    if ($('g_rem').checked) {   /* remembered on this device at once; Supabase is only a bonus */
+    {   /* always remembered on this device at once; Supabase is only a bonus */
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em })); } catch (e) { }
       rpc('guest_remember', { p_first: d.g_fn, p_last: d.g_ln, p_phone: d.g_ph, p_email: d.g_em }).then(tk => { if (typeof tk === 'string') { try { localStorage.setItem(TOKEN_KEY, tk); } catch (e) { } } });
     }
@@ -491,22 +490,13 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return Promise.resolve(null);
     return fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) }).then(r => r.ok ? r.json() : null).catch(() => null);
   }
-  let recallP = Promise.resolve(null);
-  try {
-    if (!sessionStorage.getItem('thabitGuest')) {
-      const lp = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'), tk = localStorage.getItem(TOKEN_KEY);
-      if (lp && lp.firstName) recallP = Promise.resolve(lp);                      /* the device remembers him: no network needed */
-      else if (tk) recallP = rpc('guest_recall', { p_token: tk });
-    }
-  } catch (e) { }
-  function maybeRecall() {
-    recallP.then(d => {
-      if (!d || !d.firstName || isGuest()) return;
-      const t = T(); $('rT').textContent = t.rT.replace('{n}', d.firstName); $('rP').textContent = t.rP.replace('{f}', d.firstName).replace('{l}', d.lastName);
-      $('rov').classList.add('on');
-      $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(GUEST_HOME, true); };
-      $('rNo').onclick = () => { try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); } catch (e) { } $('rov').classList.remove('on'); };
-    });
+  const deviceProfile = () => { try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); return p && p.firstName ? p : null; } catch (e) { return null; } };
+  try { const tk = localStorage.getItem(TOKEN_KEY); if (tk && !deviceProfile()) rpc('guest_recall', { p_token: tk }).then(d => { if (d && d.firstName) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(d)); } catch (e) { } } }); } catch (e) { }
+  function askWho(d) {   /* never enters on its own: someone else may be using this computer */
+    const t = T(); $('rT').textContent = t.rT; $('rP').textContent = t.rP.replace('{f}', d.firstName).replace('{l}', d.lastName);
+    $('rov').classList.add('on');
+    $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(GUEST_HOME, true); };
+    $('rNo').onclick = () => { $('rov').classList.remove('on'); openGuest(); };   /* a new person: the form, and he is remembered instead */
   }
 
   /* ============ guest session: asked again when he comes back to this page ============ */
@@ -524,7 +514,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   $('soonBack').onclick = () => ov.classList.remove('on');
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.classList.remove('on'); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') ov.classList.remove('on'); });
-  $('guestBtn').onclick = () => openGuest();
+  $('guestBtn').onclick = () => { const d = deviceProfile(); d ? askWho(d) : openGuest(); };
 
   /* ============ LOGIN (same behaviour as the portal card) ============ */
   const uIn = $('lgU'), pIn = $('lgP'), btn = $('lgGo'), eye = $('lgEye'), uFl = $('flU'), pFl = $('flP'), box = $('lgAlert');
