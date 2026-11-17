@@ -288,7 +288,7 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   <section class="card" id="gc" aria-label="Guest">
     <h2 data-t="gTitle"></h2>
     <div class="gform"><div class="fl" id="fg_fn" style="--i:0"><input type="text" id="g_fn" dir="ltr" placeholder=" " autocomplete="given-name" autocapitalize="off" spellcheck="false"><label for="g_fn" data-t="gFirst"></label><div class="fmsg" id="mg_fn"></div></div><div class="fl" id="fg_ln" style="--i:1"><input type="text" id="g_ln" dir="ltr" placeholder=" " autocomplete="family-name" autocapitalize="off" spellcheck="false"><label for="g_ln" data-t="gLast"></label><div class="fmsg" id="mg_ln"></div></div><div class="fl" id="fg_ph" style="--i:2"><input type="text" id="g_ph" dir="ltr" placeholder=" " autocomplete="tel" autocapitalize="off" spellcheck="false"><label for="g_ph" data-t="gPhone"></label><div class="fmsg" id="mg_ph"></div></div><div class="fl" id="fg_em" style="--i:3"><input type="text" id="g_em" dir="ltr" placeholder=" " autocomplete="email" autocapitalize="off" spellcheck="false"><label for="g_em" data-t="gEmail"></label><div class="fmsg" id="mg_em"></div></div>
-      <label class="rem"><input type="checkbox" id="g_rem"><span data-t="gRem"></span></label>
+      <label class="rem"><input type="checkbox" id="g_rem" checked><span data-t="gRem"></span></label>
       <button class="btn" id="gGo" type="button" data-t="gGo"></button>
       <button class="btn ghost" id="gBack" type="button" data-t="back"></button>
     </div>
@@ -476,10 +476,9 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
     const t = T(), d = {}; let ok = true;
     gIds.forEach(k => { const v = $(k).value.trim(); d[k] = v; if (!gRules[k](v)) { ok = false; $('f' + k).classList.add('bad'); const m = $('m' + k); m.textContent = !v ? t.gReq : (k === 'g_ph' ? t.gBadPh : t.gBadEm); m.classList.add('show'); } });
     if (!ok) return;
-    if ($('g_rem').checked) {   /* only if he ticked it: kept in Supabase, token stays in this browser */
-      $('gGo').disabled = true;
-      const tk = await Promise.race([rpc('guest_remember', { p_first: d.g_fn, p_last: d.g_ln, p_phone: d.g_ph, p_email: d.g_em }), sleep(2500).then(() => null)]);
-      if (typeof tk === 'string') { try { localStorage.setItem(TOKEN_KEY, tk); } catch (e) { } }
+    if ($('g_rem').checked) {   /* remembered on this device at once; Supabase is only a bonus */
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em })); } catch (e) { }
+      rpc('guest_remember', { p_first: d.g_fn, p_last: d.g_ln, p_phone: d.g_ph, p_email: d.g_em }).then(tk => { if (typeof tk === 'string') { try { localStorage.setItem(TOKEN_KEY, tk); } catch (e) { } } });
     }
     /* guest data lives only in this tab: gone when the page is closed */
     try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em, at: Date.now() })); } catch (e) { }
@@ -487,20 +486,26 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
   };
 
   /* ============ a guest we remember ============ */
-  const TOKEN_KEY = 'thabitGuestToken';
+  const TOKEN_KEY = 'thabitGuestToken', PROFILE_KEY = 'thabitGuestProfile';
   function rpc(fn, body) {
     if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return Promise.resolve(null);
     return fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) }).then(r => r.ok ? r.json() : null).catch(() => null);
   }
   let recallP = Promise.resolve(null);
-  try { const tk = localStorage.getItem(TOKEN_KEY); if (tk && !sessionStorage.getItem('thabitGuest')) recallP = rpc('guest_recall', { p_token: tk }); } catch (e) { }
+  try {
+    if (!sessionStorage.getItem('thabitGuest')) {
+      const lp = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'), tk = localStorage.getItem(TOKEN_KEY);
+      if (lp && lp.firstName) recallP = Promise.resolve(lp);                      /* the device remembers him: no network needed */
+      else if (tk) recallP = rpc('guest_recall', { p_token: tk });
+    }
+  } catch (e) { }
   function maybeRecall() {
     recallP.then(d => {
       if (!d || !d.firstName || isGuest()) return;
       const t = T(); $('rT').textContent = t.rT.replace('{n}', d.firstName); $('rP').textContent = t.rP.replace('{f}', d.firstName).replace('{l}', d.lastName);
       $('rov').classList.add('on');
       $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(GUEST_HOME, true); };
-      $('rNo').onclick = () => { try { localStorage.removeItem(TOKEN_KEY); } catch (e) { } $('rov').classList.remove('on'); };
+      $('rNo').onclick = () => { try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); } catch (e) { } $('rov').classList.remove('on'); };
     });
   }
 
