@@ -3,152 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Welcome to Thabit</title>
+<title>Thabit</title>
 <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,500&family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-/* =========================================================
-   WELCOME PAGE  -  first thing a visitor sees
-   Language: detected from the visitor's location (timezone / browser). Arabic countries -> Arabic, everything else -> English.
-   The visitor can change it from the small button next to the theme button.
-   ROUTES at the bottom of the script say where each button goes.
-   ========================================================= */
-:root{
-  --ink:#ece8df; --ink2:rgba(236,232,223,.72);
-  --gbg:rgba(255,255,255,.08); --gbd:rgba(255,255,255,.14); --gfield:rgba(255,255,255,.1);
-  --btn:#ece8df; --onbtn:#15130f; --acc:#fbbf24; --bad:#f87171; --ok:#34d399;
-  --ov1:rgba(10,14,26,.84); --ov2:rgba(10,14,26,.5);
-  --ease:cubic-bezier(.22,1,.36,1)
-}
-body.light{
-  --ink:#1c1a16; --ink2:rgba(28,26,22,.7);
-  --gbg:rgba(255,255,255,.42); --gbd:rgba(28,26,22,.1); --gfield:rgba(255,255,255,.55);
-  --btn:#1c1a16; --onbtn:#f4f1ea; --acc:#b45309; --bad:#dc2626; --ok:#059669;
-  --ov1:rgba(244,241,234,.92); --ov2:rgba(244,241,234,.55)
-}
+:root{--ink:#ece8df;--ink2:rgba(236,232,223,.72);--gbg:rgba(255,255,255,.08);--gbd:rgba(255,255,255,.14);--gfield:rgba(255,255,255,.1);--btn:#ece8df;--onbtn:#15130f;--ease:cubic-bezier(.22,1,.36,1)}
+body.light{--ink:#1c1a16;--ink2:rgba(28,26,22,.7);--gbg:rgba(255,255,255,.42);--gbd:rgba(28,26,22,.1);--gfield:rgba(255,255,255,.55);--btn:#1c1a16;--onbtn:#f4f1ea}
 *{box-sizing:border-box;margin:0}
 html{font-size:90%}
 html,body{min-height:100%;background:#121419}
 body{font-family:Inter,Cairo,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.ar{font-family:Cairo,Inter,system-ui,sans-serif}
-.bg{position:fixed;inset:0;z-index:0;background:#121419 url(assets/welcome-bg.jpg) 50% 22%/cover no-repeat;opacity:0;animation:fadeIn 1.4s ease .1s forwards}
-/* two veils that cross-fade, so the theme changes slowly and softly */
-.vd,.vl{position:fixed;inset:0;z-index:1;pointer-events:none;transition:opacity 1.4s ease}
-.vd{background:linear-gradient(180deg,rgba(18,20,26,.55) 0%,rgba(18,20,26,.15) 38%,rgba(18,20,26,.6) 100%);opacity:1}
-.vl{background:linear-gradient(180deg,rgba(236,232,222,.92) 0%,rgba(236,232,222,.62) 38%,rgba(236,232,222,.86) 100%);opacity:0}
-body.light .vd{opacity:0}body.light .vl{opacity:1}
-body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.4s ease,color 1.4s ease,border-color 1.4s ease,box-shadow 1.4s ease,fill 1.4s ease,stroke 1.4s ease,opacity 1.4s ease!important}
-
-main{position:relative;z-index:2;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:max(9vh,44px) 0 calc(30px + env(safe-area-inset-bottom,0px));text-align:center}
-main>.hello,main>.brand,main>.tag{padding:0 20px}
-
-/* ---------- title ---------- */
-.hello{font:italic 500 clamp(1.3rem,4.6vw,2rem)/1 'Playfair Display',Georgia,serif;letter-spacing:.5px;color:var(--ink2)}
-.brand{font:800 clamp(3.2rem,15vw,7rem)/1 'Playfair Display',Georgia,serif;letter-spacing:-.02em;margin:.08em 0 .14em;color:var(--ink)}
-.tag{font:600 clamp(.72rem,2.6vw,.95rem)/1.2 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:var(--ink2)}
-body.ar .hello{font:600 clamp(1.3rem,4.6vw,2rem)/1.2 Cairo,sans-serif;letter-spacing:0}
-body.ar .brand{font:900 clamp(3.2rem,15vw,7rem)/1.15 Cairo,sans-serif;letter-spacing:0}
-body.ar .tag{letter-spacing:.04em;text-transform:none;font-size:clamp(.95rem,3.2vw,1.15rem)}
-body.light .hello,body.light .tag{color:var(--ink);text-shadow:0 0 14px rgba(255,255,255,.9),0 0 5px rgba(255,255,255,.7)}
-body.light .tag{font-weight:700}
-body:not(.light) .hello,body:not(.light) .tag{text-shadow:0 1px 12px rgba(0,0,0,.55)}
-/* name | TH logo: so it is clear this is the Thabit program */
-.brand{display:flex;align-items:center;justify-content:center;gap:.2em}
-.brand .bar{flex:none;width:2px;height:.62em;border-radius:2px;background:var(--ink);opacity:.45}
-.brand .mk{flex:none;width:.74em;height:.74em;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
-.rise{opacity:0;filter:blur(14px);translate:0 18px;animation:rise 1.1s cubic-bezier(.16,1,.3,1) forwards}
-.hello.rise{animation-delay:.5s}.brand.rise{animation-delay:.8s}.tag.rise{animation-delay:1.25s}
-.wrap.rise{animation-delay:1.8s}
-@keyframes rise{to{opacity:1;filter:blur(0);translate:0 0}}
 @keyframes fadeIn{to{opacity:1}}
-
-/* ---------- top buttons: theme (sun / moon) + language name ---------- */
-.ctl{position:fixed;top:max(14px,env(safe-area-inset-top,0px));right:14px;z-index:5;display:flex;gap:8px;direction:ltr;opacity:0;animation:fadeIn .8s ease 2.4s forwards}
-.cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;
-  display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
+body.th-fade,body.th-fade *,body.th-fade *::before,body.th-fade *::after{transition:background-color 1.4s ease,color 1.4s ease,border-color 1.4s ease,box-shadow 1.4s ease,fill 1.4s ease,stroke 1.4s ease,opacity 1.4s ease!important}
+.cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 .8rem Inter,Cairo,sans-serif;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
 .cb:hover{scale:1.05}.cb:active{scale:.94}
 .cb.ic{width:36px;padding:0}
 .cb svg{position:absolute;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:opacity 1.2s ease,rotate 1.2s var(--ease)}
 .cb .sun{opacity:0;rotate:-70deg}.cb .moon{opacity:1;rotate:0deg}
 body.light .cb .sun{opacity:1;rotate:0deg}body.light .cb .moon{opacity:0;rotate:70deg}
-
-/* ---------- the two cards: always one under the other, almost full width ---------- */
-.wrap{margin-top:auto;padding:28px clamp(12px,2vw,28px) 0;width:100%;display:flex;flex-direction:column;align-items:center}
-.stack{width:100%;display:flex;flex-direction:column;gap:16px;direction:ltr}
-.card{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(64px) saturate(1.5);backdrop-filter:blur(64px) saturate(1.5);box-shadow:0 10px 40px rgba(0,0,0,.18);
-  position:relative;isolation:isolate;overflow:hidden;width:100%;padding:24px 20px;border-radius:24px;border:1px solid var(--gbd);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:start;color:var(--ink)}
-.card>*{position:relative;z-index:2;width:100%;max-width:340px}
-.card h2{font:700 1.2rem Inter,Cairo,sans-serif;text-align:center;margin-bottom:14px}
-.ncard{text-align:center}
-body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.7)}
-.pop .btn+.btn{margin-top:10px}
-.ncard h2{margin-bottom:16px;font-size:clamp(1.1rem,2.1vw,1.55rem);font-weight:600}
-.card>.nact{width:auto;max-width:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.nact .btn{width:auto;min-width:140px;padding:0 24px}
-
-/* login card: floating labels */
-.fl{position:relative;padding-top:18px;margin:0 0 2px}
-.fl input{display:block;width:100%;height:42px;padding:0 14px;border-radius:14px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:500 .92rem Inter,Cairo,sans-serif;outline:0;text-align:left;direction:ltr;
-  caret-color:var(--ink);-webkit-text-fill-color:var(--ink);transition:border-color .3s,box-shadow .3s,background .3s,scale .9s var(--ease)}
-.fl input::placeholder{color:transparent}
-.fl.pw input{padding-right:46px}
-@media(hover:hover){.fl input:hover{scale:1.02}}
-.fl input:active{scale:.975;transition:scale .45s ease-out}
-.fl input:-webkit-autofill,.fl input:-webkit-autofill:focus{-webkit-text-fill-color:var(--ink)!important;caret-color:var(--ink);transition:background-color 600000s 0s,color 600000s 0s}
-.fl.act input{border-color:var(--ink);box-shadow:0 0 0 3px rgba(128,128,128,.16)}
-.fl label{position:absolute;left:15px;top:39px;transform:translateY(-50%);margin:0;font:500 .92rem Inter,Cairo,sans-serif;opacity:.6;pointer-events:none;white-space:nowrap;transition:top .3s var(--ease),font-size .3s,opacity .3s,color .3s}
-.fl.act label,.fl input:not(:placeholder-shown)+label,.fl input:-webkit-autofill+label{top:6px;font-size:.72rem;font-weight:700;opacity:.9}
-.fl.act label{color:var(--ink);opacity:1}
-.fl.ok input{border-color:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
-.fl.ok label{color:var(--ok);opacity:1}
-.fl.bad input{border-color:var(--bad);box-shadow:0 0 0 3px rgba(248,113,113,.14)}
-.fl.bad label{color:var(--bad);opacity:1}
-.fmsg{max-height:0;overflow:hidden;opacity:0;color:var(--bad);font:600 .72rem Inter,Cairo,sans-serif;transition:max-height .3s,opacity .3s,margin .3s}
-.fmsg.show{max-height:24px;opacity:1;margin-top:6px}
-.fhint{position:absolute;left:15px;top:39px;transform:translateY(-50%);direction:ltr;white-space:nowrap;pointer-events:none;font:500 .92rem Inter,sans-serif;opacity:.4;transition:opacity .35s}
-.lalert{max-height:0;overflow:hidden;opacity:0;margin:0;font:600 .8rem/1.4 Inter,Cairo,sans-serif;color:var(--bad);text-align:center;transition:max-height .3s,opacity .3s,margin .3s}
-.lalert.show{max-height:60px;opacity:1;margin:0 0 6px}
-/* eye */
-.eye{position:absolute;right:10px;top:39px;translate:0 -50%;width:30px;height:30px;padding:0;border:0;background:none;color:var(--ink);opacity:.65;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:scale .9s var(--ease),opacity .25s}
-@media(hover:hover){.eye:hover{opacity:1;scale:1.05}}
-.eye:active{scale:.94;transition:scale .45s ease-out}
-.eye svg{width:19px;height:19px;display:block;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.eye .pup{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center}
-.eye.glow .pup{animation:pupGlow 1.3s ease-in-out 1}
-@keyframes pupGlow{0%{fill:currentColor;filter:none;scale:1}35%{fill:#fbbf24;filter:drop-shadow(0 0 3px #fbbf24) drop-shadow(0 0 8px rgba(251,191,36,.9));scale:1.5}100%{fill:currentColor;filter:none;scale:1}}
-.fl.show input{color:transparent;-webkit-text-fill-color:transparent}
-.pwv{position:absolute;left:0;right:0;top:18px;height:42px;padding:0 46px 0 14px;overflow:hidden;pointer-events:none;-webkit-user-select:none;user-select:none;direction:ltr;display:none;align-items:center}
-.fl.show .pwv{display:flex}
-.pwi{display:flex;white-space:pre;font:500 .92rem Inter,Cairo,sans-serif;color:var(--ink)}
-.pwi span{display:inline-block;transition:filter .55s ease,opacity .55s ease}
-.pwi span.bl{filter:blur(9px);opacity:.25}
-/* Get In: square -> circle -> check */
-.lbtn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:100%;height:42px;margin:18px auto 0;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;
-  transition:width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1),background .3s,color .3s,opacity .3s,scale .9s var(--ease)}
-@media(hover:hover){.lbtn[data-state=idle]:hover{scale:1.03;opacity:.93}}
-.lbtn[data-state=idle]:active{scale:.975;transition:scale .45s ease-out,width .5s,border-radius .5s}
-.lbtn[data-state=busy],.lbtn[data-state=done]{width:42px;border-radius:21px}
-.lbtn .bt{white-space:nowrap;transition:opacity .15s}
-.lbtn[data-state=busy] .bt,.lbtn[data-state=done] .bt{opacity:0}
-.lbtn .sp{position:absolute;left:50%;top:50%;translate:-50% -50%;width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:0;animation:lgSpin .8s linear infinite;transition:opacity .25s}
-.lbtn[data-state=busy] .sp{opacity:1}
-.lbtn .ck{position:absolute;left:50%;top:50%;translate:-50% -50%;width:26px;height:26px;opacity:0;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.lbtn .ck path{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .5s ease .1s}
-.lbtn[data-state=done]{background:#16a34a;color:#fff}
-.lbtn[data-state=done] .ck{opacity:1}.lbtn[data-state=done] .ck path{stroke-dashoffset:0}
-@keyframes lgSpin{to{rotate:360deg}}
-
 .btn{width:100%;height:42px;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 .92rem Inter,Cairo,sans-serif;cursor:pointer;transition:opacity .25s,scale .9s var(--ease)}
 @media(hover:hover){.btn:hover{opacity:.93;scale:1.02}}
 .btn:active{scale:.975;transition:scale .45s ease-out}
 .btn.ghost{background:var(--gfield);color:var(--ink);border:1px solid var(--gbd)}
-.or{display:flex;align-items:center;gap:12px;width:100%;margin:14px 0;font:600 .78rem Inter,Cairo,sans-serif;color:var(--ink2)}
-.or::before,.or::after{content:"";flex:1;height:1px;background:var(--gbd)}
-
-/* ---------- pop-up ("coming soon") ---------- */
 .ov{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .ov.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
 .pop{position:relative;width:min(100%,380px);padding:28px 24px 22px;border-radius:24px;border:1px solid var(--gbd);color:var(--ink);text-align:center;-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);animation:pop .5s cubic-bezier(.16,1,.3,1)}
@@ -156,12 +35,6 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 @keyframes pop{from{opacity:0;scale:.94;translate:0 14px}to{opacity:1;scale:1;translate:0 0}}
 .pop h3{font:700 1.2rem/1.35 Inter,Cairo,sans-serif;margin:6px 0}
 .pop p{font:500 .88rem/1.6 Inter,Cairo,sans-serif;color:var(--ink2);margin-bottom:18px}
-.gears{display:flex;justify-content:center;align-items:flex-end;gap:2px;color:var(--acc);margin-bottom:8px}
-.gears svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.gears svg:first-child{width:46px;height:42px;animation:spin 5s linear infinite}
-.gears svg:last-child{width:32px;height:32px;margin-bottom:2px;animation:spin 3.4s linear infinite reverse}
-@keyframes spin{to{rotate:360deg}}
-@media(prefers-reduced-motion:reduce){.rise,.bg,.ctl{animation-duration:.01s!important;animation-delay:0s!important}}
 </style>
 <style id="thApp">
 :root{--hh:60px}
@@ -169,9 +42,7 @@ html:has(body.app){background:#2a2d38}
 html:has(body.app.light){background:#cfd2da}
 body.app{min-height:100vh;--appbg:linear-gradient(160deg,#4d5262 0%,#383c49 45%,#2a2d38 100%);background:var(--appbg);--sb:rgba(255,255,255,.1);--sbd:rgba(255,255,255,.13);--chip:rgba(255,255,255,.14);--pcard:rgba(255,255,255,.12);--pn:rgba(30,33,44,.58)}
 body.app.light{--appbg:linear-gradient(160deg,#eef0f4 0%,#dfe1e7 60%,#d0d3db 100%);--sb:rgba(255,255,255,.6);--sbd:rgba(28,26,22,.1);--chip:rgba(28,26,22,.08);--pcard:rgba(255,255,255,.65);--pn:rgba(250,248,243,.62)}
-body.app .bg,body.app .vd,body.app .vl,body.app main,body.app>.ctl{display:none}
-#app{display:none}
-body.app #app{display:block;opacity:0;animation:fadeIn .7s ease forwards}
+#app{opacity:0;animation:fadeIn .7s ease forwards}
 body.lay,body.intro{overflow:hidden}
 
 /* ---------- INTRO: T is placed whole, then H is drawn ---------- */
@@ -245,29 +116,11 @@ body.lay #layer{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
 .prow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 2px;border-bottom:1px solid var(--gbd);font:600 .88rem Cairo,Inter,sans-serif;text-align:start}
 .prow b{font-weight:700;color:var(--ink2);flex:none}
 .prow span{direction:ltr;unicode-bidi:plaintext;text-align:end;overflow-wrap:anywhere}
-#pov .btn{margin-top:18px}
+#gov{z-index:90}#gov .btn+.btn{margin-top:10px}
 </style>
 </head>
-<body>
+<body class="app">
 <script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
-<div class="bg"></div><div class="vd"></div><div class="vl"></div>
-
-<div class="ctl">
-  <button class="cb ic" id="tg" type="button" aria-label="Theme">
-    <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
-    <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>
-  </button>
-  <button class="cb" id="lg" type="button" aria-label="Language"></button>
-</div>
-
-<main id="main" style="justify-content:center">
-  <div class="wrap rise" style="margin-top:0;animation-delay:.4s">
-    <div class="stack"><section class="card" id="c0" aria-label="Guest">
-      <h2 data-t="title"></h2>
-      <div class="gform"><div class="fl" id="f_fn"><input type="text" id="fn" placeholder=" " autocomplete="given-name" autocapitalize="off" spellcheck="false"><label for="fn" data-t="first"></label><div class="fmsg" id="m_fn"></div></div><div class="fl" id="f_ln"><input type="text" id="ln" placeholder=" " autocomplete="family-name" autocapitalize="off" spellcheck="false"><label for="ln" data-t="last"></label><div class="fmsg" id="m_ln"></div></div><div class="fl" id="f_ph"><input type="tel" id="ph" placeholder=" " autocomplete="tel" autocapitalize="off" spellcheck="false"><label for="ph" data-t="phone"></label><div class="fmsg" id="m_ph"></div></div><div class="fl" id="f_em"><input type="email" id="em" placeholder=" " autocomplete="email" autocapitalize="off" spellcheck="false"><label for="em" data-t="email"></label><div class="fmsg" id="m_em"></div></div><button class="btn" id="go" type="button" data-t="go"></button></div>
-    </section></div>
-  </div>
-</main>
 <div id="app">
   <header id="hdr"><div id="hbar"></div>
     <span class="sdlogo" role="img" aria-label="Thabit"></span>
@@ -295,7 +148,12 @@ body.lay #layer{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
   <div class="prow"><b data-t="pName"></b><span id="pn"></span></div>
   <div class="prow"><b data-t="pPhone"></b><span id="pph"></span></div>
   <div class="prow" style="border-bottom:0"><b data-t="pEmail"></b><span id="pem"></span></div>
-  <button class="btn ghost" id="swName" type="button" data-t="switchN"></button>
+</div></div>
+
+<div class="ov" id="gov" role="dialog" aria-modal="true"><div class="pop">
+  <h3 data-t="gT"></h3><p data-t="gP"></p>
+  <button class="btn" id="gStay" type="button" data-t="gStay"></button>
+  <button class="btn ghost" id="gLeave" type="button" data-t="gLeave"></button>
 </div></div>
 
 <div id="intro" aria-hidden="true"><div class="ilight"></div>
@@ -315,20 +173,17 @@ body.lay #layer{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
   </g></g>
 </svg></div>
 
-<style>
-.card>.gform{max-width:560px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 14px}
-.gform .btn{grid-column:1/-1;width:100%;max-width:340px;justify-self:center;margin-top:18px}
-.fl input{text-align:start}
-</style>
 <script>
 (function(){'use strict';
-const $=id=>document.getElementById(id),body=document.body,root=document.documentElement,AR_TZ=/^(Africa\/(Cairo|Tripoli|Tunis|Algiers|Casablanca|El_Aaiun|Khartoum|Djibouti|Nouakchott|Mogadishu)|Asia\/(Riyadh|Dubai|Baghdad|Amman|Beirut|Damascus|Kuwait|Qatar|Bahrain|Muscat|Aden|Gaza|Hebron)|Indian\/Comoro)$/,KEY='thGuest';
-const STR={en:{title:'Tell us about you',first:'First name',last:'Last name',phone:'Phone number',email:'Email',go:'Continue',name:'English',req:'This field is required',badPh:'Enter a valid phone number',badEm:'Enter a valid email',brand:'Thabit',
+const $=id=>document.getElementById(id),body=document.body,root=document.documentElement,AR_TZ=/^(Africa\/(Cairo|Tripoli|Tunis|Algiers|Casablanca|El_Aaiun|Khartoum|Djibouti|Nouakchott|Mogadishu)|Asia\/(Riyadh|Dubai|Baghdad|Amman|Beirut|Damascus|Kuwait|Qatar|Bahrain|Muscat|Aden|Gaza|Hebron)|Indian\/Comoro)$/,KEY='thabitGuest',LANDING='landing.html';
+const STR={en:{name:'English',brand:'Thabit',
   services:'Services',grp:'Language Services',i_train:'Language Training',i_translate:'Translation',i_dict:'Dictation Pal',i_mirror:'Mirroring Room',i_space:'Space',i_voice:'Voice Over',i_digital:'Digital Solutions',i_consult:'Personal Consultation',i_store:'Our Store',
-  soonc:'Page information will be shown here.',switchN:'Not you? Change details',pName:'Name',pPhone:'Phone',pEmail:'Email'},
-ar:{title:'عرّفنا بنفسك',first:'الاسم الأول',last:'الاسم الأخير',phone:'رقم الهاتف',email:'البريد الإلكتروني',go:'متابعة',name:'العربية',req:'هذا الحقل مطلوب',badPh:'أدخل رقم هاتف صحيح',badEm:'أدخل بريدًا إلكترونيًا صحيحًا',brand:'ثابت',
+  soonc:'Page information will be shown here.',pName:'Name',pPhone:'Phone',pEmail:'Email',
+  gT:'Leave guest mode?',gP:'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.',gStay:'Stay as guest',gLeave:'Leave guest mode'},
+ar:{name:'العربية',brand:'ثابت',
   services:'الخدمات',grp:'خدمات اللغة',i_train:'التدريب اللغوي',i_translate:'الترجمة',i_dict:'رفيق الإملاء',i_mirror:'غرفة المرآة',i_space:'المساحة',i_voice:'التعليق الصوتي',i_digital:'الحلول الرقمية',i_consult:'الاستشارة الشخصية',i_store:'متجرنا',
-  soonc:'ستُعرض معلومات الصفحة هنا.',switchN:'لست أنت؟ غيّر البيانات',pName:'الاسم',pPhone:'الهاتف',pEmail:'البريد الإلكتروني'}};
+  soonc:'ستُعرض معلومات الصفحة هنا.',pName:'الاسم',pPhone:'الهاتف',pEmail:'البريد الإلكتروني',
+  gT:'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟',gP:'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.',gStay:'البقاء كضيف',gLeave:'الخروج من وضع الضيف'}};
 function detect(){try{const v=localStorage.getItem('thLandLang');if(v==='ar'||v==='en')return v}catch(e){}let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}return(AR_TZ.test(tz)||(navigator.language||'').toLowerCase().indexOf('ar')===0)?'ar':'en'}
 let L=detect(),cur=null;
 
@@ -354,17 +209,15 @@ $('sbs').onclick=()=>setSide(false);
 function apply(){const t=STR[L];root.dir=L==='ar'?'rtl':'ltr';root.lang=L;body.classList.toggle('ar',L==='ar');
   document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t[e.dataset.t]);
   document.querySelectorAll('.js-lg').forEach(b=>b.textContent=t.name);
-  document.title=body.classList.contains('app')?t.brand:t.title;
-  $('c0').dir=root.dir;$('side').dir=root.dir;$('pov').dir=root.dir;$('layer').dir=root.dir;
+  document.title=t.brand;
+  $('side').dir=root.dir;$('pov').dir=root.dir;$('layer').dir=root.dir;
   $('ptitle').textContent=t.services;if(cur)$('ltitle').textContent=t['i_'+cur];
-  document.querySelectorAll('.fl input').forEach(i=>i.dir='ltr');hb()}
+  hb()}
 document.querySelectorAll('.js-lg').forEach(b=>b.onclick=()=>{L=L==='ar'?'en':'ar';try{localStorage.setItem('thLandLang',L)}catch(e){}apply()});
 document.querySelectorAll('.js-tg').forEach(b=>b.onclick=()=>{body.classList.add('th-fade');setTimeout(()=>body.classList.remove('th-fade'),1600);body.classList.toggle('light');try{localStorage.setItem('thThemeChoice',body.classList.contains('light')?'light':'dark')}catch(e){}});
-$('tg').onclick=()=>document.querySelector('#hdr .js-tg').click();
-$('lg').onclick=()=>document.querySelector('#hdr .js-lg').click();
 
 /* ---------- header glass: shows only once content slides under its bottom edge ---------- */
-function hb(){const bar=$('hbar');if(!body.classList.contains('app')){return}
+function hb(){const bar=$('hbar');
   const h=$('hdr').offsetHeight,t=$('ptitle').getBoundingClientRect().top;
   bar.style.opacity=Math.max(0,Math.min(1,(h-t)/28))}
 window.addEventListener('scroll',hb,{passive:true});window.addEventListener('resize',hb);
@@ -378,7 +231,6 @@ function closeLayer(){cur=null;body.classList.remove('lay');$('layer').setAttrib
   document.querySelectorAll('.sdi.on').forEach(b=>b.classList.remove('on'))}
 $('side').addEventListener('click',e=>{const b=e.target.closest('.sdi');if(b)openLayer(b.dataset.k)});
 $('back').onclick=()=>{if(history.state&&history.state.th)history.back();else closeLayer()};
-window.addEventListener('popstate',()=>{if(body.classList.contains('lay'))closeLayer()});
 
 /* ---------- profile pop-up ---------- */
 function setPop(on){$('pov').classList.toggle('on',on)}
@@ -386,29 +238,27 @@ $('prof').onclick=e=>{e.stopPropagation();setSide(false);setPop(true)};
 $('pov').addEventListener('click',e=>{if(e.target===$('pov'))setPop(false)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){setPop(false);setSide(false)}});
 
-/* ---------- remembered guest ---------- */
-function load(){try{const g=JSON.parse(localStorage.getItem(KEY)||'null');return g&&g.firstName?g:null}catch(e){return null}}
-function showApp(g){$('pn').textContent=g.name||((g.firstName||'')+' '+(g.lastName||'')).trim();$('pph').textContent=g.phone||'';$('pem').textContent=g.email||'';
-  body.classList.add('app');closeLayer();apply();window.scrollTo(0,0);hb()}
-function showForm(){body.classList.remove('app','sbo','lay');setPop(false);apply()}
-$('swName').onclick=()=>{try{localStorage.removeItem(KEY);sessionStorage.removeItem('thabitGuest')}catch(e){}ids.forEach(k=>{$(k).value='';$('f_'+k).classList.remove('bad','act')});showForm()};
+/* ---------- the guest: his details come from the landing page (sessionStorage) ---------- */
+function load(){try{const g=JSON.parse(sessionStorage.getItem(KEY)||'null');return g&&g.firstName?g:null}catch(e){return null}}
+function fill(g){$('pn').textContent=((g.firstName||'')+' '+(g.lastName||'')).trim();$('pph').textContent=g.phone||'';$('pem').textContent=g.email||''}
 
-/* ---------- the form ---------- */
-const ids=['fn','ln','ph','em'],rules={fn:v=>!!v,ln:v=>!!v,ph:v=>/^\+?[0-9\s\-()]{7,18}$/.test(v)&&v.replace(/\D/g,'').length>=7,em:v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)};
-ids.forEach(k=>{const i=$(k),f=$('f_'+k);i.addEventListener('focus',()=>f.classList.add('act'));i.addEventListener('blur',()=>f.classList.remove('act'));i.addEventListener('input',()=>{f.classList.remove('bad');$('m_'+k).classList.remove('show')});i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('go').click()}})});
-$('go').onclick=()=>{let ok=true;const t=STR[L],d={};
-ids.forEach(k=>{const v=$(k).value.trim();d[k]=v;if(!rules[k](v)){ok=false;$('f_'+k).classList.add('bad');const m=$('m_'+k);m.textContent=!v?t.req:(k==='ph'?t.badPh:t.badEm);m.classList.add('show')}});
-if(!ok)return;
-const g={id:(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2),firstName:d.fn,lastName:d.ln,name:(d.fn+' '+d.ln).trim(),phone:d.ph,email:d.em,at:Date.now()};
-try{localStorage.setItem(KEY,JSON.stringify(g));sessionStorage.setItem('thabitGuest',JSON.stringify({firstName:d.fn,lastName:d.ln,phone:d.ph,email:d.em,at:g.at}))}catch(e){}
-showApp(g);setTimeout(()=>setSide(true),700)};
+/* ---------- Back on the main page asks before leaving guest mode ---------- */
+function leave(){try{sessionStorage.removeItem(KEY)}catch(e){}location.replace(LANDING)}
+$('gStay').onclick=()=>$('gov').classList.remove('on');
+$('gLeave').onclick=leave;
+try{history.replaceState({th:'guard'},'');history.pushState({th:'main'},'')}catch(e){}
+window.addEventListener('popstate',e=>{const s=e.state&&e.state.th;
+  if(s==='guard'){closeLayer();try{history.pushState({th:'main'},'')}catch(x){}$('gov').classList.add('on')}
+  else if(body.classList.contains('lay'))closeLayer()});
 
 /* ---------- start: intro (T placed whole, H drawn), then the app with the sidebar open ---------- */
-const g0=load();if(g0)showApp(g0);else apply();
+const g0=load();
+if(!g0){location.replace(LANDING);return}
+fill(g0);apply();
 body.classList.add('intro');
 const intro=$('intro'),reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
 setTimeout(()=>{intro.classList.add('out');body.classList.remove('intro');
-  if(body.classList.contains('app'))setTimeout(()=>setSide(true),350);
+  setTimeout(()=>setSide(true),350);
   setTimeout(()=>intro.remove(),1000)},reduce?300:3900);
 })();
 </script>
