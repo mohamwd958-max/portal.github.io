@@ -98,7 +98,7 @@ body.ar .card.ready{font-family:Cairo,Inter,sans-serif}
 .hlogo.fin{left:16px;top:max(14px,env(safe-area-inset-top,0px));width:30px;height:30px}
 .gl{position:fixed;inset:0;z-index:4;display:none;align-items:center;justify-content:center;padding:70px 16px 24px;overflow:auto;overscroll-behavior:contain;background:rgba(14,16,22,.55);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}
 body.light .gl{background:rgba(236,232,222,.6)}
-.gl.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
+.gl.on{display:flex;animation:fadeFrom .35s ease}
 .gl .card{width:100%;max-width:none;margin:auto;padding:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
 .gl .card h2{margin-bottom:6px}
 .gl .fl{opacity:1}
@@ -190,7 +190,7 @@ body.light .card{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.
 
 /* ---------- pop-up ("coming soon") ---------- */
 .ov{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.ov.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}
+.ov.on{display:flex;animation:fadeFrom .35s ease}
 .pop{position:relative;width:min(100%,380px);padding:28px 24px 22px;border-radius:24px;border:1px solid var(--gbd);color:var(--ink);text-align:center;-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);animation:pop .5s cubic-bezier(.16,1,.3,1)}
 body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{background:rgba(18,22,34,.78)}
 @keyframes pop{from{opacity:0;scale:.94;translate:0 14px}to{opacity:1;scale:1;translate:0 0}}
@@ -218,7 +218,7 @@ body.ar .rbtn{font-family:Cairo,Inter,sans-serif}
 
 /* the cards layer: a new layer on the same page, cards start from the top */
 .wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;padding:calc(64px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(64px + env(safe-area-inset-bottom,0px))}
-.wrap.on{opacity:0;animation:fadeIn .6s ease forwards}
+.wrap.on{animation:fadeFrom .6s ease}
 
 /* invisible header: appears (thin, bottom border + heavy blur) only when something passes under it */
 .hdr{position:fixed;top:0;left:0;right:0;z-index:4;height:calc(62px + env(safe-area-inset-top,0px));pointer-events:none;opacity:0;
@@ -256,10 +256,17 @@ button:focus,button:focus-visible{outline:none}
 
 /* a soft shade behind the intro so it stands out from the stairs */
 body.light .sky{display:none}
-.intro::before{content:"";position:absolute;left:-12%;right:-12%;top:-70%;bottom:-70%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
-  background:radial-gradient(ellipse at center,rgba(8,11,20,.62) 0%,rgba(8,11,20,.36) 38%,rgba(8,11,20,0) 70%)}
-body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,241,234,.75) 0%,rgba(244,241,234,.45) 38%,rgba(244,241,234,0) 70%)}
+.intro::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
+  background:radial-gradient(ellipse 62% 38% at 50% 50%,rgba(8,11,20,.62) 0%,rgba(8,11,20,.36) 45%,rgba(8,11,20,0) 100%)}
+body.light .intro::before{background:radial-gradient(ellipse 62% 38% at 50% 50%,rgba(244,241,234,.75) 0%,rgba(244,241,234,.45) 45%,rgba(244,241,234,0) 100%)}
 .intro.lit::before{opacity:1}
+
+/* the page itself never moves: no sideways / up-down drag, everything is centred */
+html,body{height:100%;overflow:hidden}
+@keyframes fadeFrom{from{opacity:0}}
+/* pop-ups: the dark scrim is a separate layer, so the pop-up glass can really blur the page behind it */
+.ov{background:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.ov::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 </style>
 </head>
 <body>
@@ -453,16 +460,39 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
   const qs = s => document.querySelector(s);
   const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), introEl = qs('.intro'), stackEl = $('stack'), wrapEl = $('wrap');
   let introShown = false;
+  let skipped = false, skipRes = null; const skipP = new Promise(r => { skipRes = r; });
+  const wait = ms => Promise.race([sleep(ms), skipP]);
+  function finishNow() {   /* a tap anywhere during the intro: it ends right away */
+    if (skipped || introShown) return; skipped = true; skipRes();
+    introEl.classList.add('lit');
+    [helloEl, brandEl, tagEl].forEach(e => { e.style.transition = 'none'; e.classList.remove('hold'); });
+    showReady();
+  }
+  document.addEventListener('pointerdown', finishNow);
   const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
   const showReady = () => { introShown = true; readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
   function revealAll() { if (introShown) return; introEl.classList.add('lit'); [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
+  /* ============ levels: Back / exit always goes one level back inside this page ============ */
+  const layerStack = [];
+  function pushLayer(closeFn) { history.pushState({ thL: layerStack.length + 1 }, ''); layerStack.push(closeFn); }
+  window.addEventListener('popstate', () => {
+    $('rov').classList.remove('on'); $('ov').classList.remove('on');   /* a reminder never blocks going back */
+    const f = layerStack.pop(); if (f) f();
+  });
+  let cardsOpen = false;
+  function closeCards() {
+    cardsOpen = false; const m = $('main');
+    wrapEl.classList.add('hid'); wrapEl.classList.remove('on'); wrapEl.scrollTop = 0; hdrEl.classList.remove('on');
+    m.getAnimations().forEach(a => a.cancel()); m.style.display = ''; readyEl.style.pointerEvents = '';
+    try { m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }); } catch (e) { }
+  }
   readyEl.onclick = () => {
-    readyEl.style.pointerEvents = 'none';
+    if (cardsOpen) return; cardsOpen = true; readyEl.style.pointerEvents = 'none'; pushLayer(closeCards);
     const m = $('main');
     try { m.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-in', fill: 'forwards' }); } catch (e) { }
     setTimeout(() => {   /* not tied to the animation finishing, so it always opens */
-      m.style.display = 'none';
-      wrapEl.classList.remove('hid'); wrapEl.classList.add('on'); wrapEl.scrollTop = 0;
+      if (!cardsOpen) return;
+      m.style.display = 'none'; wrapEl.classList.remove('hid'); wrapEl.classList.add('on'); wrapEl.scrollTop = 0;
     }, 360);
   };
   /* the invisible header shows only when cards are under it */
@@ -474,7 +504,7 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
     let logo = null; try { logo = new Image(); logo.src = 'assets/thabit-logo.png'; await logo.decode(); } catch (e) { logo = null; }
     const ink = getComputedStyle(body).color;
     /* paints "word | logo" exactly where the page has it (the baseline is measured, not guessed) */
-    function paint(ctx, solid) {
+    function paint(ctx) {
       const tn = brandEl.querySelector('[data-t]'), c = getComputedStyle(tn), r = document.createRange(); r.selectNodeContents(tn);
       const rc = r.getBoundingClientRect(), t = tn.textContent;
       const pr = document.createElement('i'); pr.style.cssText = 'display:inline-block;width:0;height:0'; tn.appendChild(pr);
@@ -483,35 +513,38 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
       try { ctx.letterSpacing = c.letterSpacing === 'normal' ? '0px' : c.letterSpacing; } catch (e) { }
       ctx.fillText(t, rc.left, base);
       const bar = brandEl.querySelector('.bar'), mk = brandEl.querySelector('.mk');
-      if (bar) { const q = bar.getBoundingClientRect(); ctx.globalAlpha = solid ? .45 : 1; ctx.fillRect(q.left, q.top, q.width, q.height); ctx.globalAlpha = 1; }
+      if (bar) { const q = bar.getBoundingClientRect(); ctx.globalAlpha = .45; ctx.fillRect(q.left, q.top, q.width, q.height); ctx.globalAlpha = 1; }
       if (mk && logo) { const q = mk.getBoundingClientRect(); ctx.drawImage(logo, q.left, q.top, q.width, q.height); }
     }
-    /* 1) the dots: where every one of them must land */
-    const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true }); paint(o, false);
-    const b = brandEl.getBoundingClientRect(), gap = 2, size = 1.9, pts = [];
-    const x0 = Math.max(0, Math.floor(b.left) - 6), y0 = Math.max(0, Math.floor(b.top) - 6), w = Math.min(W - x0, Math.ceil(b.width) + 12), h = Math.min(H - y0, Math.ceil(b.height) + 12);
-    const d = o.getImageData(x0, y0, w, h).data;
-    for (let y = 0; y < h; y += gap) for (let x = 0; x < w; x += gap) if (d[(y * w + x) * 4 + 3] > 140) {
-      const a = Math.random() * 6.283, rad = 50 + Math.random() * 200;
-      pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: .2 + Math.random() * .7, du: 1 + Math.random() * .7 });
+    /* every dot IS one pixel of the finished word (with its own softness), so when they all land the word is already there */
+    const DW = Math.round(W * dpr), DH = Math.round(H * dpr);
+    const off = document.createElement('canvas'); off.width = DW; off.height = DH; const o = off.getContext('2d', { willReadFrequently: true }); o.scale(dpr, dpr); paint(o);
+    const b = brandEl.getBoundingClientRect(), pad = Math.round(8 * dpr);
+    const x0 = Math.max(0, Math.floor(b.left * dpr) - pad), y0 = Math.max(0, Math.floor(b.top * dpr) - pad), w = Math.min(DW - x0, Math.ceil(b.width * dpr) + pad * 2), h = Math.min(DH - y0, Math.ceil(b.height * dpr) + pad * 2);
+    const d = o.getImageData(x0, y0, w, h).data, LV = 6, groups = Array.from({ length: LV }, () => []); let left = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const a = d[(y * w + x) * 4 + 3]; if (a <= 10) continue;
+      const ang = Math.random() * 6.283, rad = (50 + Math.random() * 200) * dpr;
+      groups[Math.min(LV - 1, Math.floor(a / 256 * LV))].push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(ang) * rad, sy: y0 + y + Math.sin(ang) * rad, d: .2 + Math.random() * .7, du: 1 + Math.random() * .7, a: a / 255, done: false }); left++;
     }
-    /* 2) the finished word, in the page's own colour, at screen resolution: the dots melt into it */
-    const sol = document.createElement('canvas'); sol.width = W * dpr; sol.height = H * dpr;
-    const s = sol.getContext('2d'); s.scale(dpr, dpr); paint(s, true);
-    s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'source-in'; s.fillStyle = ink; s.fillRect(0, 0, sol.width, sol.height);
+    const doneCv = document.createElement('canvas'); doneCv.width = DW; doneCv.height = DH; const dg = doneCv.getContext('2d'); dg.fillStyle = ink;   /* the dots that already landed */
     const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none';
-    cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
-    const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = ink;
-    const gather = Math.max(...pts.map(p => p.d + p.du)) + .15, melt = .9, t0 = performance.now(), sm = v => v * v * (3 - 2 * v);
+    cv.width = DW; cv.height = DH; document.body.appendChild(cv);
+    const g = cv.getContext('2d'); g.fillStyle = ink; const t0 = performance.now();
     await new Promise(res => { (function f(now) {
-      const t = (now - t0) / 1000, m = Math.min(1, Math.max(0, (t - gather) / melt)), sp = sm(m), grow = size * .8 * sp, da = m < .7 ? 1 : 1 - (m - .7) / .3;
-      g.clearRect(0, 0, W, H);
-      for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4) * da; g.fillRect(p.sx + (p.tx - p.sx) * e - grow / 2, p.sy + (p.ty - p.sy) * e - grow / 2, size + grow, size + grow); }
-      if (m > 0) { g.globalAlpha = Math.min(1, sp / .7); g.drawImage(sol, 0, 0, W, H); }
-      g.globalAlpha = 1;
-      if (m < 1) requestAnimationFrame(f); else res();
+      const t = (now - t0) / 1000, paths = groups.map(() => new Path2D());
+      groups.forEach((grp, l) => { for (const p of grp) {
+        if (p.done) continue;
+        const k = skipped ? 1 : (t - p.d) / p.du;
+        if (k >= 1) { p.done = true; left--; dg.globalAlpha = p.a; dg.fillRect(p.tx, p.ty, 1, 1); continue; }
+        if (k <= 0) continue;
+        const e = 1 - Math.pow(1 - k, 3); paths[l].rect(p.sx + (p.tx - p.sx) * e, p.sy + (p.ty - p.sy) * e, 1, 1);
+      } });
+      g.clearRect(0, 0, DW, DH); g.globalAlpha = 1; g.drawImage(doneCv, 0, 0);
+      paths.forEach((pa, l) => { g.globalAlpha = (l + .5) / LV; g.fill(pa); }); g.globalAlpha = 1;
+      if (left > 0) requestAnimationFrame(f); else res();
     })(t0); });
-    /* the real word takes over at the very same pixels, so nothing seems to change */
+    /* the real word takes over at the very same pixels: nothing moves, nothing changes */
     brandEl.style.transition = 'none'; brandEl.classList.remove('hold');
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     cv.remove();
@@ -519,9 +552,14 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
   (async () => {
     try {
       if (matchMedia('(prefers-reduced-motion:reduce)').matches) return revealAll();
-      await Promise.race([window.thLoader ? window.thLoader.ready : 0, sleep(5000)]); await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(300);
-      introEl.classList.add('lit'); helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await sleep(700);
-      await particles(); await sleep(250); showTag(); await sleep(1100); showReady();
+      await Promise.race([window.thLoader ? window.thLoader.ready : 0, sleep(5000)]); await Promise.race([document.fonts.ready, sleep(2500)]); await wait(300);
+      if (skipped) return;
+      introEl.classList.add('lit'); helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await wait(700);
+      if (skipped) return;
+      await particles(); if (skipped) return;
+      await wait(250); if (skipped) return;
+      showTag(); await wait(1100); if (skipped) return;
+      showReady();
     } catch (e) { revealAll(); }
   })();
   setTimeout(revealAll, 15000);   /* safety: whatever happens, the page never stays empty */
@@ -551,9 +589,8 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
       gTm.push(setTimeout(() => { gTm.push(setInterval(() => { i++; l.textContent = txt.slice(0, i); if (i >= txt.length) l.textContent = txt; }, 22)); }, 800 + n * 70));
     });
   }
-  function openGuest() { if (glOpen) return; glOpen = true; history.pushState({ thG: 1 }, ''); gl.classList.add('on'); body.classList.add('lock'); gType(); }
+  function openGuest() { if (glOpen) return; glOpen = true; pushLayer(closeGuest); gl.classList.add('on'); body.classList.add('lock'); gType(); }
   function closeGuest() { if (!glOpen) return; glOpen = false; gl.classList.remove('on'); body.classList.remove('lock'); gRestore(); }
-  window.addEventListener('popstate', closeGuest);
   $('gBack').onclick = () => history.back();
   const gIds = ['g_fn', 'g_ln', 'g_ph', 'g_em'];
   const gRules = { g_fn: v => !!v, g_ln: v => !!v, g_ph: v => /^\+?[0-9\s\-()]{7,18}$/.test(v) && v.replace(/\D/g, '').length >= 7, g_em: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) };
@@ -604,9 +641,8 @@ body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,
   const ov = $('ov');
   /* "Become one of us": a new layer; Back returns to the two cards where we stopped */
   const jl = $('jl'); let jlOpen = false;
-  function openJoin() { if (jlOpen) return; jlOpen = true; history.pushState({ thJ: 1 }, ''); jl.classList.add('on'); body.classList.add('lock'); }
+  function openJoin() { if (jlOpen) return; jlOpen = true; pushLayer(closeJoin); jl.classList.add('on'); body.classList.add('lock'); }
   function closeJoin() { if (!jlOpen) return; jlOpen = false; jl.classList.remove('on'); body.classList.remove('lock'); }
-  window.addEventListener('popstate', closeJoin);
   $('jBack').onclick = () => history.back();
   $('joinBtn').onclick = openJoin;
   $('soonBack').onclick = () => ov.classList.remove('on');
