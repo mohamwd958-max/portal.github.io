@@ -437,15 +437,6 @@ input,textarea{-webkit-user-select:text;user-select:text}
   </div>
 </div>
 
-<div class="ov" id="gov" role="dialog" aria-modal="true">
-  <div class="pop">
-    <h3 data-t="gT"></h3>
-    <p data-t="gP"></p>
-    <button class="btn" id="gStay" type="button" data-t="gStay"></button>
-    <button class="btn ghost" id="gLeave" type="button" data-t="gLeave"></button>
-  </div>
-</div>
-
 <div class="gl" id="gl" role="dialog" aria-modal="true">
   <section class="card" id="gc" aria-label="Guest">
     <h2 data-t="gTitle"></h2>
@@ -480,12 +471,12 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { sugT: 'Saved passwords', gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { sugT: 'Saved passwords', gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { sugT: 'كلمات المرور المحفوظة', gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { sugT: 'كلمات المرور المحفوظة', gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -718,7 +709,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     }
     /* guest data lives only in this tab: gone when the page is closed */
     try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.g_fn, lastName: d.g_ln, phone: d.g_ph, email: d.g_em, at: Date.now() })); } catch (e) { }
-    go(GUEST_HOME, true);   /* replace: Back from the index comes to this page */
+    go(ROUTES.guest, true);   /* replace: the guest page asks before leaving guest mode */
   };
 
   /* ============ a guest we remember ============ */
@@ -732,18 +723,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
   function askWho(d) {   /* never enters on its own: someone else may be using this computer */
     const t = T(); $('rT').textContent = t.rT; $('rP').textContent = t.rP.replace('{f}', d.firstName).replace('{l}', d.lastName);
     $('rov').classList.add('on');
-    $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(GUEST_HOME, true); };
+    $('rYes').onclick = () => { try { sessionStorage.setItem(GUEST_KEY, JSON.stringify({ firstName: d.firstName, lastName: d.lastName, phone: d.phone, email: d.email, at: Date.now() })); } catch (e) { } go(ROUTES.guest, true); };
     $('rNo').onclick = () => { $('rov').classList.remove('on'); openGuest(); };   /* a new person: the form, and he is remembered instead */
   }
 
-  /* ============ guest session: asked again when he comes back to this page ============ */
+  /* ============ guest session key (the guest page reads it; leaving guest mode is handled there) ============ */
   const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'index.html';
-  const isGuest = () => { try { return !!sessionStorage.getItem(GUEST_KEY); } catch (e) { return false; } };
-  const checkGuest = () => { if (isGuest()) $('gov').classList.add('on'); };
-  $('gStay').onclick = () => go(GUEST_HOME);
-  $('gLeave').onclick = () => { try { sessionStorage.removeItem(GUEST_KEY); } catch (e) { } $('gov').classList.remove('on'); };
-  window.addEventListener('pageshow', () => { document.body.getAnimations().forEach(a => a.cancel()); checkGuest(); });
-  checkGuest();
+  window.addEventListener('pageshow', () => { document.body.getAnimations().forEach(a => a.cancel()); });
 
   /* ============ the buttons of card 2 ============ */
   const ov = $('ov');
