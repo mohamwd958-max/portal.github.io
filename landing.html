@@ -274,14 +274,35 @@ html,body{height:100%;overflow:hidden}
 :root{--sugbg:rgba(20,24,36,.9)}
 body.light{--sugbg:rgba(250,248,243,.94)}
 
-/* the logo alone fades in at the top-left (left -> right) once "Ready" is pressed; same size as the theme circle */
-.hb{position:fixed;z-index:5;left:14px;top:max(9px,env(safe-area-inset-top,0px));width:34px;height:34px;pointer-events:none;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
+/* the logo alone fades in at the top-left (left -> right) once "Ready" is pressed; a little smaller than the theme circle */
+.hb{position:fixed;z-index:5;left:15px;top:calc(max(9px,env(safe-area-inset-top,0px)) + 4.5px);width:25px;height:25px;pointer-events:none;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
 .hb .mk{display:block;width:100%;height:100%;background:var(--ink);-webkit-mask:url(assets/thabit-logo.png) center/contain no-repeat;mask:url(assets/thabit-logo.png) center/contain no-repeat}
 .hb.on{animation:hbIn 1.4s cubic-bezier(.22,1,.36,1) .25s forwards}
 .hb.out{animation:hbOut .35s ease forwards}
 @keyframes hbIn{0%{opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}55%{opacity:1}100%{opacity:1;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}}
 @keyframes hbOut{from{opacity:1;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}to{opacity:0;translate:0 0;clip-path:inset(-8px -10px -8px -8px)}}
 @media(prefers-reduced-motion:reduce){.hb.on{animation-duration:.01s!important;animation-delay:0s!important}}
+
+ /* pop-ups ("Welcome back, are you ...?" etc.): the page behind blurs the very instant you tap and the card rises with it.
+   The container never fades (an opacity on it switches the blur off until the end), and it stays laid out, so nothing has to be built on tap */
+.ov,.ov.on{display:flex;animation:none}
+.ov{visibility:hidden;pointer-events:none;transition:visibility 0s .3s}
+.ov.on{visibility:visible;pointer-events:auto;transition:visibility 0s}
+.ov::before{opacity:0;transition:opacity .28s ease;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.ov.on::before{opacity:1}
+.ov .pop{animation:none;opacity:0;scale:.94;translate:0 14px;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);transition:opacity .3s ease,scale .45s var(--ease),translate .45s var(--ease)}
+.ov.on .pop{opacity:1;scale:1;translate:0 0;transition-delay:.05s}
+
+/* saved passwords on touch screens: small cells right above the keyboard */
+.kbs{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;gap:8px;padding:8px 10px;overflow-x:auto;overscroll-behavior:contain;scrollbar-width:none;direction:ltr;
+  background:var(--sugbg);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);border-top:1px solid var(--gbd);
+  opacity:0;visibility:hidden;translate:0 10px;pointer-events:none;transition:opacity .2s ease,translate .3s var(--ease),visibility 0s .2s}
+.kbs.on{opacity:1;visibility:visible;translate:0 0;pointer-events:auto;transition:opacity .2s ease,translate .3s var(--ease),visibility 0s}
+.kbs::-webkit-scrollbar{display:none}
+.kc{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:46px;max-width:78vw;padding:0 14px;border-radius:12px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:600 .85rem Inter,Cairo,sans-serif;cursor:pointer;text-align:left;transition:scale .9s var(--ease)}
+.kc:active{scale:.95;transition:scale .12s ease-out}
+.kc .sn{max-width:100%}
+.kc .sd{font-size:.62rem}
 
 /* login card: lets the saved-passwords pop-up sit above the next card */
 #c0{overflow:visible;z-index:3}
@@ -309,33 +330,41 @@ body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:non
 /* =========================================================
    v5: real daytime for the light theme + twinkling stars at night
    ========================================================= */
-/* light theme = the view from a door that opens onto the sky (sky-diver's point of view): bright horizon + sun, clouds streaming past both sides, darker edges */
-.day{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
+/* light theme = the same photo (stairs, door, everything stays), but it is morning: daylight is blended (screen) over the photo, so the night sky
+   becomes a blue sky with clouds and a sun, and the dark ground is lit.  --hz = where the horizon sits in the photo (change it if the horizon looks too high / low) */
+:root{--hz:40vh}
+.bg{transition:filter 1.4s ease}
+body.light .bg{filter:saturate(.85) contrast(.9)}
+.day{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 1.4s ease;mix-blend-mode:screen;
   background:
-    radial-gradient(circle at 70% 84%,#fffef2 0,#fff7d2 3%,rgba(255,235,165,.9) 7%,rgba(255,216,140,.42) 20%,rgba(255,216,140,0) 48%),
-    radial-gradient(ellipse 130% 55% at 50% 108%,rgba(255,226,165,.95) 0,rgba(255,226,165,0) 72%),
-    linear-gradient(180deg,#1f5fa8 0%,#3f8fdb 28%,#7ebdf0 58%,#cfe9fb 86%,#fff0cc 100%)}
+    radial-gradient(circle 64px at 72% calc(var(--hz) - 3vh),#fff 0,#fffdf0 38%,rgba(255,240,180,.85) 62%,rgba(255,236,170,0) 100%),
+    radial-gradient(ellipse 70% 26vh at 72% var(--hz),rgba(255,242,200,.9) 0,rgba(255,222,150,.5) 42%,rgba(255,222,150,0) 100%),
+    linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) var(--hz),rgba(196,156,112,.55) calc(var(--hz) + 2vh),rgba(130,100,72,.42) 100%),
+    linear-gradient(180deg,#2b78c9 0%,#5aa6ec calc(var(--hz)*.55),#a9d6f7 calc(var(--hz)*.9),#e3f3fd var(--hz),rgba(227,243,253,0) calc(var(--hz) + 3vh))}
 body.light .day{opacity:1}
-.day::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 90% 82% at 50% 64%,rgba(10,40,90,0) 42%,rgba(10,40,90,.42) 100%)}
+.dsky{position:absolute;left:0;right:0;top:0;height:calc(var(--hz) + 3vh);overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 0,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 82%,transparent 100%)}
 .cl{position:absolute;top:100%;width:340px;height:150px;opacity:var(--o,1);scale:var(--s,1);filter:blur(5px);will-change:translate;animation:cup var(--d,30s) linear infinite;animation-delay:var(--w,0s);
   background:
     radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 0 62%/56% 100% no-repeat,
     radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 28% 18%/52% 115% no-repeat,
     radial-gradient(closest-side,#fff 0,rgba(255,255,255,0) 100%) 64% 52%/56% 105% no-repeat,
     radial-gradient(closest-side,#f3f9ff 0,rgba(243,249,255,0) 100%) 100% 70%/46% 92% no-repeat}
-@keyframes cup{from{translate:0 0}to{translate:0 -190vh}}
+@keyframes cup{from{translate:0 0}to{translate:0 calc(-1*(var(--hz) + 3vh) - 470px)}}
 body:not(.light) .cl{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.cl{animation-play-state:paused!important}}
 body.light .vl{background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,0) 40%,rgba(255,255,255,.08) 100%)}
 body.light .intro::before{background:radial-gradient(ellipse 62% 38% at 50% 50%,rgba(255,255,255,.42) 0%,rgba(255,255,255,.2) 45%,rgba(255,255,255,0) 100%)}
 body.light .gl{background:rgba(220,238,252,.5)}
+:root *{-webkit-tap-highlight-color:transparent}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
 .twk{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 5px 1px rgba(200,220,255,.8);opacity:0;pointer-events:none}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light')}catch(e){}</script>
 <div class="bg"></div>
-<div class="day" id="day" aria-hidden="true"></div>
+<div class="day" id="day" aria-hidden="true"><div class="dsky" id="dsky"></div></div>
 <div class="vd"></div><div class="vl"></div>
 
 <div class="ctl">
@@ -452,6 +481,7 @@ body.light .gl{background:rgba(220,238,252,.5)}
   </div>
 </div>
 
+<div class="kbs" id="kbs" role="listbox" aria-label="Saved passwords"></div>
 <script src="js/nav.js" data-page="landing"></script>
 <script src="js/portal.js"></script>
 <script>
@@ -651,7 +681,7 @@ body.light .gl{background:rgba(220,238,252,.5)}
 
   /* ============ daytime clouds (light theme): big near ones rush by on the sides, small far ones drift in the middle ============ */
   (function () {
-    const day = $('day'); if (!day) return;
+    const day = $('dsky'); if (!day) return;
     const R = (a, b) => a + Math.random() * (b - a);
     for (let i = 0; i < 18; i++) {
       const near = i < 8, mid = !near && i < 13, c = document.createElement('i'); c.className = 'cl';
@@ -816,32 +846,36 @@ body.light .gl{background:rgba(220,238,252,.5)}
 
   /* a tap anywhere outside the two fields (and the pop-up) closes the keyboard and puts everything back */
   let pdn = null;
-  document.addEventListener('pointerdown', e => { const t = e.target; pdn = { x: e.clientX, y: e.clientY, inside: !!(t.closest && t.closest('#flU,#flP,#sug')) }; }, true);
+  document.addEventListener('pointerdown', e => { const t = e.target; pdn = { x: e.clientX, y: e.clientY, inside: !!(t.closest && t.closest('#flU,#flP,#sug,#kbs')) }; }, true);
   document.addEventListener('pointerup', e => {
     const a = document.activeElement; if (!pdn || (a !== uIn && a !== pIn)) return;
     if (!pdn.inside && Math.hypot(e.clientX - pdn.x, e.clientY - pdn.y) < 10) a.blur();
   }, true);
 
   /* ============ saved passwords: our own small pop-up under the username field ============ */
-  const SAVED_KEY = 'thSavedLogins', sug = $('sug'), sugL = $('sugL');
+  const SAVED_KEY = 'thSavedLogins', sug = $('sug'), sugL = $('sugL'), kbs = $('kbs'), coarse = matchMedia('(pointer:coarse)').matches; S.sugTok = 0;
+  function placeKbs() { const vv = window.visualViewport; kbs.style.bottom = vv ? Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height)) + 'px' : '0px'; }   /* sits exactly on top of the keyboard */
+  if (window.visualViewport) ['resize', 'scroll'].forEach(ev => visualViewport.addEventListener(ev, () => { if (kbs.classList.contains('on')) placeKbs(); }));
   const getSaved = () => { try { const a = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.u && x.p) : []; } catch (e) { return []; } };
   function saveLogin(u, p) { try { const a = getSaved().filter(x => x.u.toLowerCase() !== u.toLowerCase()); a.unshift({ u, p }); localStorage.setItem(SAVED_KEY, JSON.stringify(a.slice(0, 4))); } catch (e) { } }
-  function hideSug() { sug.classList.remove('on'); }
+  function hideSug() { S.sugTok++; sug.classList.remove('on'); kbs.classList.remove('on'); }
   function showSug() {
     const all = getSaved(), q = uIn.value.trim().toLowerCase();
     const list = (!q || all.some(x => x.u.toLowerCase() === q)) ? all : all.filter(x => x.u.toLowerCase().startsWith(q));
     if (!list.length) { hideSug(); return; }
-    sugL.textContent = '';
+    const tok = ++S.sugTok, host = coarse ? kbs : sugL; host.textContent = '';
     list.forEach((x, n) => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'si'; b.setAttribute('role', 'option'); b.style.setProperty('--n', n);
+      const b = document.createElement('button'); b.type = 'button'; b.className = coarse ? 'kc' : 'si'; b.setAttribute('role', 'option'); b.style.setProperty('--n', n);
       const a = document.createElement('span'); a.className = 'sn'; a.textContent = x.u;
       const d = document.createElement('span'); d.className = 'sd'; d.setAttribute('aria-hidden', 'true'); d.textContent = '••••••••';
       b.append(a, d);
       b.addEventListener('mousedown', e => e.preventDefault());   /* the field keeps focus until the choice is made */
       b.addEventListener('click', () => pickSaved(x));
-      sugL.appendChild(b);
+      host.appendChild(b);
     });
-    sug.classList.add('on');
+    if (!coarse) { sug.classList.add('on'); return; }
+    kbs.scrollLeft = 0; placeKbs();   /* touch: the cells appear when the keyboard has come up */
+    setTimeout(() => { if (tok === S.sugTok && document.activeElement === uIn) { placeKbs(); kbs.classList.add('on'); } }, 260);
   }
   function pickSaved(x) {   /* fills both fields in green; it never logs in by itself */
     cancelHint(); uIn.value = x.u; pIn.value = x.p; S.uShown = '';
