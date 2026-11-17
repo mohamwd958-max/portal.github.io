@@ -212,22 +212,13 @@ body.light .pop{background:rgba(250,248,243,.88)}body:not(.light) .pop{backgroun
 /* the Ready button: almost full width, a finger of space on each side */
 .rbtn{position:absolute;top:100%;left:28px;right:28px;max-width:460px;margin:clamp(26px,5vh,46px) auto 0;height:54px;border-radius:20px;border:1px solid var(--gbd);
   background:var(--gbg);color:var(--ink);font:700 1.05rem Inter,Cairo,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4);
-  box-shadow:0 10px 40px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}
+  box-shadow:0 10px 40px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;transition:scale .9s var(--ease)}
 body.ar .rbtn{font-family:Cairo,Inter,sans-serif}
 @media(hover:hover){.rbtn:hover{scale:1.015}}
-.rbtn:active{scale:.98}
 
 /* the cards layer: a new layer on the same page, cards start from the top */
-.wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;justify-content:flex-start;
-  padding:calc(64px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(24px + env(safe-area-inset-bottom,0px))}
+.wrap{position:fixed;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;padding:calc(64px + env(safe-area-inset-top,0px)) clamp(12px,2vw,28px) calc(64px + env(safe-area-inset-bottom,0px))}
 .wrap.on{opacity:0;animation:fadeIn .6s ease forwards}
-
-/* both cards: darker glass with a much stronger blur, the background hardly shows through */
-.stack .card{background:rgba(12,15,24,.5);-webkit-backdrop-filter:blur(120px) saturate(1.3);backdrop-filter:blur(120px) saturate(1.3);border-color:rgba(255,255,255,.14);box-shadow:0 10px 40px rgba(0,0,0,.2)}
-body.light .stack .card{background:rgba(226,221,208,.58);border-color:rgba(255,255,255,.6)}
-
-/* room under the cards so they can be pulled up, under the buttons */
-.wrap::after{content:"";flex:none;height:60vh}
 
 /* invisible header: appears (thin, bottom border + heavy blur) only when something passes under it */
 .hdr{position:fixed;top:0;left:0;right:0;z-index:4;height:calc(62px + env(safe-area-inset-top,0px));pointer-events:none;opacity:0;
@@ -235,14 +226,40 @@ body.light .stack .card{background:rgba(226,221,208,.58);border-color:rgba(255,2
 body.light .hdr{background:rgba(244,241,234,.4)}
 .hdr.on{opacity:1}
 
-/* the little bird (light theme) */
-.sky{z-index:1}
-.bird{position:absolute;left:0;top:0;width:30px;height:18px;opacity:.7;color:#1c1a16}
-.bird svg{width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
 /* "Become one of us" layer text */
 .jp{grid-column:1/-1;text-align:center;font:500 1rem/1.7 Inter,Cairo,sans-serif;color:var(--ink);margin:10px 0 6px}
 body.ar .jp{font-family:Cairo,Inter,sans-serif}
+/* =========================================================
+   v3: one glass for everything, press feel, centered cards, soft backdrop
+   ========================================================= */
+:root{--gblur:blur(40px) saturate(1.4)}
+.stack .card,body.light .stack .card,.pop,body.light .pop,body:not(.light) .pop,.cb,.rbtn{background:var(--gbg);-webkit-backdrop-filter:var(--gblur);backdrop-filter:var(--gblur)}
+.stack .card,body.light .stack .card{border-color:var(--gbd);box-shadow:0 10px 40px rgba(0,0,0,.18)}
+
+/* cards: in the middle of the screen, with room to pull them up under the buttons */
+.stack{gap:18px;margin-block:auto}
+.wrap::after{content:"";position:absolute;left:0;top:140vh;width:1px;height:1px}
+
+/* the questions live inside their cards */
+.card .q{text-shadow:none!important;padding:0;margin:0 0 14px;text-align:center;font:600 1rem/1.4 Inter,Cairo,sans-serif;color:var(--ink)}
+body.ar .card .q{font-family:Cairo,Inter,sans-serif}
+.card .q1{margin:-8px 0 14px;font-size:.88rem;color:var(--ink2)}
+
+/* no blue box / highlight when a button is pressed */
+button{-webkit-tap-highlight-color:transparent;outline:none;-webkit-user-select:none;user-select:none}
+button:focus,button:focus-visible{outline:none}
+
+/* real click: goes down quickly like a finger pressing, comes back up slowly and softly */
+.cb,.rbtn{transition:scale .9s var(--ease)}
+.btn:active,.rbtn:active,.cb:active,.eye:active{scale:.94;transition:scale .12s ease-out}
+.lbtn[data-state=idle]:active{scale:.94;transition:scale .12s ease-out,width .5s cubic-bezier(.65,0,.35,1),border-radius .5s cubic-bezier(.65,0,.35,1)}
+
+/* a soft shade behind the intro so it stands out from the stairs */
+body.light .sky{display:none}
+.intro::before{content:"";position:absolute;left:-12%;right:-12%;top:-70%;bottom:-70%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
+  background:radial-gradient(ellipse at center,rgba(8,11,20,.62) 0%,rgba(8,11,20,.36) 38%,rgba(8,11,20,0) 70%)}
+body.light .intro::before{background:radial-gradient(ellipse at center,rgba(244,241,234,.75) 0%,rgba(244,241,234,.45) 38%,rgba(244,241,234,0) 70%)}
+.intro.lit::before{opacity:1}
 </style>
 </head>
 <body>
@@ -271,10 +288,10 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
 <div class="wrap hid" id="wrap">
     <div class="stack" id="stack">
 
-        <h3 class="q rise" data-t="q1" style="animation-delay:.05s"></h3>
         <!-- card 1: Login (same card, fields and effects as the portal) -->
         <section class="card lcard rise2" id="c0" aria-label="Login" style="animation-delay:.2s">
           <h2 data-t="loginT"></h2>
+          <h3 class="q q1" data-t="q1"></h3>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
             <input type="text" id="lgU" dir="ltr" placeholder=" " autocomplete="username" autocapitalize="off" spellcheck="false">
@@ -296,8 +313,8 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
         </section>
 
         <!-- card 2: not a Thabit yet -->
-        <h3 class="q q2 rise" data-t="q2" style="animation-delay:.55s"></h3>
-        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:.75s">
+        <section class="card ncard rise2" id="c1" aria-label="Join" style="animation-delay:.4s">
+          <h3 class="q" data-t="q2"></h3>
           <div class="nact">
             <button class="btn" id="joinBtn" type="button" data-t="join"></button>
             <button class="btn ghost" id="guestBtn" type="button" data-t="guest"></button>
@@ -423,7 +440,6 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
     body.classList.add('th-fade'); clearTimeout(window.__thFadeT); window.__thFadeT = setTimeout(() => body.classList.remove('th-fade'), 1600);
     body.classList.toggle('light');
     try { localStorage.setItem('thThemeChoice', body.classList.contains('light') ? 'light' : 'dark'); } catch (e) { }
-    if (body.classList.contains('light')) setTimeout(flyBird, 2500);   /* a bird soon after switching to light */
   };
 
   /* ============ leave the page softly ============ */
@@ -435,11 +451,11 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
 
   /* ============ intro: words gather out of tiny dots, then the tagline, then "Ready?" ============ */
   const qs = s => document.querySelector(s);
-  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), stackEl = $('stack'), wrapEl = $('wrap');
+  const helloEl = qs('.hello'), brandEl = qs('.brand'), tagEl = qs('.tag'), ctlEl = qs('.ctl'), readyEl = $('ready'), introEl = qs('.intro'), stackEl = $('stack'), wrapEl = $('wrap');
   let introShown = false;
   const showTag = () => { tagEl.classList.remove('hold'); tagEl.classList.add('rise'); tagEl.style.animationDelay = '0s'; };
   const showReady = () => { introShown = true; readyEl.classList.remove('hold'); readyEl.classList.add('rise2'); readyEl.style.animationDelay = '0s'; ctlEl.classList.add('on'); };
-  function revealAll() { if (introShown) return; [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
+  function revealAll() { if (introShown) return; introEl.classList.add('lit'); [helloEl, brandEl].forEach(e => e.classList.remove('hold')); if (tagEl.classList.contains('hold')) showTag(); showReady(); }
   readyEl.onclick = () => {
     readyEl.style.pointerEvents = 'none';
     const m = $('main');
@@ -455,64 +471,65 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
   wrapEl.addEventListener('scroll', hdrCheck, { passive: true });
   async function particles() {
     const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2), rtl = root.dir === 'rtl';
-    const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true });
     let logo = null; try { logo = new Image(); logo.src = 'assets/thabit-logo.png'; await logo.decode(); } catch (e) { logo = null; }
-    const pts = [];
-    function sample(el, gap, size, delay) {
-      const tn = el.matches('[data-t]') ? el : el.querySelector('[data-t]'), c = getComputedStyle(tn), r = document.createRange(); r.selectNodeContents(tn);
-      const rc = r.getBoundingClientRect(), b = el.getBoundingClientRect();
-      o.clearRect(0, 0, W, H); o.fillStyle = '#000'; o.font = c.fontStyle + ' ' + c.fontWeight + ' ' + c.fontSize + ' ' + c.fontFamily; o.textAlign = 'left'; o.textBaseline = 'alphabetic'; o.direction = rtl ? 'rtl' : 'ltr';
-      try { o.letterSpacing = c.letterSpacing === 'normal' ? '0px' : c.letterSpacing; } catch (e) { }
-      const t = tn.textContent, m = o.measureText(t); o.fillText(t, rc.left, rc.top + (m.fontBoundingBoxAscent || rc.height * .8));
-      const bar = el.querySelector('.bar'), mk = el.querySelector('.mk');
-      if (bar) { const q = bar.getBoundingClientRect(); o.fillRect(q.left, q.top, q.width, q.height); }
-      if (mk && logo) { const q = mk.getBoundingClientRect(); o.drawImage(logo, q.left, q.top, q.width, q.height); }
-      const x0 = Math.max(0, Math.floor(b.left) - 6), y0 = Math.max(0, Math.floor(b.top) - 6), w = Math.min(W - x0, Math.ceil(b.width) + 12), h = Math.min(H - y0, Math.ceil(b.height) + 12);
-      const d = o.getImageData(x0, y0, w, h).data;
-      for (let y = 0; y < h; y += gap) for (let x = 0; x < w; x += gap) if (d[(y * w + x) * 4 + 3] > 140) {
-        const a = Math.random() * 6.283, rad = 50 + Math.random() * 200;
-        pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: delay + Math.random() * .7, du: 1 + Math.random() * .7, s: size });
-      }
+    const ink = getComputedStyle(body).color;
+    /* paints "word | logo" exactly where the page has it (the baseline is measured, not guessed) */
+    function paint(ctx, solid) {
+      const tn = brandEl.querySelector('[data-t]'), c = getComputedStyle(tn), r = document.createRange(); r.selectNodeContents(tn);
+      const rc = r.getBoundingClientRect(), t = tn.textContent;
+      const pr = document.createElement('i'); pr.style.cssText = 'display:inline-block;width:0;height:0'; tn.appendChild(pr);
+      const base = pr.getBoundingClientRect().bottom; pr.remove();
+      ctx.fillStyle = '#000'; ctx.font = c.fontStyle + ' ' + c.fontWeight + ' ' + c.fontSize + ' ' + c.fontFamily; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.direction = rtl ? 'rtl' : 'ltr';
+      try { ctx.letterSpacing = c.letterSpacing === 'normal' ? '0px' : c.letterSpacing; } catch (e) { }
+      ctx.fillText(t, rc.left, base);
+      const bar = brandEl.querySelector('.bar'), mk = brandEl.querySelector('.mk');
+      if (bar) { const q = bar.getBoundingClientRect(); ctx.globalAlpha = solid ? .45 : 1; ctx.fillRect(q.left, q.top, q.width, q.height); ctx.globalAlpha = 1; }
+      if (mk && logo) { const q = mk.getBoundingClientRect(); ctx.drawImage(logo, q.left, q.top, q.width, q.height); }
     }
-    sample(brandEl, 2, 1.9, .2);
-    const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;transition:opacity .7s';
+    /* 1) the dots: where every one of them must land */
+    const off = document.createElement('canvas'); off.width = W; off.height = H; const o = off.getContext('2d', { willReadFrequently: true }); paint(o, false);
+    const b = brandEl.getBoundingClientRect(), gap = 2, size = 1.9, pts = [];
+    const x0 = Math.max(0, Math.floor(b.left) - 6), y0 = Math.max(0, Math.floor(b.top) - 6), w = Math.min(W - x0, Math.ceil(b.width) + 12), h = Math.min(H - y0, Math.ceil(b.height) + 12);
+    const d = o.getImageData(x0, y0, w, h).data;
+    for (let y = 0; y < h; y += gap) for (let x = 0; x < w; x += gap) if (d[(y * w + x) * 4 + 3] > 140) {
+      const a = Math.random() * 6.283, rad = 50 + Math.random() * 200;
+      pts.push({ tx: x0 + x, ty: y0 + y, sx: x0 + x + Math.cos(a) * rad, sy: y0 + y + Math.sin(a) * rad, d: .2 + Math.random() * .7, du: 1 + Math.random() * .7 });
+    }
+    /* 2) the finished word, in the page's own colour, at screen resolution: the dots melt into it */
+    const sol = document.createElement('canvas'); sol.width = W * dpr; sol.height = H * dpr;
+    const s = sol.getContext('2d'); s.scale(dpr, dpr); paint(s, true);
+    s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'source-in'; s.fillStyle = ink; s.fillRect(0, 0, sol.width, sol.height);
+    const cv = document.createElement('canvas'); cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none';
     cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
-    const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = getComputedStyle(body).color;
-    const end = Math.max(...pts.map(p => p.d + p.du)) + .2, t0 = performance.now();
+    const g = cv.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = ink;
+    const gather = Math.max(...pts.map(p => p.d + p.du)) + .15, melt = .9, t0 = performance.now(), sm = v => v * v * (3 - 2 * v);
     await new Promise(res => { (function f(now) {
-      const t = (now - t0) / 1000; g.clearRect(0, 0, W, H);
-      for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4); g.fillRect(p.sx + (p.tx - p.sx) * e, p.sy + (p.ty - p.sy) * e, p.s, p.s); }
-      if (t < end) requestAnimationFrame(f); else res();
+      const t = (now - t0) / 1000, m = Math.min(1, Math.max(0, (t - gather) / melt)), sp = sm(m), grow = size * .8 * sp, da = m < .7 ? 1 : 1 - (m - .7) / .3;
+      g.clearRect(0, 0, W, H);
+      for (const p of pts) { const k = Math.min(1, Math.max(0, (t - p.d) / p.du)); if (k <= 0) continue; const e = 1 - Math.pow(1 - k, 3); g.globalAlpha = Math.min(1, k * 4) * da; g.fillRect(p.sx + (p.tx - p.sx) * e - grow / 2, p.sy + (p.ty - p.sy) * e - grow / 2, size + grow, size + grow); }
+      if (m > 0) { g.globalAlpha = Math.min(1, sp / .7); g.drawImage(sol, 0, 0, W, H); }
+      g.globalAlpha = 1;
+      if (m < 1) requestAnimationFrame(f); else res();
     })(t0); });
-    brandEl.style.transition = 'opacity .7s'; brandEl.classList.remove('hold');
-    cv.style.opacity = 0; await sleep(750); cv.remove();
+    /* the real word takes over at the very same pixels, so nothing seems to change */
+    brandEl.style.transition = 'none'; brandEl.classList.remove('hold');
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    cv.remove();
   }
   (async () => {
     try {
       if (matchMedia('(prefers-reduced-motion:reduce)').matches) return revealAll();
       await Promise.race([window.thLoader ? window.thLoader.ready : 0, sleep(5000)]); await Promise.race([document.fonts.ready, sleep(2500)]); await sleep(300);
-      helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await sleep(700);
+      introEl.classList.add('lit'); helloEl.classList.remove('hold'); helloEl.classList.add('rise'); helloEl.style.animationDelay = '0s'; await sleep(700);
       await particles(); await sleep(250); showTag(); await sleep(1100); showReady();
     } catch (e) { revealAll(); }
   })();
   setTimeout(revealAll, 15000);   /* safety: whatever happens, the page never stays empty */
 
   /* ============ a small shooting star every 10-20 seconds (night theme only) ============ */
-  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, $('main'));
-  /* light theme: a small bird crosses the background instead of a meteor */
-  function flyBird() {
-    if (document.hidden || !body.classList.contains('light') || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-    const W = innerWidth, H = innerHeight, ltr = Math.random() < .5, y0 = H * (.08 + Math.random() * .3), dur = 9000 + Math.random() * 4000, sc = .8 + Math.random() * .5;
-    const b = document.createElement('div'); b.className = 'bird';
-    b.innerHTML = '<svg viewBox="0 0 28 14" aria-hidden="true"><path d="M1 9Q7 1 14 9Q21 1 27 9"><animate attributeName="d" dur=".7s" repeatCount="indefinite" values="M1 9Q7 1 14 9Q21 1 27 9;M1 4Q7 9 14 9Q21 9 27 4;M1 9Q7 1 14 9Q21 1 27 9"/></path></svg>';
-    sky.appendChild(b);
-    const x0 = ltr ? -50 : W + 50, x1 = ltr ? W + 50 : -50, f = ltr ? 1 : -1;
-    const kf = [0, .2, .4, .6, .8, 1].map((p, i) => ({ transform: 'translate(' + (x0 + (x1 - x0) * p) + 'px,' + (y0 + Math.sin(p * 6.283) * 26 - p * 40) + 'px) scale(' + (f * sc) + ',' + sc + ')', opacity: i === 0 || i === 5 ? 0 : .7 }));
-    try { b.animate(kf, { duration: dur, easing: 'linear' }).finished.then(() => b.remove(), () => b.remove()); } catch (e) { b.remove(); }
-  }
+  const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true'); body.insertBefore(sky, qs('.vd'));
   function meteor() {
-    if (body.classList.contains('light')) flyBird();
-    else if (!document.hidden && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
+    if (!document.hidden && !body.classList.contains('light') && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
       const m = document.createElement('i'), W = innerWidth, H = innerHeight, a = 24 + Math.random() * 14, r = a * Math.PI / 180, d = 280 + Math.random() * 200;
       m.className = 'meteor'; m.style.left = (W * (.1 + Math.random() * .7)) + 'px'; m.style.top = (H * (.04 + Math.random() * .3)) + 'px'; sky.appendChild(m);
       const tr = p => 'translate(' + (Math.cos(r) * d * p) + 'px,' + (Math.sin(r) * d * p) + 'px) rotate(' + a + 'deg)';
@@ -594,7 +611,8 @@ body.ar .jp{font-family:Cairo,Inter,sans-serif}
   $('joinBtn').onclick = openJoin;
   $('soonBack').onclick = () => ov.classList.remove('on');
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.classList.remove('on'); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') ov.classList.remove('on'); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { ov.classList.remove('on'); $('rov').classList.remove('on'); } });
+  $('rov').addEventListener('pointerdown', e => { if (e.target === $('rov')) $('rov').classList.remove('on'); });   /* tap anywhere outside: it just closes */
   $('guestBtn').onclick = () => { const d = deviceProfile(); d ? askWho(d) : openGuest(); };
 
   /* ============ LOGIN (same behaviour as the portal card) ============ */
