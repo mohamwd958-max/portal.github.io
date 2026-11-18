@@ -998,6 +998,7 @@ function THApp(cfg) {
     R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
     R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.name; });
     if (cur) $('ltitle').textContent = t['i_' + cur];
+    try { crumb(); } catch (e) { }
     if (cur === 'library') fillLayer('library');
     if (cfg.onLang) cfg.onLang(L); hb();
   }
@@ -1045,7 +1046,7 @@ function THApp(cfg) {
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
   function openLayer(k, nopush) {
-    cur = k; $('ltitle').textContent = STR[L]['i_' + k]; fillLayer(k); $('lbody').scrollTop = 0;
+    cur = k; $('ltitle').textContent = STR[L]['i_' + k]; fillLayer(k); crumb(); $('lbody').scrollTop = 0;
     R.querySelectorAll('.sdi').forEach(b => b.classList.toggle('on', b.dataset.k === k));
     setSide(false); W.classList.add('lay'); $('layer').setAttribute('aria-hidden', 'false');
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
@@ -1057,9 +1058,9 @@ function THApp(cfg) {
   const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
   const DT = {
     en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
-      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.' },
+      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.' },
     ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
-      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.' }
+      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.' }
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
@@ -1100,7 +1101,7 @@ function THApp(cfg) {
     while (pick.length < DICT.count && all.length) pick.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
     pick.forEach((x, n) => { x.p = n === pick.length - 1 ? '.' : ((n === 2 || n === 5) ? ',' : ''); });
     prep(pick);
-    dictSave({ tokens: pick, mode: 'passage', i: 0, stage: 'work', more: !!more, text: '', done: false });
+    dictSave({ n: passNext(), tokens: pick, mode: 'passage', i: 0, stage: 'work', more: !!more, text: '', done: false });
   }
   async function renderDict(b) {
     const T = DT[L]; let t = dictLoad();
@@ -1114,7 +1115,7 @@ function THApp(cfg) {
       const c = card('<div class="dmsg big">' + T.photoT + '</div><label class="btn dup">' + T.photoB + '<input type="file" accept="image/*" hidden></label>');
       c.querySelector('input').onchange = e => {
         const f = e.target.files && e.target.files[0]; if (!f) return;
-        t.done = true; t.stage = 'thanks'; dictSave(t); drawDict(b, t);   /* thanks at once, the saving happens quietly */
+        t.done = true; t.stage = 'thanks'; passSave(t, true); dictSave(t); drawDict(b, t);   /* thanks at once, the saving happens quietly */
         savePhoto(f).then(ok => { if (!ok) toast(T.bad); });
       }; return;
     }
@@ -1125,18 +1126,28 @@ function THApp(cfg) {
     if (t.stage === 'nomind') { card('<div class="dmsg big">' + T.nomind + '</div>'); return; }
     const m = t.mode, tk = t.tokens;
     let stage;
-    if (m === 'passage') stage = '<div class="dpas">' + tk.map((x, n) => '<span class="dw" data-n="' + n + '">' + esc(x.w) + '</span>' + (x.p ? '<span class="dpn">' + x.p + '</span>' : '')).join(' ') + '</div>';
-    else { const x = tk[t.i]; stage = '<div class="dsw"><button class="dar" id="dPrev" type="button"' + (t.i ? '' : ' disabled') + '>&#8249;</button><div class="dwb"><span class="dw big" data-n="' + t.i + '">' + esc(x.w) + '</span>' + (x.p ? '<span class="dpn big">' + x.p + '</span>' : '') + '</div><button class="dar" id="dNext" type="button"' + (t.i < tk.length - 1 ? '' : ' disabled') + '>&#8250;</button></div><div class="dcnt">' + (t.i + 1) + ' / ' + tk.length + '</div>'; }
-    const c = card('<div class="dtabs"><button type="button" data-m="passage" class="' + (m === 'passage' ? 'on' : '') + '">' + T.passage + '</button><button type="button" data-m="word" class="' + (m === 'word' ? 'on' : '') + '">' + T.word + '</button></div><div class="dhint">' + T.hint + '</div>' + stage +
-      '<textarea class="dta" rows="3" placeholder="' + T.ph + '" spellcheck="false" autocomplete="off"></textarea><div class="dact">' + (t.more ? '<button type="button" class="dmis">' + T.mistake + '</button>' : '') + '<button class="btn dfin" type="button">' + T.done + '</button></div>');
-    const ta = c.querySelector('.dta'); ta.value = t.text || ''; ta.oninput = () => { t.text = ta.value; dictSave(t); };
+    if (m === 'passage') stage = '<div class="dpas">' + tk.map((x, n) => '<span class="dw" data-n="' + n + '"><i>' + esc(x.w) + '</i></span>' + (x.p ? '<span class="dpn">' + x.p + '</span>' : '')).join(' ') + '</div>';
+    else { const x = tk[t.i]; stage = '<div class="dsw"><button class="dar" id="dPrev" type="button"' + (t.i ? '' : ' disabled') + '>&#8249;</button><div class="dwb"><span class="dw big" data-n="' + t.i + '"><i>' + esc(x.w) + '</i></span>' + (x.p ? '<span class="dpn big">' + x.p + '</span>' : '') + '</div><button class="dar" id="dNext" type="button"' + (t.i < tk.length - 1 ? '' : ' disabled') + '>&#8250;</button></div><div class="dcnt">' + (t.i + 1) + ' / ' + tk.length + '</div>'; }
+    const c = card('<div class="dnum">' + T.passage + (t.n ? ' #' + t.n : '') + '</div><div class="dtabs"><button type="button" data-m="passage" class="' + (m === 'passage' ? 'on' : '') + '">' + T.passage + '</button><button type="button" data-m="word" class="' + (m === 'word' ? 'on' : '') + '">' + T.word + '</button></div><div class="dhint">' + T.hint + '</div><div class="dmid">' + stage + '</div>' +
+      '<textarea class="dta" rows="3" placeholder="' + T.ph + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" enterkeyhint="done"></textarea><div class="dact">' + (t.more ? '<button type="button" class="dmis">' + T.mistake + '</button>' : '') + '<button class="btn dfin" type="button">' + T.done + '</button></div>');
+    const ta = c.querySelector('.dta'); c.classList.add('ddict'); ta.value = t.text || ''; let pv0 = ta.value;
+    /* typing only: no paste, no drop, no suggestion/auto-correct inserts (more than one character at once is undone) */
+    const BLK = /^(insertFromPaste|insertFromDrop|insertFromYank|insertFromPasteAsQuotation|insertReplacementText|insertTranspose|historyUndo|historyRedo)$/;
+    ta.addEventListener('beforeinput', e => { const k = e.inputType || ''; if (BLK.test(k) || (k === 'insertText' && e.data && e.data.length > 1)) e.preventDefault(); });
+    ['paste', 'drop', 'dragover'].forEach(ev => ta.addEventListener(ev, e => e.preventDefault()));
+    ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && /^[vyz]$/i.test(e.key)) e.preventDefault(); });
+    ta.oninput = () => { if (ta.value.length - pv0.length > 1) ta.value = pv0; pv0 = ta.value; t.text = ta.value; dictSave(t); };
     c.querySelectorAll('.dtabs button').forEach(bt => bt.onclick = () => { t.mode = bt.dataset.m; dictSave(t); drawDict(b, t); });
     const go = d => { const n = t.i + d; if (n < 0 || n >= tk.length) return; t.i = n; dictSave(t); drawDict(b, t); say(tk[n]); };
     c.addEventListener('click', e => { const w = e.target.closest('.dw'); if (w && !c._drag) say(tk[+w.dataset.n]); });
     const pv = c.querySelector('#dPrev'), nx = c.querySelector('#dNext'); if (pv) pv.onclick = () => go(-1); if (nx) nx.onclick = () => go(1);
     const wb = c.querySelector('.dwb');
     if (wb) { let x0 = null; wb.addEventListener('pointerdown', e => { x0 = e.clientX; c._drag = false; }); wb.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) { c._drag = true; go(dx < 0 ? 1 : -1); } }); wb.addEventListener('pointercancel', () => { x0 = null; }); }   /* swipe right-to-left = next */
-    c.querySelector('.dfin').onclick = () => { t.stage = 'photo'; dictSave(t); drawDict(b, t); };
+    c.querySelector('.dfin').onclick = () => {
+      if ((t.text || '').trim()) { t.done = true; t.stage = 'thanks'; passSave(t, false); }   /* wrote it: no photo needed */
+      else t.stage = 'photo';                                                                   /* wrote nothing: a photo is a must */
+      dictSave(t); drawDict(b, t);
+    };
     const ms = c.querySelector('.dmis'); if (ms) ms.onclick = () => { dictSave(null); drawDict(b, { stage: 'nomind' }); };
   }
   function savePhoto(file) {
@@ -1152,10 +1163,93 @@ function THApp(cfg) {
     });
   }
   function toast(m) { const d = document.createElement('div'); d.className = 'dtoast'; d.textContent = m; W.appendChild(d); setTimeout(() => d.remove(), 3500); }
+  /* ---- numbered passages (kept in the library) ---- */
+  const PASS_KEY = 'thDictPass';
+  const passList = () => { try { return JSON.parse(localStorage.getItem(PASS_KEY) || '[]') || []; } catch (e) { return []; } };
+  const passNext = () => passList().reduce((m, p) => Math.max(m, p.n || 0), 0) + 1;
+  function passSave(t, photo) {
+    if (!t || !t.tokens) return;
+    const a = passList().filter(p => p.n !== t.n);
+    a.push({ n: t.n || (a.length + 1), text: t.tokens.map(x => x.w + (x.p || '')).join(' '), answer: t.text || '', photo: !!photo, at: Date.now() });
+    a.sort((x, y) => x.n - y.n);
+    try { localStorage.setItem(PASS_KEY, JSON.stringify(a)); } catch (e) { }
+  }
+  /* ---- library: 4 side-by-side pages (swipe left/right); the section names live in the top row next to the menu button ---- */
+  const LIB = ['sPhotos', 'sAudio', 'sPass', 'sLinks'];
+  let libI = 0, libCols = 3;
+  const libPages = () => R.querySelector('.lpages');
+  function libGo(i) { const p = libPages(); if (p) p.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * i * p.clientWidth, behavior: 'smooth' }); }
   function renderLib(b) {
     const T = DT[L]; let a = []; try { a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); } catch (e) { }
-    b.innerHTML = '<div class="pcard dpc dlib">' + (a.length ? '<div class="dgrid">' + a.map(p => '<img alt="" src="' + p.d + '">').join('') + '</div><div class="dhint">' + T.libNote + '</div>' : '<div class="dmsg">' + T.libEmpty + '</div>') + '</div>';
+    const ps = passList(), empty = m => '<div class="dmsg">' + m + '</div>';
+    b.innerHTML = '<div class="pcard dpc dlib"><div class="lpages">' +
+      '<section class="lpg lph">' + (a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty)) + '</section>' +
+      '<section class="lpg">' + empty(T.audEmpty) + '</section>' +
+      '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + T.passage + ' #' + p.n + '</b><p>' + esc(p.text) + '</p>' + (p.answer ? '<p class="la">' + esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
+      '<section class="lpg">' + empty(T.linkEmpty) + '</section></div></div>';
+    const pg = libPages();
+    pg.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * libI * pg.clientWidth, behavior: 'instant' });
+    pg.addEventListener('scroll', () => { const i = Math.round(Math.abs(pg.scrollLeft) / (pg.clientWidth || 1)); if (i !== libI && i >= 0 && i < LIB.length) { libI = i; crumb(); } }, { passive: true });
+    /* photos: spread two fingers = bigger pictures (fewer per row), pinch = smaller pictures, more side by side (Ctrl + wheel on a computer) */
+    const ph = b.querySelector('.lph'), gr = b.querySelector('.dgrid');
+    if (gr) {
+      const pts = new Map(); let d0 = 0, c0 = libCols;
+      const dist = () => { const v = [...pts.values()]; return Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1; };
+      const setC = n => { n = Math.max(1, Math.min(7, n)); if (n === libCols) return; libCols = n; gr.style.setProperty('--cols', n); };
+      ph.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { d0 = dist(); c0 = libCols; } });
+      ph.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) setC(Math.round(c0 / (dist() / d0))); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => ph.addEventListener(ev, e => pts.delete(e.pointerId)));
+      ph.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); setC(libCols + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
+    }
   }
+  /* ---- the top row beside the menu button: the open page (and, inside the library, its sections) ---- */
+  const cr = document.createElement('div'); cr.id = 'crumb'; W.appendChild(cr);
+  cr.addEventListener('click', e => { const p = e.target.closest('.cp'); if (p) { libI = +p.dataset.i; crumb(); libGo(libI); } });
+  function crumb() {
+    const T = DT[L]; let h = '<span class="cm">' + T.menu + '</span><div class="cw"><div class="ci">';
+    if (cur) h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
+    if (cur === 'library') h += '<span class="sl"></span>' + LIB.map((k, i) => '<button type="button" class="cp' + (i === libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
+    cr.innerHTML = h + '</div></div>';
+    const on = cr.querySelector('.cp.on'); if (on) { try { on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (e) { } }
+  }
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = `
+      .dpc.ddict{justify-content:space-between!important;gap:10px;min-height:100%}
+      .ddict .dmid{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;overflow:auto;scrollbar-width:none}
+      .dnum{text-align:center;font:800 13px Cairo,Inter,sans-serif;color:#34d399}
+      .dpas{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 10px;text-align:center!important;font:700 32px/1.4 Inter,sans-serif;padding:6px 0}
+      .dw{filter:none!important;overflow:hidden;line-height:1.35;padding:4px 14px;border:1.5px solid var(--ink2);border-radius:12px;background:var(--gfield)}
+      .dw i{display:block;font-style:normal;filter:blur(9px)}
+      .dw.big{font:800 58px Inter,sans-serif;padding:10px 28px;border-radius:20px}.dw.big i{filter:blur(15px)}
+      .dpn{margin-inline-start:-6px}.dpn.big{font-size:58px}
+      .dta{font-size:16px;min-height:100px}
+      .dpc.dlib{padding:0!important;overflow:hidden;align-items:stretch}
+      .lpages{display:flex;width:100%;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}.lpages::-webkit-scrollbar{display:none}
+      .lpg{flex:none;width:100%;height:100%;box-sizing:border-box;scroll-snap-align:center;scroll-snap-stop:always;overflow-y:auto;scrollbar-width:none;padding:14px;display:flex;flex-direction:column;touch-action:pan-x pan-y}.lpg::-webkit-scrollbar{display:none}
+      .lpg>*{margin-block:auto}
+      .dgrid{grid-template-columns:repeat(var(--cols,3),1fr)!important;gap:6px;width:100%;max-width:900px;margin-inline:auto;justify-items:center}
+      .dgrid img{aspect-ratio:1;object-fit:cover;border-radius:10px;-webkit-user-select:none;user-select:none}
+      .lcol{width:100%;max-width:560px;margin-inline:auto;display:flex;flex-direction:column;gap:10px}
+      .lpc{border:1px solid var(--gbd);border-radius:16px;padding:12px 14px;background:var(--gfield);text-align:center;color:var(--ink)}
+      .lpc b{display:block;color:#34d399;font:800 13px Cairo,Inter,sans-serif;margin-bottom:6px}
+      .lpc p{direction:ltr;font:500 14px/1.6 Inter,sans-serif;margin:0}.lpc .la{margin-top:6px;color:var(--ink2)}
+      #crumb{position:fixed;z-index:27;left:0;right:0;top:calc(var(--hh) + env(safe-area-inset-top,0px) + 8px);height:36px;pointer-events:none;color:var(--ink)}
+      #crumb>*{pointer-events:auto}
+      #crumb .cm{position:absolute;left:56px;top:0;bottom:0;display:flex;align-items:center;font:600 11px Cairo,Inter,sans-serif;color:var(--ink2);white-space:nowrap}
+      #crumb .cw{position:absolute;left:112px;right:14px;top:0;bottom:0;display:flex;overflow-x:auto;scrollbar-width:none}#crumb .cw::-webkit-scrollbar{display:none}
+      #crumb .ci{display:flex;align-items:center;gap:6px;margin:0 auto;white-space:nowrap}
+      #crumb .cn{font:800 15px Cairo,Inter,sans-serif;padding:0 4px}
+      #crumb .sl{width:1px;height:18px;background:var(--ink2);opacity:.5;margin:0 4px}
+      #crumb .cp{border:0;background:none;color:var(--ink2);font:600 12px Cairo,Inter,sans-serif;opacity:.6;padding:4px 7px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:font-size .35s,color .35s,opacity .35s}
+      #crumb .cp.on{font-size:17px;font-weight:800;color:#34d399;opacity:1}
+      @media(min-width:876px){#crumb{left:252px;right:170px;top:calc(env(safe-area-inset-top,0px) + 12px)}#crumb .cm{display:none}#crumb .cw{left:0;right:0}}
+      #W.sbo #side{-webkit-backdrop-filter:blur(46px) saturate(1.7)!important;backdrop-filter:blur(46px) saturate(1.7)!important}
+      #W:not(.light).sbo #side{background:rgba(14,16,24,.88)!important}
+      #W.light.sbo #side{background:rgba(250,248,243,.92)!important}
+      #W.sbo #sbs{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}`;
+    R.appendChild(st);
+  })();
   (function () {
     const st = document.createElement('style');
     st.textContent = '#pg .pcard,#lbody>.dpc{}' +
