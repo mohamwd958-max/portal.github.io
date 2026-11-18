@@ -4542,7 +4542,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="mgr-hb mgr-lib" data-lib aria-label="${LIBL()}" title="${LIBL()}">${LIBSVG}</button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
@@ -4566,6 +4566,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
+    q('[data-lib]').onclick = () => { if (window.openLibrary) window.openLibrary(); };
     el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
@@ -5186,7 +5187,15 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
         try { itToast(tr('Saved ✓', 'تم الحفظ ✓', 'اتحفظ ✓')); } catch (e) { }
       },
       items: () => [
-        { icon: '<i class="fa-solid fa-pen" style="color:#38bdf8"></i>', label: tr('Space', 'المساحة', 'المساحة'), on: () => { if (window.thSpace) thSpace.open(); } }
+        { icon: '<i class="fa-solid fa-circle-half-stroke"></i>', label: tr('Theme', 'الوضع', 'الوضع'), children: () => [
+          opt('theme', 'dark', tr('Dark', 'داكن', 'دارك'), '<i class="fa-solid fa-moon"></i>'),
+          opt('theme', 'light', tr('Light', 'فاتح', 'وايت'), '<i class="fa-solid fa-sun"></i>')] },
+        { icon: '<i class="fa-solid fa-globe"></i>', label: tr('Language', 'اللغة', 'اللغة'), children: () => ['en', 'ar', 'eg'].map(x => opt('lang', x, nm[x])) },
+        { icon: '<i class="fa-solid fa-text-height"></i>', label: tr('Font size', 'حجم الخط', 'حجم الخط'), children: () => [
+          opt('size', 'small', tr('Small', 'صغير', 'صغير')), opt('size', 'normal', tr('Normal', 'عادي', 'عادي')), opt('size', 'large', tr('Large', 'كبير', 'كبير'))], preview },
+        { icon: '<i class="fa-regular fa-user"></i>', label: tr('Account', 'الحساب', 'الحساب'), children: () => [
+          { icon: '<i class="fa-regular fa-user"></i>', label: tr('Profile', 'ملفي', 'ملفي'), keep: 1, on: () => Panels.open('profile') },
+          { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: tr('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }] }
       ]
     });
   };
@@ -5710,7 +5719,6 @@ body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
   const LIBSVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
   setInterval(() => {
     const bar = document.getElementById('thFpBar'); if (!bar) return;
-    { const o = bar.querySelector('[data-lib]'); if (o) o.remove(); return; }   /* Library button removed from the Messenger */
     let b = bar.querySelector('[data-lib]');
     if (!b) {
       b = document.createElement('button'); b.type = 'button'; b.dataset.lib = '1'; b.innerHTML = LIBSVG; b.style.display = 'none';
@@ -5988,13 +5996,13 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
   const lib = document.createElement('button'); lib.type = 'button'; lib.id = 'thLibCell';
   lib.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg><span></span>';
   lib.onclick = () => { if (window.openLibrary) window.openLibrary(); };
-  document.body.appendChild(back);   /* the Library cell is no longer added */
+  document.body.appendChild(back); document.body.appendChild(lib);
   setInterval(() => {
     const b = document.body, ph = PH() && b.classList.contains('thfp-open');
     const mgr = !!(window.thMessenger && thMessenger.visible && thMessenger.visible());
     const libOpen = !!document.querySelector('#thLib.open');
     b.classList.toggle('thb-back', ph && !mgr);
-    b.classList.toggle('thb-lib', false);
+    b.classList.toggle('thb-lib', ph && mgr && !libOpen);
     const sp = lib.querySelector('span'), t = tr('Library', 'المكتبة', 'المكتبة'); if (sp.textContent !== t) sp.textContent = t;
   }, 200);
 })();
@@ -7505,9 +7513,64 @@ body.light-theme #thNews h3{color:#b45309}
   const wait = setInterval(() => { if (document.getElementById('thS2') && document.querySelector('#lists .dcard')) { clearInterval(wait); setTimeout(() => window.thNewsShow(false), 1200); } }, 700);
 })();
 
-/* Space now lives inside the More menu (it is the only item there); its button is gone from the bottom bar. Delete this block to bring it back. */
+/* ==========================================================
+   Portal split (END of dashboard.js). Delete this block to go back.
+   - Messenger, Space and More are no longer in the dashboard bar: they live in the portal (index.html) side bar.
+     Left here: Home, Notifications (Feed), Time (calendar).
+   - The Messenger engine above still does the work, but it is now opened from the portal button:
+     the portal keeps this page in a hidden transparent frame (address ends with #thmsg) and only the chat pop-up is shown over it.
+   - The unread number is sent to the portal (type "thabit-messenger-badge").
+   ========================================================== */
 (function () {
-  const st = document.createElement('style'); st.id = 'thSpaceInMore';
-  st.textContent = 'html body #mobileFloatingBar #spaceBtn,#spaceBtn{display:none!important}';
+  if (window.__thMoved) return; window.__thMoved = 1;
+  const st = document.createElement('style'); st.id = 'thMovedCss';
+  st.textContent = '#mgrBtn,#spaceBtn,#barEdit{display:none!important}';
   document.head.appendChild(st);
+  const hideBtns = () => { let ch = false; ['mgrBtn', 'spaceBtn', 'barEdit'].forEach(id => { const b = document.getElementById(id); if (b && !b.hidden) { b.hidden = true; ch = true; } }); if (ch) { try { layoutBar(); } catch (e) { } } };
+  hideBtns(); setInterval(hideBtns, 600);
+
+  const inFrame = window.parent !== window;
+  const post = m => { try { window.parent.postMessage(m, '*'); } catch (e) { } };
+
+  /* unread number -> the portal button (same rule as the old bar button: how many senders have something unread) */
+  let lastN = -1;
+  setInterval(() => {
+    try {
+      if (!inFrame || !window.thMessenger) return;
+      const n = new Set(thMessenger.msgs().filter(x => x.sender === 'trainer' && !x.read_at).map(x => x.sender_id || 'trainer')).size;
+      if (n !== lastN) { lastN = n; post({ type: 'thabit-messenger-badge', count: n }); }
+    } catch (e) { }
+  }, 1000);
+
+  /* ---- Messenger host mode: only the chat pop-up shows; the rest of the page is invisible and untouchable ---- */
+  if (!(inFrame && /thmsg/.test(location.hash))) return;
+  const HCSS = 'html,body{background:transparent!important;overflow:hidden!important}body>*:not(.mgr-veil):not(.mgr-pop){visibility:hidden!important;pointer-events:none!important}';
+  const hs = document.createElement('style'); hs.id = 'thHostCss'; document.head.appendChild(hs);
+  const PANELS = '#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thLib.open';
+  let full = false, was = false;
+  const mask = on => { hs.textContent = on ? HCSS : ''; };
+  mask(true);
+  const reveal = () => { if (full) return; full = true; mask(false); post({ type: 'thabit-msgr-full' }); };   /* Requests / Assistant / Library opened from the chat: they need the real page */
+  const reset = () => {
+    full = false; mask(true);
+    try { if (window.thMessenger && thMessenger.state().open) thMessenger.hide(); } catch (e) { }
+    try { if (document.querySelector('#rqm.open,#rqn.open,#rqo.open') && typeof closeRq === 'function') closeRq(); } catch (e) { }
+    try { if (document.querySelector('#asm:not([hidden])') && window.Panels) Panels.min(); } catch (e) { }
+    try { if (document.querySelector('#thLib.open') && window.closeLibrary) closeLibrary(); } catch (e) { }
+  };
+  window.addEventListener('message', e => {
+    const d = e.data; if (!d || d.type !== 'thabit-msgr') return;
+    if (d.op === 'open') { reset(); try { thMessenger.open(); } catch (x) { } }
+    else if (d.op === 'close') reset();
+  });
+  /* tap outside the chat = close it */
+  document.addEventListener('pointerdown', e => { if (full || !window.thMessenger) return; if (thMessenger.state().open && !e.target.closest('.mgr-pop')) { thMessenger.hide(); } }, true);
+  setInterval(() => {
+    if (!window.thMessenger) return;
+    let open = false, vis = false; try { open = thMessenger.state().open; vis = thMessenger.visible(); } catch (e) { }
+    if (open && !vis) reveal();
+    if (was && !open) setTimeout(() => { if (document.querySelector(PANELS)) reveal(); else if (!full) post({ type: 'thabit-msgr-closed' }); }, 450);
+    was = open;
+  }, 200);
+  const rd = setInterval(() => { if (window.thMessenger) { clearInterval(rd); post({ type: 'thabit-msgr-ready' }); } }, 300);
 })();
