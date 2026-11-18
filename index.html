@@ -971,14 +971,14 @@ function THApp(cfg) {
 
   /* ---------- sidebar ---------- */
   const IC = {
-    messenger: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h7M8.5 14.5h4"/>',
+    messenger: '<path d="M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z"/><path d="M7.6 13.8 17.4 7"/>',
     home: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5a.5.5 0 0 0 .5.5h4v-5.5h4V20h4a.5.5 0 0 0 .5-.5V10"/>',
     dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
     train: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
     translate: '<circle cx="10" cy="14" r="8"/><ellipse cx="10" cy="14" rx="3.3" ry="8"/><path d="M2 14h16M3.2 9.5h13.6M3.2 18.5h13.6"/><path d="M19 2.5a3 3 0 0 1 3 3c0 2.2-3 5-3 5s-3-2.8-3-5a3 3 0 0 1 3-3z"/><circle cx="19" cy="5.5" r=".9"/>',
     dict: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 6.5h4M10 10h4M10 13.5h4"/>',
     mirror: '<rect x="5.5" y="2.5" width="13" height="16" rx="6.5"/><path d="M9.5 7c.8-.8 1.7-1.2 2.7-1.2M12 18.5V21M8.5 21.5h7"/>',
-    space: '<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/><circle cx="12" cy="12" r="2.5"/>',
+    space: '<path d="M4 20v-3.8L16.2 4a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L7.8 20z"/><path d="M13.6 6.7l3.7 3.7"/>',
     voice: '<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
     digital: '<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
     consult: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
@@ -992,7 +992,7 @@ function THApp(cfg) {
   const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
   const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + msgBtn + LINE +
+  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + msgBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1010,7 +1010,7 @@ function THApp(cfg) {
     R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title]; e.setAttribute('aria-label', t[e.dataset.title]); });
     if (cur) $('ltitle').textContent = t['i_' + cur];
     try { crumb(); } catch (e) { }
-    if (cur === 'library' || cur === 'home') fillLayer(cur);
+    if (cur === 'library' || cur === 'home' || cur === 'space') fillLayer(cur);
     if (cfg.onLang) cfg.onLang(L); hb();
   }
   R.querySelectorAll('.js-lg').forEach(b => b.onclick = () => { L = L === 'ar' ? 'en' : 'ar'; try { localStorage.setItem(KEY_L, L); } catch (e) { } apply(); });
@@ -1072,6 +1072,7 @@ function THApp(cfg) {
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
     else if (k === 'library') renderLib(b);
+    else if (k === 'space') renderSpace(b);
     else if (k === 'store') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L].storeMsg; }
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
@@ -1082,7 +1083,62 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
-  window.addEventListener('message', e => { const d = e.data; if (d && d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } });
+  /* ---------- Messenger: its button lives here now. The chat engine runs in a hidden, transparent copy of the dashboard page (#thmsg) and only the chat pop-up is shown over the portal ---------- */
+  const MG = { fr: null, x: null, ready: false, want: false, t: 0 };
+  function mgEnsure() {
+    if (MG.fr || !cfg.dashRoute) return;
+    const f = document.createElement('iframe'); f.title = 'Messenger'; f.setAttribute('allowtransparency', 'true');
+    f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:transparent;color-scheme:normal;visibility:hidden;pointer-events:none;z-index:2147483200';
+    f.src = cfg.dashRoute() + '#thmsg'; document.body.appendChild(f); MG.fr = f;
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Close');
+    x.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));inset-inline-end:12px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font:400 24px/38px Inter,sans-serif;text-align:center;cursor:pointer;z-index:2147483300;display:none';
+    x.onclick = () => { mgSend({ type: 'thabit-msgr', op: 'close' }); mgHide(); };
+    document.body.appendChild(x); MG.x = x;
+  }
+  const mgSend = m => { try { MG.fr.contentWindow.postMessage(m, '*'); } catch (e) { } };
+  function mgShow(full) { if (!MG.fr) return; MG.fr.style.visibility = 'visible'; MG.fr.style.pointerEvents = 'auto'; MG.x.style.display = full ? 'block' : 'none'; }
+  function mgHide() { MG.want = false; if (!MG.fr) return; MG.fr.style.visibility = 'hidden'; MG.fr.style.pointerEvents = 'none'; MG.x.style.display = 'none'; }
+  function mgOpen() {
+    mgEnsure(); if (!MG.fr) return; MG.want = true; clearTimeout(MG.t); MG.t = setTimeout(() => { if (!MG.ready) MG.want = false; }, 10000);
+    if (MG.ready) { mgSend({ type: 'thabit-msgr', op: 'open' }); mgShow(false); }
+  }
+  window.addEventListener('message', e => {
+    const d = e.data; if (!d) return;
+    if (d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } return; }
+    if (!MG.fr || e.source !== MG.fr.contentWindow) return;
+    if (d.type === 'thabit-msgr-ready') { MG.ready = true; if (MG.want) { mgSend({ type: 'thabit-msgr', op: 'open' }); mgShow(false); } }
+    else if (d.type === 'thabit-msgr-closed') mgHide();
+    else if (d.type === 'thabit-msgr-full') mgShow(true);
+  });
+  setTimeout(mgEnsure, 2500);   /* started early so the unread number is right before the button is tapped */
+
+  /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
+  const SPACE_SOON = true;   /* true = the "under development" page; false = the real board (board.html?student=1) */
+  const SPT = { en: { d: 'On this page you can pick up a pen and start drawing your own free space however you like.', s: 'This page is still being updated and is under development. It will be available very soon.' }, ar: { d: 'في هذه الصفحة تستطيع أن تلتقط قلمًا وتبدأ برسم مساحتك الحرة كيفما شئت.', s: 'لا زالت هذه الصفحة تحت التحديث أو قيد التطوير، وستكون متاحة في أقرب وقت.' } };
+  function gearD(cx, cy, R, r, n) { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; }
+  const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
+  function renderSpace(b) {
+    if (!SPACE_SOON) { b.innerHTML = ''; b.classList.add('full'); const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Space'; f.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen'); f.src = 'board.html?student=1'; b.appendChild(f); return; }
+    if (!R.getElementById('thSpCss')) { const st = document.createElement('style'); st.id = 'thSpCss'; st.textContent = `
+      .tsoon{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 26px;text-align:center}
+      .tsoon svg{width:min(250px,70vw);height:auto;overflow:visible;flex:none}
+      .tsoon .gl{fill:url(#tsGlow)}.tsoon .g1{fill:none;stroke:#d97706;stroke-width:3.2;stroke-linejoin:round}.tsoon .g1r{fill:none;stroke:#d97706;stroke-width:3}.tsoon .g1c{fill:#d97706}
+      .tsoon .g2{fill:none;stroke:var(--ink2);stroke-width:2.2;stroke-linejoin:round}.tsoon .orb{fill:none;stroke:#fbbf24;stroke-width:1.4;stroke-dasharray:1 6;stroke-linecap:round;opacity:.4}
+      .tsoon .sp1{fill:var(--ink2)}.tsoon .sp2{fill:#fbbf24}.tsoon .dt{fill:#fbbf24;opacity:.7}
+      #W:not(.light) .tsoon .g1,#W:not(.light) .tsoon .g1r{stroke:#fbbf24;filter:drop-shadow(0 0 6px rgba(251,191,36,.7))}#W:not(.light) .tsoon .g1c{fill:#fbbf24}
+      .tsoon .td{max-width:340px;font:600 .98rem/1.7 Cairo,Inter,sans-serif;color:var(--ink)}
+      .tsoon .ts{max-width:340px;padding:8px 16px;border-radius:16px;font:700 .82rem/1.6 Cairo,Inter,sans-serif;color:#b45309;background:rgba(245,158,11,.12);border:1px solid rgba(180,83,9,.3)}
+      #W:not(.light) .tsoon .ts{color:#fbbf24;background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.3)}`; R.appendChild(st); }
+    const T = SPT[L === 'ar' ? 'ar' : 'en'];
+    b.innerHTML = '<div class="tsoon" dir="' + (L === 'ar' ? 'rtl' : 'ltr') + '"><svg viewBox="0 0 240 190" aria-hidden="true"><defs><radialGradient id="tsGlow"><stop offset="0" stop-color="#fbbf24" stop-opacity=".38"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>'
+      + '<circle class="gl" cx="100" cy="108" r="92"/><circle class="orb" cx="100" cy="108" r="76"/>'
+      + '<path class="g1" d="' + gearD(100, 108, 50, 41, 12) + '"/><circle class="g1r" cx="100" cy="108" r="20"/><circle class="g1c" cx="100" cy="108" r="6.5"/>'
+      + '<path class="g2" d="' + gearD(168, 58, 28, 23, 10) + '"/><circle class="g2" cx="168" cy="58" r="8"/>'
+      + '<path class="sp1" d="' + spark(34, 70, 7) + '"/><path class="sp2" d="' + spark(216, 128, 10) + '"/>'
+      + '<circle class="dt" cx="58" cy="34" r="1.6"/><circle class="dt" cx="196" cy="22" r="1.4"/><circle class="dt" cx="22" cy="140" r="1.4"/><circle class="dt" cx="150" cy="172" r="1.6"/></svg>'
+      + '<p class="td"></p><p class="ts"></p></div>';
+    b.querySelector('.td').textContent = T.d; b.querySelector('.ts').textContent = T.s;
+  }
   function closeLayer() { if (cur !== 'home') openLayer('home', true); }   /* there is no main page any more: "back" lands on the dashboard */
   /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
   const HQ = window.THHomeQuestions || [
@@ -1403,8 +1459,9 @@ function THApp(cfg) {
       .lpc audio{width:100%;height:36px;margin-top:8px}
       .sdl{margin:10px 16px}
       .sdl.sp{margin:20px 16px}
+      .sdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 12px 6px}.sdr .sdi{margin:0!important;flex:none}
       .sps{height:14px}
-      .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:3px;inset-inline-end:3px;min-width:15px;height:15px;padding:0 4px;border-radius:99px;background:#ef4444;color:#fff;font:800 9.5px/15px Inter,sans-serif;text-align:center;display:none}.sdi .bdg.on{display:block}
+      .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
       .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
       .mrwrap{position:relative;height:100%;min-height:100%}
       .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
@@ -1951,7 +2008,7 @@ function THApp(cfg) {
     R.appendChild(st);
   })();
   updBadge();
-  $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (b) openLayer(b.dataset.k); });
+  $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (!b) return; if (b.dataset.k === 'messenger') { setSide(false); mgOpen(); return; } openLayer(b.dataset.k); });
   $('logo').onclick = () => { if (cur !== 'home') openLayer('home'); };
   $('back').onclick = () => closeLayer();
 
