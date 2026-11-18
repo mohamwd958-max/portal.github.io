@@ -30,7 +30,7 @@
   window.thGuestMode = function () { ss('thGuestSession', '1'); };
   window.thGuestNotice = function () { return T[lang()]; };
   window.thLogout = function () {
-    ['thabit_trainee_token', 'currentTrainee', 'thLastPage'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { } });
+    ['thabit_trainee_token', 'currentTrainee', 'thLastPage', 'thMember'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { } });
     try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/staff/i.test(k)) localStorage.removeItem(k); } } catch (e) { }
     try { for (var j = sessionStorage.length - 1; j >= 0; j--) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2)) sessionStorage.removeItem(k2); } } catch (e) { }
     ss('thGuestSession', null); ss('thLanded', null);
