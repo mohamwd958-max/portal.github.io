@@ -7517,8 +7517,7 @@ body.light-theme #thNews h3{color:#b45309}
    Portal split (END of dashboard.js). Delete this block to go back.
    - Messenger, Space and More are no longer in the dashboard bar: they live in the portal (index.html) side bar.
      Left here: Home, Notifications (Feed), Time (calendar).
-   - The Messenger engine above still does the work, but it is now opened from the portal button:
-     the portal keeps this page in a hidden transparent frame (address ends with #thmsg) and only the chat pop-up is shown over it.
+   - The Messenger engine above still does the work; index.html opens it from its own button using a hidden copy of this page (address ends with #thmsg).
    - The unread number is sent to the portal (type "thabit-messenger-badge").
    ========================================================== */
 (function () {
@@ -7541,36 +7540,4 @@ body.light-theme #thNews h3{color:#b45309}
       if (n !== lastN) { lastN = n; post({ type: 'thabit-messenger-badge', count: n }); }
     } catch (e) { }
   }, 1000);
-
-  /* ---- Messenger host mode: only the chat pop-up shows; the rest of the page is invisible and untouchable ---- */
-  if (!(inFrame && /thmsg/.test(location.hash))) return;
-  const HCSS = 'html,body{background:transparent!important;overflow:hidden!important}body>*:not(.mgr-veil):not(.mgr-pop){visibility:hidden!important;pointer-events:none!important}';
-  const hs = document.createElement('style'); hs.id = 'thHostCss'; document.head.appendChild(hs);
-  const PANELS = '#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thLib.open';
-  let full = false, was = false;
-  const mask = on => { hs.textContent = on ? HCSS : ''; };
-  mask(true);
-  const reveal = () => { if (full) return; full = true; mask(false); post({ type: 'thabit-msgr-full' }); };   /* Requests / Assistant / Library opened from the chat: they need the real page */
-  const reset = () => {
-    full = false; mask(true);
-    try { if (window.thMessenger && thMessenger.state().open) thMessenger.hide(); } catch (e) { }
-    try { if (document.querySelector('#rqm.open,#rqn.open,#rqo.open') && typeof closeRq === 'function') closeRq(); } catch (e) { }
-    try { if (document.querySelector('#asm:not([hidden])') && window.Panels) Panels.min(); } catch (e) { }
-    try { if (document.querySelector('#thLib.open') && window.closeLibrary) closeLibrary(); } catch (e) { }
-  };
-  window.addEventListener('message', e => {
-    const d = e.data; if (!d || d.type !== 'thabit-msgr') return;
-    if (d.op === 'open') { reset(); try { thMessenger.open(); } catch (x) { } }
-    else if (d.op === 'close') reset();
-  });
-  /* tap outside the chat = close it */
-  document.addEventListener('pointerdown', e => { if (full || !window.thMessenger) return; if (thMessenger.state().open && !e.target.closest('.mgr-pop')) { thMessenger.hide(); } }, true);
-  setInterval(() => {
-    if (!window.thMessenger) return;
-    let open = false, vis = false; try { open = thMessenger.state().open; vis = thMessenger.visible(); } catch (e) { }
-    if (open && !vis) reveal();
-    if (was && !open) setTimeout(() => { if (document.querySelector(PANELS)) reveal(); else if (!full) post({ type: 'thabit-msgr-closed' }); }, 450);
-    was = open;
-  }, 200);
-  const rd = setInterval(() => { if (window.thMessenger) { clearInterval(rd); post({ type: 'thabit-msgr-ready' }); } }, 300);
 })();
