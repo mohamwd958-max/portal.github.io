@@ -879,7 +879,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
         const res = await staffSignIn(u, p);
         if (res.ok) {
           const role = await fetchMyRole(res.session.access_token);
-          if (role) { saveStaffSession(res.session, role); return { ok: true, route: ROLE_ROUTES[role] }; }
+          if (role) { saveStaffSession(res.session, role); return { ok: true, staff: true, route: ROLE_ROUTES[role] }; }
           return { ok: false, kind: 'wrong' };
         }
         if (res.status === 429) return { ok: false, kind: 'rate' };
@@ -897,7 +897,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       return { ok: false, kind: 'wrong' };
     } catch (err) { return { ok: false, kind: 'net', msg: T().conn }; }
   }
-  async function win(route, u, p) {
+  async function win(route, u, p, staff) {
     saveLogin(u, p);
     uFl.classList.remove('bad'); hideMsg(uFl); hideMsg(pFl); uFl.classList.add('ok'); markOk(pFl);
     await sleep(800); btnState('done'); await sleep(650);
@@ -905,6 +905,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
     await sleep(800);
     $('c0').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }); await sleep(450);
     let last = ''; try { last = localStorage.getItem('thLastPage') || ''; } catch (e) { }   /* the last page they had open, if a page saved it */
+    if (staff) { go(route, true); return; }   /* admin / trainer: straight to their own page, same as index.html does */
+    /* trainee: index.html opens the member app by itself when it finds the token + 'thMember', so it never asks for the login again */
+    try { localStorage.setItem('thMember', JSON.stringify({ route: route, username: u })); } catch (e) { }
     go(GUEST_HOME, true);   /* replace: the landing is not in history, so Back leaves the app */
   }
   async function login() {
@@ -915,7 +918,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (empty) return;
     S.busy = true; btnState('busy'); say('');
     const [res, known] = await Promise.all([attempt(u, p), ensureUser(u)]);
-    if (res.ok) { await win(res.route, u, p); return; }
+    if (res.ok) { await win(res.route, u, p, res.staff); return; }
     btnState('idle'); S.busy = false;
     if (res.kind === 'rate') { say(T().rate); return; }
     if (res.kind === 'server' || res.kind === 'net') { say(res.msg); return; }
