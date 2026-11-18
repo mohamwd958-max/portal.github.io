@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Language Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Pal', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', sec_train: 'Language Training Program', sec_gen: 'General Services',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'خدمات اللغة', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'رفيق الإملاء', i_mirror: 'غرفة المرآة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'برنامج التدريب اللغوي', sec_gen: 'خدمات عامة',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المرآة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -988,7 +988,7 @@ function THApp(cfg) {
   const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space', 'library']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<div class="sdh" data-t="grp"></div>' + SEC.map((sc, n) => (n ? '<div class="sdl"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(g => g.map(sdi).join('')).join('<div class="sdl"></div>')).join('');
-  homeCss();
+  homeCss(); mirCss();
   const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); };
   $('sbtn').onclick = e => { e.stopPropagation(); setSide(!W.classList.contains('sbo')); };
   $('sbs').onclick = () => setSide(false);
@@ -1042,10 +1042,12 @@ function THApp(cfg) {
   function fillLayer(k) {
     const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute;
     if (k !== 'home') homeStop();
+    if (k !== 'mirror') mirStop();
     b.classList.toggle('full', !!dash);
     if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => tidyFrame(f)); b.appendChild(f); }
     else if (k === 'home') renderHome(b);
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
+    else if (k === 'mirror') renderMirror(b);
     else if (k === 'library') renderLib(b);
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
@@ -1056,7 +1058,7 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
-  function closeLayer() { if (cur !== 'dash') openLayer('dash', true); }   /* there is no main page any more: "back" lands on the dashboard */
+  function closeLayer() { if (cur !== 'home') openLayer('home', true); }   /* there is no main page any more: "back" lands on the dashboard */
   /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
   const HQ = window.THHomeQuestions || [
     ['ما الذي تقدمونه؟', 'What do you offer?'],
@@ -1316,6 +1318,339 @@ function THApp(cfg) {
     homeStop = () => { alive = false; clearInterval(timer); micStop(); files.forEach(f => { if (f.img) { try { URL.revokeObjectURL(f.img); } catch (e) { } } }); homeStop = () => { }; };
   }
 
+  /* ================= Mirror Room (غرفة المرآة) ================= */
+  let mirStop = () => { };
+  let mirWarned = false;   /* kept in memory only: a refresh or a log out brings the warning back */
+  const MT = {
+    ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المرآة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
+      start: 'ابدأ', stop: 'إيقاف', armed: 'قل «ثابت ابدأ» أو اضغط ابدأ', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — ابدأ لإكمالها',
+      tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مرآة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
+      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.' },
+    en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
+      start: 'Start', stop: 'Stop', armed: 'Say "Thabit start" or press Start', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press Start to continue it',
+      tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
+      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.' }
+  };
+  function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
+  function mirFlag() { return 'thMirOpen:' + uKey(); }
+  function mirIsOpen() { try { return !!localStorage.getItem(mirFlag()); } catch (e) { return false; } }
+  const mirDb = {
+    db: null,
+    open() { return new Promise((res, rej) => { if (this.db) return res(this.db); try { const r = indexedDB.open('thMirror', 1); r.onupgradeneeded = () => { r.result.createObjectStore('s', { keyPath: 'id' }); }; r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); },
+    all(user) { return this.open().then(db => new Promise((res, rej) => { const q = db.transaction('s').objectStore('s').getAll(); q.onsuccess = () => res((q.result || []).filter(x => x.user === user)); q.onerror = () => rej(q.error); })).catch(() => []); },
+    put(rec) { return this.open().then(db => new Promise((res, rej) => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').put(rec); tx.oncomplete = () => res(true); tx.onerror = () => rej(tx.error); })).catch(() => false); }
+  };
+  function mirCss() {
+    if (R.getElementById('thMirCss')) return;
+    const st = document.createElement('style'); st.id = 'thMirCss';
+    st.textContent = `
+      .sdi.hm{margin:0 4px 3px}
+      .sdh{margin:3px 14px 6px;font-size:15px}
+      .sdg{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:16px 14px 6px}
+      .sdi{height:44px;margin:0 0 3px}
+      .sdl{margin:10px 16px}
+      .mrwrap{position:relative;height:100%;min-height:100%}
+      .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
+      .mr-w{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:14px}
+      .mr-orb{position:relative;width:min(300px,76vw);aspect-ratio:1;flex:none}
+      .mr-orb canvas{width:100%;height:100%;display:block}
+      .mr-ctr{position:absolute;left:50%;top:50%;translate:-50% -50%;width:15%;aspect-ratio:1;min-width:44px;border-radius:50%;border:0;background:#fff;color:#0c0c0c;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.35);transition:scale .7s var(--ease);-webkit-tap-highlight-color:transparent}
+      .mr-ctr:hover{scale:1.06}.mr-ctr:active{scale:.93;transition:scale .3s ease-out}.mr-ctr svg{width:46%;height:46%}
+      .mr-st{min-height:22px;text-align:center;font:700 13.5px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .mr-btns{display:flex;gap:10px}.mr-btns .btn{width:auto;min-width:120px;padding:0 22px}.mr-btns .btn:disabled{opacity:.4;cursor:default}
+      .mr-tr{display:flex;gap:10px;align-items:center;justify-content:center}
+      .mr-sw{display:inline-flex;align-items:center;gap:10px;height:34px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer}
+      .mr-sw i{width:30px;height:18px;border-radius:999px;background:var(--chip);position:relative;transition:background .4s}
+      .mr-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:translate .4s var(--ease)}
+      .mr-sw.on i{background:#34d399}.mr-sw.on i::after{translate:12px 0;background:#fff}
+      .mr-lg{height:34px;min-width:46px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:800 12px Inter,sans-serif;cursor:pointer}
+      .mr-ta{unicode-bidi:plaintext;text-align:start;min-height:120px}
+      .mr-int{min-height:18px;width:100%;text-align:center;font:500 12.5px Cairo,Inter,sans-serif;color:var(--ink2);unicode-bidi:plaintext}
+      .mr-rc,.mr-row{width:100%;border:1px solid var(--gbd);border-radius:16px;padding:12px 14px;background:var(--gfield);text-align:center}
+      .mr-rc b{display:block;color:#34d399;font:800 14px Cairo,Inter,sans-serif}.mr-rc small{display:block;margin:2px 0 8px;color:var(--ink2);font:600 12px Cairo,Inter,sans-serif}
+      .mr-pt{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0}
+      .mr-pt audio{height:36px;max-width:100%}
+      .mr-dl{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--gbd);background:var(--chip);color:var(--ink);font:700 11.5px Cairo,Inter,sans-serif;text-decoration:none}
+      .mr-dl svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+      .mr-prev{width:100%;display:flex;flex-direction:column;gap:8px}
+      .mr-prev h4{font:800 13px Cairo,Inter,sans-serif;color:var(--ink2);text-align:center;margin:6px 0}
+      .mr-row summary{cursor:pointer;font:700 13px Cairo,Inter,sans-serif;list-style:none}.mr-row summary::-webkit-details-marker{display:none}
+      .mr-row small{color:var(--ink2);font-weight:600;margin-inline-start:8px}
+      .mr-tx{margin-top:8px;text-align:start;unicode-bidi:plaintext;font:500 13px/1.7 Inter,Cairo,sans-serif;color:var(--ink2);white-space:pre-wrap}
+      .mr-warn{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:20px;text-align:center;cursor:pointer;background:rgba(10,12,18,.62);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);transition:opacity .45s ease}
+      .mr-warn.off{opacity:0;pointer-events:none}
+      .mr-wb{max-width:380px;padding:26px 22px;border-radius:24px;border:1px solid var(--gbd);background:var(--pn);color:var(--ink)}
+      .mr-wb svg{width:40px;height:40px;stroke:#fbbf24;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px}
+      .mr-wb h3{font:800 19px Cairo,Inter,sans-serif;margin-bottom:8px}
+      .mr-wb p{font:600 14px/1.8 Cairo,Inter,sans-serif;color:var(--ink2);margin-bottom:14px}
+      .mr-wb em{font:700 12px Cairo,Inter,sans-serif;font-style:normal;opacity:.7}
+      @media(min-width:876px){.mr-warn{border-radius:24px}}
+    `;
+    R.appendChild(st);
+  }
+  function renderMirror(b) {
+    mirStop(); mirCss();
+    const T = MT[L], ar = L === 'ar', user = uKey();
+    const SV = {
+      play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
+      stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
+      dl: '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
+      hp: '<svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></svg>'
+    };
+    b.classList.remove('full');
+    b.innerHTML = '<div class="mrwrap" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="pcard dpc mr-card"><div class="mr-w">' +
+      '<div class="mr-orb"><canvas id="mrC" width="420" height="420"></canvas><button type="button" class="mr-ctr" id="mrCtr" aria-label="' + T.start + '">' + SV.play + '</button></div>' +
+      '<div class="mr-st" id="mrSt"></div>' +
+      '<div class="mr-btns"><button type="button" class="btn" id="mrStart">' + T.start + '</button><button type="button" class="btn ghost" id="mrStop" disabled>' + T.stop + '</button></div>' +
+      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrTr" aria-pressed="false"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg">' + (ar ? 'AR' : 'EN') + '</button></div>' +
+      '<textarea class="dta mr-ta" id="mrTa" dir="auto" rows="5" placeholder="' + T.ph + '" spellcheck="false"></textarea>' +
+      '<div class="mr-int" id="mrInt"></div><div id="mrRes" style="width:100%"></div><div class="mr-prev" id="mrPrev"></div>' +
+      '</div></div>' +
+      '<div class="mr-warn' + (mirWarned ? ' off' : '') + '" id="mrWarn"><div class="mr-wb">' + SV.hp + '<h3>' + T.wT + '</h3><p>' + T.wP + '</p><em>' + T.wTap + '</em></div></div></div>';
+
+    const q = id => b.querySelector('#' + id);
+    const cv = q('mrC'), g = cv.getContext('2d'), S = cv.width, cx = S / 2, cy = S / 2, Ro = S * 0.31;
+    const st = q('mrSt'), ta = q('mrTa'), intr = q('mrInt'), res = q('mrRes'), prev = q('mrPrev'), warn = q('mrWarn'), ctr = q('mrCtr');
+    const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let alive = true, running = false, state = 'idle', ctx = null, stream = null, src = null, proc = null, dest = null, playGain = null, playAn = null, bufSrc = null, rec = null, recChunks = [], mime = '';
+    let sess = null, sessions = [], urls = [], purls = [], trOn = false, srLang = ar ? 'ar-EG' : 'en-US', sr = null, srOn = false, ignoreSr = 0;
+    let lvl = 0, hue = 214, tm = 0, curRms = 0, floor = 0.006, quietUntil = 0, ring = [], chunks = [], spk = false, hot = 0, voiced = 0, lastVoice = 0, raf = 0, last = performance.now(), saveT = 0, frameMs = 43, maxFrames = 40000;
+    const abuf = new Float32Array(1024);
+
+    /* ----- the orb ----- */
+    const nz = document.createElement('canvas'); nz.width = nz.height = 96;
+    { const n = nz.getContext('2d'), id = n.createImageData(96, 96); for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() < .5 ? 255 : 0; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = Math.random() * 90; } n.putImageData(id, 0, 0); }
+    const pat = g.createPattern(nz, 'repeat');
+    const BL = Array.from({ length: 8 }, (_, i) => ({ a: Math.random() * 6.28, sp: .35 + Math.random() * .7, rx: .25 + Math.random() * .35, ry: .25 + Math.random() * .35, r: .45 + Math.random() * .3, dark: i % 3 === 2, hs: (Math.random() - .5) * 26 }));
+    function draw(now) {
+      if (!alive || !b.isConnected) return;
+      raf = requestAnimationFrame(draw);
+      if (document.hidden) { last = now; return; }
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      let target = 0;
+      if (running) {
+        let r = curRms;
+        if (state === 'playing' && playAn) { playAn.getFloatTimeDomainData(abuf); let s = 0; for (let i = 0; i < abuf.length; i++) s += abuf[i] * abuf[i]; r = Math.sqrt(s / abuf.length); }
+        else if (r < Math.max(floor * 2, .009)) r = 0;
+        if (state !== 'idle' && r > .006) target = Math.min(1, Math.pow(r * 6, .7));
+      }
+      lvl += (target - lvl) * (target > lvl ? .35 : .09);
+      hue += ((state === 'playing' ? 268 : 214) - hue) * .06;
+      tm += dt * (.15 + 2.1 * lvl);
+      g.clearRect(0, 0, S, S);
+      const N = 52, a0 = Math.PI * .78, a1 = Math.PI * 2.22, Ra = Ro + S * .08;
+      for (let i = 0; i < N; i++) {
+        const t = i / (N - 1), a = a0 + (a1 - a0) * t, d = Math.abs(t - .5) * 2, lit = lvl > .02 && d <= lvl;
+        g.beginPath(); g.arc(cx + Math.cos(a) * Ra, cy + Math.sin(a) * Ra, S * .0065, 0, 6.2832);
+        g.fillStyle = lit ? 'hsla(' + hue + ',90%,60%,.95)' : 'rgba(150,155,170,.38)'; g.fill();
+      }
+      g.save(); g.beginPath(); g.arc(cx, cy, Ro, 0, 6.2832); g.clip();
+      const bg = g.createRadialGradient(cx - Ro * .2, cy - Ro * .25, Ro * .1, cx, cy, Ro);
+      bg.addColorStop(0, 'hsl(' + hue + ',70%,18%)'); bg.addColorStop(1, 'hsl(' + (hue + 6) + ',75%,6%)');
+      g.fillStyle = bg; g.fillRect(0, 0, S, S);
+      BL.forEach(o => {
+        const x = cx + Math.cos(tm * o.sp + o.a) * Ro * o.rx * (1 + lvl * .9), y = cy + Math.sin(tm * o.sp * 1.13 + o.a * 1.7) * Ro * o.ry * (1 + lvl * .9),
+          r = Ro * (o.r + .25 * lvl + .08 * Math.sin(tm * o.sp * 2 + o.a)), gr = g.createRadialGradient(x, y, 0, x, y, r);
+        if (o.dark) { gr.addColorStop(0, 'hsla(' + (hue + 8) + ',80%,4%,.75)'); gr.addColorStop(1, 'hsla(' + (hue + 8) + ',80%,4%,0)'); }
+        else { gr.addColorStop(0, 'hsla(' + (hue + o.hs) + ',92%,' + (48 + 14 * lvl) + '%,' + (.45 + .4 * lvl) + ')'); gr.addColorStop(1, 'hsla(' + (hue + o.hs) + ',92%,50%,0)'); }
+        g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+      });
+      g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .9; g.fillStyle = pat; g.fillRect(0, 0, S, S); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      const ed = g.createRadialGradient(cx, cy, Ro * .62, cx, cy, Ro); ed.addColorStop(0, 'rgba(0,0,0,0)'); ed.addColorStop(1, 'rgba(0,0,0,.5)'); g.fillStyle = ed; g.fillRect(0, 0, S, S);
+      g.restore();
+    }
+    raf = requestAnimationFrame(draw);
+
+    /* ----- status ----- */
+    function ui() {
+      let m = !running ? (sess ? T.pending.replace('{n}', sess.n) : T.armed) : state === 'playing' ? T.echo : state === 'speaking' ? T.hear : T.listen;
+      if (!running && !SRC) m += ' — ' + T.noSr;
+      st.textContent = m; ctr.innerHTML = running ? SV.stop : SV.play;
+      q('mrStart').disabled = running; q('mrStop').disabled = !running;
+    }
+
+    /* ----- sound ----- */
+    function ensureCtx() { if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; ctx = new AC(); } if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+    function chime(up) {
+      try {
+        ensureCtx(); const t0 = ctx.currentTime, f = up ? [740, 988] : [988, 740];
+        f.forEach((fr, i) => { const o = ctx.createOscillator(), gn = ctx.createGain(), t = t0 + i * .15; o.type = 'sine'; o.frequency.value = fr; gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(.2, t + .02); gn.gain.exponentialRampToValueAtTime(.0001, t + .13); o.connect(gn); gn.connect(ctx.destination); o.start(t); o.stop(t + .15); });
+      } catch (e) { }
+      quietUntil = performance.now() + 450;
+    }
+    function pickMime() { const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']; for (const m of c) { try { if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; } catch (e) { } } return ''; }
+
+    function finishUtt() {
+      const now = performance.now(), cut = Math.max(0, Math.round((now - lastVoice) / frameMs) - 6);
+      let arr = chunks; chunks = []; spk = false; hot = 0;
+      const enough = voiced >= 4; voiced = 0;
+      if (cut) arr = arr.slice(0, Math.max(1, arr.length - cut));
+      state = 'listening';
+      if (!enough) { ui(); return; }
+      playUtt(arr);
+    }
+    function playUtt(arr) {
+      let n = 0; arr.forEach(a => n += a.length);
+      const buf = ctx.createBuffer(1, n, ctx.sampleRate), ch = buf.getChannelData(0); let o = 0;
+      arr.forEach(a => { for (let i = 0; i < a.length; i++) ch[o + i] = a[i] / 32768; o += a.length; });
+      const mine = ctx.createBufferSource(); mine.buffer = buf; mine.connect(playGain); bufSrc = mine;
+      state = 'playing'; ui();
+      mine.onended = () => { if (bufSrc !== mine) return; bufSrc = null; if (!running) return; ring = []; quietUntil = performance.now() + 300; state = 'listening'; ui(); };
+      mine.start();
+    }
+    function frame(d) {
+      if (!running) return;
+      let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
+      const rms = Math.sqrt(s / d.length); curRms = rms;
+      const now = performance.now();
+      if (state === 'playing' || now < quietUntil) return;
+      const i16 = new Int16Array(d.length);
+      for (let i = 0; i < d.length; i++) { const v = d[i] < -1 ? -1 : d[i] > 1 ? 1 : d[i]; i16[i] = v < 0 ? v * 32768 : v * 32767; }
+      const thr = Math.max(floor * 3.2, .014), lo = Math.max(floor * 2, .009);
+      if (!spk) {
+        ring.push(i16); if (ring.length > 8) ring.shift();
+        floor = Math.min(.03, Math.max(.002, floor * .97 + rms * .03));
+        if (rms > thr) { if (++hot >= 2) { spk = true; chunks = ring; ring = []; lastVoice = now; voiced = 0; state = 'speaking'; ui(); } } else hot = 0;
+      } else {
+        chunks.push(i16);
+        if (rms > lo) { lastVoice = now; voiced++; }
+        if (now - lastVoice >= 1000 || chunks.length > maxFrames) finishUtt();
+      }
+    }
+
+    /* ----- sessions ----- */
+    const fmt = s => { try { return new Date(s.end || s.at).toLocaleString(ar ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } };
+    function partsHtml(s, arr) {
+      return s.parts.map((p, i) => { const u = URL.createObjectURL(p); arr.push(u); const ext = /mp4/.test(p.type) ? 'm4a' : /ogg/.test(p.type) ? 'ogg' : 'webm';
+        return '<div class="mr-pt"><audio controls preload="metadata" src="' + u + '"></audio><a class="mr-dl" download="mirror-room-' + s.n + (s.parts.length > 1 ? '-' + (i + 1) : '') + '.' + ext + '" href="' + u + '">' + SV.dl + '<span>' + T.dl + '</span></a></div>'; }).join('');
+    }
+    function textDl(s, arr) {
+      if (!(s.text || '').trim()) return '';
+      const u = URL.createObjectURL(new Blob([s.text], { type: 'text/plain;charset=utf-8' })); arr.push(u);
+      return '<div class="mr-pt"><a class="mr-dl" download="mirror-room-' + s.n + '.txt" href="' + u + '">' + SV.dl + '<span>' + T.dlt + '</span></a></div>';
+    }
+    function drawPrev() {
+      purls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); purls = [];
+      const done = sessions.filter(s => s.state === 'done').sort((x, y) => y.n - x.n);
+      prev.innerHTML = done.length ? '<h4>' + T.prev + '</h4>' + done.map(s => '<details class="mr-row"><summary>' + T.sess + ' #' + s.n + '<small>' + esc(fmt(s)) + '</small></summary>' + partsHtml(s, purls) + textDl(s, purls) + (s.text ? '<div class="mr-tx">' + esc(s.text) + '</div>' : '') + '</details>').join('') : '';
+    }
+    function showRes(s) {
+      res.innerHTML = '<div class="mr-rc"><b>' + T.sess + ' #' + s.n + '</b><small>' + T.saved + '</small>' + partsHtml(s, urls) + textDl(s, urls) + '</div>';
+      try { res.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { }
+    }
+    function saveText() { if (!sess) return; sess.text = ta.value; clearTimeout(saveT); saveT = setTimeout(() => mirDb.put(sess), 400); }
+    ta.addEventListener('input', saveText);
+    const ready = mirDb.all(user).then(a => {
+      if (!alive) return; sessions = a;
+      const o = a.filter(s => s.state === 'open').sort((x, y) => y.n - x.n)[0];
+      if (o) { if (o.live) { o.parts.push(o.live); o.live = null; mirDb.put(o); } sess = o; if (!ta.value) ta.value = o.text || ''; try { localStorage.setItem(mirFlag(), String(o.n)); } catch (e) { } }
+      else { try { localStorage.removeItem(mirFlag()); } catch (e) { } }
+      updBadge(); drawPrev(); ui();
+    });
+    async function newSess() {
+      const n = sessions.reduce((m, s) => Math.max(m, s.n || 0), 0) + 1;
+      sess = { id: user + ':' + n, user, n, state: 'open', text: ta.value || '', parts: [], live: null, mime: '', at: Date.now() };
+      sessions.push(sess); await mirDb.put(sess);
+      try { localStorage.setItem(mirFlag(), String(n)); } catch (e) { } updBadge();
+    }
+    async function startSession() {
+      if (running) return;
+      await ready; ensureCtx();
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); }
+      catch (e) { st.textContent = T.micDenied; return; }
+      if (!alive) { stream.getTracks().forEach(t => t.stop()); return; }
+      if (running) { stream.getTracks().forEach(t => t.stop()); return; }
+      if (!sess) await newSess();
+      src = ctx.createMediaStreamSource(stream); dest = ctx.createMediaStreamDestination(); proc = ctx.createScriptProcessor(2048, 1, 1);
+      const zero = ctx.createGain(); zero.gain.value = 0;
+      src.connect(proc); proc.connect(zero); zero.connect(ctx.destination); src.connect(dest);
+      playGain = ctx.createGain(); playAn = ctx.createAnalyser(); playAn.fftSize = 1024;
+      playGain.connect(playAn); playAn.connect(ctx.destination); playGain.connect(dest);
+      frameMs = 2048 / ctx.sampleRate * 1000; maxFrames = Math.floor(ctx.sampleRate * 1800 / 2048);
+      ring = []; chunks = []; spk = false; hot = 0; voiced = 0; floor = .006; curRms = 0;
+      mime = pickMime(); recChunks = [];
+      try { rec = new MediaRecorder(dest.stream, mime ? { mimeType: mime } : undefined); } catch (e) { rec = null; }
+      if (rec) {
+        const s0 = sess;
+        rec.ondataavailable = ev => { if (ev.data && ev.data.size) { recChunks.push(ev.data); s0.mime = mime || rec.mimeType; s0.live = new Blob(recChunks, { type: s0.mime }); mirDb.put(s0); } };
+        rec.start(5000);
+      }
+      proc.onaudioprocess = ev => frame(ev.inputBuffer.getChannelData(0));
+      running = true; state = 'listening'; chime(true); ui();
+    }
+    function endAudio(done) {
+      if (!running) return Promise.resolve();
+      running = false; state = 'idle'; spk = false; chunks = []; ring = [];
+      try { proc.onaudioprocess = null; src.disconnect(); proc.disconnect(); } catch (e) { }
+      if (bufSrc) { try { bufSrc.onended = null; bufSrc.stop(); } catch (e) { } bufSrc = null; }
+      try { playGain.disconnect(); } catch (e) { }
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      const s = sess, txt = ta.value, r = rec, mm = mime;
+      return new Promise(resolve => {
+        const fin = () => {
+          const blob = recChunks.length ? new Blob(recChunks, { type: mm || (r && r.mimeType) || 'audio/webm' }) : null;
+          if (blob && blob.size) s.parts.push(blob);
+          s.live = null; s.text = txt; if (done) { s.state = 'done'; s.end = Date.now(); }
+          recChunks = []; mirDb.put(s).then(resolve);
+        };
+        if (r && r.state !== 'inactive') { r.onstop = fin; try { r.stop(); } catch (e) { fin(); } } else fin();
+      });
+    }
+    async function stopSession() {
+      if (!running) return;
+      chime(false);
+      const s = sess; await endAudio(true);
+      try { localStorage.removeItem(mirFlag()); } catch (e) { } updBadge();
+      sess = null; ui(); showRes(s); drawPrev();
+    }
+
+    /* ----- voice commands ("Thabit start" / "Thabit stop") + optional transcript ----- */
+    const nrm = s => String(s).toLowerCase().replace(/[ً-ٰٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+    const NAME = '(?:ثابت|thabit|thabet|tabit|tabet|sabit)';
+    const W_START = new RegExp(NAME + '\\s*(?:ابدا|ابدء|يبدا|ابد|start|begin)');
+    const W_STOP = new RegExp(NAME + '\\s*(?:وقف|توقف|قف|stop)');
+    function cmd() { ignoreSr = Date.now() + 1200; try { sr && sr.abort(); } catch (e) { } intr.textContent = ''; }
+    function onSr(e) {
+      if (Date.now() < ignoreSr) return;
+      let full = '', finals = '', interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i], t = r[0].transcript; full += ' ' + t; if (r.isFinal) finals += ' ' + t; else interim += ' ' + t; }
+      const n = nrm(full);
+      if (!running && W_START.test(n)) { cmd(); startSession(); return; }
+      if (running && W_STOP.test(n)) { cmd(); stopSession(); return; }
+      if (running && trOn) {
+        if (finals.trim()) { ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + finals.trim(); saveText(); }
+        intr.textContent = interim.trim();
+      }
+    }
+    function srStart() {
+      if (!SRC || !alive || !srOn) return;
+      try {
+        sr = new SRC(); sr.lang = srLang; sr.continuous = true; sr.interimResults = true; sr.onresult = onSr;
+        sr.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { srOn = false; st.textContent = T.micDenied; } };
+        sr.onend = () => { sr = null; if (alive && srOn) setTimeout(srStart, 300); };
+        sr.start();
+      } catch (e) { sr = null; }
+    }
+    function arm() { ensureCtx(); srOn = true; srStart(); }
+
+    /* ----- buttons ----- */
+    q('mrStart').onclick = startSession; q('mrStop').onclick = stopSession;
+    ctr.onclick = () => running ? stopSession() : startSession();
+    q('mrTr').onclick = e => { trOn = !trOn; e.currentTarget.classList.toggle('on', trOn); e.currentTarget.setAttribute('aria-pressed', trOn ? 'true' : 'false'); if (!trOn) intr.textContent = ''; };
+    q('mrLg').onclick = e => { srLang = srLang.indexOf('ar') === 0 ? 'en-US' : 'ar-EG'; e.currentTarget.textContent = srLang.indexOf('ar') === 0 ? 'AR' : 'EN'; try { sr && sr.abort(); } catch (x) { } };
+    warn.onclick = () => { mirWarned = true; warn.classList.add('off'); arm(); };
+    if (mirWarned) arm();
+    ui();
+
+    mirStop = () => {
+      alive = false; srOn = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
+      if (sess) sess.text = ta.value;
+      const fin = () => { urls.concat(purls).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); try { ctx && ctx.close(); } catch (e) { } };
+      if (running) endAudio(false).then(fin); else { if (sess) mirDb.put(sess); fin(); }
+      mirStop = () => { };
+    };
+  }
+
   /* ================= Dictation Pal + Library ================= */
   const DICT = { bucket: 'words-and-passages', prefix: '', count: 10, key: 'thDictTask', photos: 'thDictPhotos' };   /* <- bucket / folder of the word recordings */
   const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
@@ -1327,11 +1662,8 @@ function THApp(cfg) {
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
-  function updBadge() {
-    const t = dictLoad(), on = !!(t && !t.done), it = R.querySelector('.sdi[data-k="dict"]');
-    if (it) { let bd = it.querySelector('.sdbd'); if (on && !bd) { bd = document.createElement('b'); bd.className = 'sdbd'; bd.textContent = '1'; it.appendChild(bd); } else if (!on && bd) bd.remove(); }
-    $('sbtn').classList.toggle('hasn', on);
-  }
+  function setBd(k, on) { const it = R.querySelector('.sdi[data-k="' + k + '"]'); if (!it) return; let bd = it.querySelector('.sdbd'); if (on && !bd) { bd = document.createElement('b'); bd.className = 'sdbd'; bd.textContent = '1'; it.appendChild(bd); } else if (!on && bd) bd.remove(); }
+  function updBadge() { const t = dictLoad(), a = !!(t && !t.done), m = mirIsOpen(); setBd('dict', a); setBd('mirror', m); $('sbtn').classList.toggle('hasn', a || m); }
   function dictSave(t) { try { t ? localStorage.setItem(DICT.key, JSON.stringify(t)) : localStorage.removeItem(DICT.key); } catch (e) { } updBadge(); }
 
   /* audio: every word is preloaded when the text is made, so a tap plays at once (a spoken-voice fallback is used if a recording is missing) */
@@ -1537,7 +1869,7 @@ function THApp(cfg) {
   })();
   updBadge();
   $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (b) openLayer(b.dataset.k); });
-  $('logo').onclick = () => { if (cur !== 'dash') openLayer('dash'); };
+  $('logo').onclick = () => { if (cur !== 'home') openLayer('home'); };
   $('back').onclick = () => closeLayer();
 
   /* ---------- profile pop-up ---------- */
@@ -1576,7 +1908,7 @@ function THApp(cfg) {
       else if (W.classList.contains('lay')) closeLayer();
     });
   } else {
-    window.addEventListener('popstate', e => { const s = e.state && e.state.th, k = (s && IC[s]) ? s : 'dash'; if (k !== cur) openLayer(k, true); });
+    window.addEventListener('popstate', e => { const s = e.state && e.state.th, k = (s && IC[s]) ? s : 'home'; if (k !== cur) openLayer(k, true); });
   }
 
   const TH_LOGO = 'url(data:image/png;base64,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)';   /* built in: it can never be missing */
@@ -1587,7 +1919,7 @@ function THApp(cfg) {
   /* ---------- start: the logo intro first, then the page, with the sidebar open ---------- */
   function start() {
     const bg = () => W.classList.contains('light') ? '#e4e6ec' : '#121419';
-    const go = () => { W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: 'dash' }, ''); } catch (e) { } openLayer('dash', true); };
+    const go = () => { W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: 'home' }, ''); } catch (e) { } openLayer('home', true); };
     if (window.thLoader && thLoader.intro) return thLoader.intro({ bg: bg }).then(go, go);
     go(); return Promise.resolve();
   }
