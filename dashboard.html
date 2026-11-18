@@ -484,6 +484,7 @@ body{--fdc:#f1f5f9}body.light-theme{--fdc:#0f172a}
 /* ===== v2: "More" button is a plain plus, normal size ===== */
 #mobileFloatingBar #barEdit{width:36px!important;height:36px!important;min-width:36px!important;opacity:1!important}
 </style>
+<script>try{var tc=localStorage.getItem("thThemeChoice");localStorage.setItem("thabit_theme",tc==="light"?"light":"dark")}catch(e){}</script>
 <script>try{var p=JSON.parse(localStorage.getItem("thabit_bar_place")||"null");if(p&&/^(left|right|bottom)$/.test(p.dock))document.documentElement.setAttribute("data-bar",p.dock)}catch(e){}</script>
 <script>try{var vm=localStorage.getItem("thabit_view");
 if(vm==="desktop"){var mv=document.querySelector('meta[name="viewport"]');if(mv)mv.setAttribute("content","width=1100")}
@@ -546,6 +547,12 @@ new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilte
 document.addEventListener('click',function(){setTimeout(sync,150)},true);
 })();
 </script>
+<style id="noBarLight">
+/* no travelling light on the bottom bar */
+#mobileFloatingBar::before,#mobileFloatingBar::after,#mobileFloatingBar *::before,#mobileFloatingBar *::after{animation:none!important}
+#mobileFloatingBar,#mobileFloatingBar *{animation-name:none!important}
+#mobileFloatingBar.moving{animation:none!important}
+</style>
 <style id="fixGlowSeams">
 /* glow sweep: no hairline seams inside cells (own compositing layer, no sub-pixel tiling, no edge bleed) */
 .thabit-card,.test-card,.dcard{isolation:isolate}
