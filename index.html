@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -985,10 +985,16 @@ function THApp(cfg) {
     library: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H11v17H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 4.5A1.5 1.5 0 0 0 18.5 3H13v17h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
-  /* Language Services > [Language Training Program: dashboard, dictation, mirror, space] | [General Services: translation, voice over, digital, consult, store] */
-  const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space', 'library', 'messenger']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
+  /* Sidebar: Home (+ small store icon) | Linguistic Services [Training Program, General Linguistic Services] | Production | Smart Services | Personal Services */
+  const SEC = [['sec_train', ['dash', 'dict', 'mirror', 'space', 'library', 'messenger']], ['sec_gen', ['translate']]];
+  const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
-  $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<div class="sdh" data-t="grp"></div>' + SEC.map((sc, n) => (n ? '<div class="sdl"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(g => g.map(sdi).join('')).join('<div class="sdl"></div>')).join('');
+  const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
+  const LINE = '<div class="sdl sp"></div>';
+  $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + LINE +
+    '<div class="sdh" data-t="grp"></div>' +
+    SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
+    EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
   homeCss(); mirCss();
   const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); };
   $('sbtn').onclick = e => { e.stopPropagation(); setSide(!W.classList.contains('sbo')); };
@@ -1000,6 +1006,7 @@ function THApp(cfg) {
     const t = STR[L]; W.dir = L === 'ar' ? 'rtl' : 'ltr'; W.classList.toggle('ar', L === 'ar');
     R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
     R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.name; });
+    R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title]; e.setAttribute('aria-label', t[e.dataset.title]); });
     if (cur) $('ltitle').textContent = t['i_' + cur];
     try { crumb(); } catch (e) { }
     if (cur === 'library' || cur === 'home') fillLayer(cur);
@@ -1064,6 +1071,7 @@ function THApp(cfg) {
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
     else if (k === 'library') renderLib(b);
+    else if (k === 'store') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L].storeMsg; }
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
   function openLayer(k, nopush) {
@@ -1109,13 +1117,13 @@ function THApp(cfg) {
     dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة library', train: 'تدريب دورة مبتدئ train course'
   };
   const HT = {
-    ar: { hi: 'مرحبًا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
+    ar: { hi: 'مرحبًا بك', hiG: 'مرحبًا بك ضيفنا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
       send: 'بحث', add: 'إضافة', linkPh: 'الصق الرابط هنا', codePh: 'الصق النص أو الكود هنا', b1: 'استعرض خدماتنا', b2: 'افتح لوحة التحكم', b3: 'احجز استشارة',
-      noMic: 'التسجيل الصوتي غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge أو Safari.', micDenied: 'لم يُسمح باستخدام الميكروفون.', noShot: 'التقاط الشاشة غير مدعوم هنا، اختر صورة بدلًا منها.',
+      noMic: 'التسجيل الصوتي غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge أو Safari.', noAudio: 'لم أجد ميكروفونًا يعمل. تأكد من توصيله ومن اختياره في إعدادات الجهاز.', netErr: 'تعذّر الاتصال بخدمة التعرف على الصوت. تحقق من الإنترنت وحاول مرة أخرى.', srErr: 'تعذّر التعرف على الكلام', noSpeech: 'لم أسمع شيئًا. اضغط الميكروفون وتحدّث.', micDenied: 'لم يُسمح باستخدام الميكروفون.', noShot: 'التقاط الشاشة غير مدعوم هنا، اختر صورة بدلًا منها.',
       found: 'قد يساعدك هذا:', none: 'لم أجد خدمة مطابقة. جرّب كلمات أخرى أو تصفّح الخدمات بالأسفل.', att: 'مرفق', rm: 'إزالة', listening: 'جارٍ الاستماع…' },
-    en: { hi: 'Welcome', how: 'How can I help you today?', ask: 'Ask or search…', plus: 'Add', img: 'Image', shot: 'Screenshot', link: 'Link', code: 'Text or code', mic: 'Record voice', stop: 'Stop',
+    en: { hi: 'Welcome', hiG: 'Hello guest', how: 'How can I help you today?', ask: 'Ask or search…', plus: 'Add', img: 'Image', shot: 'Screenshot', link: 'Link', code: 'Text or code', mic: 'Record voice', stop: 'Stop',
       send: 'Search', add: 'Add', linkPh: 'Paste the link here', codePh: 'Paste text or code here', b1: 'Explore our services', b2: 'Open the dashboard', b3: 'Book a consultation',
-      noMic: 'Voice recording is not supported in this browser. Try Chrome, Edge or Safari.', micDenied: 'Microphone access was not allowed.', noShot: 'Screen capture is not supported here, choose an image instead.',
+      noMic: 'Voice recording is not supported in this browser. Try Chrome, Edge or Safari.', noAudio: 'No working microphone found. Check it is connected and selected in your device settings.', netErr: 'Could not reach the speech service. Check your internet and try again.', srErr: 'Speech recognition problem', noSpeech: 'I did not hear anything. Press the microphone and speak.', micDenied: 'Microphone access was not allowed.', noShot: 'Screen capture is not supported here, choose an image instead.',
       found: 'This may help:', none: 'No matching service found. Try other words or browse the services below.', att: 'Attachment', rm: 'Remove', listening: 'Listening…' }
   };
   let homeStop = () => { };   /* stops the typing loop, the slide timer and the microphone of the page that is leaving */
@@ -1198,7 +1206,7 @@ function THApp(cfg) {
     };
     b.innerHTML = '<div class="hm-w" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
       '<div class="hm-hero">' +
-        '<div class="hm-hi">' + esc(T.hi) + (first ? (ar ? ' ' : ' ') + esc(first) : '') + (ar ? '،' : ',') + '<small>' + esc(T.how) + '</small></div>' +
+        '<div class="hm-hi">' + (first ? esc(T.hi) + ' ' + esc(first) : esc(T.hiG)) + (ar ? '،' : ',') + '<small>' + esc(T.how) + '</small></div>' +
         '<div class="hm-bar" id="hmBar">' +
           '<button type="button" class="hm-ib2" id="hmPlus" aria-label="' + esc(T.plus) + '">' + SV.plus + '</button>' +
           '<div class="hm-ib"><textarea class="hm-ta" id="hmTa" rows="1" dir="auto" aria-label="' + esc(T.ask) + '"></textarea><div class="hm-ph" id="hmPh"><span></span></div></div>' +
@@ -1245,20 +1253,34 @@ function THApp(cfg) {
 
     /* ----- voice: written live while speaking (the browser's free speech recognition), then it stays editable ----- */
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    function micStop() { if (rec) { try { rec.stop(); } catch (e) { } } }
-    mic.onclick = () => {
-      if (rec) { micStop(); return; }
-      if (!SR) { say(T.noMic); return; }
-      say(''); rec = new SR(); const my = rec; my.lang = ar ? 'ar-EG' : 'en-US'; my.interimResults = true; my.continuous = true;
+    let wantRec = false, recFail = 0, fatal = false;
+    function micStop() { wantRec = false; if (rec) { try { rec.stop(); } catch (e) { } } }
+    const recUi = on => { bar.classList.toggle('rec', on); mic.innerHTML = on ? SV.stop : SV.mic; mic.setAttribute('aria-label', on ? T.stop : T.mic); };
+    const recMsg = c => c === 'not-allowed' || c === 'service-not-allowed' ? T.micDenied : c === 'audio-capture' ? T.noAudio : c === 'network' ? T.netErr : T.srErr + ' (' + c + ')';
+    function recStart() {
+      const my = new SR(), t0 = Date.now(); rec = my; my.lang = ar ? 'ar-EG' : 'en-US'; my.interimResults = true; my.continuous = true;
       base = ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '';
       my.onresult = e => {
         let fin = '', tmp = '';
         for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript; else tmp += r[0].transcript; }
-        ta.value = base + fin + tmp; grow(); sync();
+        recFail = 0; say(''); ta.value = base + fin + tmp; grow(); sync();
       };
-      my.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') say(T.micDenied); };
-      my.onend = () => { if (rec === my) rec = null; bar.classList.remove('rec'); mic.innerHTML = SV.mic; mic.setAttribute('aria-label', T.mic); if (alive) { say(''); ta.focus(); } };
-      try { my.start(); bar.classList.add('rec'); mic.innerHTML = SV.stop; mic.setAttribute('aria-label', T.stop); say(T.listening); } catch (e) { rec = null; }
+      my.onerror = e => { if (e.error === 'no-speech' || e.error === 'aborted') return; fatal = true; wantRec = false; say(recMsg(e.error)); };
+      my.onend = () => {
+        if (rec === my) rec = null;
+        if (wantRec && alive && b.isConnected) {   /* the browser ended it by itself (a pause on a computer): keep listening */
+          recFail = Date.now() - t0 < 1500 ? recFail + 1 : 0;
+          if (recFail <= 3) { setTimeout(() => { if (wantRec && alive && !rec) recStart(); }, 250); return; }
+          wantRec = false; say(T.noSpeech);
+        }
+        recUi(false); if (alive && !fatal) { if (!note.textContent || note.textContent === T.listening) say(''); ta.focus(); }
+      };
+      try { my.start(); recUi(true); say(T.listening); } catch (e) { rec = null; wantRec = false; recUi(false); say(T.srErr); }
+    }
+    mic.onclick = () => {
+      if (rec || wantRec) { micStop(); return; }
+      if (!SR) { say(T.noMic); return; }
+      fatal = false; recFail = 0; wantRec = true; say(''); recStart();
     };
 
     /* ----- the + menu: image, screenshot, link, text or code ----- */
@@ -1338,13 +1360,13 @@ function THApp(cfg) {
   let mirWarned = false;   /* kept in memory only: a refresh or a log out brings the warning back */
   const MT = {
     ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المماراة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
-      start: 'ابدأ', stop: 'إيقاف', armed: 'قل «ثابت ابدأ» أو اضغط ابدأ', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — ابدأ لإكمالها',
+      start: 'لنبدأ', stop: 'لنتوقف هنا', armed: 'اضغط «لنبدأ» للبدء', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — اضغط «لنبدأ» لإكمالها',
       tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مماراة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
-      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', srErr: 'تعذّر التعرف على الكلام', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
+      noSr: 'النص المكتوب غير مدعوم في هذا المتصفح، يمكنك الكتابة يدويًا.', micDenied: 'لم يُسمح باستخدام الميكروفون.', srErr: 'تعذّر التعرف على الكلام', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
     en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
-      start: 'Start', stop: 'Stop', armed: 'Say "Thabit start" or press Start', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press Start to continue it',
+      start: 'Let\'s start', stop: 'Let\'s stop here', armed: 'Press "Let\'s start" to begin', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press "Let\'s start" to continue it',
       tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
-      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', srErr: 'Speech recognition problem', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
+      noSr: 'The transcript is not supported in this browser, you can type it by hand.', micDenied: 'Microphone access was not allowed.', srErr: 'Speech recognition problem', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
   };
   function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
   function mirFlag() { return 'thMirOpen:' + uKey(); }
@@ -1378,6 +1400,9 @@ function THApp(cfg) {
       .lab{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
       .lpc audio{width:100%;height:36px;margin-top:8px}
       .sdl{margin:10px 16px}
+      .sdl.sp{margin:20px 16px}
+      .sps{height:14px}
+      .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
       .mrwrap{position:relative;height:100%;min-height:100%}
       .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
       .mr-w{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -1436,7 +1461,6 @@ function THApp(cfg) {
       '<div class="mr-orb"><canvas id="mrC" width="420" height="420"></canvas><button type="button" class="mr-ctr" id="mrCtr" aria-label="' + T.start + '">' + SV.play + '</button></div>' +
       '<div class="mr-st" id="mrSt"></div>' +
       '<div class="mr-btns"><button type="button" class="btn" id="mrStart">' + T.start + '</button><button type="button" class="btn ghost" id="mrStop" disabled>' + T.stop + '</button></div>' +
-      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrWk" aria-pressed="false"><i></i><span>' + T.wake + '</span></button></div>' +
       '<div class="mr-tr"><button type="button" class="mr-sw on" id="mrTr" aria-pressed="true"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg" aria-label="' + T.lang + '" title="' + T.lang + '">' + (ar ? 'العربية' : 'English') + '</button></div>' +
       '<textarea class="dta mr-ta" id="mrTa" dir="auto" rows="5" placeholder="' + T.ph + '" spellcheck="false"></textarea>' +
       '<div class="mr-tr"><button type="button" class="mr-dl" id="mrCp">' + SV.cp + '<span>' + T.copy + '</span></button><button type="button" class="mr-dl" id="mrSh">' + SV.sh + '<span>' + T.share + '</span></button><button type="button" class="mr-dl" id="mrDx">' + SV.dl + '<span>' + T.dltx + '</span></button></div>' +
@@ -1449,7 +1473,7 @@ function THApp(cfg) {
     const st = q('mrSt'), ta = q('mrTa'), intr = q('mrInt'), res = q('mrRes'), prev = q('mrPrev'), warn = q('mrWarn'), ctr = q('mrCtr');
     const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
     let alive = true, running = false, state = 'idle', ctx = null, stream = null, src = null, proc = null, dest = null, playGain = null, playAn = null, bufSrc = null, rec = null, recChunks = [], mime = '';
-    let sess = null, sessions = [], urls = [], purls = [], trOn = true, srLang = ar ? 'ar-EG' : 'en-US', sr = null, wakeOn = false, fails = 0, srT0 = 0, ignoreSr = 0;
+    let sess = null, sessions = [], urls = [], purls = [], trOn = true, srLang = ar ? 'ar-EG' : 'en-US', sr = null, starting = false, fails = 0, srT0 = 0, ivTxt = '';
     let lvl = 0, hue = 214, tm = 0, curRms = 0, floor = 0.006, quietUntil = 0, ring = [], chunks = [], spk = false, hot = 0, voiced = 0, lastVoice = 0, raf = 0, last = performance.now(), saveT = 0, frameMs = 43, maxFrames = 40000;
     const abuf = new Float32Array(1024);
 
@@ -1589,11 +1613,12 @@ function THApp(cfg) {
       try { localStorage.setItem(mirFlag(), String(n)); } catch (e) { } updBadge();
     }
     async function startSession() {
-      if (running) return;
+      if (running || starting) return;
+      starting = true; fails = 0; if (trOn) srStart();
       await ready; ensureCtx();
       try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); }
-      catch (e) { st.textContent = T.micDenied; return; }
-      if (!alive) { stream.getTracks().forEach(t => t.stop()); return; }
+      catch (e) { starting = false; try { sr && sr.abort(); } catch (x) { } st.textContent = T.micDenied; return; }
+      if (!alive) { starting = false; stream.getTracks().forEach(t => t.stop()); return; }
       if (running) { stream.getTracks().forEach(t => t.stop()); return; }
       if (!sess) await newSess();
       src = ctx.createMediaStreamSource(stream); dest = ctx.createMediaStreamDestination(); proc = ctx.createScriptProcessor(2048, 1, 1);
@@ -1611,12 +1636,12 @@ function THApp(cfg) {
         rec.start(5000);
       }
       proc.onaudioprocess = ev => frame(ev.inputBuffer.getChannelData(0));
-      running = true; state = 'listening'; chime(true); ui(); fails = 0; srStart(); intr.textContent = trOn && !SRC ? T.noSr : '';
+      running = true; starting = false; state = 'listening'; chime(true); ui(); if (trOn) srStart(); intr.textContent = trOn && !SRC ? T.noSr : '';
     }
     function endAudio(done) {
       if (!running) return Promise.resolve();
       running = false; state = 'idle'; spk = false; chunks = []; ring = [];
-      if (!wakeOn) { try { sr && sr.abort(); } catch (e) { } }
+      setIv(''); try { sr && sr.abort(); } catch (e) { }
       try { proc.onaudioprocess = null; src.disconnect(); proc.disconnect(); } catch (e) { }
       if (bufSrc) { try { bufSrc.onended = null; bufSrc.stop(); } catch (e) { } bufSrc = null; }
       try { playGain.disconnect(); } catch (e) { }
@@ -1642,32 +1667,29 @@ function THApp(cfg) {
       sess = null; ui(); showRes(s, !task); drawPrev();
     }
 
-    /* ----- voice commands ("Thabit start" / "Thabit stop") + optional transcript ----- */
-    const nrm = s => String(s).toLowerCase().replace(/[ً-ٰٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-    const NAME = '(?:ثابت|thabit|thabet|tabit|tabet|sabit)';
-    const W_START = new RegExp(NAME + '\\s*(?:ابدا|ابدء|يبدا|ابد|start|begin)');
-    const W_STOP = new RegExp(NAME + '\\s*(?:وقف|توقف|قف|stop)');
-    function cmd() { ignoreSr = Date.now() + 1200; try { sr && sr.abort(); } catch (e) { } intr.textContent = ''; }
-    function onSr(e) {
-      if (Date.now() < ignoreSr) return;
-      let full = '', finals = '', interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i], t = r[0].transcript; full += ' ' + t; if (r.isFinal) finals += ' ' + t; else interim += ' ' + t; }
-      const n = nrm(full);
-      if (!running && W_START.test(n)) { cmd(); startSession(); return; }
-      if (running && W_STOP.test(n)) { cmd(); stopSession(); return; }
-      if (running && trOn) {
-        if (intr.textContent.indexOf(T.srErr) === 0) intr.textContent = '';
-        if (finals.trim()) { ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + finals.trim(); saveText(); }
-        intr.textContent = interim.trim();
-      }
+    /* ----- transcript: the words appear live in the text box (the grey tail is still being recognised) ----- */
+    function setIv(t) {
+      if (ivTxt && ta.value.endsWith(ivTxt)) ta.value = ta.value.slice(0, ta.value.length - ivTxt.length);
+      ivTxt = '';
+      if (t) { ivTxt = (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + t; ta.value += ivTxt; ta.scrollTop = ta.scrollHeight; }
     }
-    const wantSr = () => running || wakeOn;
+    function onSr(e) {
+      if (!(running || starting) || !trOn) return;
+      let finals = '', interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i], t = r[0].transcript; if (r.isFinal) finals += ' ' + t; else interim += ' ' + t; }
+      if (intr.textContent.indexOf(T.srErr) === 0) intr.textContent = '';
+      fails = 0; setIv('');
+      if (finals.trim()) { ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + finals.trim(); saveText(); }
+      if (interim.trim()) setIv(interim.trim());
+    }
+    const wantSr = () => running || starting;
+    const srMsg = c => c === 'audio-capture' ? T.srErr + ' — لا يوجد ميكروفون يعمل / no working microphone' : c === 'network' ? T.srErr + ' — network' : T.srErr + ' (' + c + ')';
     function srStart() {
       if (!SRC || !alive || !wantSr() || sr) return;
       try {
         const my = new SRC(); sr = my; srT0 = Date.now(); my.lang = srLang; my.continuous = true; my.interimResults = true; my.onresult = onSr;
-        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { wakeOn = false; fails = 99; q('mrWk').classList.remove('on'); st.textContent = T.micDenied; } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') intr.textContent = T.srErr + ' (' + ev.error + ')'; };
-        my.onend = () => { if (sr === my) sr = null; if (!alive || !wantSr() || fails > 8) return; fails = Date.now() - srT0 < 2500 ? fails + 1 : 0; setTimeout(srStart, Math.min(8000, 400 * Math.pow(2, fails))); };
+        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { fails = 99; intr.textContent = T.micDenied; } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') intr.textContent = srMsg(ev.error); };
+        my.onend = () => { if (sr === my) sr = null; setIv(''); if (!alive || !wantSr() || fails > 8) return; fails = Date.now() - srT0 < 2500 ? fails + 1 : 0; setTimeout(srStart, Math.min(8000, 400 * Math.pow(2, fails))); };
         my.start();
       } catch (e) { sr = null; }
     }
@@ -1676,7 +1698,6 @@ function THApp(cfg) {
     q('mrStart').onclick = startSession; q('mrStop').onclick = stopSession;
     ctr.onclick = () => running ? stopSession() : startSession();
     q('mrTr').onclick = e => { trOn = !trOn; e.currentTarget.classList.toggle('on', trOn); e.currentTarget.setAttribute('aria-pressed', trOn ? 'true' : 'false'); intr.textContent = trOn && !SRC ? T.noSr : ''; if (trOn && running) { fails = 0; srStart(); } };
-    q('mrWk').onclick = e => { wakeOn = !wakeOn; e.currentTarget.classList.toggle('on', wakeOn); e.currentTarget.setAttribute('aria-pressed', wakeOn ? 'true' : 'false'); if (wakeOn) { if (!SRC) { st.textContent = T.noSr; return; } fails = 0; srStart(); } else if (!running) { try { sr && sr.abort(); } catch (x) { } } };
     const flash = m => { st.textContent = m; setTimeout(ui, 1400); };
     q('mrCp').onclick = async () => { const t = ta.value; if (!t.trim()) return; try { await navigator.clipboard.writeText(t); } catch (e) { ta.select(); try { document.execCommand('copy'); } catch (x) { } } flash(T.copied); };
     q('mrSh').onclick = async () => { const t = ta.value; if (!t.trim()) return; if (navigator.share) { try { await navigator.share({ text: t }); } catch (e) { } } else { try { await navigator.clipboard.writeText(t); flash(T.copied); } catch (e) { } } };
@@ -1686,7 +1707,7 @@ function THApp(cfg) {
     ui();
 
     mirStop = () => {
-      alive = false; wakeOn = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
+      alive = false; starting = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
       if (sess) sess.text = ta.value;
       const fin = () => { urls.concat(purls).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); try { ctx && ctx.close(); } catch (e) { } };
       if (running) endAudio(false).then(fin); else { if (sess) mirDb.put(sess); fin(); }
