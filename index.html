@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Language Services', i_dash: 'Dashboard', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Pal', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', sec_train: 'Language Training Program', sec_gen: 'General Services',
+    en: { name: 'English', services: 'Services', grp: 'Language Services', i_dash: 'Dashboard', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Pal', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', sec_train: 'Language Training Program', sec_gen: 'General Services',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'خدمات اللغة', i_dash: 'لوحة التحكم', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'رفيق الإملاء', i_mirror: 'غرفة المرآة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', sec_train: 'برنامج التدريب اللغوي', sec_gen: 'خدمات عامة',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'خدمات اللغة', i_dash: 'لوحة التحكم', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'رفيق الإملاء', i_mirror: 'غرفة المرآة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'برنامج التدريب اللغوي', sec_gen: 'خدمات عامة',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -980,10 +980,11 @@ function THApp(cfg) {
     voice: '<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
     digital: '<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
     consult: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
+    library: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H11v17H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 4.5A1.5 1.5 0 0 0 18.5 3H13v17h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
   /* Language Services > [Language Training Program: dashboard, dictation, mirror, space] | [General Services: translation, voice over, digital, consult, store] */
-  const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
+  const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space', 'library']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   $('side').innerHTML = '<div class="sdh" data-t="grp"></div>' + SEC.map((sc, n) => (n ? '<div class="sdl"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(g => g.map(sdi).join('')).join('<div class="sdl"></div>')).join('');
   const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); };
@@ -997,6 +998,7 @@ function THApp(cfg) {
     R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
     R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.name; });
     if (cur) $('ltitle').textContent = t['i_' + cur];
+    if (cur === 'library') fillLayer('library');
     if (cfg.onLang) cfg.onLang(L); hb();
   }
   R.querySelectorAll('.js-lg').forEach(b => b.onclick = () => { L = L === 'ar' ? 'en' : 'ar'; try { localStorage.setItem(KEY_L, L); } catch (e) { } apply(); });
@@ -1038,6 +1040,8 @@ function THApp(cfg) {
     const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute;
     b.classList.toggle('full', !!dash);
     if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => tidyFrame(f)); b.appendChild(f); }
+    else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
+    else if (k === 'library') renderLib(b);
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
   function openLayer(k, nopush) {
@@ -1048,6 +1052,133 @@ function THApp(cfg) {
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
   function closeLayer() { if (cur !== 'dash') openLayer('dash', true); }   /* there is no main page any more: "back" lands on the dashboard */
+  /* ================= Dictation Pal + Library ================= */
+  const DICT = { bucket: 'words-and-passages', prefix: '', count: 10, key: 'thDictTask', photos: 'thDictPhotos' };   /* <- bucket / folder of the word recordings */
+  const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
+  const DT = {
+    en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
+      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.' },
+    ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
+      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.' }
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
+  function updBadge() {
+    const t = dictLoad(), on = !!(t && !t.done), it = R.querySelector('.sdi[data-k="dict"]');
+    if (it) { let bd = it.querySelector('.sdbd'); if (on && !bd) { bd = document.createElement('b'); bd.className = 'sdbd'; bd.textContent = '1'; it.appendChild(bd); } else if (!on && bd) bd.remove(); }
+    $('sbtn').classList.toggle('hasn', on);
+  }
+  function dictSave(t) { try { t ? localStorage.setItem(DICT.key, JSON.stringify(t)) : localStorage.removeItem(DICT.key); } catch (e) { } updBadge(); }
+
+  /* audio: every word is preloaded when the text is made, so a tap plays at once (a spoken-voice fallback is used if a recording is missing) */
+  const aud = {};
+  const prep = ts => ts.forEach(x => { if (x.url && !aud[x.url]) { const a = new Audio(x.url); a.preload = 'auto'; aud[x.url] = a; } });
+  function tts(w) { try { const u = new SpeechSynthesisUtterance(w); u.lang = 'en-US'; u.rate = .9; speechSynthesis.speak(u); } catch (e) { } }
+  function say(x) {
+    try { speechSynthesis.cancel(); } catch (e) { }
+    Object.values(aud).forEach(a => { try { a.pause(); } catch (e) { } });
+    const a = x.url && aud[x.url];
+    if (!a) return tts(x.w);
+    try { a.currentTime = 0; } catch (e) { }
+    const p = a.play(); if (p && p.catch) p.catch(() => tts(x.w));
+  }
+  async function dictWords() {
+    try {
+      const r = await fetch(REPORT_SUPABASE_URL + '/storage/v1/object/list/' + DICT.bucket, { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ prefix: DICT.prefix, limit: 1000, offset: 0 }) });
+      if (r.ok) {
+        const j = await r.json();
+        const out = (j || []).filter(f => f && f.name && /\.(mp3|wav|ogg|m4a|aac)$/i.test(f.name)).map(f => ({
+          w: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(),
+          url: REPORT_SUPABASE_URL + '/storage/v1/object/public/' + DICT.bucket + '/' + (DICT.prefix ? DICT.prefix + '/' : '') + encodeURIComponent(f.name) })).filter(x => x.w && x.w.indexOf(' ') < 0);
+        if (out.length >= DICT.count) return out;
+      }
+    } catch (e) { }
+    return DFALL.map(w => ({ w, url: '' }));
+  }
+  async function startTask(more) {
+    const all = await dictWords(), pick = [];
+    while (pick.length < DICT.count && all.length) pick.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
+    pick.forEach((x, n) => { x.p = n === pick.length - 1 ? '.' : ((n === 2 || n === 5) ? ',' : ''); });
+    prep(pick);
+    dictSave({ tokens: pick, mode: 'passage', i: 0, stage: 'work', more: !!more, text: '', done: false });
+  }
+  async function renderDict(b) {
+    const T = DT[L]; let t = dictLoad();
+    if (!t || t.done) { b.innerHTML = '<div class="pcard dpc"><div class="dmsg">' + T.loading + '</div></div>'; await startTask(false); t = dictLoad(); if (cur !== 'dict' || !b.isConnected) return; }
+    else prep(t.tokens);
+    drawDict(b, t);
+  }
+  function drawDict(b, t) {
+    const T = DT[L], card = el => { b.innerHTML = '<div class="pcard dpc">' + el + '</div>'; return b.firstChild; };
+    if (t.stage === 'photo') {
+      const c = card('<div class="dmsg big">' + T.photoT + '</div><label class="btn dup">' + T.photoB + '<input type="file" accept="image/*" hidden></label>');
+      c.querySelector('input').onchange = e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        t.done = true; t.stage = 'thanks'; dictSave(t); drawDict(b, t);   /* thanks at once, the saving happens quietly */
+        savePhoto(f).then(ok => { if (!ok) toast(T.bad); });
+      }; return;
+    }
+    if (t.stage === 'thanks') {
+      const c = card('<div class="dmsg big">' + T.thanks + '</div><div class="dmsg">' + T.thanks2 + '</div><button class="btn dmore" type="button">' + T.more + '</button>');
+      c.querySelector('.dmore').onclick = async () => { await startTask(true); if (cur === 'dict' && b.isConnected) drawDict(b, dictLoad()); }; return;
+    }
+    if (t.stage === 'nomind') { card('<div class="dmsg big">' + T.nomind + '</div>'); return; }
+    const m = t.mode, tk = t.tokens;
+    let stage;
+    if (m === 'passage') stage = '<div class="dpas">' + tk.map((x, n) => '<span class="dw" data-n="' + n + '">' + esc(x.w) + '</span>' + (x.p ? '<span class="dpn">' + x.p + '</span>' : '')).join(' ') + '</div>';
+    else { const x = tk[t.i]; stage = '<div class="dsw"><button class="dar" id="dPrev" type="button"' + (t.i ? '' : ' disabled') + '>&#8249;</button><div class="dwb"><span class="dw big" data-n="' + t.i + '">' + esc(x.w) + '</span>' + (x.p ? '<span class="dpn big">' + x.p + '</span>' : '') + '</div><button class="dar" id="dNext" type="button"' + (t.i < tk.length - 1 ? '' : ' disabled') + '>&#8250;</button></div><div class="dcnt">' + (t.i + 1) + ' / ' + tk.length + '</div>'; }
+    const c = card('<div class="dtabs"><button type="button" data-m="passage" class="' + (m === 'passage' ? 'on' : '') + '">' + T.passage + '</button><button type="button" data-m="word" class="' + (m === 'word' ? 'on' : '') + '">' + T.word + '</button></div><div class="dhint">' + T.hint + '</div>' + stage +
+      '<textarea class="dta" rows="3" placeholder="' + T.ph + '" spellcheck="false" autocomplete="off"></textarea><div class="dact">' + (t.more ? '<button type="button" class="dmis">' + T.mistake + '</button>' : '') + '<button class="btn dfin" type="button">' + T.done + '</button></div>');
+    const ta = c.querySelector('.dta'); ta.value = t.text || ''; ta.oninput = () => { t.text = ta.value; dictSave(t); };
+    c.querySelectorAll('.dtabs button').forEach(bt => bt.onclick = () => { t.mode = bt.dataset.m; dictSave(t); drawDict(b, t); });
+    const go = d => { const n = t.i + d; if (n < 0 || n >= tk.length) return; t.i = n; dictSave(t); drawDict(b, t); say(tk[n]); };
+    c.addEventListener('click', e => { const w = e.target.closest('.dw'); if (w && !c._drag) say(tk[+w.dataset.n]); });
+    const pv = c.querySelector('#dPrev'), nx = c.querySelector('#dNext'); if (pv) pv.onclick = () => go(-1); if (nx) nx.onclick = () => go(1);
+    const wb = c.querySelector('.dwb');
+    if (wb) { let x0 = null; wb.addEventListener('pointerdown', e => { x0 = e.clientX; c._drag = false; }); wb.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) { c._drag = true; go(dx < 0 ? 1 : -1); } }); wb.addEventListener('pointercancel', () => { x0 = null; }); }   /* swipe right-to-left = next */
+    c.querySelector('.dfin').onclick = () => { t.stage = 'photo'; dictSave(t); drawDict(b, t); };
+    const ms = c.querySelector('.dmis'); if (ms) ms.onclick = () => { dictSave(null); drawDict(b, { stage: 'nomind' }); };
+  }
+  function savePhoto(file) {
+    return new Promise(res => {
+      const fr = new FileReader();
+      fr.onload = () => { const im = new Image(); im.onload = () => {
+        const s = Math.min(1, 1000 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        const d = cv.toDataURL('image/jpeg', .7);
+        try { const a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); a.unshift({ d, at: Date.now() }); a.length = Math.min(a.length, 12); for (;;) { try { localStorage.setItem(DICT.photos, JSON.stringify(a)); break; } catch (e) { if (!a.length) break; a.pop(); } } } catch (e) { }
+        res(true); }; im.onerror = () => res(false); im.src = fr.result; };
+      fr.onerror = () => res(false); fr.readAsDataURL(file);
+    });
+  }
+  function toast(m) { const d = document.createElement('div'); d.className = 'dtoast'; d.textContent = m; W.appendChild(d); setTimeout(() => d.remove(), 3500); }
+  function renderLib(b) {
+    const T = DT[L]; let a = []; try { a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); } catch (e) { }
+    b.innerHTML = '<div class="pcard dpc dlib">' + (a.length ? '<div class="dgrid">' + a.map(p => '<img alt="" src="' + p.d + '">').join('') + '</div><div class="dhint">' + T.libNote + '</div>' : '<div class="dmsg">' + T.libEmpty + '</div>') + '</div>';
+  }
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = '#pg .pcard,#lbody>.dpc{}' +
+      '.dpc{flex-direction:column;gap:14px;align-items:stretch!important;justify-content:flex-start!important;padding:26px 20px!important;overflow:auto;scrollbar-width:none}.dpc::-webkit-scrollbar{display:none}' +
+      '.dmsg{text-align:center;font:600 14px Cairo,Inter,sans-serif;color:var(--ink2);margin:auto 0}.dmsg.big{font:800 21px Cairo,Inter,sans-serif;color:var(--ink)}' +
+      '.dtabs{display:flex;gap:8px;justify-content:center}.dtabs button{height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer}.dtabs button.on{background:var(--btn);color:var(--onbtn);border-color:var(--btn)}' +
+      '.dhint{text-align:center;font:500 12.5px Cairo,Inter,sans-serif;color:var(--ink2)}' +
+      '.dpas{direction:ltr;text-align:left;line-height:2.4;font:600 19px Inter,sans-serif;padding:6px 4px}' +
+      '.dw{display:inline-block;filter:blur(9px);cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;padding:0 1px}.dw.big{font:800 40px Inter,sans-serif;filter:blur(14px)}' +
+      '.dpn{color:#ef4444;font-weight:900}.dpn.big{font:900 40px Inter,sans-serif}' +
+      '.dsw{display:flex;align-items:center;justify-content:space-between;gap:8px;direction:ltr;margin:auto 0}.dwb{flex:1;min-height:120px;display:flex;align-items:center;justify-content:center;touch-action:pan-y;-webkit-user-select:none;user-select:none}' +
+      '.dar{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font-size:24px;line-height:1;cursor:pointer}.dar:disabled{opacity:.3;cursor:default}.dcnt{text-align:center;font:700 12px Inter,sans-serif;color:var(--ink2)}' +
+      '.dta{width:100%;border-radius:14px;padding:12px;background:var(--gfield);border:1px solid var(--gbd);color:var(--ink);font:500 15px Inter,Cairo,sans-serif;resize:none;outline:0;direction:ltr}.dta:focus{border-color:var(--ink)}' +
+      '.dact{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}.dact .btn{width:auto;min-width:150px;padding:0 24px}' +
+      '.dmis{border:0;background:none;color:var(--ink2);font:600 12px Cairo,Inter,sans-serif;text-decoration:underline;cursor:pointer}' +
+      '.dup{display:flex;align-items:center;justify-content:center;width:auto!important;min-width:160px;margin:0 auto;padding:0 24px;cursor:pointer}.dmore{width:auto!important;min-width:160px;margin:0 auto;padding:0 24px}' +
+      '.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.dgrid img{width:100%;border-radius:12px;display:block}' +
+      '.sdbd{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#ef4444;color:#fff;font:800 11px/20px Inter,sans-serif;text-align:center}' +
+      '#sbtn.hasn::after{content:"";position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#ef4444}' +
+      '.dtoast{position:fixed;left:50%;bottom:30px;translate:-50% 0;z-index:200;padding:9px 18px;border-radius:999px;background:#0f172a;color:#fff;font:600 13px Cairo,Inter,sans-serif}';
+    R.appendChild(st);
+  })();
+  updBadge();
   $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (b) openLayer(b.dataset.k); });
   $('logo').onclick = () => { if (cur !== 'dash') openLayer('dash'); };
   $('back').onclick = () => closeLayer();
