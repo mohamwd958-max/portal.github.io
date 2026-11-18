@@ -4542,7 +4542,7 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="mgr-hb mgr-lib" data-lib aria-label="${LIBL()}" title="${LIBL()}">${LIBSVG}</button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
@@ -4566,7 +4566,6 @@ body.light-theme #mgrBtn .mgr-ico{background-color:#0d9488}
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
-    q('[data-lib]').onclick = () => { if (window.openLibrary) window.openLibrary(); };
     el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
@@ -5187,15 +5186,7 @@ body.light-theme #thSet .tsl{background:#f1f5f9;border-color:rgba(15,23,42,.12);
         try { itToast(tr('Saved ✓', 'تم الحفظ ✓', 'اتحفظ ✓')); } catch (e) { }
       },
       items: () => [
-        { icon: '<i class="fa-solid fa-circle-half-stroke"></i>', label: tr('Theme', 'الوضع', 'الوضع'), children: () => [
-          opt('theme', 'dark', tr('Dark', 'داكن', 'دارك'), '<i class="fa-solid fa-moon"></i>'),
-          opt('theme', 'light', tr('Light', 'فاتح', 'وايت'), '<i class="fa-solid fa-sun"></i>')] },
-        { icon: '<i class="fa-solid fa-globe"></i>', label: tr('Language', 'اللغة', 'اللغة'), children: () => ['en', 'ar', 'eg'].map(x => opt('lang', x, nm[x])) },
-        { icon: '<i class="fa-solid fa-text-height"></i>', label: tr('Font size', 'حجم الخط', 'حجم الخط'), children: () => [
-          opt('size', 'small', tr('Small', 'صغير', 'صغير')), opt('size', 'normal', tr('Normal', 'عادي', 'عادي')), opt('size', 'large', tr('Large', 'كبير', 'كبير'))], preview },
-        { icon: '<i class="fa-regular fa-user"></i>', label: tr('Account', 'الحساب', 'الحساب'), children: () => [
-          { icon: '<i class="fa-regular fa-user"></i>', label: tr('Profile', 'ملفي', 'ملفي'), keep: 1, on: () => Panels.open('profile') },
-          { icon: '<i class="fa-solid fa-right-from-bracket" style="color:#f43f5e"></i>', label: tr('Log out', 'تسجيل الخروج', 'تسجيل الخروج'), on: () => window.logout && window.logout() }] }
+        { icon: '<i class="fa-solid fa-pen" style="color:#38bdf8"></i>', label: tr('Space', 'المساحة', 'المساحة'), on: () => { if (window.thSpace) thSpace.open(); } }
       ]
     });
   };
@@ -5719,6 +5710,7 @@ body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
   const LIBSVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
   setInterval(() => {
     const bar = document.getElementById('thFpBar'); if (!bar) return;
+    { const o = bar.querySelector('[data-lib]'); if (o) o.remove(); return; }   /* Library button removed from the Messenger */
     let b = bar.querySelector('[data-lib]');
     if (!b) {
       b = document.createElement('button'); b.type = 'button'; b.dataset.lib = '1'; b.innerHTML = LIBSVG; b.style.display = 'none';
@@ -5996,13 +5988,13 @@ body.thb-lib .mgr-pop{padding-top:calc(100px + env(safe-area-inset-top))!importa
   const lib = document.createElement('button'); lib.type = 'button'; lib.id = 'thLibCell';
   lib.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg><span></span>';
   lib.onclick = () => { if (window.openLibrary) window.openLibrary(); };
-  document.body.appendChild(back); document.body.appendChild(lib);
+  document.body.appendChild(back);   /* the Library cell is no longer added */
   setInterval(() => {
     const b = document.body, ph = PH() && b.classList.contains('thfp-open');
     const mgr = !!(window.thMessenger && thMessenger.visible && thMessenger.visible());
     const libOpen = !!document.querySelector('#thLib.open');
     b.classList.toggle('thb-back', ph && !mgr);
-    b.classList.toggle('thb-lib', ph && mgr && !libOpen);
+    b.classList.toggle('thb-lib', false);
     const sp = lib.querySelector('span'), t = tr('Library', 'المكتبة', 'المكتبة'); if (sp.textContent !== t) sp.textContent = t;
   }, 200);
 })();
@@ -6905,8 +6897,6 @@ html body #pop.open:not(#z),html body #thSet.open:not(#z),html body #thDays.open
 /* FIX: the void (z 10020) was above the Feed page (#pop, z 10001) and hid it; pages must sit above the void, the bar/header above pages */
 html body #pop.open:not(#z){z-index:10025!important}
 html body .mgr-pop:not(#z){z-index:2147483001!important}
-/* FIX: on wide screens the old centering (translate -50%,-50%) was still applied to the full-screen Messenger and pushed it up-left by half its size */
-html body .mgr-pop:not(#z){transform:none!important;translate:none!important;scale:none!important;inset:0!important;margin:0!important}
 html body #mobileFloatingBar:not(#z){z-index:2147483003!important}
 html body #thSpace.open:not(#z){background:var(--thp-bg)!important}
 html body #thSet.open:not(#z),html body #thDays.open:not(#z){display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:auto!important;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
@@ -7513,4 +7503,11 @@ body.light-theme #thNews h3{color:#b45309}
 #thNews .thn-ok{width:100%;border:0;border-radius:12px;padding:10px;font:800 14px Inter,Cairo,sans-serif;background:#fbbf24;color:#0f172a;cursor:pointer}`;
   document.head.appendChild(ns);
   const wait = setInterval(() => { if (document.getElementById('thS2') && document.querySelector('#lists .dcard')) { clearInterval(wait); setTimeout(() => window.thNewsShow(false), 1200); } }, 700);
+})();
+
+/* Space now lives inside the More menu (it is the only item there); its button is gone from the bottom bar. Delete this block to bring it back. */
+(function () {
+  const st = document.createElement('style'); st.id = 'thSpaceInMore';
+  st.textContent = 'html body #mobileFloatingBar #spaceBtn,#spaceBtn{display:none!important}';
+  document.head.appendChild(st);
 })();
