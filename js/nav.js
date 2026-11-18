@@ -11,7 +11,7 @@
 (function () {
   'use strict';
   var me = document.currentScript, page = (me && me.getAttribute('data-page')) || 'app';
-  var LANDING = 'landing.html', HOME = 'home.html';
+  var LANDING = 'landing.html', HOME = 'index.html';
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
   function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function loggedIn() {
@@ -20,7 +20,6 @@
     try { for (var j = 0; j < sessionStorage.length; j++) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2) && /(session|token)/i.test(k2)) return true; } } catch (e) { }
     return false;
   }
-  window.thLoggedIn = loggedIn;
   var T = {
     en: 'You are browsing as a guest. Your information is not saved — once you leave the app you may need to enter again.',
     ar: 'أنت تتصفح كضيف. معلوماتك لن تُحفظ، وبمجرد خروجك من التطبيق قد تحتاج للدخول مرة أخرى.',
@@ -35,14 +34,13 @@
     try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/staff/i.test(k)) localStorage.removeItem(k); } } catch (e) { }
     try { for (var j = sessionStorage.length - 1; j >= 0; j--) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2)) sessionStorage.removeItem(k2); } } catch (e) { }
     ss('thGuestSession', null); ss('thLanded', null);
-    try { localStorage.removeItem('thMember'); } catch (e) { }
-    (window.top || window).location.replace(LANDING);
+    location.replace(LANDING);
   };
 
   function guard() {
     var li = loggedIn(), guest = ss('thGuestSession') === '1';
     if (page === 'landing') {
-      if (li) { location.replace('index.html'); return; }   /* a signed-in user lands on the member page (index.html), not on the last dashboard page */
+      if (li) { location.replace(ls('thLastPage') || HOME); return; }
       ss('thGuestSession', null); ss('thLanded', '1'); return;
     }
     if (li) { ss('thGuestSession', null); return; }
