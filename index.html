@@ -1325,11 +1325,11 @@ function THApp(cfg) {
     ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المرآة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
       start: 'ابدأ', stop: 'إيقاف', armed: 'قل «ثابت ابدأ» أو اضغط ابدأ', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — ابدأ لإكمالها',
       tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مرآة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
-      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.' },
+      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ' },
     en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
       start: 'Start', stop: 'Stop', armed: 'Say "Thabit start" or press Start', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press Start to continue it',
       tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
-      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.' }
+      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied' }
   };
   function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
   function mirFlag() { return 'thMirOpen:' + uKey(); }
@@ -1363,7 +1363,7 @@ function THApp(cfg) {
       .mr-sw i{width:30px;height:18px;border-radius:999px;background:var(--chip);position:relative;transition:background .4s}
       .mr-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:translate .4s var(--ease)}
       .mr-sw.on i{background:#34d399}.mr-sw.on i::after{translate:12px 0;background:#fff}
-      .mr-lg{height:34px;min-width:46px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:800 12px Inter,sans-serif;cursor:pointer}
+      .mr-lg{height:34px;min-width:66px;padding:0 12px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:800 12px Inter,sans-serif;cursor:pointer}
       .mr-ta{unicode-bidi:plaintext;text-align:start;min-height:120px}
       .mr-int{min-height:18px;width:100%;text-align:center;font:500 12.5px Cairo,Inter,sans-serif;color:var(--ink2);unicode-bidi:plaintext}
       .mr-rc,.mr-row{width:100%;border:1px solid var(--gbd);border-radius:16px;padding:12px 14px;background:var(--gfield);text-align:center}
@@ -1377,10 +1377,13 @@ function THApp(cfg) {
       .mr-row summary{cursor:pointer;font:700 13px Cairo,Inter,sans-serif;list-style:none}.mr-row summary::-webkit-details-marker{display:none}
       .mr-row small{color:var(--ink2);font-weight:600;margin-inline-start:8px}
       .mr-tx{margin-top:8px;text-align:start;unicode-bidi:plaintext;font:500 13px/1.7 Inter,Cairo,sans-serif;color:var(--ink2);white-space:pre-wrap}
-      .mr-warn{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:20px;text-align:center;cursor:pointer;background:rgba(10,12,18,.62);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);transition:opacity .45s ease}
+      .mr-warn{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:20px;text-align:center;cursor:pointer;background:#0b0d13;transition:opacity .45s ease}
+      #W.light .mr-warn{background:#e4e6ec}
+      button.mr-dl{cursor:pointer}
       .mr-warn.off{opacity:0;pointer-events:none}
       .mr-wb{max-width:380px;padding:26px 22px;border-radius:24px;border:1px solid var(--gbd);background:var(--pn);color:var(--ink)}
-      .mr-wb svg{width:40px;height:40px;stroke:#fbbf24;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px}
+      .mr-wb svg{width:48px;height:48px;stroke:#ef4444;fill:rgba(239,68,68,.12);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px;animation:mrTri 2.6s ease-in-out infinite}
+      @keyframes mrTri{0%,100%{filter:drop-shadow(0 0 2px rgba(239,68,68,.25));scale:1}50%{filter:drop-shadow(0 0 13px rgba(239,68,68,.9));scale:1.07}}
       .mr-wb h3{font:800 19px Cairo,Inter,sans-serif;margin-bottom:8px}
       .mr-wb p{font:600 14px/1.8 Cairo,Inter,sans-serif;color:var(--ink2);margin-bottom:14px}
       .mr-wb em{font:700 12px Cairo,Inter,sans-serif;font-style:normal;opacity:.7}
@@ -1395,25 +1398,29 @@ function THApp(cfg) {
       play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
       stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
       dl: '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
-      hp: '<svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></svg>'
+      tri: '<svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path d="M12 10v5M12 17.6v.1"/></svg>',
+      cp: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+      sh: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>'
     };
     b.classList.remove('full');
     b.innerHTML = '<div class="mrwrap" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="pcard dpc mr-card"><div class="mr-w">' +
       '<div class="mr-orb"><canvas id="mrC" width="420" height="420"></canvas><button type="button" class="mr-ctr" id="mrCtr" aria-label="' + T.start + '">' + SV.play + '</button></div>' +
       '<div class="mr-st" id="mrSt"></div>' +
       '<div class="mr-btns"><button type="button" class="btn" id="mrStart">' + T.start + '</button><button type="button" class="btn ghost" id="mrStop" disabled>' + T.stop + '</button></div>' +
-      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrTr" aria-pressed="false"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg">' + (ar ? 'AR' : 'EN') + '</button></div>' +
+      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrWk" aria-pressed="false"><i></i><span>' + T.wake + '</span></button></div>' +
+      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrTr" aria-pressed="false"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg" aria-label="' + T.lang + '" title="' + T.lang + '">' + (ar ? 'العربية' : 'English') + '</button></div>' +
       '<textarea class="dta mr-ta" id="mrTa" dir="auto" rows="5" placeholder="' + T.ph + '" spellcheck="false"></textarea>' +
+      '<div class="mr-tr"><button type="button" class="mr-dl" id="mrCp">' + SV.cp + '<span>' + T.copy + '</span></button><button type="button" class="mr-dl" id="mrSh">' + SV.sh + '<span>' + T.share + '</span></button><button type="button" class="mr-dl" id="mrDx">' + SV.dl + '<span>' + T.dltx + '</span></button></div>' +
       '<div class="mr-int" id="mrInt"></div><div id="mrRes" style="width:100%"></div><div class="mr-prev" id="mrPrev"></div>' +
       '</div></div>' +
-      '<div class="mr-warn' + (mirWarned ? ' off' : '') + '" id="mrWarn"><div class="mr-wb">' + SV.hp + '<h3>' + T.wT + '</h3><p>' + T.wP + '</p><em>' + T.wTap + '</em></div></div></div>';
+      '<div class="mr-warn' + (mirWarned ? ' off' : '') + '" id="mrWarn"><div class="mr-wb">' + SV.tri + '<h3>' + T.wT + '</h3><p>' + T.wP + '</p><em>' + T.wTap + '</em></div></div></div>';
 
     const q = id => b.querySelector('#' + id);
     const cv = q('mrC'), g = cv.getContext('2d'), S = cv.width, cx = S / 2, cy = S / 2, Ro = S * 0.31;
     const st = q('mrSt'), ta = q('mrTa'), intr = q('mrInt'), res = q('mrRes'), prev = q('mrPrev'), warn = q('mrWarn'), ctr = q('mrCtr');
     const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
     let alive = true, running = false, state = 'idle', ctx = null, stream = null, src = null, proc = null, dest = null, playGain = null, playAn = null, bufSrc = null, rec = null, recChunks = [], mime = '';
-    let sess = null, sessions = [], urls = [], purls = [], trOn = false, srLang = ar ? 'ar-EG' : 'en-US', sr = null, srOn = false, ignoreSr = 0;
+    let sess = null, sessions = [], urls = [], purls = [], trOn = false, srLang = ar ? 'ar-EG' : 'en-US', sr = null, wakeOn = false, fails = 0, srT0 = 0, ignoreSr = 0;
     let lvl = 0, hue = 214, tm = 0, curRms = 0, floor = 0.006, quietUntil = 0, ring = [], chunks = [], spk = false, hot = 0, voiced = 0, lastVoice = 0, raf = 0, last = performance.now(), saveT = 0, frameMs = 43, maxFrames = 40000;
     const abuf = new Float32Array(1024);
 
@@ -1576,11 +1583,12 @@ function THApp(cfg) {
         rec.start(5000);
       }
       proc.onaudioprocess = ev => frame(ev.inputBuffer.getChannelData(0));
-      running = true; state = 'listening'; chime(true); ui();
+      running = true; state = 'listening'; chime(true); ui(); fails = 0; srStart();
     }
     function endAudio(done) {
       if (!running) return Promise.resolve();
       running = false; state = 'idle'; spk = false; chunks = []; ring = [];
+      if (!wakeOn) { try { sr && sr.abort(); } catch (e) { } }
       try { proc.onaudioprocess = null; src.disconnect(); proc.disconnect(); } catch (e) { }
       if (bufSrc) { try { bufSrc.onended = null; bufSrc.stop(); } catch (e) { } bufSrc = null; }
       try { playGain.disconnect(); } catch (e) { }
@@ -1622,28 +1630,32 @@ function THApp(cfg) {
         intr.textContent = interim.trim();
       }
     }
+    const wantSr = () => running || wakeOn;
     function srStart() {
-      if (!SRC || !alive || !srOn) return;
+      if (!SRC || !alive || !wantSr() || sr) return;
       try {
-        sr = new SRC(); sr.lang = srLang; sr.continuous = true; sr.interimResults = true; sr.onresult = onSr;
-        sr.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { srOn = false; st.textContent = T.micDenied; } };
-        sr.onend = () => { sr = null; if (alive && srOn) setTimeout(srStart, 300); };
-        sr.start();
+        const my = new SRC(); sr = my; srT0 = Date.now(); my.lang = srLang; my.continuous = true; my.interimResults = true; my.onresult = onSr;
+        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { wakeOn = false; fails = 99; q('mrWk').classList.remove('on'); st.textContent = T.micDenied; } };
+        my.onend = () => { if (sr === my) sr = null; if (!alive || !wantSr() || fails > 8) return; fails = Date.now() - srT0 < 2500 ? fails + 1 : 0; setTimeout(srStart, Math.min(8000, 400 * Math.pow(2, fails))); };
+        my.start();
       } catch (e) { sr = null; }
     }
-    function arm() { ensureCtx(); srOn = true; srStart(); }
 
     /* ----- buttons ----- */
     q('mrStart').onclick = startSession; q('mrStop').onclick = stopSession;
     ctr.onclick = () => running ? stopSession() : startSession();
-    q('mrTr').onclick = e => { trOn = !trOn; e.currentTarget.classList.toggle('on', trOn); e.currentTarget.setAttribute('aria-pressed', trOn ? 'true' : 'false'); if (!trOn) intr.textContent = ''; };
-    q('mrLg').onclick = e => { srLang = srLang.indexOf('ar') === 0 ? 'en-US' : 'ar-EG'; e.currentTarget.textContent = srLang.indexOf('ar') === 0 ? 'AR' : 'EN'; try { sr && sr.abort(); } catch (x) { } };
-    warn.onclick = () => { mirWarned = true; warn.classList.add('off'); arm(); };
-    if (mirWarned) arm();
+    q('mrTr').onclick = e => { trOn = !trOn; e.currentTarget.classList.toggle('on', trOn); e.currentTarget.setAttribute('aria-pressed', trOn ? 'true' : 'false'); intr.textContent = trOn && !SRC ? T.noSr : ''; if (trOn && running) { fails = 0; srStart(); } };
+    q('mrWk').onclick = e => { wakeOn = !wakeOn; e.currentTarget.classList.toggle('on', wakeOn); e.currentTarget.setAttribute('aria-pressed', wakeOn ? 'true' : 'false'); if (wakeOn) { if (!SRC) { st.textContent = T.noSr; return; } fails = 0; srStart(); } else if (!running) { try { sr && sr.abort(); } catch (x) { } } };
+    const flash = m => { st.textContent = m; setTimeout(ui, 1400); };
+    q('mrCp').onclick = async () => { const t = ta.value; if (!t.trim()) return; try { await navigator.clipboard.writeText(t); } catch (e) { ta.select(); try { document.execCommand('copy'); } catch (x) { } } flash(T.copied); };
+    q('mrSh').onclick = async () => { const t = ta.value; if (!t.trim()) return; if (navigator.share) { try { await navigator.share({ text: t }); } catch (e) { } } else { try { await navigator.clipboard.writeText(t); flash(T.copied); } catch (e) { } } };
+    q('mrDx').onclick = () => { const t = ta.value; if (!t.trim()) return; const u = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8' })), a = document.createElement('a'); a.href = u; a.download = 'mirror-room-transcript.txt'; b.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); };
+    q('mrLg').onclick = e => { srLang = srLang.indexOf('ar') === 0 ? 'en-US' : 'ar-EG'; e.currentTarget.textContent = srLang.indexOf('ar') === 0 ? 'العربية' : 'English'; try { sr && sr.abort(); } catch (x) { } };
+    warn.onclick = () => { mirWarned = true; warn.classList.add('off'); ensureCtx(); };
     ui();
 
     mirStop = () => {
-      alive = false; srOn = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
+      alive = false; wakeOn = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
       if (sess) sess.text = ta.value;
       const fin = () => { urls.concat(purls).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); try { ctx && ctx.close(); } catch (e) { } };
       if (running) endAudio(false).then(fin); else { if (sess) mirDb.put(sess); fin(); }
