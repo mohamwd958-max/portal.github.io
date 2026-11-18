@@ -6905,6 +6905,8 @@ html body #pop.open:not(#z),html body #thSet.open:not(#z),html body #thDays.open
 /* FIX: the void (z 10020) was above the Feed page (#pop, z 10001) and hid it; pages must sit above the void, the bar/header above pages */
 html body #pop.open:not(#z){z-index:10025!important}
 html body .mgr-pop:not(#z){z-index:2147483001!important}
+/* FIX: on wide screens the old centering (translate -50%,-50%) was still applied to the full-screen Messenger and pushed it up-left by half its size */
+html body .mgr-pop:not(#z){transform:none!important;translate:none!important;scale:none!important;inset:0!important;margin:0!important}
 html body #mobileFloatingBar:not(#z){z-index:2147483003!important}
 html body #thSpace.open:not(#z){background:var(--thp-bg)!important}
 html body #thSet.open:not(#z),html body #thDays.open:not(#z){display:flex!important;justify-content:center!important;align-items:flex-start!important;overflow:auto!important;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
