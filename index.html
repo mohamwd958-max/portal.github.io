@@ -963,7 +963,7 @@ function THApp(cfg) {
     en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المرآة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -1072,7 +1072,7 @@ function THApp(cfg) {
     ['ماذا تعرض لوحة التحكم؟', 'What does the dashboard show?'],
     ['كيف أتابع تقدمي؟', 'How can I track my progress?'],
     ['ما هو رفيق الإملاء؟', 'What is Dictation Pal?'],
-    ['كيف تعمل غرفة المرآة؟', 'How does the Mirroring Room work?'],
+    ['كيف تعمل غرفة المماراة؟', 'How does the Mirroring Room work?'],
     ['ما أسعار خدماتكم؟', 'What are your prices?'],
     ['هل يمكنني رفع ملف للترجمة؟', 'Can I upload a file for translation?'],
     ['ماذا يوجد في متجركم؟', 'What is in your store?'],
@@ -1091,7 +1091,7 @@ function THApp(cfg) {
   const HKW = {   /* words that lead the search to a page */
     dash: 'لوحة تحكم تقدم متابعة dashboard progress', translate: 'ترجم ترجمة لغات ملف translat language file', voice: 'صوت تعليق voice',
     digital: 'رقمي رقمية حلول موقع تطبيق digital website app', consult: 'استشار حجز موعد consult book', store: 'متجر سعر أسعار اسعار store price shop',
-    dict: 'إملاء املاء dictation', mirror: 'مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة library', train: 'تدريب دورة مبتدئ train course'
+    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة library', train: 'تدريب دورة مبتدئ train course'
   };
   const HT = {
     ar: { hi: 'مرحبًا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
@@ -1318,18 +1318,18 @@ function THApp(cfg) {
     homeStop = () => { alive = false; clearInterval(timer); micStop(); files.forEach(f => { if (f.img) { try { URL.revokeObjectURL(f.img); } catch (e) { } } }); homeStop = () => { }; };
   }
 
-  /* ================= Mirror Room (غرفة المرآة) ================= */
+  /* ================= Mirror Room (غرفة المماراة) ================= */
   let mirStop = () => { };
   let mirWarned = false;   /* kept in memory only: a refresh or a log out brings the warning back */
   const MT = {
-    ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المرآة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
+    ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المماراة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
       start: 'ابدأ', stop: 'إيقاف', armed: 'قل «ثابت ابدأ» أو اضغط ابدأ', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — ابدأ لإكمالها',
-      tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مرآة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
-      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ' },
+      tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مماراة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
+      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
     en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
       start: 'Start', stop: 'Stop', armed: 'Say "Thabit start" or press Start', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press Start to continue it',
       tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
-      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied' }
+      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
   };
   function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
   function mirFlag() { return 'thMirOpen:' + uKey(); }
@@ -1338,16 +1338,28 @@ function THApp(cfg) {
     db: null,
     open() { return new Promise((res, rej) => { if (this.db) return res(this.db); try { const r = indexedDB.open('thMirror', 1); r.onupgradeneeded = () => { r.result.createObjectStore('s', { keyPath: 'id' }); }; r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); },
     all(user) { return this.open().then(db => new Promise((res, rej) => { const q = db.transaction('s').objectStore('s').getAll(); q.onsuccess = () => res((q.result || []).filter(x => x.user === user)); q.onerror = () => rej(q.error); })).catch(() => []); },
+    del(id) { return this.open().then(db => new Promise(res => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').delete(id); tx.oncomplete = () => res(true); tx.onerror = () => res(false); })).catch(() => false); },
     put(rec) { return this.open().then(db => new Promise((res, rej) => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').put(rec); tx.oncomplete = () => res(true); tx.onerror = () => rej(tx.error); })).catch(() => false); }
   };
   function mirCss() {
     if (R.getElementById('thMirCss')) return;
     const st = document.createElement('style'); st.id = 'thMirCss';
     st.textContent = `
-      .sdi.hm{margin:0 4px 3px}
+      .sdi.hm{margin:0 6px 6px}
       .sdh{margin:3px 14px 6px;font-size:15px}
       .sdg{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:16px 14px 6px}
-      .sdi{height:44px;margin:0 0 3px}
+      #W{--sbh:rgba(255,255,255,.07)}#W.light{--sbh:rgba(28,26,22,.06)}
+      .sdi{width:calc(100% - 12px);height:44px;margin:0 6px 6px;font-size:14.6px;transition:background .35s,scale .9s var(--ease),translate .9s var(--ease)}
+      .sdi:hover,.sdi.on,.sdi.hm.on{background:var(--sbh);color:var(--ink)}
+      @media(hover:hover){.sdi:hover{scale:1.012;translate:0 -1px}}
+      .sdi:active{scale:.965;translate:0 1px;transition:scale .22s ease-out,translate .22s ease-out,background .35s}
+      .lpa>*{margin-block:0}
+      .lsw{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:2px 0 14px}
+      .lsw button{height:34px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer;transition:background .3s,scale .6s var(--ease)}
+      .lsw button.on{background:var(--btn);color:var(--onbtn);border-color:var(--btn)}
+      .lsw button:active{scale:.95;transition:scale .2s ease-out}
+      .lab{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+      .lpc audio{width:100%;height:36px;margin-top:8px}
       .sdl{margin:10px 16px}
       .mrwrap{position:relative;height:100%;min-height:100%}
       .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
@@ -1541,8 +1553,13 @@ function THApp(cfg) {
       const done = sessions.filter(s => s.state === 'done').sort((x, y) => y.n - x.n);
       prev.innerHTML = done.length ? '<h4>' + T.prev + '</h4>' + done.map(s => '<details class="mr-row"><summary>' + T.sess + ' #' + s.n + '<small>' + esc(fmt(s)) + '</small></summary>' + partsHtml(s, purls) + textDl(s, purls) + (s.text ? '<div class="mr-tx">' + esc(s.text) + '</div>' : '') + '</details>').join('') : '';
     }
-    function showRes(s) {
-      res.innerHTML = '<div class="mr-rc"><b>' + T.sess + ' #' + s.n + '</b><small>' + T.saved + '</small>' + partsHtml(s, urls) + textDl(s, urls) + '</div>';
+    function showRes(s, trial) {
+      res.innerHTML = '<div class="mr-rc"><b>' + T.sess + ' #' + s.n + '</b><small>' + (trial ? T.trial : T.saved) + '</small>' + partsHtml(s, urls) + textDl(s, urls) + (trial ? '<div class="mr-pt"><button type="button" class="mr-dl" id="mrSave"><span>' + T.save + '</span></button></div>' : '') + '</div>';
+      const sv = res.querySelector('#mrSave');
+      if (sv) sv.onclick = async () => {
+        if (sessions.some(x => x.id === s.id)) s.n = sessions.reduce((m, x) => Math.max(m, x.n || 0), 0) + 1;
+        s.id = user + ':' + s.n; s.state = 'done'; sessions.push(s); await mirDb.put(s); sv.remove(); res.querySelector('small').textContent = T.saved; drawPrev();
+      };
       try { res.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { }
     }
     function saveText() { if (!sess) return; sess.text = ta.value; clearTimeout(saveT); saveT = setTimeout(() => mirDb.put(sess), 400); }
@@ -1609,7 +1626,9 @@ function THApp(cfg) {
       chime(false);
       const s = sess; await endAudio(true);
       try { localStorage.removeItem(mirFlag()); } catch (e) { } updBadge();
-      sess = null; ui(); showRes(s); drawPrev();
+      const task = !!(window.thMirrorTask || (cfg.mirrorTask && cfg.mirrorTask()));   /* only a task given by the trainer is saved by itself; a practice run is saved only if the trainee asks */
+      if (!task) { sessions = sessions.filter(x => x !== s); await mirDb.del(s.id); }
+      sess = null; ui(); showRes(s, !task); drawPrev();
     }
 
     /* ----- voice commands ("Thabit start" / "Thabit stop") + optional transcript ----- */
@@ -1668,9 +1687,9 @@ function THApp(cfg) {
   const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
   const DT = {
     en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
-      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.' },
+      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.' },
     ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
-      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.' }
+      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.' }
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
@@ -1786,17 +1805,33 @@ function THApp(cfg) {
   let libI = 0, libCols = 3;
   const libPages = () => R.querySelector('.lpages');
   function libGo(i) { const p = libPages(); if (p) p.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * i * p.clientWidth, behavior: 'smooth' }); }
+  let libUrls = [];
+  function libAud(s) { return (s.parts || []).map(p => { const u = URL.createObjectURL(p); libUrls.push(u); return '<audio controls preload="none" src="' + u + '"></audio>'; }).join(''); }
   function renderLib(b) {
+    libUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); libUrls = [];
     const T = DT[L]; let a = []; try { a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); } catch (e) { }
     const ps = passList(), empty = m => '<div class="dmsg">' + m + '</div>';
     b.innerHTML = '<div class="pcard dpc dlib"><div class="lpages">' +
       '<section class="lpg lph">' + (a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty)) + '</section>' +
-      '<section class="lpg">' + empty(T.audEmpty) + '</section>' +
+      '<section class="lpg lpa"><div class="lsw"><button type="button" class="on" data-a="msg">' + T.tabMsg + '</button><button type="button" data-a="task">' + T.tabTask + '</button></div><div class="lab">' + empty(T.audEmpty) + '</div></section>' +
       '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + T.passage + ' #' + p.n + '</b><p>' + esc(p.text) + '</p>' + (p.answer ? '<p class="la">' + esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
       '<section class="lpg">' + empty(T.linkEmpty) + '</section></div></div>';
     const pg = libPages();
     pg.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * libI * pg.clientWidth, behavior: 'instant' });
     pg.addEventListener('scroll', () => { const i = Math.round(Math.abs(pg.scrollLeft) / (pg.clientWidth || 1)); if (i !== libI && i >= 0 && i < LIB.length) { libI = i; crumb(); } }, { passive: true });
+    const pa = b.querySelector('.lpa');
+    if (pa) {
+      const lab = pa.querySelector('.lab');
+      const show = async k => {
+        pa.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
+        if (k === 'msg') { lab.innerHTML = empty(T.audEmpty); return; }
+        lab.innerHTML = '';
+        const all = (await mirDb.all(uKey())).filter(x => x.state === 'done').sort((x, y) => y.n - x.n);
+        if (!lab.isConnected || !pa.querySelector('.lsw button.on[data-a="task"]')) return;
+        lab.innerHTML = all.length ? '<div class="lcol">' + all.map(x => '<div class="lpc"><b>' + T.sessN + ' #' + x.n + '</b>' + libAud(x) + (x.text ? '<p class="la">' + esc(x.text) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.taskEmpty);
+      };
+      pa.querySelector('.lsw').addEventListener('click', e => { const x = e.target.closest('button'); if (x) show(x.dataset.a); });
+    }
     /* photos: spread two fingers = bigger pictures (fewer per row), pinch = smaller pictures, more side by side (Ctrl + wheel on a computer) */
     const ph = b.querySelector('.lph'), gr = b.querySelector('.dgrid');
     if (gr) {
