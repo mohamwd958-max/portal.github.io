@@ -945,7 +945,7 @@ function THApp(cfg) {
     const st = document.createElement('style');
     st.textContent =
       '#sbtn svg{width:20px;height:20px;overflow:visible;stroke-width:2}' +
-      '#sbtn .ml{transform-box:view-box;transform-origin:12px 12px;transition:transform .65s cubic-bezier(.65,0,.25,1),opacity .35s ease}' +
+      '#sbtn .ml{transform-box:view-box;transform-origin:12px 12px;transition:transform .4s cubic-bezier(.65,0,.25,1),opacity .25s ease}' +
       '#sbtn .ml.a{transform:translateY(-3.5px)}#sbtn .ml.b{transform:translateY(3.5px)}' +
       '#W.sbo #sbtn .ml.a{transform:rotate(45deg)}#W.sbo #sbtn .ml.b{transform:rotate(-45deg)}' +
       '#W.sbo #sbtn .g3{opacity:1!important}' +
@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -986,12 +986,13 @@ function THApp(cfg) {
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
   /* Sidebar: Home (+ small store icon) | Linguistic Services [Training Program, General Linguistic Services] | Production | Smart Services | Personal Services */
-  const SEC = [['sec_train', ['dash', 'dict', 'mirror', 'space', 'library', 'messenger']], ['sec_gen', ['translate']]];
+  const SEC = [['sec_train', ['dash', 'dict', 'mirror', 'space', 'library']], ['sec_gen', ['translate']]];
   const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
+  const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + LINE +
+  $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + msgBtn + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1081,6 +1082,7 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
+  window.addEventListener('message', e => { const d = e.data; if (d && d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } });
   function closeLayer() { if (cur !== 'home') openLayer('home', true); }   /* there is no main page any more: "back" lands on the dashboard */
   /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
   const HQ = window.THHomeQuestions || [
@@ -1402,6 +1404,7 @@ function THApp(cfg) {
       .sdl{margin:10px 16px}
       .sdl.sp{margin:20px 16px}
       .sps{height:14px}
+      .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:3px;inset-inline-end:3px;min-width:15px;height:15px;padding:0 4px;border-radius:99px;background:#ef4444;color:#fff;font:800 9.5px/15px Inter,sans-serif;text-align:center;display:none}.sdi .bdg.on{display:block}
       .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
       .mrwrap{position:relative;height:100%;min-height:100%}
       .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
