@@ -1045,7 +1045,9 @@ function THApp(cfg) {
       const r = el.getBoundingClientRect(); if (r.top > 90 || r.height > 70 || r.width > 170) return;   /* only small buttons in the top strip */
       const sig = [el.id, typeof el.className === 'string' ? el.className : '', el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('onclick'), el.getAttribute('data-i18n'), (el.textContent || '').trim().slice(0, 20)].join(' ');
       if (!SKIP.test(sig) || KEEP.test(sig)) return; el.style.setProperty('display', 'none', 'important'); }); } catch (e) { } };
-    const sweepAll = () => { sweep(); sweepBtns(); };
+    if (!d.getElementById('thMovedCss')) { const sm = d.createElement('style'); sm.id = 'thMovedCss'; sm.textContent = '#mgrBtn,#spaceBtn,#barEdit{display:none!important}'; d.head.appendChild(sm); }
+    const moved = () => { try { let ch = false; ['mgrBtn', 'spaceBtn', 'barEdit'].forEach(id => { const x = d.getElementById(id); if (x && !x.hidden) { x.hidden = true; ch = true; } }); if (ch && f.contentWindow.layoutBar) f.contentWindow.layoutBar(); } catch (e) { } };
+    const sweepAll = () => { sweep(); sweepBtns(); moved(); };
     sweepAll(); setTimeout(sweepAll, 500); setTimeout(sweepAll, 1500); try { new MutationObserver(sweepAll).observe(d.body, { childList: true, subtree: true }); } catch (e) { }
   }
   /* Messenger: on a wide screen it opens from the side bar (inside the page area); on a phone / big zoom it stays in the dashboard where it was */
@@ -1083,33 +1085,50 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
-  /* ---------- Messenger: its button lives here now. The chat engine runs in a hidden, transparent copy of the dashboard page (#thmsg) and only the chat pop-up is shown over the portal ---------- */
-  const MG = { fr: null, x: null, ready: false, want: false, t: 0 };
+  /* ---------- Messenger: its button lives here. The chat engine of the dashboard runs in a hidden, transparent copy of the dashboard page (same site, so we can drive it directly); only the chat pop-up is shown over the portal ---------- */
+  const MG = { fr: null, x: null, want: false, shown: false, full: false, was: false, hooked: false, wt: 0 };
+  const MG_HOST = 'html,body{background:transparent!important;overflow:hidden!important}body>*:not(.mgr-veil):not(.mgr-pop){visibility:hidden!important;pointer-events:none!important}';
+  const MG_MOVED = '#mgrBtn,#spaceBtn,#barEdit{display:none!important}';
+  const MG_PANELS = '#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thLib.open';
+  const mgM = () => { try { return MG.fr && MG.fr.contentWindow && MG.fr.contentWindow.thMessenger; } catch (e) { return null; } };
+  const mgDoc = () => { try { return MG.fr && MG.fr.contentDocument; } catch (e) { return null; } };
+  function mgStyle(id, css) { const d = mgDoc(); if (!d || !d.head) return; let st = d.getElementById(id); if (!st) { st = d.createElement('style'); st.id = id; d.head.appendChild(st); } if (st.textContent !== css) st.textContent = css; }
   function mgEnsure() {
     if (MG.fr || !cfg.dashRoute) return;
     const f = document.createElement('iframe'); f.title = 'Messenger'; f.setAttribute('allowtransparency', 'true');
     f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:transparent;color-scheme:normal;visibility:hidden;pointer-events:none;z-index:2147483200';
-    f.src = cfg.dashRoute() + '#thmsg'; document.body.appendChild(f); MG.fr = f;
+    f.src = cfg.dashRoute() + '#thmsg'; R.appendChild(f); MG.fr = f;   /* inside the portal's own root: the page CSS hides everything that is added straight to the body */
     const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Close');
-    x.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));inset-inline-end:12px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font:400 24px/38px Inter,sans-serif;text-align:center;cursor:pointer;z-index:2147483300;display:none';
-    x.onclick = () => { mgSend({ type: 'thabit-msgr', op: 'close' }); mgHide(); };
-    document.body.appendChild(x); MG.x = x;
+    x.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font:400 24px/38px Inter,sans-serif;text-align:center;cursor:pointer;z-index:2147483300;display:none;padding:0';
+    x.onclick = mgHide; R.appendChild(x); MG.x = x;
+    setInterval(mgTick, 250);
   }
-  const mgSend = m => { try { MG.fr.contentWindow.postMessage(m, '*'); } catch (e) { } };
-  function mgShow(full) { if (!MG.fr) return; MG.fr.style.visibility = 'visible'; MG.fr.style.pointerEvents = 'auto'; MG.x.style.display = full ? 'block' : 'none'; }
-  function mgHide() { MG.want = false; if (!MG.fr) return; MG.fr.style.visibility = 'hidden'; MG.fr.style.pointerEvents = 'none'; MG.x.style.display = 'none'; }
-  function mgOpen() {
-    mgEnsure(); if (!MG.fr) return; MG.want = true; clearTimeout(MG.t); MG.t = setTimeout(() => { if (!MG.ready) MG.want = false; }, 10000);
-    if (MG.ready) { mgSend({ type: 'thabit-msgr', op: 'open' }); mgShow(false); }
+  function mgShow(full) { if (!MG.fr) return; MG.shown = true; MG.fr.style.visibility = 'visible'; MG.fr.style.pointerEvents = 'auto'; MG.x.style.display = full ? 'block' : 'none'; }
+  function mgReveal() { MG.full = true; mgStyle('thHostCss', ''); mgShow(true); }   /* Requests / Assistant / Library opened from the chat need the real page */
+  function mgHide() {
+    MG.want = false; MG.shown = false; MG.full = false; MG.was = false;
+    if (!MG.fr) return; MG.fr.style.visibility = 'hidden'; MG.fr.style.pointerEvents = 'none'; MG.x.style.display = 'none';
+    mgStyle('thHostCss', MG_HOST);
+    const m = mgM(), w = MG.fr.contentWindow;
+    try { if (m && m.state().open) m.hide(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#rqm.open,#rqn.open,#rqo.open') && typeof w.closeRq === 'function') w.closeRq(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#asm:not([hidden])') && w.Panels) w.Panels.min(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#thLib.open') && w.closeLibrary) w.closeLibrary(); } catch (e) { }
   }
-  window.addEventListener('message', e => {
-    const d = e.data; if (!d) return;
-    if (d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } return; }
-    if (!MG.fr || e.source !== MG.fr.contentWindow) return;
-    if (d.type === 'thabit-msgr-ready') { MG.ready = true; if (MG.want) { mgSend({ type: 'thabit-msgr', op: 'open' }); mgShow(false); } }
-    else if (d.type === 'thabit-msgr-closed') mgHide();
-    else if (d.type === 'thabit-msgr-full') mgShow(true);
-  });
+  function mgTick() {
+    const m = mgM(), d = mgDoc(); if (!m || !d || !d.body) return;
+    mgStyle('thMovedCss', MG_MOVED);
+    if (!MG.hooked) { MG.hooked = true; mgStyle('thHostCss', MG_HOST); d.addEventListener('pointerdown', ev => { if (MG.shown && !MG.full && !(ev.target.closest && ev.target.closest('.mgr-pop'))) { try { m.hide(); } catch (e) { } } }, true); }
+    try { const g = $('msgBdg'); if (g) { const n = new Set(m.msgs().filter(x => x.sender === 'trainer' && !x.read_at).map(x => x.sender_id || 'trainer')).size; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } catch (e) { }
+    if (MG.want) { MG.want = false; MG.full = false; mgStyle('thHostCss', MG_HOST); try { m.open(); } catch (e) { } mgShow(false); MG.was = true; return; }
+    if (!MG.shown) return;
+    let open = false, vis = false; try { open = m.state().open; vis = m.visible(); } catch (e) { }
+    if (open && !vis && !MG.full) mgReveal();
+    if (MG.was && !open && !MG.full) setTimeout(() => { if (!MG.shown || MG.full) return; const dd = mgDoc(); let o2 = false; try { o2 = m.state().open; } catch (e) { } if (dd && dd.querySelector(MG_PANELS)) mgReveal(); else if (!o2) mgHide(); }, 450);
+    MG.was = open;
+  }
+  function mgOpen() { mgEnsure(); if (!MG.fr) return; MG.want = true; clearTimeout(MG.wt); MG.wt = setTimeout(() => { MG.want = false; }, 12000); mgTick(); }
+  window.addEventListener('message', e => { const d = e.data; if (d && d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } });
   setTimeout(mgEnsure, 2500);   /* started early so the unread number is right before the button is tapped */
 
   /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
@@ -1248,6 +1267,15 @@ function THApp(cfg) {
     `;
     R.appendChild(st);
   }
+  (function () {   /* the page card is flat: no blur, so the light of the side bar no longer bleeds into it */
+    const st = document.createElement('style'); st.id = 'thFlat';
+    st.textContent = `
+      .pcard,.hm-bar,.dframe,.mr-card,.ltop{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+      .hm-menu,.hm-pop{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#2a2e3b!important}
+      #W.light .hm-menu,#W.light .hm-pop{background:#f6f4ee!important}
+      .hm-bar{box-shadow:0 6px 18px rgba(0,0,0,.12)!important}.hm-bar:focus-within{box-shadow:0 8px 22px rgba(0,0,0,.16)!important}`;
+    R.appendChild(st);
+  })();
   function renderHome(b) {
     homeStop(); homeCss();
     const T = HT[L], ar = L === 'ar', sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1459,7 +1487,8 @@ function THApp(cfg) {
       .lpc audio{width:100%;height:36px;margin-top:8px}
       .sdl{margin:10px 16px}
       .sdl.sp{margin:20px 16px}
-      .sdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 12px 6px}.sdr .sdi{margin:0!important;flex:none}
+      .sdr + .sdl.sp{margin-top:22px!important}
+      .sdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}
       .sps{height:14px}
       .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
       .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
