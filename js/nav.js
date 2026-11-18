@@ -20,6 +20,7 @@
     try { for (var j = 0; j < sessionStorage.length; j++) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2) && /(session|token)/i.test(k2)) return true; } } catch (e) { }
     return false;
   }
+  window.thLoggedIn = loggedIn;
   var T = {
     en: 'You are browsing as a guest. Your information is not saved — once you leave the app you may need to enter again.',
     ar: 'أنت تتصفح كضيف. معلوماتك لن تُحفظ، وبمجرد خروجك من التطبيق قد تحتاج للدخول مرة أخرى.',
@@ -34,33 +35,21 @@
     try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/staff/i.test(k)) localStorage.removeItem(k); } } catch (e) { }
     try { for (var j = sessionStorage.length - 1; j >= 0; j--) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2)) sessionStorage.removeItem(k2); } } catch (e) { }
     ss('thGuestSession', null); ss('thLanded', null);
-    location.replace(LANDING);
+    try { localStorage.removeItem('thMember'); } catch (e) { }
+    (window.top || window).location.replace(LANDING);
   };
 
   function guard() {
     var li = loggedIn(), guest = ss('thGuestSession') === '1';
     if (page === 'landing') {
-      if (li) { location.replace(ls('thLastPage') || HOME); return; }
+      if (li) { location.replace('index.html'); return; }   /* a signed-in user lands on the member page (index.html), not on the last dashboard page */
       ss('thGuestSession', null); ss('thLanded', '1'); return;
     }
     if (li) { ss('thGuestSession', null); return; }
     if (page === 'login') { if (!ss('thLanded') && !guest) location.replace(LANDING); return; }   /* the portal/login page itself */
     if (!guest) { location.replace(LANDING); return; }                                           /* first open / after logout */
-    notice(); track();
+    notice();
   }
-  /* statistics: tell the server which page (and section) the guest opened */
-  var lastTracked = '';
-  function track() {
-    try {
-      var g = JSON.parse(ls('thGuest') || '{}'); if (!g.id || typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return;
-      var pg = (location.pathname.split('/').pop() || 'index.html') + (location.hash || '');
-      if (pg === lastTracked) return; lastTracked = pg;
-      fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/guest_track', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_guest_id: g.id, p_page: pg }), keepalive: true }).catch(function () { });
-    } catch (e) { }
-  }
-  window.addEventListener('hashchange', function () { if (ss('thGuestSession') === '1' && !loggedIn()) track(); });
-  /* portal.js loads after this file, so send once the page is ready */
-  window.addEventListener('load', function () { lastTracked = ''; if (ss('thGuestSession') === '1' && !loggedIn()) track(); });
   function notice() {
     function show() {
       if (document.getElementById('thGuestNote')) return;
