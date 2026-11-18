@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -971,6 +971,7 @@ function THApp(cfg) {
 
   /* ---------- sidebar ---------- */
   const IC = {
+    messenger: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h7M8.5 14.5h4"/>',
     home: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5a.5.5 0 0 0 .5.5h4v-5.5h4V20h4a.5.5 0 0 0 .5-.5V10"/>',
     dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
     train: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
@@ -985,7 +986,7 @@ function THApp(cfg) {
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
   /* Language Services > [Language Training Program: dashboard, dictation, mirror, space] | [General Services: translation, voice over, digital, consult, store] */
-  const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space', 'library']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
+  const SEC = [['sec_train', [['dash', 'dict', 'mirror', 'space', 'library', 'messenger']]], ['sec_gen', [['translate'], ['voice'], ['digital'], ['consult'], ['store']]]];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   $('side').innerHTML = sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<div class="sdh" data-t="grp"></div>' + SEC.map((sc, n) => (n ? '<div class="sdl"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(g => g.map(sdi).join('')).join('<div class="sdl"></div>')).join('');
   homeCss(); mirCss();
@@ -1039,12 +1040,26 @@ function THApp(cfg) {
     const sweepAll = () => { sweep(); sweepBtns(); };
     sweepAll(); setTimeout(sweepAll, 500); setTimeout(sweepAll, 1500); try { new MutationObserver(sweepAll).observe(d.body, { childList: true, subtree: true }); } catch (e) { }
   }
+  /* Messenger: on a wide screen it opens from the side bar (inside the page area); on a phone / big zoom it stays in the dashboard where it was */
+  function openMsg(f) {
+    const go = () => {
+      try {
+        const d = f.contentDocument; if (!d || !d.body) return;
+        const pop = d.querySelector('.mgr-pop');
+        if (pop && getComputedStyle(pop).display !== 'none' && getComputedStyle(pop).visibility !== 'hidden') return;
+        const el = d.querySelector('#mgrBtn,#mgrOpen,[data-mgr],[id*="messenger" i],[class*="messenger" i],[id*="mgr" i][onclick]');
+        if (el && !el.closest('.mgr-pop')) el.click();
+      } catch (e) { }
+      try { f.contentWindow.postMessage({ type: 'thabit-open-messenger' }, '*'); } catch (e) { }
+    };
+    [500, 1400, 2800].forEach(t => setTimeout(go, t));
+  }
   function fillLayer(k) {
-    const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute;
+    const b = $('lbody'), dash = (k === 'dash' || k === 'messenger') && cfg.dashRoute;
     if (k !== 'home') homeStop();
     if (k !== 'mirror') mirStop();
     b.classList.toggle('full', !!dash);
-    if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => tidyFrame(f)); b.appendChild(f); }
+    if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute() + (k === 'messenger' ? '#messenger' : ''); f.addEventListener('load', () => { tidyFrame(f); if (k === 'messenger') openMsg(f); }); b.appendChild(f); }
     else if (k === 'home') renderHome(b);
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
@@ -1217,7 +1232,7 @@ function THApp(cfg) {
 
     /* ----- placeholder questions: typed fast, held two seconds, then gone; Arabic then its English twin ----- */
     (async () => {
-      const list = []; HQ.forEach(p => { list.push(p[0]); list.push(p[1]); });
+      const list = HQ.map(p => ar ? p[0] : p[1]);   /* only the language that is selected */
       let i = 0; const box = q('hmPh');
       while (alive && b.isConnected) {
         if (document.hidden) { await sleep(500); continue; }
@@ -1325,11 +1340,11 @@ function THApp(cfg) {
     ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المماراة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
       start: 'ابدأ', stop: 'إيقاف', armed: 'قل «ثابت ابدأ» أو اضغط ابدأ', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — ابدأ لإكمالها',
       tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مماراة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
-      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
+      noSr: 'الأوامر الصوتية والنص المكتوب غير مدعومين في هذا المتصفح، استخدم الأزرار.', micDenied: 'لم يُسمح باستخدام الميكروفون.', srErr: 'تعذّر التعرف على الكلام', wake: 'الاستماع لكلمة «ثابت ابدأ»', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
     en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
       start: 'Start', stop: 'Stop', armed: 'Say "Thabit start" or press Start', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press Start to continue it',
       tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
-      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
+      noSr: 'Voice commands and transcript are not supported in this browser, use the buttons.', micDenied: 'Microphone access was not allowed.', srErr: 'Speech recognition problem', wake: 'Listen for Thabit start', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
   };
   function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
   function mirFlag() { return 'thMirOpen:' + uKey(); }
@@ -1346,6 +1361,8 @@ function THApp(cfg) {
     const st = document.createElement('style'); st.id = 'thMirCss';
     st.textContent = `
       .sdi.hm{margin:0 6px 6px}
+      .sdi[data-k="messenger"]{display:none}
+      @media(min-width:1180px){.sdi[data-k="messenger"]{display:flex}}
       .sdh{margin:3px 14px 6px;font-size:15px}
       .sdg{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:16px 14px 6px}
       #W{--sbh:rgba(255,255,255,.07)}#W.light{--sbh:rgba(28,26,22,.06)}
@@ -1420,7 +1437,7 @@ function THApp(cfg) {
       '<div class="mr-st" id="mrSt"></div>' +
       '<div class="mr-btns"><button type="button" class="btn" id="mrStart">' + T.start + '</button><button type="button" class="btn ghost" id="mrStop" disabled>' + T.stop + '</button></div>' +
       '<div class="mr-tr"><button type="button" class="mr-sw" id="mrWk" aria-pressed="false"><i></i><span>' + T.wake + '</span></button></div>' +
-      '<div class="mr-tr"><button type="button" class="mr-sw" id="mrTr" aria-pressed="false"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg" aria-label="' + T.lang + '" title="' + T.lang + '">' + (ar ? 'العربية' : 'English') + '</button></div>' +
+      '<div class="mr-tr"><button type="button" class="mr-sw on" id="mrTr" aria-pressed="true"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg" aria-label="' + T.lang + '" title="' + T.lang + '">' + (ar ? 'العربية' : 'English') + '</button></div>' +
       '<textarea class="dta mr-ta" id="mrTa" dir="auto" rows="5" placeholder="' + T.ph + '" spellcheck="false"></textarea>' +
       '<div class="mr-tr"><button type="button" class="mr-dl" id="mrCp">' + SV.cp + '<span>' + T.copy + '</span></button><button type="button" class="mr-dl" id="mrSh">' + SV.sh + '<span>' + T.share + '</span></button><button type="button" class="mr-dl" id="mrDx">' + SV.dl + '<span>' + T.dltx + '</span></button></div>' +
       '<div class="mr-int" id="mrInt"></div><div id="mrRes" style="width:100%"></div><div class="mr-prev" id="mrPrev"></div>' +
@@ -1428,11 +1445,11 @@ function THApp(cfg) {
       '<div class="mr-warn' + (mirWarned ? ' off' : '') + '" id="mrWarn"><div class="mr-wb">' + SV.tri + '<h3>' + T.wT + '</h3><p>' + T.wP + '</p><em>' + T.wTap + '</em></div></div></div>';
 
     const q = id => b.querySelector('#' + id);
-    const cv = q('mrC'), g = cv.getContext('2d'), S = cv.width, cx = S / 2, cy = S / 2, Ro = S * 0.31;
+    const cv = q('mrC'), g = cv.getContext('2d'), S = cv.width, cx = S / 2, cy = S / 2, Ro = S * 0.38;
     const st = q('mrSt'), ta = q('mrTa'), intr = q('mrInt'), res = q('mrRes'), prev = q('mrPrev'), warn = q('mrWarn'), ctr = q('mrCtr');
     const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
     let alive = true, running = false, state = 'idle', ctx = null, stream = null, src = null, proc = null, dest = null, playGain = null, playAn = null, bufSrc = null, rec = null, recChunks = [], mime = '';
-    let sess = null, sessions = [], urls = [], purls = [], trOn = false, srLang = ar ? 'ar-EG' : 'en-US', sr = null, wakeOn = false, fails = 0, srT0 = 0, ignoreSr = 0;
+    let sess = null, sessions = [], urls = [], purls = [], trOn = true, srLang = ar ? 'ar-EG' : 'en-US', sr = null, wakeOn = false, fails = 0, srT0 = 0, ignoreSr = 0;
     let lvl = 0, hue = 214, tm = 0, curRms = 0, floor = 0.006, quietUntil = 0, ring = [], chunks = [], spk = false, hot = 0, voiced = 0, lastVoice = 0, raf = 0, last = performance.now(), saveT = 0, frameMs = 43, maxFrames = 40000;
     const abuf = new Float32Array(1024);
 
@@ -1457,12 +1474,6 @@ function THApp(cfg) {
       hue += ((state === 'playing' ? 268 : 214) - hue) * .06;
       tm += dt * (.15 + 2.1 * lvl);
       g.clearRect(0, 0, S, S);
-      const N = 52, a0 = Math.PI * .78, a1 = Math.PI * 2.22, Ra = Ro + S * .08;
-      for (let i = 0; i < N; i++) {
-        const t = i / (N - 1), a = a0 + (a1 - a0) * t, d = Math.abs(t - .5) * 2, lit = lvl > .02 && d <= lvl;
-        g.beginPath(); g.arc(cx + Math.cos(a) * Ra, cy + Math.sin(a) * Ra, S * .0065, 0, 6.2832);
-        g.fillStyle = lit ? 'hsla(' + hue + ',90%,60%,.95)' : 'rgba(150,155,170,.38)'; g.fill();
-      }
       g.save(); g.beginPath(); g.arc(cx, cy, Ro, 0, 6.2832); g.clip();
       const bg = g.createRadialGradient(cx - Ro * .2, cy - Ro * .25, Ro * .1, cx, cy, Ro);
       bg.addColorStop(0, 'hsl(' + hue + ',70%,18%)'); bg.addColorStop(1, 'hsl(' + (hue + 6) + ',75%,6%)');
@@ -1600,7 +1611,7 @@ function THApp(cfg) {
         rec.start(5000);
       }
       proc.onaudioprocess = ev => frame(ev.inputBuffer.getChannelData(0));
-      running = true; state = 'listening'; chime(true); ui(); fails = 0; srStart();
+      running = true; state = 'listening'; chime(true); ui(); fails = 0; srStart(); intr.textContent = trOn && !SRC ? T.noSr : '';
     }
     function endAudio(done) {
       if (!running) return Promise.resolve();
@@ -1645,6 +1656,7 @@ function THApp(cfg) {
       if (!running && W_START.test(n)) { cmd(); startSession(); return; }
       if (running && W_STOP.test(n)) { cmd(); stopSession(); return; }
       if (running && trOn) {
+        if (intr.textContent.indexOf(T.srErr) === 0) intr.textContent = '';
         if (finals.trim()) { ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + finals.trim(); saveText(); }
         intr.textContent = interim.trim();
       }
@@ -1654,7 +1666,7 @@ function THApp(cfg) {
       if (!SRC || !alive || !wantSr() || sr) return;
       try {
         const my = new SRC(); sr = my; srT0 = Date.now(); my.lang = srLang; my.continuous = true; my.interimResults = true; my.onresult = onSr;
-        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { wakeOn = false; fails = 99; q('mrWk').classList.remove('on'); st.textContent = T.micDenied; } };
+        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { wakeOn = false; fails = 99; q('mrWk').classList.remove('on'); st.textContent = T.micDenied; } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') intr.textContent = T.srErr + ' (' + ev.error + ')'; };
         my.onend = () => { if (sr === my) sr = null; if (!alive || !wantSr() || fails > 8) return; fails = Date.now() - srT0 < 2500 ? fails + 1 : 0; setTimeout(srStart, Math.min(8000, 400 * Math.pow(2, fails))); };
         my.start();
       } catch (e) { sr = null; }
