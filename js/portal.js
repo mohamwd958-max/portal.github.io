@@ -6,9 +6,7 @@ try {
 } catch (e) {}
 
 /* Signed-in trainee: leave the portal at once (replace = Back never returns here). Logout is the only thing that clears the token. */
-try {
-    /* (removed) a signed-in user is no longer thrown into the dashboard: index.html shows the member page first, and the Dashboard is a button there */
-} catch (e) {}
+/* (removed) signed-in trainee used to be sent straight to dashboard.html; now index.html opens the member page and the Dashboard is a sidebar button */
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdTjCpH7KYgNX0jV_rOmupRF2kaR1CH6RtH0wTkOccqmyuIB4zsmUD0GqKPrxaiBqd-A/exec";
 
@@ -271,12 +269,11 @@ async function resumeSession() {
             try { s = JSON.parse(sessionStorage.getItem(STAFF_SESSION_KEYS[role]) || 'null'); } catch (e) {}
             if (s && s.access && s.exp > Date.now() + 30000) {
                 const real = await fetchMyRole(s.access);
-                if (real === role) { return; }   /* valid staff session: stay, the member page is shown */
+                if (real === role) { if (await goIfExists(ROLE_ROUTES[role])) return; }
                 try { sessionStorage.removeItem(STAFF_SESSION_KEYS[role]); } catch (e) {}
             }
         }
     } catch (e) {}
-    /* (removed) no automatic jump to the trainee dashboard */
 }
 
 async function handleLogin() {
@@ -307,7 +304,7 @@ async function handleLogin() {
                 if (role) {
                     saveStaffSession(res.session, role);
                     say(t.welcome.replace('{name}', u.split('@')[0]), 'ok');
-                    setTimeout(() => { if (window.thEnterMember) window.thEnterMember(ROLE_ROUTES[role], u); else window.location.replace(ROLE_ROUTES[role]); }, 800);
+                    setTimeout(() => { window.location.replace(ROLE_ROUTES[role]); }, 800);
                     return;
                 }
                 // مسجّل في Auth لكن مش أدمن ولا ترينر -> ارفض
@@ -330,7 +327,7 @@ async function handleLogin() {
             say(t.welcome.replace('{name}', data.profile.trainee), 'ok');
             localStorage.setItem('thabit_trainee_token', data.token);
             localStorage.setItem('currentTrainee', JSON.stringify(data.profile));
-            setTimeout(() => { if (window.thEnterMember) window.thEnterMember(ROLE_ROUTES.trainee, u); else window.location.replace(ROLE_ROUTES.trainee); }, 1000);
+            setTimeout(() => { window.location.replace(ROLE_ROUTES.trainee); }, 1000);
         } else {
             let msg = t.errWrong;
             if (data && data.message === 'too_many_attempts') msg = 'Too many attempts. Try again in 15 minutes.';
