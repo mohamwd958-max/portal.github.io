@@ -994,6 +994,8 @@ function THApp(cfg) {
   function tidyFrame(f) {
     let d; try { d = f.contentDocument; if (!d || !d.head) return; } catch (e) { return; }
     if (!d.getElementById('thTidy')) { const st = d.createElement('style'); st.id = 'thTidy'; st.textContent = 'html{scrollbar-width:none!important}::-webkit-scrollbar{display:none!important;width:0!important}'; d.head.appendChild(st); }
+    /* Messenger on a computer: the old 'centre of the screen' shift must never apply to the full-page Messenger (same fix as in dashboard.js, kept here so a cached dashboard.js cannot bring the bug back) */
+    if (!d.getElementById('thMgrFix')) { const sm = d.createElement('style'); sm.id = 'thMgrFix'; sm.textContent = 'html body .mgr-pop:not(#z){transform:none!important;translate:none!important;scale:none!important;inset:0!important;margin:0!important}'; d.head.appendChild(sm); }
     const NAMES = /^(الملف الشخصي|بروفايل|الحساب|profile|my profile|تسجيل الخروج|تسجيل خروج|logout|log out|sign out)$/i;
     const sweep = () => { try { d.querySelectorAll('button,a,li,[role=menuitem],[role=button],span,div,p').forEach(el => { if (el.children.length > 3) return; if (NAMES.test((el.textContent || '').trim())) { const t = el.closest('button,a,li,[role=menuitem]') || el; t.style.setProperty('display', 'none', 'important'); } }); } catch (e) { } };
     const SKIP = /theme|dark|light|moon|sun|lang|account|profile|avatar|user|ثيم|لغة|اللغة|العربية|english|حساب|الحساب|اكونت|الملف/i, KEEP = /font|text.?size|fsize|حجم|الخط/i;
