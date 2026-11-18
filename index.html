@@ -528,7 +528,7 @@
 </head>
 
 <body data-opt="lang">
-<script>try{if(localStorage.getItem('thThemeChoice')!=='dark')document.body.classList.add('light-theme')}catch(e){document.body.classList.add('light-theme')}</script>
+<script>try{if(localStorage.getItem('thThemeChoice')==='light')document.body.classList.add('light-theme')}catch(e){}</script>
 <script src="js/brand.js"></script>
 
     <!-- login page: language + theme only -->
@@ -940,6 +940,24 @@ function THApp(cfg) {
   'use strict';
   const R = cfg.host.attachShadow({ mode: 'open' });
   R.innerHTML = '<style>' + THAPP_CSS + '</style>' + THAPP_HTML;
+  /* ---- v7: two-line menu that morphs into an X, softer sun/moon, full-screen blur behind pop-ups ---- */
+  (function () {
+    const st = document.createElement('style');
+    st.textContent =
+      '#sbtn svg{width:20px;height:20px;overflow:visible;stroke-width:2}' +
+      '#sbtn .ml{transform-box:view-box;transform-origin:12px 12px;transition:transform .65s cubic-bezier(.65,0,.25,1),opacity .35s ease}' +
+      '#sbtn .ml.a{transform:translateY(-3.5px)}#sbtn .ml.b{transform:translateY(3.5px)}' +
+      '#W.sbo #sbtn .ml.a{transform:rotate(45deg)}#W.sbo #sbtn .ml.b{transform:rotate(-45deg)}' +
+      '#W.sbo #sbtn .g3{opacity:1!important}' +
+      '.cb svg{transition:opacity 1.5s ease,rotate 1.6s cubic-bezier(.22,1,.36,1),scale 1.6s cubic-bezier(.22,1,.36,1)!important}' +
+      '.cb .sun{opacity:0;rotate:-120deg;scale:.4}.cb .moon{opacity:1;rotate:0deg;scale:1}' +
+      '#W.light .cb .sun{opacity:1;rotate:0deg;scale:1}#W.light .cb .moon{opacity:0;rotate:120deg;scale:.4}' +
+      '.ov{-webkit-backdrop-filter:blur(22px) saturate(1.2);backdrop-filter:blur(22px) saturate(1.2)}' +
+      '.ov .pop{-webkit-backdrop-filter:blur(26px) saturate(1.6)}';
+    R.appendChild(st);
+    const sv = R.querySelector('#sbtn svg');
+    if (sv) sv.innerHTML = '<g class="g3"><path class="ml a" d="M5 12h14"/><path class="ml b" d="M5 12h14"/></g>';
+  })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
     en: { name: 'English', services: 'Services', grp: 'Language Services', i_dash: 'Dashboard', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Pal', i_mirror: 'Mirroring Room', i_space: 'Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', sec_train: 'Language Training Program', sec_gen: 'General Services',
@@ -985,13 +1003,23 @@ function THApp(cfg) {
   W.classList.toggle('light', !!cfg.light);
   R.querySelectorAll('.js-tg').forEach(b => b.onclick = () => {
     W.classList.add('th-fade'); setTimeout(() => W.classList.remove('th-fade'), 1600);
-    const on = !W.classList.contains('light'); W.classList.toggle('light', on); if (cfg.setLight) cfg.setLight(on);
+    const on = !W.classList.contains('light'); W.classList.toggle('light', on); if (cfg.setLight) cfg.setLight(on); pushTheme(on);
   });
   window.addEventListener('scroll', hb, { passive: true }); window.addEventListener('resize', hb);
 
   /* ---------- pages: on a phone a chosen page opens as a full layer (Back returns to the main page);
                       on a computer it is shown in the display area next to the sidebar ---------- */
+  /* the chosen theme goes to the page that is open (the page keeps its own way of showing it) */
+  function pushTheme(on) {
+    try { localStorage.setItem('thabit_theme', on ? 'light' : 'dark'); } catch (e) { }
+    const f = R.querySelector('.dframe'); if (!f) return;
+    try {
+      const d = f.contentDocument; if (d && d.body) { d.body.classList.toggle('light-theme', on); d.body.classList.toggle('dark-theme', !on); d.documentElement.setAttribute('data-theme', on ? 'light' : 'dark'); }
+    } catch (e) { }
+    try { f.contentWindow.postMessage({ type: 'thabit-theme', theme: on ? 'light' : 'dark' }, '*'); } catch (e) { }
+  }
   function tidyFrame(f) {
+    pushTheme(W.classList.contains('light'));
     let d; try { d = f.contentDocument; if (!d || !d.head) return; } catch (e) { return; }
     if (!d.getElementById('thTidy')) { const st = d.createElement('style'); st.id = 'thTidy'; st.textContent = 'html{scrollbar-width:none!important}::-webkit-scrollbar{display:none!important;width:0!important}'; d.head.appendChild(st); }
     /* Messenger on a computer: the old 'centre of the screen' shift must never apply to the full-page Messenger (same fix as in dashboard.js, kept here so a cached dashboard.js cannot bring the bug back) */
@@ -1025,7 +1053,7 @@ function THApp(cfg) {
   $('back').onclick = () => closeLayer();
 
   /* ---------- profile pop-up ---------- */
-  const setPop = on => $('pov').classList.toggle('on', on);
+  const setPop = on => { $('pov').classList.toggle('on', on); document.documentElement.style.overflow = on ? 'hidden' : ''; document.body.style.overflow = on ? 'hidden' : (isDk() ? '' : (W.classList.contains('lay') ? 'hidden' : '')); };
   function fillUser() {
     const u = (cfg.getUser && cfg.getUser()) || {};
     [['rN', 'pn', 'name'], ['rU', 'pus', 'username'], ['rP', 'pph', 'phone'], ['rE', 'pem', 'email']].forEach(a => { $(a[1]).textContent = u[a[2]] || ''; $(a[0]).style.display = u[a[2]] ? '' : 'none'; });
@@ -1110,6 +1138,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
   function mount() {
     if (app) return app.start();
     document.body.classList.add('th-member'); try { sessionStorage.removeItem('thFrameTry'); } catch (e) { }
+    try { localStorage.setItem('thabit_theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); } catch (e) { }
     app = THApp({
       host: document.getElementById('thApp'), lang: thDetectLang(), light: document.body.classList.contains('light-theme'),
       setLight: function (b) { document.body.classList.toggle('light-theme', b); try { localStorage.setItem('thThemeChoice', b ? 'light' : 'dark'); } catch (e) { } },
