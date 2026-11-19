@@ -145,8 +145,8 @@ function rich(txt) {
 const toParent = m => { try { if (window.parent && window.parent !== window) { window.parent.postMessage(m, '*'); return true; } } catch (e) { } return false; };
 const FT = {
   en: { title: 'Feed', empty: 'No notifications yet.', older: 'See previous notifications', copy: 'Copy', share: 'Share', reply: 'Reply', copied: 'Copied ✓' },
-  ar: { title: 'فيد', empty: 'لا توجد إشعارات بعد.', older: 'عرض الإشعارات السابقة', copy: 'نسخ', share: 'مشاركة', reply: 'رد', copied: 'تم النسخ ✓' },
-  eg: { title: 'فيد', empty: 'مفيش إشعارات لسه.', older: 'شوف الإشعارات السابقة', copy: 'كوبي', share: 'شير', reply: 'ريبلاي', copied: 'اتنسخ ✓' }
+  ar: { title: 'التطورات', empty: 'لا توجد إشعارات بعد.', older: 'عرض الإشعارات السابقة', copy: 'نسخ', share: 'مشاركة', reply: 'رد', copied: 'تم النسخ ✓' },
+  eg: { title: 'التطورات', empty: 'مفيش إشعارات لسه.', older: 'شوف الإشعارات السابقة', copy: 'كوبي', share: 'شير', reply: 'ريبلاي', copied: 'اتنسخ ✓' }
 };
 const FX = () => FT[lang] || FT.en;
 const THN_MAX = 8;
@@ -192,11 +192,12 @@ function toggleNf(pc) {
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
   if (on) { thn_openedSet(pc.dataset.cid.slice(2)); pc.classList.remove('unread'); pc.classList.add('read'); lastSig = sigOf(); postBadge(); }
 }
+let animFirst = true;
 function paint() {
   const t = FX(), list = $('feedList'), cards = feedCards();
   const keep = new Set([...list.querySelectorAll('.pc.nf.open')].map(x => x.dataset.cid));
   document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl'; document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
-  $('fTitle').textContent = t.title;
+  document.title = t.title;
   list.innerHTML = cards.map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.html}</div>`).join('');
   $('feedEmpty').hidden = cards.length > 0; $('feedEmpty').textContent = t.empty;
   list.querySelectorAll('.pc.nf').forEach(pc => {
@@ -214,6 +215,7 @@ function paint() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'seeold'; b.textContent = t.older;
     b.onclick = () => { rest.forEach(c => { c.hidden = false; }); b.remove(); }; list.appendChild(b);
   }
+  if (animFirst && cards.length) { animFirst = false; list.querySelectorAll('.pc').forEach((c, i) => { c.style.setProperty('--d', Math.min(i, 12) * 90 + 'ms'); c.classList.add('drop'); c.addEventListener('animationend', () => c.classList.remove('drop'), { once: true }); }); }
   lastSig = sigOf(); postBadge();
 }
 
@@ -277,9 +279,13 @@ body.light-theme .pc{background:rgba(255,255,255,.6)!important;border-color:rgba
 .pc.nf.acked{text-align:center;transition:opacity .35s,transform .35s}
 .pc.nf.out{opacity:0;transform:scale(.96)}
 .ackdone{padding:14px 0}.ackdone i{font-size:2.2rem;color:#34d399;animation:ackPop .5s cubic-bezier(.2,.8,.3,1.2)}.ackdone div{margin-top:8px;font-weight:700}
-@keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}; document.head.appendChild(st); })();`;
+@keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+.pc.nf.unread{background:rgba(96,165,250,.18)!important;border-color:rgba(96,165,250,.45)!important}
+body.light-theme .pc.nf.unread{background:rgba(147,197,253,.4)!important;border-color:rgba(96,165,250,.6)!important}
+.pc.drop{animation:cardDrop .6s cubic-bezier(.22,1,.36,1) both;animation-delay:var(--d,0ms)}
+@keyframes cardDrop{from{opacity:0;transform:translateY(-34px)}to{opacity:1;transform:translateY(0)}}`;
   document.head.appendChild(st);
-  document.body.innerHTML = '<main id="feedPage"><div class="fhead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.06 4.79 5.5 1.43-3.61 4.39.34 5.67L12 17.2l-5.29 2.08.34-5.67L3.44 9.22l5.5-1.43z"/></svg><h1 id="fTitle"></h1></div><div class="pcs" id="feedList"></div><div id="feedEmpty" hidden></div></main>';
+  document.body.innerHTML = '<main id="feedPage"><div class="pcs" id="feedList"></div><div id="feedEmpty" hidden></div></main>';
   paint();
 }
 refresh(true);
