@@ -455,7 +455,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   }
   function setView(v) {
     M.view = v; if (!el.pop) return; el.pop.dataset.view = v;
-    el.title.textContent = v === 'chat' ? TN() : MYT().title; el.back.hidden = v !== 'chat'; el.hav.hidden = v !== 'chat';
+    el.title.textContent = v === 'chat' ? TN() : '';   /* the page name is already shown outside the card */ el.back.hidden = v !== 'chat'; el.hav.hidden = v !== 'chat';
     if (v === 'chat') { mRender(); el.list.scrollTop = el.list.scrollHeight; if (!mgrPhone()) setTimeout(() => { try { el.in.focus({ preventScroll: true }); } catch (e) { } }, 60); mMarkRead(); }
     else lRender();
   }
