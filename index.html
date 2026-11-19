@@ -1134,7 +1134,34 @@ function THApp(cfg) {
     persPost(k, { type: 'thabit-page-show' });
     if (k === 'messenger' && PG.quote) { persPost(k, { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; }
   }
-  const setBadge = (id, n) => { const g = $(id); if (!g) return; n = +n || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); };
+  /* Badge count-down placeholder: while the real unread number is still loading, a badge known (from the last visit) to have
+     notifications shows a number counting down from 95: first 30 slowly, next 30 faster, the rest as fast as possible, then lands on the real count. */
+  const BD = {};
+  const bdLast = () => { try { return JSON.parse(localStorage.getItem('thBdgLast') || '{}'); } catch (e) { return {}; } };
+  const bdSave = (id, n) => { try { const o = bdLast(); o[id] = n; localStorage.setItem('thBdgLast', JSON.stringify(o)); } catch (e) { } };
+  const bdShow = (g, n) => { g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); };
+  function bdRun(id) {
+    const g = $(id); if (!g) return; const st = BD[id] = { real: null, run: true }; let n = 95; g.classList.add('on', 'cnt'); bdShow(g, n);
+    (function tick() {
+      const floor = st.real != null ? st.real : 1;
+      if (n <= floor) { st.run = false; g.classList.remove('cnt'); if (st.real != null) bdShow(g, st.real); return; }
+      n--; bdShow(g, n);
+      const step = 95 - n, d = step <= 30 ? 110 : step <= 60 ? 40 : 10;
+      setTimeout(tick, d);
+    })();
+  }
+  const setBadge = (id, n) => {
+    const g = $(id); if (!g) return; n = +n || 0; bdSave(id, n);
+    const st = BD[id];
+    if (st && st.run) { st.real = n; return; }
+    bdShow(g, n); g.classList.remove('cnt');
+  };
+  (function bdInit() {
+    const last = bdLast(), css = document.createElement('style');
+    css.textContent = '.bdg.cnt{font-variant-numeric:tabular-nums;animation:bdgpop .35s ease-out infinite alternate}@keyframes bdgpop{from{transform:scale(1)}to{transform:scale(1.08)}}@media(prefers-reduced-motion:reduce){.bdg.cnt{animation:none}}';
+    document.head.appendChild(css);
+    ['msgBdg', 'feedBdg'].forEach(id => { if (last[id] > 0) bdRun(id); });
+  })();
   function badgeFrames() {
     if (PG.bf) return;
     [['bf', 'feed.html?badge=1'], ['bm', 'messenger.html?badge=1']].forEach(a => { const f = document.createElement('iframe'); f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;visibility:hidden'; f.src = a[1]; R.appendChild(f); PG[a[0]] = f; });
