@@ -961,10 +961,10 @@ function THApp(cfg) {
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
     en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
-      soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
+      soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
     ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
-      soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
+      soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
   let L = cfg.lang === 'ar' ? 'ar' : 'en', cur = null;
@@ -1001,6 +1001,12 @@ function THApp(cfg) {
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
   homeCss(); mirCss();
+  (function () {   /* small "Level" button beside the logo */
+    if (!R.getElementById('thLvlCss')) { const st = document.createElement('style'); st.id = 'thLvlCss'; st.textContent = '#hlg{display:flex;align-items:center;gap:10px}.lvl{height:28px;padding:0 13px;border-radius:999px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);font:700 11.5px Cairo,Inter,sans-serif;white-space:nowrap;cursor:pointer;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}.lvl:hover{scale:1.05}.lvl:active{scale:.94}'; R.appendChild(st); }
+    const lg = $('logo'); if (!lg || $('hlg')) return;
+    const g = document.createElement('div'); g.id = 'hlg'; lg.parentNode.insertBefore(g, lg); g.appendChild(lg);
+    const lv = document.createElement('button'); lv.type = 'button'; lv.className = 'lvl'; lv.id = 'lvlBtn'; lv.setAttribute('data-t', 'lvl'); g.appendChild(lv);
+  })();
   const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); };
   $('sbtn').onclick = e => { e.stopPropagation(); setSide(!W.classList.contains('sbo')); };
   $('sbs').onclick = () => setSide(false);
@@ -1192,24 +1198,42 @@ function THApp(cfg) {
   function gearD(cx, cy, R, r, n) { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; }
   const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
 
-  /* ---------- Calendar: a calendar cell (week / day / month / year, zoomable) + detail cells for the chosen day.
+  /* ---------- Calendar: a calendar cell (week / day / month / year, zoomable), two detail cells for the chosen day, and an Events cell.
                  Lessons: Sat/Mon/Wed 7:00 PM Egypt time. Optional: Sun/Tue. Off: Thu/Fri.
-                 Demo rules: the 2nd week of every month is suspended; February is "not active" in the year view. ---------- */
+                 Demo rules: the 2nd week of every month is suspended; February is "not active" in the year view.
+                 Wording follows time: past ("was supposed to"), today ("is supposed to"), future ("is supposed to ... hasn't come yet"). ---------- */
   let calStop = () => { }, calSt = null;
   const CAL = {
     en: { days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], full: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      time: 'Session time', status: 'Status', eg: 'Egypt', mk: 'Makkah', left: 'Time left for the session', live: 'Your session is live now', done: "Today's session has ended", past: 'Session completed', opt: 'Optional day',
-      inDays: n => 'In ' + n + (n === 1 ? ' day' : ' days'), off: "You're off today — enjoy your time!", see: n => 'See you on ' + n + ', God willing.', dayoff: 'Day off', dayoffs: 'No session on this day.',
-      susp: 'Suspended', suspS: 'No sessions this week.', gW: 'You are suspended this specific week', gWs: 'You can still open it to see the days.', gM: 'You are not active this month', gMs: 'Open it to see which weeks are affected.', cont: 'Continue',
-      back: 'Back', zin: 'Zoom in', zout: 'Zoom out', prev: 'Previous', next: 'Next', a1: 'Set day off', a2: 'Request excuse', a3: 'Swap day', a4: 'Change time' },
+      time: 'Session time', status: 'Status', eg: 'Egypt', mk: 'Makkah', left: 'Time left for the session', live: 'Your session is live now', done: "Today's session has ended", past: 'This day has passed', opt: 'Optional day',
+      tl: { p: 'The session was supposed to be at', n: 'Your session is supposed to be at', f: 'Your session is supposed to be at' },
+      fnote: "This day hasn't come yet, and I can't know whether you'll attend.",
+      inDays: n => 'In ' + n + (n === 1 ? ' day' : ' days'),
+      offT: { p: 'It was a day off', n: "You're off today — enjoy your time!", f: 'It will be a day off' }, offS: { p: 'There was no session on this day.', f: 'There will be no session on this day.' }, see: n => 'See you on ' + n + ', God willing.',
+      susp: { p: 'You were suspended', n: 'Suspended', f: 'You will be suspended' }, suspS: { p: 'There were no sessions that week.', n: 'No sessions this week.', f: 'There will be no sessions that week.' },
+      gW: { p: 'You were suspended during this specific week', n: 'You are suspended this specific week', f: 'You will be suspended during this specific week' }, gWs: 'You can still open it to see the days.',
+      gM: { p: 'You were not active this month', n: 'You are not active this month', f: 'You will not be active this month' }, gMs: 'Open it to see which weeks are affected.', cont: 'Continue',
+      back: 'Back', zin: 'Zoom in', zout: 'Zoom out', prev: 'Previous', next: 'Next', a1: 'Set day off', a2: 'Request excuse', a3: 'Swap day', a4: 'Change time',
+      ev: 'Events', evs: 'Recent sessions', sess: 'Session', start: 'Started', lasted: n => 'Lasted ' + n + ' min', prog: 'Progress', nonotes: 'No notes for this session.',
+      top: ['Present perfect vs past simple', 'Phrasal verbs: daily routines', 'Listening drill: short dialogues', 'Pronunciation: stress and rhythm', 'Conditionals (type 1 and 2)', 'Vocabulary: travel and directions', 'Reading: a short news article', 'Speaking practice: role play'],
+      notes: ['Good pace. Review the irregular verbs.', 'Needs more practice with word order.', 'Great listening accuracy.', 'Work on the "th" sounds.', 'Understood the rules well; keep practicing.', '', 'Read fluently; slow down on long sentences.', 'Confident speaking, with minor grammar slips.'] },
     ar: { days: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], full: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-      time: 'موعد الجلسة', status: 'الحالة', eg: 'مصر', mk: 'مكة المكرمة', left: 'متبقي على الجلسة', live: 'جلستك جارية الآن', done: 'انتهت جلسة اليوم', past: 'انتهت الجلسة', opt: 'يوم اختياري',
-      inDays: n => n === 1 ? 'بعد يوم' : n === 2 ? 'بعد يومين' : n <= 10 ? 'بعد ' + n + ' أيام' : 'بعد ' + n + ' يومًا', off: 'أنت في إجازة اليوم، استمتع بوقتك!', see: n => 'لقاؤنا يوم ' + n + ' إن شاء الله.', dayoff: 'يوم إجازة', dayoffs: 'لا توجد جلسة في هذا اليوم.',
-      susp: 'موقوف', suspS: 'لا جلسات هذا الأسبوع.', gW: 'أنت موقوف (Suspended) هذا الأسبوع تحديدًا', gWs: 'يمكنك فتحه لرؤية الأيام.', gM: 'أنت غير نشط في هذا الشهر', gMs: 'افتحه لتعرف أي الأسابيع متأثرة.', cont: 'متابعة',
-      back: 'رجوع', zin: 'تكبير', zout: 'تصغير', prev: 'السابق', next: 'التالي', a1: 'تحويل اليوم إلى إجازة', a2: 'طلب عذر', a3: 'تبديل اليوم', a4: 'تغيير الميعاد' }
+      time: 'موعد الجلسة', status: 'الحالة', eg: 'مصر', mk: 'مكة المكرمة', left: 'متبقي على الجلسة', live: 'جلستك جارية الآن', done: 'انتهت جلسة اليوم', past: 'مضى هذا اليوم', opt: 'يوم اختياري',
+      tl: { p: 'كان يُفترض أن تكون الجلسة الساعة', n: 'يُفترض أن تكون جلستك الساعة', f: 'يُفترض أن تكون جلستك الساعة' },
+      fnote: 'لم يأتِ هذا اليوم بعد، ولا أعرف إن كنت ستحضر.',
+      inDays: n => n === 1 ? 'بعد يوم' : n === 2 ? 'بعد يومين' : n <= 10 ? 'بعد ' + n + ' أيام' : 'بعد ' + n + ' يومًا',
+      offT: { p: 'كان يوم إجازة', n: 'أنت في إجازة اليوم، استمتع بوقتك!', f: 'سيكون يوم إجازة' }, offS: { p: 'لم تكن هناك جلسة في هذا اليوم.', f: 'لن تكون هناك جلسة في هذا اليوم.' }, see: n => 'لقاؤنا يوم ' + n + ' إن شاء الله.',
+      susp: { p: 'كنت موقوفًا', n: 'موقوف', f: 'ستكون موقوفًا' }, suspS: { p: 'لم تكن هناك جلسات في ذلك الأسبوع.', n: 'لا جلسات هذا الأسبوع.', f: 'لن تكون هناك جلسات في ذلك الأسبوع.' },
+      gW: { p: 'كنت موقوفًا (Suspended) في هذا الأسبوع تحديدًا', n: 'أنت موقوف (Suspended) هذا الأسبوع تحديدًا', f: 'ستكون موقوفًا (Suspended) في هذا الأسبوع تحديدًا' }, gWs: 'يمكنك فتحه لرؤية الأيام.',
+      gM: { p: 'لم تكن نشطًا في هذا الشهر', n: 'أنت غير نشط في هذا الشهر', f: 'لن تكون نشطًا في هذا الشهر' }, gMs: 'افتحه لتعرف أي الأسابيع متأثرة.', cont: 'متابعة',
+      back: 'رجوع', zin: 'تكبير', zout: 'تصغير', prev: 'السابق', next: 'التالي', a1: 'تحويل اليوم إلى إجازة', a2: 'طلب عذر', a3: 'تبديل اليوم', a4: 'تغيير الميعاد',
+      ev: 'الأحداث', evs: 'آخر الجلسات', sess: 'الجلسة', start: 'بدأت', lasted: n => 'استمرت ' + n + ' دقيقة', prog: 'التقدم', nonotes: 'لا توجد ملاحظات لهذه الجلسة.',
+      top: ['المضارع التام مقابل الماضي البسيط', 'الأفعال المركبة: الروتين اليومي', 'تدريب استماع: حوارات قصيرة', 'النطق: النبر والإيقاع', 'الجمل الشرطية (النوع 1 و2)', 'مفردات: السفر والاتجاهات', 'قراءة: مقال إخباري قصير', 'تدريب محادثة: لعب أدوار'],
+      notes: ['إيقاع جيد. راجع الأفعال الشاذة.', 'يحتاج مزيدًا من التدريب على ترتيب الكلمات.', 'دقة ممتازة في الاستماع.', 'اعمل على أصوات "th".', 'فهمت القواعد جيدًا؛ واصل التدريب.', '', 'قراءة سلسة؛ تمهّل في الجمل الطويلة.', 'محادثة واثقة مع أخطاء نحوية بسيطة.'] }
   };
   const CAL_KIND = ['lesson', 'opt', 'lesson', 'opt', 'lesson', 'off', 'off'];   /* index 0 = Saturday */
   const CAL_HOUR = 19, CAL_MIN = 60, CAL_TZ = { eg: 'Africa/Cairo', mk: 'Asia/Riyadh' }, CAL_INACTIVE = [1], DAY = 864e5;
+  const CAL_START = [2, 0, 5, 1, 0, 3, 0, 4], CAL_LEN = [58, 62, 55, 60, 65, 57, 61, 59], CAL_LAST = 24;   /* made-up demo numbers */
   const cwd = n => (((n + 5) % 7) + 7) % 7, cdate = n => new Date(n * DAY), cnum = (y, m, d) => Math.round(Date.UTC(y, m, d) / DAY);
   const wstart = n => n - cwd(n), csusp = ws => { const d = cdate(ws).getUTCDate(); return d >= 8 && d <= 14; };
   function calNow() {
@@ -1223,32 +1247,37 @@ function THApp(cfg) {
     if (h !== CAL_HOUR) t += (CAL_HOUR - h) * 36e5; return new Date(t);
   }
   function monWeeks(y, m) { const f = cnum(y, m, 1), l = cnum(y, m + 1, 0), o = []; for (let s = f + ((7 - cwd(f)) % 7); s <= l; s += 7) o.push(s); return o; }
+  function calSessions(nw) {   /* the latest finished lesson sessions (suspended weeks have none) */
+    const out = []; let n = nw.sec >= CAL_HOUR * 3600 + CAL_MIN * 60 ? nw.n : nw.n - 1;
+    for (; out.length < 8 && n > nw.n - 150; n--) if (CAL_KIND[cwd(n)] === 'lesson' && !csusp(wstart(n))) out.push({ n, no: CAL_LAST - out.length });
+    return out;
+  }
   function renderCal(b) {
     if (!R.getElementById('thCalCss')) {
       const st = document.createElement('style'); st.id = 'thCalCss';
       st.textContent = `
-      .cal-w{min-height:100%;display:flex;flex-direction:column;gap:12px;padding:2px 0 24px}
-      .cal-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
-      .cal-top.one{grid-template-columns:2fr 2fr}.cal-top.full{grid-template-columns:1fr}
+      .cal-w{min-height:100%;display:flex;flex-direction:column;gap:14px;padding:2px 0 24px}
+      .cal-dg{display:grid;grid-template-columns:1fr 1fr;gap:14px}.cal-dg.one{grid-template-columns:1fr}.cal-dg:empty{display:none}
       .cal-c{min-width:0;min-height:96px;padding:10px 12px;border-radius:20px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);display:flex;flex-direction:column;justify-content:space-between;gap:8px;color:var(--ink)}
       .cal-c.cal-cw{justify-content:flex-start}
       .cal-c.bad{border:2px solid #ef4444}
-      .cal-l{font:700 11px Cairo,Inter,sans-serif;color:var(--ink2);letter-spacing:.02em}
+      .cal-l{font:700 11px/1.5 Cairo,Inter,sans-serif;color:var(--ink2);letter-spacing:.02em}
       .cal-h{display:flex;align-items:center;gap:6px}
       .cal-t{flex:1;min-width:0;text-align:center;font:800 13px Cairo,Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
       .cal-z{display:flex;gap:4px;margin-inline-start:4px}
       .cal-b{flex:none;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--sbd);background:transparent;color:var(--ink);font:700 15px/1 Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center}
       .cal-b:disabled{opacity:.3;cursor:default}
       @media(hover:hover){.cal-b:not(:disabled):hover{background:var(--chip)}}
-      .cal-wk{display:flex;align-items:center;gap:6px;height:62px;padding:3px 4px;border-radius:18px;border:2px solid transparent}
+      .cal-wk{display:flex;align-items:center;gap:6px;height:56px;padding:3px 4px;border-radius:18px;border:2px solid transparent;touch-action:pan-y;user-select:none;-webkit-user-select:none}
       .cal-wk.susp{border-color:#ef4444}
-      .cal-d{flex:1;min-width:0;height:36px;padding:0;border-radius:12px;border:1px solid var(--sbd);background:rgba(255,255,255,.6);color:#1c1a16;font:700 11px Cairo,Inter,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;white-space:nowrap}
+      .cal-d{flex:1;min-width:0;height:36px;padding:0;border-radius:12px;border:1.5px solid var(--sbd);background:rgba(255,255,255,.6);color:#1c1a16;font:700 11px Cairo,Inter,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;white-space:nowrap;transition:height .15s ease,background-color .15s ease}
       #W:not(.light) .cal-d{background:rgba(255,255,255,.88)}
-      .cal-d.sel{flex:1.5;height:54px;font-size:13.5px;font-weight:800}
-      .cal-d.sel.lesson{background:#34d399;border-color:#34d399;color:#04291c;box-shadow:0 0 16px rgba(52,211,153,.45)}
-      .cal-d.sel.opt{background:#fb923c;border-color:#fb923c;color:#2b1100;box-shadow:0 0 16px rgba(251,146,60,.45)}
-      .cal-d.sel.off{border:2.5px solid var(--ink)}
-      .cal-d.big{flex:1;height:62px;flex-direction:column;gap:2px;font-size:15px}.cal-d.big small{font:600 11px Cairo,Inter,sans-serif;opacity:.75}
+      .cal-d.off:not(.sel){opacity:.4}
+      .cal-d.sel{flex:1.25;height:46px;font-size:13px;font-weight:800;border-color:var(--ink)}
+      .cal-d.sel.lesson{background:#34d399;color:#04291c}
+      .cal-d.sel.opt{background:#fb923c;color:#2b1100}
+      .cal-d.sel.off{background:#ef4444;color:#fff}
+      .cal-d.big{flex:1;height:54px;flex-direction:column;gap:2px;font-size:15px}.cal-d.big small{font:600 11px Cairo,Inter,sans-serif;opacity:.8}
       .cal-gate{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px;text-align:center;border:2px solid #ef4444;border-radius:18px}
       .cal-gate b{font:800 15px/1.4 Cairo,Inter,sans-serif;color:#ef4444}.cal-gate span{font:600 12.5px Cairo,Inter,sans-serif;color:var(--ink2)}
       .cal-go{height:34px;padding:0 22px;border-radius:999px;border:0;background:var(--btn);color:var(--onbtn);font:800 12.5px Cairo,Inter,sans-serif;cursor:pointer}
@@ -1267,14 +1296,24 @@ function THApp(cfg) {
       .cal-tz button.on{background:var(--btn);color:var(--onbtn);border-color:transparent}
       .cal-st{font:800 14px/1.3 Cairo,Inter,sans-serif}
       .cal-cd{font:800 22px/1 Inter,Cairo,sans-serif;direction:ltr;font-variant-numeric:tabular-nums;text-align:start}
-      .cal-tag{font:700 10.5px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .cal-tag{font:700 10.5px/1.5 Cairo,Inter,sans-serif;color:var(--ink2)}
       .cal-off{justify-content:center;gap:4px}
       .cal-off b{font:800 15px/1.4 Cairo,Inter,sans-serif}.cal-off span{font:600 12.5px/1.4 Cairo,Inter,sans-serif;color:var(--ink2)}
       .cal-off.bad b{color:#ef4444}
-      .cal-act{display:flex;flex-wrap:wrap;gap:8px}
+      .cal-act{display:flex;flex-wrap:wrap;gap:8px}.cal-act:empty{display:none}
       .cal-act button{height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--sbd);background:var(--pcard);color:var(--ink);font:700 12px Cairo,Inter,sans-serif;cursor:pointer}
       @media(hover:hover){.cal-act button:hover{background:var(--chip)}}
-      @media(max-width:640px){.cal-top,.cal-top.one{grid-template-columns:1fr 1fr}.cal-top .cal-cw{grid-column:1/-1}.cal-top.one .cal-off{grid-column:1/-1}.cal-c{min-height:92px}.cal-ym{grid-template-columns:repeat(3,1fr)}.cal-d.sel{font-size:12px}}
+      #calEv{margin-top:10px}
+      .cal-ev{min-height:320px;padding:14px;justify-content:flex-start;gap:12px}
+      .cal-evh b{display:block;font:800 16px Cairo,Inter,sans-serif}.cal-evh span{font:600 11.5px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .cal-evl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+      .ev{display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:16px;border:1.5px solid var(--sbd);background:var(--chip)}
+      .ev.on{border-color:var(--ink)}
+      .ev-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.ev-h b{font:800 13.5px Cairo,Inter,sans-serif}.ev-h span{font:600 11px Cairo,Inter,sans-serif;color:var(--ink2);unicode-bidi:plaintext}
+      .ev-m{display:flex;flex-wrap:wrap;gap:6px}.ev-m i{font:700 10.5px Cairo,Inter,sans-serif;font-style:normal;padding:3px 9px;border-radius:999px;border:1px solid var(--sbd);color:var(--ink2)}
+      .ev-t{font:700 12.5px/1.45 Cairo,Inter,sans-serif}.ev-n{font:500 12px/1.5 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .ev-p{display:flex;align-items:center;gap:8px;font:700 10.5px Cairo,Inter,sans-serif;color:var(--ink2)}.ev-p u{flex:1;height:6px;border-radius:999px;background:var(--sbd);overflow:hidden;text-decoration:none}.ev-p u i{display:block;height:100%;border-radius:999px;background:var(--ink)}
+      @media(max-width:640px){.cal-c{min-height:92px}.cal-ym{grid-template-columns:repeat(3,1fr)}.cal-d.sel{font-size:12px}.cal-evl{grid-template-columns:1fr}}
       `;
       R.appendChild(st);
     }
@@ -1284,9 +1323,12 @@ function THApp(cfg) {
     const S = calSt = keep || { view: 'week', sel: t0, mon: { y: d0.getUTCFullYear(), m: d0.getUTCMonth() }, yr: d0.getUTCFullYear(), gate: csusp(wstart(t0)) ? 'w' : null, stack: [] };
     const pad = n => String(n).padStart(2, '0'), cd = l => pad(Math.floor(l / 3600)) + ':' + pad(Math.floor(l % 3600 / 60)) + ':' + pad(l % 60);
     const phaseOf = l => l > 0 ? 'w' : (-l < CAL_MIN * 60 ? 'l' : 'd');
-    const fmt = (n, o) => new Intl.DateTimeFormat(L === 'ar' ? 'ar-u-nu-latn' : 'en-US', Object.assign({ timeZone: 'UTC' }, o)).format(cdate(n));
+    const loc = () => L === 'ar' ? 'ar-u-nu-latn' : 'en-US';
+    const fmt = (n, o) => new Intl.DateTimeFormat(loc(), Object.assign({ timeZone: 'UTC' }, o)).format(cdate(n));
+    const clock = d => new Intl.DateTimeFormat(loc(), { timeZone: CAL_TZ[tz], hour: 'numeric', minute: '2-digit', hour12: true }).format(d);
     const snap = () => ({ view: S.view, sel: S.sel, mon: { y: S.mon.y, m: S.mon.m }, yr: S.yr });
     const monOf = n => ({ y: cdate(n).getUTCFullYear(), m: cdate(n).getUTCMonth() });
+    const wt = (ws, td) => ws + 6 < td ? 'p' : ws <= td ? 'n' : 'f', mt = (y, m, td) => cnum(y, m + 1, 0) < td ? 'p' : cnum(y, m, 1) <= td ? 'n' : 'f';
     const btn = (a, label, txt, extra) => '<button type="button" class="cal-b" data-a="' + a + '" title="' + label + '" aria-label="' + label + '"' + (extra || '') + '>' + txt + '</button>';
 
     function head(T) {
@@ -1301,7 +1343,7 @@ function THApp(cfg) {
     }
     function body(T, td) {
       const v = S.view;
-      if (S.gate) return '<div class="cal-gate"><b>' + (S.gate === 'w' ? T.gW : T.gM) + '</b><span>' + (S.gate === 'w' ? T.gWs : T.gMs) + '</span><button type="button" class="cal-go" data-a="cont">' + T.cont + '</button></div>';
+      if (S.gate) { const w = S.gate === 'w', k = w ? wt(wstart(S.sel), td) : mt(S.mon.y, S.mon.m, td); return '<div class="cal-gate"><b>' + (w ? T.gW[k] : T.gM[k]) + '</b><span>' + (w ? T.gWs : T.gMs) + '</span><button type="button" class="cal-go" data-a="cont">' + T.cont + '</button></div>'; }
       if (v === 'week') {
         const ws = wstart(S.sel); let h = '<div class="cal-wk' + (csusp(ws) ? ' susp' : '') + '">';
         for (let i = 0; i < 7; i++) { const n = ws + i; h += '<button type="button" class="cal-d ' + CAL_KIND[i] + (n === S.sel ? ' sel' : '') + '" data-a="day" data-n="' + n + '">' + T.days[i] + '</button>'; }
@@ -1322,33 +1364,60 @@ function THApp(cfg) {
       return h + '</div>';
     }
     function details(T, nw) {
-      const n = S.sel, wd = cwd(n), kind = CAL_KIND[wd], td = nw.n;
+      const n = S.sel, wd = cwd(n), kind = CAL_KIND[wd], td = nw.n, left = CAL_HOUR * 3600 - nw.sec, ph = phaseOf(left);
+      const dk = n < td ? 'p' : n > td ? 'f' : 'n', ts = n < td ? 'p' : n > td ? 'f' : (ph === 'd' ? 'p' : 'n');
       if (kind === 'off') {
-        if (n === td) { let nx = wd; do { nx = (nx + 1) % 7; } while (CAL_KIND[nx] !== 'lesson'); return { cls: 'one', h: '<div class="cal-c cal-off"><b>' + T.off + '</b><span>' + T.see(T.full[nx]) + '</span></div>' }; }
-        return { cls: 'one', h: '<div class="cal-c cal-off"><b>' + T.dayoff + '</b><span>' + T.dayoffs + '</span></div>' };
+        if (dk === 'n') { let nx = wd; do { nx = (nx + 1) % 7; } while (CAL_KIND[nx] !== 'lesson'); return { cls: 'one', h: '<div class="cal-c cal-off"><b>' + T.offT.n + '</b><span>' + T.see(T.full[nx]) + '</span></div>' }; }
+        return { cls: 'one', h: '<div class="cal-c cal-off"><b>' + T.offT[dk] + '</b><span>' + T.offS[dk] + '</span></div>' };
       }
-      const sp = csusp(wstart(n));
-      if (sp) return { cls: 'one', h: '<div class="cal-c cal-off bad"><b>' + T.susp + '</b><span>' + T.suspS + '</span></div>' };
-      const tm = new Intl.DateTimeFormat(L === 'ar' ? 'ar-u-nu-latn' : 'en-US', { timeZone: CAL_TZ[tz], hour: 'numeric', minute: '2-digit', hour12: true }).format(cairoInst(n));
-      let h = '<div class="cal-c"><div class="cal-l">' + T.time + '</div><div class="cal-big">' + tm + '</div><div class="cal-tz"><button type="button" data-a="tz" data-tz="eg" class="' + (tz === 'eg' ? 'on' : '') + '">' + T.eg + '</button><button type="button" data-a="tz" data-tz="mk" class="' + (tz === 'mk' ? 'on' : '') + '">' + T.mk + '</button></div></div>';
+      if (csusp(wstart(n))) return { cls: 'one', h: '<div class="cal-c cal-off bad"><b>' + T.susp[dk] + '</b><span>' + T.suspS[dk] + '</span></div>' };
+      let h = '<div class="cal-c"><div class="cal-l">' + T.tl[ts] + '</div><div class="cal-big">' + clock(cairoInst(n)) + '</div><div class="cal-tz"><button type="button" data-a="tz" data-tz="eg" class="' + (tz === 'eg' ? 'on' : '') + '">' + T.eg + '</button><button type="button" data-a="tz" data-tz="mk" class="' + (tz === 'mk' ? 'on' : '') + '">' + T.mk + '</button></div></div>';
       let st;
-      if (n === td) { const l = CAL_HOUR * 3600 - nw.sec, ph = phaseOf(l); st = ph === 'w' ? '<div class="cal-st">' + T.left + '</div><div class="cal-cd" id="calCd">' + cd(l) + '</div>' : ph === 'l' ? '<div class="cal-st" style="color:#34d399">' + T.live + '</div>' : '<div class="cal-st">' + T.done + '</div>'; }
-      else if (n > td) st = '<div class="cal-st">' + T.inDays(n - td) + '</div>'; else st = '<div class="cal-st">' + T.past + '</div>';
+      if (dk === 'n') st = ph === 'w' ? '<div class="cal-st">' + T.left + '</div><div class="cal-cd" id="calCd">' + cd(left) + '</div>' : ph === 'l' ? '<div class="cal-st" style="color:#34d399">' + T.live + '</div>' : '<div class="cal-st">' + T.done + '</div>';
+      else if (dk === 'f') st = '<div class="cal-st">' + T.inDays(n - td) + '</div><div class="cal-tag">' + T.fnote + '</div>'; else st = '<div class="cal-st">' + T.past + '</div>';
       h += '<div class="cal-c"><div class="cal-l">' + T.status + '</div>' + st + (kind === 'opt' ? '<div class="cal-tag">' + T.opt + '</div>' : '') + '</div>';
       return { cls: '', h, act: n >= td };
     }
-    b.innerHTML = '<div class="cal-w"><div id="calTop"></div><div id="calAct"></div></div>';
-    const top = b.querySelector('#calTop'), actEl = b.querySelector('#calAct');
+    b.innerHTML = '<div class="cal-w"><div id="calTop"></div><div class="cal-dg" id="calDet"></div><div class="cal-act" id="calAct"></div><div class="cal-c cal-ev" id="calEv"></div></div>';
+    const top = b.querySelector('#calTop'), detEl = b.querySelector('#calDet'), actEl = b.querySelector('#calAct'), evEl = b.querySelector('#calEv');
     let lastPh = '', lastDay = 0;
-    function paint() {
+    function paintTop() { const nw = calNow(); top.innerHTML = '<div class="cal-c cal-cw">' + head(CAL[L]) + body(CAL[L], nw.n) + '</div>'; }
+    function paintDet() {
       const T = CAL[L], nw = calNow(); lastDay = nw.n; lastPh = phaseOf(CAL_HOUR * 3600 - nw.sec);
-      let cls = 'full', det = null;
-      if (!S.gate && (S.view === 'week' || S.view === 'day')) { det = details(T, nw); cls = det.cls; }
-      top.innerHTML = '<div class="cal-top ' + cls + '"><div class="cal-c cal-cw">' + head(T) + body(T, nw.n) + '</div>' + (det ? det.h : '') + '</div>';
-      actEl.innerHTML = det && det.act ? '<div class="cal-act"><button type="button">' + T.a1 + '</button><button type="button">' + T.a2 + '</button><button type="button">' + T.a3 + '</button><button type="button">' + T.a4 + '</button></div>' : '';
+      const det = !S.gate && (S.view === 'week' || S.view === 'day') ? details(T, nw) : null;
+      detEl.className = 'cal-dg' + (det && det.cls ? ' ' + det.cls : ''); detEl.innerHTML = det ? det.h : '';
+      actEl.innerHTML = det && det.act ? '<button type="button">' + T.a1 + '</button><button type="button">' + T.a2 + '</button><button type="button">' + T.a3 + '</button><button type="button">' + T.a4 + '</button>' : '';
+      paintEv(T, nw);
     }
+    function paintEv(T, nw) {
+      let h = '<div class="cal-evh"><b>' + T.ev + '</b><span>' + T.evs + '</span></div><div class="cal-evl">';
+      calSessions(nw).forEach(x => {
+        const i = x.no % 8, inst = cairoInst(x.n), prog = Math.min(100, Math.round(20 + x.no * 2.6));
+        h += '<div class="ev' + (x.n === S.sel ? ' on' : '') + '"><div class="ev-h"><b>' + T.sess + ' #' + x.no + '</b><span>' + fmt(x.n, { weekday: 'short', day: 'numeric', month: 'short' }) + '</span></div>' +
+          '<div class="ev-m"><i>' + T.start + ' ' + clock(new Date(inst.getTime() + CAL_START[i] * 6e4)) + '</i><i>' + T.lasted(CAL_LEN[i]) + '</i></div>' +
+          '<div class="ev-t">' + T.top[i] + '</div><div class="ev-n">' + (T.notes[i] || T.nonotes) + '</div>' +
+          '<div class="ev-p"><span>' + T.prog + '</span><u><i style="width:' + prog + '%"></i></u><span>' + prog + '%</span></div></div>';
+      });
+      evEl.innerHTML = h + '</div>';
+    }
+    const paint = () => { paintTop(); paintDet(); };
+    /* slide-to-select: press a day and slide; the day under the finger becomes the chosen one without lifting */
+    let drag = null;
+    function pick(x) {
+      const chips = [...top.querySelectorAll('.cal-d[data-n]')]; let best = null, bd = 1e9;
+      chips.forEach(c => { const r = c.getBoundingClientRect(), d = x < r.left ? r.left - x : x > r.right ? x - r.right : 0; if (d < bd) { bd = d; best = c; } });
+      if (!best) return; const n = +best.dataset.n; if (n === S.sel) return;
+      S.sel = n; chips.forEach(c => c.classList.toggle('sel', +c.dataset.n === n)); paintDet();
+    }
+    top.addEventListener('pointerdown', e => {
+      const wk = e.target.closest('.cal-wk'); if (!wk || S.view !== 'week' || S.gate || !e.target.closest('.cal-d')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      drag = wk; try { wk.setPointerCapture(e.pointerId); } catch (x) { } pick(e.clientX);
+    });
+    top.addEventListener('pointermove', e => { if (drag) pick(e.clientX); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => top.addEventListener(ev, () => { drag = null; }));
     top.addEventListener('click', e => {
-      const t = e.target.closest('[data-a]'); if (!t) return; const a = t.dataset.a, td = calNow().n;
+      const t = e.target.closest('[data-a]'); if (!t) return; const a = t.dataset.a;
       if (a === 'tz') { tz = t.dataset.tz; try { localStorage.setItem('thCalTz', tz); } catch (x) { } return paint(); }
       if (a === 'cont') { S.gate = null; return paint(); }
       if (a === 'day') { S.sel = +t.dataset.n; return paint(); }
@@ -1367,7 +1436,7 @@ function THApp(cfg) {
         if (S.view === 'day') return;
         S.stack.push(snap());
         if (S.view === 'week') { S.view = 'day'; S.gate = null; }
-        else if (S.view === 'month') { const ws = monWeeks(S.mon.y, S.mon.m); const cw = wstart(S.sel); const w = ws.includes(cw) ? cw : ws[0]; if (cw !== w) S.sel = w; S.view = 'week'; S.gate = csusp(w) ? 'w' : null; }
+        else if (S.view === 'month') { const ws = monWeeks(S.mon.y, S.mon.m), cw = wstart(S.sel), w = ws.includes(cw) ? cw : ws[0]; if (cw !== w) S.sel = w; S.view = 'week'; S.gate = csusp(w) ? 'w' : null; }
         else { const m = monOf(S.sel); S.mon = { y: S.yr, m: m.y === S.yr ? m.m : 0 }; S.view = 'month'; S.gate = CAL_INACTIVE.includes(S.mon.m) ? 'm' : null; }
         return paint();
       }
@@ -1380,9 +1449,9 @@ function THApp(cfg) {
     });
     paint();
     const tm = setInterval(() => {
-      const nw = calNow(); const ph = phaseOf(CAL_HOUR * 3600 - nw.sec);
+      const nw = calNow(), ph = phaseOf(CAL_HOUR * 3600 - nw.sec);
       if (nw.n !== lastDay || ph !== lastPh) return paint();
-      const el = top.querySelector('#calCd'); if (el) el.textContent = cd(CAL_HOUR * 3600 - nw.sec);
+      const el = top.parentNode.querySelector('#calCd'); if (el) el.textContent = cd(CAL_HOUR * 3600 - nw.sec);
     }, 1000);
     calStop = () => { clearInterval(tm); calStop = () => { }; calSt = null; };
   }
