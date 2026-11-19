@@ -1002,6 +1002,8 @@ function THApp(cfg) {
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
   homeCss(); mirCss();
   (function () {   /* small "Level" button beside the logo */
+    /* cards sit on a flat gradient, so their glass blur showed nothing except tiled, hard-edged light patches: blur is removed from cards (kept only on pop-ups / the phone menu that overlay real content) */
+    if (!R.getElementById('thNoBlur')) { const nb = document.createElement('style'); nb.id = 'thNoBlur'; nb.textContent = '.pcard,.cal-c,.cal-low,.dframe,.mr-card,.hm-bar,.ltop,.lvl,.cal-act button{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}@media(min-width:876px){#side{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}'; R.appendChild(nb); }
     if (!R.getElementById('thLvlCss')) { const st = document.createElement('style'); st.id = 'thLvlCss'; st.textContent = '#hlg{display:flex;align-items:center;gap:10px}.lvl{height:28px;padding:0 13px;border-radius:999px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);font:700 11.5px Cairo,Inter,sans-serif;white-space:nowrap;cursor:pointer;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}.lvl:hover{scale:1.05}.lvl:active{scale:.94}'; R.appendChild(st); }
     const lg = $('logo'); if (!lg || $('hlg')) return;
     const g = document.createElement('div'); g.id = 'hlg'; lg.parentNode.insertBefore(g, lg); g.appendChild(lg);
