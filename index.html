@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -984,6 +984,7 @@ function THApp(cfg) {
     digital: '<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
     consult: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
     library: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H11v17H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 4.5A1.5 1.5 0 0 0 18.5 3H13v17h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
   /* Sidebar: Home (+ small store icon) | Linguistic Services [Training Program, General Linguistic Services] | Production | Smart Services | Personal Services */
@@ -993,8 +994,9 @@ function THApp(cfg) {
   const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
   const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
   const feedBtn = '<button type="button" class="sdi st" data-k="feed" data-title="i_feed"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.feed + '</svg><i class="bdg" id="feedBdg"></i></button>';
+  const calBtn = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.calendar + '</svg></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + feedBtn + msgBtn + '</div>' + LINE +
+  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + feedBtn + msgBtn + calBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1141,12 +1143,12 @@ function THApp(cfg) {
   const bdSave = (id, n) => { try { const o = bdLast(); o[id] = n; localStorage.setItem('thBdgLast', JSON.stringify(o)); } catch (e) { } };
   const bdShow = (g, n) => { g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); };
   function bdRun(id) {
-    const g = $(id); if (!g) return; const st = BD[id] = { real: null, run: true }; let n = 95; g.classList.add('on', 'cnt'); bdShow(g, n);
+    const g = $(id); if (!g) return; const st = BD[id] = { real: null, run: true }; let n = 60; g.classList.add('on', 'cnt'); bdShow(g, n);
     (function tick() {
       const floor = st.real != null ? st.real : 1;
       if (n <= floor) { st.run = false; g.classList.remove('cnt'); if (st.real != null) bdShow(g, st.real); return; }
       n--; bdShow(g, n);
-      const step = 95 - n, d = step <= 30 ? 110 : step <= 60 ? 40 : 10;
+      const step = 60 - n, d = step <= 15 ? 55 : step <= 30 ? 22 : 7;
       setTimeout(tick, d);
     })();
   }
@@ -1231,6 +1233,26 @@ function THApp(cfg) {
     ['هل توجد دورات للمبتدئين؟', 'Are there courses for beginners?'],
     ['كيف أختار الخدمة المناسبة لي؟', 'How do I choose the right service?']
   ];
+
+  /* Drawn picture of the dashboard (numbers, charts) used as the background of the Digital Solutions card */
+  const DASH_ART = (() => {
+    const bars = [38, 62, 48, 80, 66, 92, 74].map((h, i) => '<rect x="' + (324 + i * 34) + '" y="' + (388 - h * 1.5) + '" width="20" height="' + (h * 1.5) + '" rx="5" fill="' + (i === 5 ? '#34d399' : '#2b8f6e') + '"/>').join('');
+    const card = (x, v, l, c) => '<rect x="' + x + '" y="92" width="150" height="82" rx="14" fill="#18202a" stroke="#263241"/><text x="' + (x + 16) + '" y="126" font-size="13" fill="#8a97a8">' + l + '</text><text x="' + (x + 16) + '" y="158" font-size="30" font-weight="800" fill="' + c + '">' + v + '</text>';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Inter,Arial,sans-serif">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".45"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>' +
+      '<rect width="800" height="500" fill="#0e1319"/>' +
+      '<rect x="0" y="0" width="86" height="500" fill="#121920"/><rect x="22" y="26" width="42" height="42" rx="12" fill="#34d399"/>' +
+      [0, 1, 2, 3, 4].map(i => '<rect x="26" y="' + (100 + i * 52) + '" width="34" height="34" rx="10" fill="' + (i === 0 ? '#1f2c38' : '#161e27') + '"/>').join('') +
+      '<text x="114" y="56" font-size="22" font-weight="800" fill="#e8eef5">Dashboard</text><rect x="620" y="34" width="150" height="30" rx="15" fill="#18202a"/><circle cx="748" cy="49" r="9" fill="#34d399"/>' +
+      card(114, '87%', 'Progress', '#34d399') + card(280, '1,284', 'Words', '#e8eef5') + card(446, '36 h', 'Practice', '#60a5fa') + card(612, '12', 'Tasks', '#fbbf24') +
+      '<rect x="114" y="196" width="190" height="196" rx="16" fill="#18202a" stroke="#263241"/><circle cx="209" cy="294" r="52" fill="none" stroke="#263241" stroke-width="16"/><circle cx="209" cy="294" r="52" fill="none" stroke="#34d399" stroke-width="16" stroke-linecap="round" stroke-dasharray="285 327" transform="rotate(-90 209 294)"/><text x="209" y="302" text-anchor="middle" font-size="24" font-weight="800" fill="#e8eef5">87%</text>' +
+      '<rect x="320" y="196" width="450" height="196" rx="16" fill="#18202a" stroke="#263241"/>' + bars +
+      '<path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216 L740 380 L334 380 Z" fill="url(#g)" opacity=".7"/><path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect x="114" y="408" width="656" height="60" rx="14" fill="#18202a" stroke="#263241"/>' + [0, 1, 2, 3].map(i => '<rect x="136" y="' + (424 + 0) + '" width="0" height="0"/>').join('') +
+      '<rect x="136" y="428" width="120" height="10" rx="5" fill="#2b3949"/><rect x="136" y="446" width="80" height="8" rx="4" fill="#223040"/><rect x="560" y="428" width="190" height="14" rx="7" fill="#263241"/><rect x="560" y="428" width="150" height="14" rx="7" fill="#34d399"/>' +
+      '</svg>';
+    return 'data:image/svg+xml,' + encodeURIComponent(svg);
+  })();
   const HS = [   /* slides: key = the page it opens; picture = assets/home/<key>.jpg (put the real screenshot there) */
     ['dash', 'لوحة التحكم', 'Dashboard', 'تابع تقدمك ومهامك ونتائجك في مكان واحد', 'Track your progress, tasks and results in one place'],
     ['translate', 'الترجمة', 'Translation', 'ترجمة دقيقة وسريعة بين اللغات التي تحتاجها', 'Accurate, fast translation between the languages you need'],
@@ -1364,7 +1386,7 @@ function THApp(cfg) {
         '<div class="hm-qb"><button type="button" data-q="svc">' + esc(T.b1) + '</button><button type="button" data-q="dash">' + esc(T.b2) + '</button><button type="button" data-q="consult">' + esc(T.b3) + '</button></div>' +
       '</div>' +
       '<div class="hm-sl" id="hmSl"><div class="hm-row" id="hmRow">' +
-        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(assets/home/' + s[0] + '.jpg),linear-gradient(150deg,#5a6070,#2a2d38)"><div><b>' + esc(ar ? s[1] : s[2]) + '</b><span>' + esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
+        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(' + (s[0] === 'digital' ? '"' + DASH_ART + '"' : 'assets/home/' + s[0] + '.jpg') + '),linear-gradient(150deg,#5a6070,#2a2d38)"><div><b>' + esc(ar ? s[1] : s[2]) + '</b><span>' + esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
       '</div><div class="hm-dots" id="hmDots">' + HS.map(() => '<i></i>').join('') + '</div></div></div>';
 
     const q = id => b.querySelector('#' + id), bar = q('hmBar'), ta = q('hmTa'), ph = q('hmPh').firstChild, note = q('hmNote'), res = q('hmRes'), att = q('hmAtt'),
