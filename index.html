@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'فيد', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -971,7 +971,6 @@ function THApp(cfg) {
 
   /* ---------- sidebar ---------- */
   const IC = {
-    feed: '<path d="M12 3L15.06 7.79L20.56 9.22L16.95 13.61L17.29 19.28L12 17.2L6.71 19.28L7.05 13.61L3.44 9.22L8.94 7.79Z"/>',
     messenger: '<path d="M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z"/><path d="M7.6 13.8 17.4 7"/>',
     home: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5a.5.5 0 0 0 .5.5h4v-5.5h4V20h4a.5.5 0 0 0 .5-.5V10"/>',
     dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
@@ -992,9 +991,8 @@ function THApp(cfg) {
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
   const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
-  const feedBtn = '<button type="button" class="sdi st" data-k="feed" data-title="i_feed"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.feed + '</svg><i class="bdg" id="fdBdg"></i></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + msgBtn + feedBtn + '</div>' + LINE +
+  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + msgBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1038,6 +1036,8 @@ function THApp(cfg) {
     pushTheme(W.classList.contains('light'));
     let d; try { d = f.contentDocument; if (!d || !d.head) return; } catch (e) { return; }
     if (!d.getElementById('thTidy')) { const st = d.createElement('style'); st.id = 'thTidy'; st.textContent = 'html{scrollbar-width:none!important}::-webkit-scrollbar{display:none!important;width:0!important}'; d.head.appendChild(st); }
+    /* Messenger on a computer: the old 'centre of the screen' shift must never apply to the full-page Messenger (same fix as in dashboard.js, kept here so a cached dashboard.js cannot bring the bug back) */
+    if (!d.getElementById('thMgrFix')) { const sm = d.createElement('style'); sm.id = 'thMgrFix'; sm.textContent = 'html body .mgr-pop:not(#z){transform:none!important;translate:none!important;scale:none!important;inset:0!important;margin:0!important}'; d.head.appendChild(sm); }
     const NAMES = /^(الملف الشخصي|بروفايل|الحساب|profile|my profile|تسجيل الخروج|تسجيل خروج|logout|log out|sign out)$/i;
     const sweep = () => { try { d.querySelectorAll('button,a,li,[role=menuitem],[role=button],span,div,p').forEach(el => { if (el.children.length > 3) return; if (NAMES.test((el.textContent || '').trim())) { const t = el.closest('button,a,li,[role=menuitem]') || el; t.style.setProperty('display', 'none', 'important'); } }); } catch (e) { } };
     const SKIP = /theme|dark|light|moon|sun|lang|account|profile|avatar|user|ثيم|لغة|اللغة|العربية|english|حساب|الحساب|اكونت|الملف/i, KEEP = /font|text.?size|fsize|حجم|الخط/i;
@@ -1050,21 +1050,26 @@ function THApp(cfg) {
     const sweepAll = () => { sweep(); sweepBtns(); moved(); };
     sweepAll(); setTimeout(sweepAll, 500); setTimeout(sweepAll, 1500); try { new MutationObserver(sweepAll).observe(d.body, { childList: true, subtree: true }); } catch (e) { }
   }
-  const PEND = { quote: null, then: null };   /* what to hand to a page once it has loaded */
+  /* Messenger: on a wide screen it opens from the side bar (inside the page area); on a phone / big zoom it stays in the dashboard where it was */
+  function openMsg(f) {
+    const go = () => {
+      try {
+        const d = f.contentDocument; if (!d || !d.body) return;
+        const pop = d.querySelector('.mgr-pop');
+        if (pop && getComputedStyle(pop).display !== 'none' && getComputedStyle(pop).visibility !== 'hidden') return;
+        const el = d.querySelector('#mgrBtn,#mgrOpen,[data-mgr],[id*="messenger" i],[class*="messenger" i],[id*="mgr" i][onclick]');
+        if (el && !el.closest('.mgr-pop')) el.click();
+      } catch (e) { }
+      try { f.contentWindow.postMessage({ type: 'thabit-open-messenger' }, '*'); } catch (e) { }
+    };
+    [500, 1400, 2800].forEach(t => setTimeout(go, t));
+  }
   function fillLayer(k) {
-    const b = $('lbody'), PAGE = { dash: cfg.dashRoute ? cfg.dashRoute() : '', messenger: 'messenger.html', feed: 'feed.html' }, url = PAGE[k];
+    const b = $('lbody'), dash = (k === 'dash' || k === 'messenger') && cfg.dashRoute;
     if (k !== 'home') homeStop();
     if (k !== 'mirror') mirStop();
-    b.classList.toggle('full', !!url);
-    if (url) {
-      b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = STR[L]['i_' + k] || k; f.src = url;
-      f.addEventListener('load', () => {
-        if (k === 'dash') tidyFrame(f); else pushTheme(W.classList.contains('light'));
-        if (k === 'messenger' && PEND.quote != null) { const q = PEND.quote; PEND.quote = null; try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: q }, '*'); } catch (e) { } }
-        if (k === 'dash' && PEND.then) { const w = PEND.then; PEND.then = null; setTimeout(() => { try { f.contentWindow.postMessage({ type: 'thabit-dash-open', what: w }, '*'); } catch (e) { } }, 900); }
-      });
-      b.appendChild(f);
-    }
+    b.classList.toggle('full', !!dash);
+    if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute() + (k === 'messenger' ? '#messenger' : ''); f.addEventListener('load', () => { tidyFrame(f); if (k === 'messenger') openMsg(f); }); b.appendChild(f); }
     else if (k === 'home') renderHome(b);
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
@@ -1080,29 +1085,51 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
-  /* ---------- Messenger and Feed are pages of their own. The red numbers on their buttons come from the pages themselves:
-       a hidden copy of each page runs in "?badge=1" mode (it only counts; it never marks anything read and never shows the trainee as online) ---------- */
-  const setBdg = (id, n) => { const g = $(id); if (g) { n = +n || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } };
-  window.addEventListener('message', e => {
-    const d = e.data; if (!d || e.origin !== location.origin) return;
-    if (d.type === 'thabit-messenger-badge') setBdg('msgBdg', d.count);
-    else if (d.type === 'thabit-feed-badge') setBdg('fdBdg', d.count);
-    else if (d.type === 'thabit-open-page') {
-      const k = ({ dash: 'dash', messenger: 'messenger', feed: 'feed', library: 'library', home: 'home' })[d.page]; if (!k) return;
-      if (k === 'messenger') PEND.quote = d.quote != null ? String(d.quote) : null;
-      if (k === 'dash') PEND.then = d.then || null;
-      if (k === 'messenger' && cur === 'messenger') { const f = R.querySelector('.dframe'); if (f && PEND.quote != null) { try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: PEND.quote }, '*'); } catch (x) { } PEND.quote = null; } return; }
-      openLayer(k);
-    } else if (d.type === 'thabit-close-page') { if (cur === d.page && W.classList.contains('lay')) closeLayer(); }
-  });
-  function badgeFrames() {
-    ['messenger.html?badge=1', 'feed.html?badge=1'].forEach(u => {
-      if (R.querySelector('iframe[data-bdg="' + u + '"]')) return;
-      const f = document.createElement('iframe'); f.dataset.bdg = u; f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
-      f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;left:-9px;top:-9px'; f.src = u; R.appendChild(f);
-    });
+  /* ---------- Messenger: its button lives here. The chat engine of the dashboard runs in a hidden, transparent copy of the dashboard page (same site, so we can drive it directly); only the chat pop-up is shown over the portal ---------- */
+  const MG = { fr: null, x: null, want: false, shown: false, full: false, was: false, hooked: false, wt: 0 };
+  const MG_HOST = 'html,body{background:transparent!important;overflow:hidden!important}body>*:not(.mgr-veil):not(.mgr-pop){visibility:hidden!important;pointer-events:none!important}';
+  const MG_MOVED = '#mgrBtn,#spaceBtn,#barEdit{display:none!important}';
+  const MG_PANELS = '#asm:not([hidden]),#rqm.open,#rqn.open,#rqo.open,#thLib.open';
+  const mgM = () => { try { return MG.fr && MG.fr.contentWindow && MG.fr.contentWindow.thMessenger; } catch (e) { return null; } };
+  const mgDoc = () => { try { return MG.fr && MG.fr.contentDocument; } catch (e) { return null; } };
+  function mgStyle(id, css) { const d = mgDoc(); if (!d || !d.head) return; let st = d.getElementById(id); if (!st) { st = d.createElement('style'); st.id = id; d.head.appendChild(st); } if (st.textContent !== css) st.textContent = css; }
+  function mgEnsure() {
+    if (MG.fr || !cfg.dashRoute) return;
+    const f = document.createElement('iframe'); f.title = 'Messenger'; f.setAttribute('allowtransparency', 'true');
+    f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:transparent;color-scheme:normal;visibility:hidden;pointer-events:none;z-index:2147483200';
+    f.src = cfg.dashRoute() + '#thmsg'; R.appendChild(f); MG.fr = f;   /* inside the portal's own root: the page CSS hides everything that is added straight to the body */
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Close');
+    x.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font:400 24px/38px Inter,sans-serif;text-align:center;cursor:pointer;z-index:2147483300;display:none;padding:0';
+    x.onclick = mgHide; R.appendChild(x); MG.x = x;
+    setInterval(mgTick, 250);
   }
-  setTimeout(badgeFrames, 1800);
+  function mgShow(full) { if (!MG.fr) return; MG.shown = true; MG.fr.style.visibility = 'visible'; MG.fr.style.pointerEvents = 'auto'; MG.x.style.display = full ? 'block' : 'none'; }
+  function mgReveal() { MG.full = true; mgStyle('thHostCss', ''); mgShow(true); }   /* Requests / Assistant / Library opened from the chat need the real page */
+  function mgHide() {
+    MG.want = false; MG.shown = false; MG.full = false; MG.was = false;
+    if (!MG.fr) return; MG.fr.style.visibility = 'hidden'; MG.fr.style.pointerEvents = 'none'; MG.x.style.display = 'none';
+    mgStyle('thHostCss', MG_HOST);
+    const m = mgM(), w = MG.fr.contentWindow;
+    try { if (m && m.state().open) m.hide(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#rqm.open,#rqn.open,#rqo.open') && typeof w.closeRq === 'function') w.closeRq(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#asm:not([hidden])') && w.Panels) w.Panels.min(); } catch (e) { }
+    try { const d = mgDoc(); if (d && d.querySelector('#thLib.open') && w.closeLibrary) w.closeLibrary(); } catch (e) { }
+  }
+  function mgTick() {
+    const m = mgM(), d = mgDoc(); if (!m || !d || !d.body) return;
+    mgStyle('thMovedCss', MG_MOVED);
+    if (!MG.hooked) { MG.hooked = true; mgStyle('thHostCss', MG_HOST); d.addEventListener('pointerdown', ev => { if (MG.shown && !MG.full && !(ev.target.closest && ev.target.closest('.mgr-pop'))) { try { m.hide(); } catch (e) { } } }, true); }
+    try { const g = $('msgBdg'); if (g) { const n = new Set(m.msgs().filter(x => x.sender === 'trainer' && !x.read_at).map(x => x.sender_id || 'trainer')).size; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } catch (e) { }
+    if (MG.want) { MG.want = false; MG.full = false; mgStyle('thHostCss', MG_HOST); try { m.open(); } catch (e) { } mgShow(false); MG.was = true; return; }
+    if (!MG.shown) return;
+    let open = false, vis = false; try { open = m.state().open; vis = m.visible(); } catch (e) { }
+    if (open && !vis && !MG.full) mgReveal();
+    if (MG.was && !open && !MG.full) setTimeout(() => { if (!MG.shown || MG.full) return; const dd = mgDoc(); let o2 = false; try { o2 = m.state().open; } catch (e) { } if (dd && dd.querySelector(MG_PANELS)) mgReveal(); else if (!o2) mgHide(); }, 450);
+    MG.was = open;
+  }
+  function mgOpen() { mgEnsure(); if (!MG.fr) return; MG.want = true; clearTimeout(MG.wt); MG.wt = setTimeout(() => { MG.want = false; }, 12000); mgTick(); }
+  window.addEventListener('message', e => { const d = e.data; if (d && d.type === 'thabit-messenger-badge') { const g = $('msgBdg'); if (g) { const n = +d.count || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); } } });
+  setTimeout(mgEnsure, 2500);   /* started early so the unread number is right before the button is tapped */
 
   /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
   const SPACE_SOON = true;   /* true = the "under development" page; false = the real board (board.html?student=1) */
@@ -1442,6 +1469,8 @@ function THApp(cfg) {
     const st = document.createElement('style'); st.id = 'thMirCss';
     st.textContent = `
       .sdi.hm{margin:0 6px 6px}
+      .sdi[data-k="messenger"]{display:none}
+      @media(min-width:1180px){.sdi[data-k="messenger"]{display:flex}}
       .sdh{margin:3px 14px 6px;font-size:15px}
       .sdg{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:16px 14px 6px}
       #W{--sbh:rgba(255,255,255,.07)}#W.light{--sbh:rgba(28,26,22,.06)}
@@ -1459,9 +1488,9 @@ function THApp(cfg) {
       .sdl{margin:10px 16px}
       .sdl.sp{margin:20px 16px}
       .sdr + .sdl.sp{margin-top:22px!important}
-      .sdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}
+      .sdr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px 10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}.sdr .sdi.hm{width:100%!important;flex:0 0 100%;height:40px!important;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdr .sdi.st{flex:1 1 0!important;width:auto!important;min-width:0}
       .sps{height:14px}
-      .sdi.st[data-k="messenger"],.sdi.st[data-k="feed"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
+      .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
       .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
       .mrwrap{position:relative;height:100%;min-height:100%}
       .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
@@ -2008,7 +2037,7 @@ function THApp(cfg) {
     R.appendChild(st);
   })();
   updBadge();
-  $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (!b) return; openLayer(b.dataset.k); });
+  $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (!b) return; if (b.dataset.k === 'messenger') { setSide(false); mgOpen(); return; } openLayer(b.dataset.k); });
   $('logo').onclick = () => { if (cur !== 'home') openLayer('home'); };
   $('back').onclick = () => closeLayer();
 
@@ -2056,13 +2085,10 @@ function THApp(cfg) {
   setLogo(); setTimeout(setLogo, 600); setTimeout(setLogo, 2500);
   apply();
 
-  /* a push notification opens the Feed page (app already open: message from the service worker; app was closed: #th-feed) */
-  try { if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'thabit-open-feed') openLayer('feed'); }); } catch (e) { }
-  const FEED_HASH = location.hash === '#th-feed';
   /* ---------- start: the logo intro first, then the page, with the sidebar open ---------- */
   function start() {
     const bg = () => W.classList.contains('light') ? '#e4e6ec' : '#121419';
-    const go = () => { W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: 'home' }, ''); } catch (e) { } openLayer(FEED_HASH ? 'feed' : 'home', true); if (FEED_HASH) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { } } };
+    const go = () => { W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: 'home' }, ''); } catch (e) { } openLayer('home', true); };
     if (window.thLoader && thLoader.intro) return thLoader.intro({ bg: bg }).then(go, go);
     go(); return Promise.resolve();
   }
