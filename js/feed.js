@@ -215,7 +215,7 @@ function paint() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'seeold'; b.textContent = t.older;
     b.onclick = () => { rest.forEach(c => { c.hidden = false; }); b.remove(); }; list.appendChild(b);
   }
-  if (animFirst && cards.length) { animFirst = false; list.querySelectorAll('.pc').forEach((c, i) => { c.style.setProperty('--d', Math.min(i, 12) * 90 + 'ms'); c.classList.add('drop'); c.addEventListener('animationend', () => c.classList.remove('drop'), { once: true }); }); }
+  if (animFirst && cards.length) { animFirst = false; list.querySelectorAll('.pc').forEach((c, i) => { c.style.setProperty('--d', Math.min(i, 10) * 130 + 'ms'); c.classList.add('drop'); c.addEventListener('animationend', () => c.classList.remove('drop'), { once: true }); }); }
   lastSig = sigOf(); postBadge();
 }
 
@@ -242,7 +242,7 @@ if (!BADGE_ONLY) {
   const st = document.createElement('style');
   st.textContent = `html,body{margin:0;min-height:100%}
 body{font-family:Inter,Cairo,sans-serif}
-#feedPage{max-width:920px;margin:0 auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
+#feedPage{max-width:680px;margin:0 auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
 .fhead{display:flex;align-items:center;gap:10px;margin:6px 4px 16px}.fhead h1{margin:0;font-size:1.25rem;font-weight:800}
 .fhead svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;transform:rotate(-12deg)}
 .pcs{width:100%;max-width:none;max-height:none;overflow:visible}
@@ -252,7 +252,8 @@ body{font-family:Inter,Cairo,sans-serif}
 .pc.nf::before,.pc.nf::after{content:none!important;display:none!important}
 .pc.nf .nfb[hidden]{display:none!important}
 /* closed cards all have the same height: title + two lines of the message; the rest opens with a tap */
-.pc.nf .nft2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.55;min-height:3.1em;opacity:.7}
+.pc.nf{padding:9px 13px!important}.pc.nf .nfi{width:32px!important;height:32px!important;border-radius:9px!important}
+.pc.nf .nft2{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;min-height:1.5em;opacity:.7;margin-top:7px!important}
 #feedEmpty{text-align:center;opacity:.65;padding:60px 10px;font-weight:600}
 .seeold{border:0;background:rgba(148,163,184,.2);color:inherit;border-radius:14px;padding:10px 16px;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer;align-self:center}
 .opx-bar{display:flex;align-items:center;gap:2px;margin-top:6px}
@@ -289,8 +290,8 @@ body.light-theme .pc{background:rgba(255,255,255,.6)!important;border-color:rgba
 @keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
 .pc.nf.unread{background:rgba(96,165,250,.18)!important;border-color:rgba(96,165,250,.45)!important}
 body.light-theme .pc.nf.unread{background:rgba(147,197,253,.4)!important;border-color:rgba(96,165,250,.6)!important}
-.pc.drop{animation:cardDrop .6s cubic-bezier(.22,1,.36,1) both;animation-delay:var(--d,0ms)}
-@keyframes cardDrop{from{opacity:0;transform:translateY(-34px)}to{opacity:1;transform:translateY(0)}}`;
+.pc.drop{animation:cardDrop .95s cubic-bezier(.22,1,.36,1) both;animation-delay:var(--d,0ms)}
+@keyframes cardDrop{0%{opacity:0;transform:translateY(-170px) scale(1.45)}45%{opacity:1;transform:translateY(10px) scale(1.12)}68%{transform:translateY(-4px) scale(.965)}84%{transform:translateY(2px) scale(1.012)}100%{opacity:1;transform:translateY(0) scale(1)}}`;
   document.head.appendChild(st);
   document.body.innerHTML = '<main id="feedPage"><div class="pcs" id="feedList"></div><div id="feedEmpty" hidden></div></main>';
   paint();
