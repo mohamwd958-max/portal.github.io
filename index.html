@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { sh: 'EN', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { sh: 'ع', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -1173,11 +1173,21 @@ function THApp(cfg) {
       bdShow(g, n); setTimeout(tick, d);
     })();
   }
-  const setBadge = (id, n) => {
-    const g = $(id); if (!g) return; n = +n || 0; bdSave(id, n); g.dataset.real = n;
+  /* a pre-loaded page can report 0 for a moment while it is still loading and then the real number: a 0 is only trusted
+     if nothing bigger arrives within 2.5 s, so the badge never disappears and comes back */
+  const bdZ = {};
+  const bdCommit = (id, n) => {
+    const g = $(id); if (!g) return; bdSave(id, n); g.dataset.real = n;
     const st = BD[id];
     if (st && st.run) { st.real = n; return; }
     bdShow(g, n); g.classList.remove('cnt');
+  };
+  const setBadge = (id, n) => {
+    const g = $(id); if (!g) return; n = +n || 0;
+    clearTimeout(bdZ[id]);
+    const shown = g.classList.contains('on') || (BD[id] && BD[id].run) || (bdLast()[id] > 0 && g.dataset.real == null);
+    if (n === 0 && shown) { bdZ[id] = setTimeout(() => { bdCommit(id, 0); sbDot(); }, 2500); return; }
+    bdCommit(id, n);
   };
   (function bdInit() {
     const last = bdLast(), css = document.createElement('style');
@@ -2498,8 +2508,18 @@ function THApp(cfg) {
       #W{--gl:rgba(255,255,255,.45)}#W.light{--gl:rgba(28,26,22,.28)}
       .cb.js-lg{font:800 12px/1 Inter,Cairo,sans-serif;letter-spacing:.02em;padding:0}
       #W.ar .cb.js-lg{font:800 17px/1 Cairo,Inter,sans-serif;letter-spacing:0}
-      .lvl{width:30px;height:30px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
-      .lvl svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+      .lvl{width:36px;height:36px;padding:0;border:0;background:transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#e0a100}
+      #W.light .lvl{color:#c28800}
+      .lvl svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+      .lvl svg circle:first-child{fill:rgba(224,161,0,.25)}
+      #lov{z-index:80}
+      #lov .pop{max-height:calc(100dvh - 40px);overflow-y:auto;scrollbar-width:none}#lov .pop::-webkit-scrollbar{display:none}
+      #lov .lrows{margin-top:4px}
+      .lrow{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--gbd);text-align:start}
+      .lrow:last-child{border-bottom:0}
+      .lrow>svg{width:36px;height:36px;flex:none}
+      .lrow b{display:block;font:700 13px Cairo,Inter,sans-serif;color:var(--ink);margin-bottom:2px}
+      .lrow span{display:block;font:500 12px/1.55 Cairo,Inter,sans-serif;color:var(--ink2)}
       @media(max-width:875px){
         #sbtn,#crumb{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 18px)}
         #layer{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 62px)}
@@ -2525,6 +2545,22 @@ function THApp(cfg) {
       #sbtn.hasn.dotok::after{animation:sbPop .65s cubic-bezier(.2,.9,.3,1.4) backwards}
       @keyframes sbPop{0%{scale:0;box-shadow:0 0 0 0 rgba(239,68,68,.65)}60%{scale:1.5;box-shadow:0 0 0 6px rgba(239,68,68,.25)}100%{scale:1;box-shadow:0 0 0 9px rgba(239,68,68,0)}}`;
     R.appendChild(css);
+    /* ---- Level pop-up (same look as the profile pop-up). The four medals below are placeholders; swap LV_ICON for the real images later ---- */
+    const LV_ICON = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 11.4 6.6 3h4.1l1.3 4.2M15.3 11.4 17.4 3h-4.1L12 7.2" fill="none" stroke="#a9753f" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="5.5" fill="#8b5e3c"/><circle cx="12" cy="15" r="3.2" fill="none" stroke="#c99a68" stroke-width="1"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 11.4 6.6 3h4.1l1.3 4.2M15.3 11.4 17.4 3h-4.1L12 7.2" fill="none" stroke="#e0a470" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="5.5" fill="#cd7f32"/><circle cx="12" cy="15" r="3.2" fill="none" stroke="#f0c391" stroke-width="1"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 11.4 6.6 3h4.1l1.3 4.2M15.3 11.4 17.4 3h-4.1L12 7.2" fill="none" stroke="#f7c948" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="5.5" fill="#e0a100"/><circle cx="12" cy="15" r="3.2" fill="none" stroke="#ffe08a" stroke-width="1"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h11l4 5-9.5 11.5L2.5 9z" fill="#5fd4f0"/><path d="M2.5 9h19M9.5 4 8 9l4 11.5L16 9l-1.5-5" fill="none" stroke="#e8fbff" stroke-width="1" stroke-linejoin="round" opacity=".9"/></svg>'
+    ];
+    const lov = document.createElement('div'); lov.className = 'ov'; lov.id = 'lov';
+    lov.innerHTML = '<div class="pop" role="dialog" aria-modal="true"><h3 data-t="lvT"></h3><p data-t="lvP"></p><div class="lrows">' +
+      LV_ICON.map((ic, i) => '<div class="lrow">' + ic + '<div><b data-t="lvn' + (i + 1) + '"></b><span data-t="lvd' + (i + 1) + '"></span></div></div>').join('') + '</div></div>';
+    W.appendChild(lov);
+    lov.querySelectorAll('[data-t]').forEach(e => { e.textContent = STR[L][e.dataset.t]; });
+    const setLv = on => { lov.classList.toggle('on', on); document.documentElement.style.overflow = on ? 'hidden' : ''; document.body.style.overflow = on ? 'hidden' : (isDk() ? '' : (W.classList.contains('lay') ? 'hidden' : '')); };
+    lov.addEventListener('click', e => { if (e.target === lov) setLv(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setLv(false); });
+    const lb = $('lvlBtn'); if (lb) lb.onclick = e => { e.stopPropagation(); setSide(false); setLv(true); };
     const sb = $('sbtn'); if (!sb) return;
     const NS = 'http://www.w3.org/2000/svg', ring = document.createElementNS(NS, 'svg'), c = document.createElementNS(NS, 'circle');
     ring.setAttribute('class', 'sring'); ring.setAttribute('viewBox', '0 0 36 36'); ring.setAttribute('aria-hidden', 'true');
