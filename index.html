@@ -2526,7 +2526,8 @@ function THApp(cfg) {
         #side{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 64px);max-height:calc(100dvh - var(--hh) - 86px - env(safe-area-inset-top,0px))}
         #crumb .cw{left:56px;right:56px}
       }
-      #sbtn svg.sring{position:absolute;left:-1px;top:-1px;width:36px;height:36px;rotate:-90deg;overflow:visible;pointer-events:none;transition:none!important}
+      #sbtn svg.sring{visibility:hidden;position:absolute;left:-1px;top:-1px;width:36px;height:36px;rotate:-90deg;overflow:visible;pointer-events:none;transition:none!important}
+      #sbtn.go svg.sring{visibility:visible}
       #sbtn .sring circle{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:1;stroke-dashoffset:1}
       #sbtn.intro{background:transparent!important;border-color:transparent!important}
       #sbtn.intro .ml{opacity:0}
@@ -2566,13 +2567,52 @@ function THApp(cfg) {
     ring.setAttribute('class', 'sring'); ring.setAttribute('viewBox', '0 0 36 36'); ring.setAttribute('aria-hidden', 'true');
     c.setAttribute('cx', 18); c.setAttribute('cy', 18); c.setAttribute('r', 17.5); c.setAttribute('pathLength', 1);
     ring.appendChild(c); sb.appendChild(ring);
-    if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) { sb.classList.add('dotok'); return; }
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) { sb.classList.add('dotok'); ring.remove(); return; }
     sb.classList.add('intro');
     onShown(() => {
       sb.classList.remove('intro'); void sb.offsetWidth; sb.classList.add('go');
       setTimeout(() => sb.classList.add('dotok'), 2150);
-      setTimeout(() => sb.classList.remove('go'), 2600);
+      setTimeout(() => { sb.classList.remove('go'); ring.remove(); }, 2600);
     });
+  })();
+  /* ---- v9: press a sidebar button, hold a moment and slide your finger to choose (works inside one section; release to open) ---- */
+  (function () {
+    const side = $('side'), css = document.createElement('style');
+    css.textContent = '#side .sdi{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#side .sdi.scr{background:var(--chip);scale:1.05;box-shadow:inset 0 0 0 1px var(--gbd)}';
+    R.appendChild(css);
+    const grp = el => {
+      if (el.classList.contains('hm')) return null;
+      if (el.parentElement.classList.contains('sdr')) return { items: [...el.parentElement.querySelectorAll('.sdi.st')], axis: 'x' };
+      const items = [el]; let p = el.previousElementSibling, n = el.nextElementSibling;
+      while (p && p.classList.contains('sdi')) { items.unshift(p); p = p.previousElementSibling; }
+      while (n && n.classList.contains('sdi')) { items.push(n); n = n.nextElementSibling; }
+      return { items, axis: 'y' };
+    };
+    const near = (S, x, y) => {
+      let best = S.items[0], bd = 1e9;
+      S.items.forEach(it => { const r = it.getBoundingClientRect(), d = Math.abs(S.axis === 'x' ? r.left + r.width / 2 - x : r.top + r.height / 2 - y); if (d < bd) { bd = d; best = it; } });
+      return best;
+    };
+    let S = null;
+    const mark = it => { if (!S || S.cur === it) return; if (S.cur) S.cur.classList.remove('scr'); S.cur = it; it.classList.add('scr'); try { navigator.vibrate && navigator.vibrate(6); } catch (e) { } };
+    const end = () => { if (S) { clearTimeout(S.t); S.items.forEach(i => i.classList.remove('scr')); } S = null; };
+    side.addEventListener('touchstart', e => {
+      end(); const el = e.target.closest && e.target.closest('.sdi'); if (!el || e.touches.length !== 1) return;
+      const g = grp(el); if (!g || g.items.length < 2) return; const t = e.touches[0];
+      S = { items: g.items, axis: g.axis, start: el, cur: null, x0: t.clientX, y0: t.clientY, on: false };
+      S.t = setTimeout(() => { if (S) { S.on = true; mark(S.start); } }, g.axis === 'x' ? 60 : 170);
+    }, { passive: true });
+    side.addEventListener('touchmove', e => {
+      if (!S) return; const t = e.touches[0];
+      if (!S.on) { if (Math.hypot(t.clientX - S.x0, t.clientY - S.y0) > 8) end(); return; }
+      e.preventDefault(); mark(near(S, t.clientX, t.clientY));
+    }, { passive: false });
+    side.addEventListener('touchend', e => {
+      if (!S) return; const w = S;
+      if (w.on && w.cur && w.cur !== w.start) { e.preventDefault(); const k = w.cur.dataset.k; end(); openLayer(k); } else end();
+    });
+    side.addEventListener('touchcancel', end);
+    side.addEventListener('contextmenu', e => { if (S && S.on) e.preventDefault(); });
   })();
   $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (!b) return; openLayer(b.dataset.k); });
   $('logo').onclick = () => { if (cur !== 'home') openLayer('home'); };
