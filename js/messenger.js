@@ -102,8 +102,7 @@ if (BADGE_ONLY) {
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
-        <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b></div>
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
       <div class="mgr-list" data-list></div>
@@ -124,7 +123,6 @@ if (BADGE_ONLY) {
     el.list.addEventListener('click', e => { if (!e.target.closest('.mgr-b,.mgr-eri')) mkClose(); });   /* tap anywhere else = the emoji bar goes and the spacing is back */
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
-    q('[data-x]').onclick = () => askClose();
     el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach((b, i) => b.onclick = () => { el.att.hidden = true; if (i === 0) pickPhoto(); });   /* photo works; link / screenshot / video are still look only */
@@ -423,15 +421,8 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
         <span class="mgr-ca mgr-logo"></span>
         <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(TN())}</b><em>${esc(tm)}</em></span>
           <span class="mgr-c2">${!dr && last && last.sender !== 'trainer' ? mDots(last) : ''}<span class="mgr-cp" dir="auto">${dr ? `<i class="mgr-dr">${DLB()}: </i>` : ''}${esc(prev)}</span>${un ? `<span class="mgr-cn">${un}</span>` : ''}</span></span></button>
-      <button type="button" class="mgr-cell" data-req><span class="mgr-ca" style="color:#38bdf8"><i class="fa-solid fa-paper-plane"></i></span>
-        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.req)}</b></span><span class="mgr-c2"><span class="mgr-cp" dir="auto">${esc(t.reqSub)}</span></span></span></button>
-      <button type="button" class="mgr-cell" data-as><span class="mgr-ca" style="color:#34d399"><i class="fa-solid fa-microphone-lines"></i></span>
-        <span class="mgr-cb"><span class="mgr-c1"><b dir="auto">${esc(t.asst)}</b></span><span class="mgr-c2"><span class="mgr-cp" dir="auto">${esc(t.asstSub)}</span></span></span></button>`;
+`;
     el.cells.querySelector('[data-open]').onclick = () => setView('chat');
-    /* Requests / Assistant: the Messenger steps aside (phone: stays underneath so Back returns to it) and the other screen opens */
-    const away = () => { if (mgrPhone()) { M.susp = true; el.pop.style.display = 'none'; } else setMode('closed'); };
-    el.cells.querySelector('[data-req]').onclick = () => { toParent({ type: 'thabit-open-page', page: 'dash', then: 'requests' }); };
-    el.cells.querySelector('[data-as]').onclick = () => { toParent({ type: 'thabit-open-page', page: 'dash', then: 'assistant' }); };
   }
   const mgrPhone = () => matchMedia('(max-width:820px) and (pointer:coarse)').matches;
   const mRenderAll = () => { mBadge(); lRender(); mRender(); };
