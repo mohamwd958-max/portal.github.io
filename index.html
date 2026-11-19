@@ -1016,7 +1016,7 @@ function THApp(cfg) {
     try { crumb(); } catch (e) { }
     Object.keys(PERS.f).forEach(x => { try { PERS.f[x].contentWindow.location.reload(); } catch (e) { } });
     try { const o = localStorage.getItem('thabit_lang'); localStorage.setItem('thabit_lang', L === 'en' ? 'en' : (o === 'eg' ? 'eg' : 'ar')); } catch (e) { }
-    if (cur === 'library' || cur === 'home' || cur === 'space' || cur === 'feed' || cur === 'messenger') fillLayer(cur);
+    if (cur === 'library' || cur === 'home' || cur === 'space' || cur === 'feed' || cur === 'messenger' || cur === 'calendar') fillLayer(cur);
     if (cfg.onLang) cfg.onLang(L); hb();
   }
   R.querySelectorAll('.js-lg').forEach(b => b.onclick = () => { L = L === 'ar' ? 'en' : 'ar'; try { localStorage.setItem(KEY_L, L); } catch (e) { } apply(); });
@@ -1075,6 +1075,7 @@ function THApp(cfg) {
     const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute, pg = PAGES[k];
     if (k !== 'home') homeStop();
     if (k !== 'mirror') mirStop();
+    if (k !== 'calendar') calStop();
     if (!pg) persHide();
     b.classList.toggle('full', !!(dash || pg));
     if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => { tidyFrame(f); }); b.appendChild(f); }
@@ -1084,6 +1085,7 @@ function THApp(cfg) {
     else if (k === 'mirror') renderMirror(b);
     else if (k === 'library') renderLib(b);
     else if (k === 'space') renderSpace(b);
+    else if (k === 'calendar') renderCal(b);
     else if (k === 'store') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L].storeMsg; }
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
@@ -1189,6 +1191,91 @@ function THApp(cfg) {
   const SPT = { en: { d: 'On this page you can pick up a pen and start drawing your own free space however you like.', s: 'This page is still being updated and is under development. It will be available very soon.' }, ar: { d: 'في هذه الصفحة تستطيع أن تلتقط قلمًا وتبدأ برسم مساحتك الحرة كيفما شئت.', s: 'لا زالت هذه الصفحة تحت التحديث أو قيد التطوير، وستكون متاحة في أقرب وقت.' } };
   function gearD(cx, cy, R, r, n) { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; }
   const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
+
+  /* ---------- Calendar: a slim strip of up to 3 cells (week days | session time | countdown/status).
+                 Lessons: Sat/Mon/Wed 7:00 PM Egypt time (8:00 PM Makkah). Optional: Sun/Tue. Off: Thu/Fri. ---------- */
+  let calStop = () => { };
+  const CAL = {
+    en: { days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], full: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      week: 'This week', time: 'Session time', status: 'Status', eg: 'Egypt', mk: 'Makkah', left: 'Time left for the session', live: 'Your session is live now', done: "Today's session has ended", opt: 'Optional day',
+      off: "You're off today — enjoy your time!", see: n => 'See you on ' + n + ', God willing.' },
+    ar: { days: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], full: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+      week: 'هذا الأسبوع', time: 'موعد الجلسة', status: 'الحالة', eg: 'مصر', mk: 'مكة المكرمة', left: 'متبقي على الجلسة', live: 'جلستك جارية الآن', done: 'انتهت جلسة اليوم', opt: 'يوم اختياري',
+      off: 'أنت في إجازة اليوم، استمتع بوقتك!', see: n => 'لقاؤنا يوم ' + n + ' إن شاء الله.' }
+  };
+  const CAL_KIND = ['lesson', 'opt', 'lesson', 'opt', 'lesson', 'off', 'off'];   /* index 0 = Saturday */
+  const CAL_HOUR = 19, CAL_MIN = 60, CAL_TZ = { eg: 'Africa/Cairo', mk: 'Asia/Riyadh' };
+  function calNow() {
+    const f = new Intl.DateTimeFormat('en-GB', { timeZone: CAL_TZ.eg, hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const o = {}; f.formatToParts(new Date()).forEach(x => { o[x.type] = x.value; });
+    const wd = { Sat: 0, Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 6 }[o.weekday];
+    return { wd, sec: (+o.hour % 24) * 3600 + (+o.minute) * 60 + (+o.second) };
+  }
+  function renderCal(b) {
+    if (!R.getElementById('thCalCss')) {
+      const st = document.createElement('style'); st.id = 'thCalCss';
+      st.textContent = `
+      .cal-w{min-height:100%;display:flex;flex-direction:column;gap:12px;padding:2px 0 24px}
+      .cal-top{display:grid;grid-template-columns:1.9fr 1fr 1.1fr;gap:10px}
+      .cal-top.one{grid-template-columns:1.9fr 2.1fr}
+      .cal-c{min-width:0;height:96px;padding:10px 12px;border-radius:20px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);display:flex;flex-direction:column;justify-content:space-between;color:var(--ink)}
+      .cal-l{font:700 11px Cairo,Inter,sans-serif;color:var(--ink2);letter-spacing:.02em}
+      .cal-days{display:flex;gap:6px;direction:inherit}
+      .cal-d{flex:1;min-width:0;height:48px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid var(--sbd);font:700 11px Cairo,Inter,sans-serif;background:rgba(255,255,255,.55);color:#1c1a16;white-space:nowrap}
+      #W:not(.light) .cal-d{background:rgba(255,255,255,.88)}
+      .cal-d.lesson{background:rgba(52,211,153,.28);border-color:rgba(52,211,153,.55)}
+      .cal-d.opt{background:rgba(251,146,60,.28);border-color:rgba(251,146,60,.55)}
+      #W:not(.light) .cal-d.lesson{background:rgba(52,211,153,.3);color:#ecfdf5}
+      #W:not(.light) .cal-d.opt{background:rgba(251,146,60,.3);color:#fff7ed}
+      .cal-d.off{background:var(--chip);color:var(--ink);opacity:.38;border-color:transparent}
+      #W:not(.light) .cal-d.off{background:var(--chip)}
+      .cal-d.today.lesson{background:#34d399;color:#04291c;box-shadow:0 0 0 2px #34d399,0 0 16px rgba(52,211,153,.5)}
+      .cal-d.today.opt{background:#fb923c;color:#2b1100;box-shadow:0 0 0 2px #fb923c,0 0 16px rgba(251,146,60,.5)}
+      .cal-d i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0}.cal-d.today i{opacity:.8}
+      .cal-big{font:800 22px/1 Inter,Cairo,sans-serif;direction:ltr;unicode-bidi:plaintext;text-align:start}
+      .cal-tz{display:flex;gap:4px}
+      .cal-tz button{flex:1;height:24px;padding:0 6px;border-radius:999px;border:1px solid var(--sbd);background:transparent;color:var(--ink2);font:700 10.5px Cairo,Inter,sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .cal-tz button.on{background:var(--btn);color:var(--onbtn);border-color:transparent}
+      .cal-st{font:800 14px/1.3 Cairo,Inter,sans-serif}
+      .cal-cd{font:800 22px/1 Inter,Cairo,sans-serif;direction:ltr;font-variant-numeric:tabular-nums;text-align:start}
+      .cal-tag{font:700 10.5px Cairo,Inter,sans-serif;color:#fb923c}
+      .cal-off{justify-content:center;gap:4px}
+      .cal-off b{font:800 15px/1.4 Cairo,Inter,sans-serif}.cal-off span{font:600 12.5px/1.4 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .cal-low{flex:1;min-height:200px;border-radius:24px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px)}
+      @media(max-width:640px){.cal-top,.cal-top.one{grid-template-columns:1fr 1fr}.cal-top .cal-cw{grid-column:1/-1}.cal-d{height:44px;font-size:10px}.cal-c{height:auto;min-height:92px}.cal-top.one .cal-off{grid-column:1/-1}}
+      `;
+      R.appendChild(st);
+    }
+    let tz = 'eg'; try { tz = localStorage.getItem('thCalTz') === 'mk' ? 'mk' : 'eg'; } catch (e) { }
+    const T = CAL[L], pad = n => String(n).padStart(2, '0');
+    const draw = () => {
+      const n = calNow(), kind = CAL_KIND[n.wd], T = CAL[L];
+      const days = T.days.map((d, i) => '<div class="cal-d ' + CAL_KIND[i] + (i === n.wd && CAL_KIND[i] !== 'off' ? ' today' : '') + '"><span>' + d + '</span><i></i></div>').join('');
+      let h = '<div class="cal-c cal-cw"><div class="cal-l">' + T.week + '</div><div class="cal-days">' + days + '</div></div>';
+      if (kind === 'off') {
+        let nx = n.wd; do { nx = (nx + 1) % 7; } while (CAL_KIND[nx] !== 'lesson');
+        h += '<div class="cal-c cal-off"><b>' + T.off + '</b><span>' + T.see(T.full[nx]) + '</span></div>';
+        return '<div class="cal-top one">' + h + '</div>';
+      }
+      const start = CAL_HOUR * 3600, left = start - n.sec;
+      const inst = new Date(Date.now() + left * 1000);
+      const tm = new Intl.DateTimeFormat(L === 'ar' ? 'ar-u-nu-latn' : 'en-US', { timeZone: CAL_TZ[tz], hour: 'numeric', minute: '2-digit', hour12: true }).format(inst);
+      h += '<div class="cal-c"><div class="cal-l">' + T.time + '</div><div class="cal-big">' + tm + '</div><div class="cal-tz"><button type="button" data-tz="eg" class="' + (tz === 'eg' ? 'on' : '') + '">' + T.eg + '</button><button type="button" data-tz="mk" class="' + (tz === 'mk' ? 'on' : '') + '">' + T.mk + '</button></div></div>';
+      let body;
+      if (left > 0) body = '<div class="cal-st">' + T.left + '</div><div class="cal-cd">' + pad(Math.floor(left / 3600)) + ':' + pad(Math.floor(left % 3600 / 60)) + ':' + pad(left % 60) + '</div>';
+      else if (-left < CAL_MIN * 60) body = '<div class="cal-st" style="color:#34d399">' + T.live + '</div><div></div>';
+      else body = '<div class="cal-st">' + T.done + '</div><div></div>';
+      h += '<div class="cal-c"><div class="cal-l">' + T.status + '</div>' + body.replace(/<div><\/div>$/, '') + (kind === 'opt' ? '<div class="cal-tag">' + T.opt + '</div>' : '') + '</div>';
+      return '<div class="cal-top">' + h + '</div>';
+    };
+    b.innerHTML = '<div class="cal-w"><div id="calTop"></div><div class="cal-low"></div></div>';
+    const top = b.querySelector('#calTop');
+    const paint = () => { top.innerHTML = draw(); };
+    top.addEventListener('click', e => { const t = e.target.closest('[data-tz]'); if (!t) return; tz = t.dataset.tz; try { localStorage.setItem('thCalTz', tz); } catch (x) { } paint(); });
+    paint();
+    const tm = setInterval(paint, 1000);
+    calStop = () => { clearInterval(tm); calStop = () => { }; };
+  }
   function renderSpace(b) {
     if (!SPACE_SOON) { b.innerHTML = ''; b.classList.add('full'); const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Space'; f.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen'); f.src = 'board.html?student=1'; b.appendChild(f); return; }
     if (!R.getElementById('thSpCss')) { const st = document.createElement('style'); st.id = 'thSpCss'; st.textContent = `
