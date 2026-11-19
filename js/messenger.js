@@ -2,6 +2,7 @@
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token';
+const PRE = new URLSearchParams(location.search).has('pre'); let LIVE = !PRE;   /* loaded in advance by the portal: it does not count as "seen" or "online" until the page is really opened */
 const BADGE_ONLY = new URLSearchParams(location.search).has('badge');   /* hidden helper copy used by the portal only to show the unread number */
 let lang = 'en'; try { lang = localStorage.getItem('thabit_lang') || 'en'; } catch (e) { }
 const $ = id => document.getElementById(id);
@@ -437,7 +438,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   const mSig = a => a.filter(x => !x._st).map(x => x.id + ':' + (x.read_at ? 1 : 0) + (x.delivered_at ? 1 : 0)).join(',') + '|' + (M.peerOnline ? 1 : 0);
   /* the trainer's messages count as read only while his conversation is really open on screen */
   function mMarkRead() {
-    if (VIEW || !tok() || M.mode !== 'open' || M.view !== 'chat') return;
+    if (VIEW || !tok() || !LIVE || M.mode !== 'open' || M.view !== 'chat') return;
     const un = mUnreadList(); if (!un.length) return;
     rpc('trainee_msg_mark_read', { p_token: tok() }).then(r => {
       if (r && r.ok === false) return;
@@ -588,7 +589,7 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
   ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'keydown', 'scroll', 'wheel', 'click', 'input', 'copy', 'paste', 'focus'].forEach(ev => window.addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true, capture: true }));
   /* every 10s: tell the server whether the student is active, and learn whether the trainer is online */
   const ping = () => {
-    if (VIEW || !tok() || document.hidden) return;
+    if (VIEW || !tok() || document.hidden || !LIVE) return;
     rpc('trainee_presence_ping', { p_token: tok(), p_active: Date.now() - lastAct <= 10500 }).then(r => {
       if (r && r.ok) { const on = !!r.trainer_online; if (on !== M.peerOnline) { M.peerOnline = on; mRenderAll(); } }
     }).catch(() => null);
@@ -612,6 +613,8 @@ body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.
     const d = e.data; if (!d) return;
     if (d.type === 'thabit-theme') applyTheme(d.theme === 'light');
     else if (d.type === 'thabit-messenger-quote') { window.thMessenger.open(String(d.quote || '')); }
+    else if (d.type === 'thabit-page-show') { LIVE = true; try { window.thMessenger.reload(); } catch (x) { } try { ping(); } catch (x) { } }
+    else if (d.type === 'thabit-page-hide') { LIVE = false; recCancel(); document.querySelectorAll('audio').forEach(a => { try { a.pause(); } catch (x) { } }); }
   });
   /* the time zone follows the trainee's country: read the profile once, then repaint */
   if (!VIEW && tok()) rpc('trainee_dashboard', { p_token: tok() }).then(r => { if (r && r.profile) { D.profile = r.profile; try { window.thMessenger.refresh(); } catch (e) { } } }).catch(() => null);
