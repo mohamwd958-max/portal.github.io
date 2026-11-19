@@ -960,10 +960,10 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { sh: 'EN', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { sh: 'ع', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -1007,7 +1007,7 @@ function THApp(cfg) {
     if (!R.getElementById('thLvlCss')) { const st = document.createElement('style'); st.id = 'thLvlCss'; st.textContent = '#hlg{display:flex;align-items:center;gap:10px}.lvl{height:28px;padding:0 13px;border-radius:999px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);font:700 11.5px Cairo,Inter,sans-serif;white-space:nowrap;cursor:pointer;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}.lvl:hover{scale:1.05}.lvl:active{scale:.94}'; R.appendChild(st); }
     const lg = $('logo'); if (!lg || $('hlg')) return;
     const g = document.createElement('div'); g.id = 'hlg'; lg.parentNode.insertBefore(g, lg); g.appendChild(lg);
-    const lv = document.createElement('button'); lv.type = 'button'; lv.className = 'lvl'; lv.id = 'lvlBtn'; lv.setAttribute('data-t', 'lvl'); g.appendChild(lv);
+    const lv = document.createElement('button'); lv.type = 'button'; lv.className = 'lvl'; lv.id = 'lvlBtn'; lv.setAttribute('data-title', 'lvl'); lv.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="15" r="5"/><circle cx="12" cy="15" r="1.6"/><path d="M8.7 11.4 6.6 3h4.1l1.3 4.2M15.3 11.4 17.4 3h-4.1L12 7.2"/></svg>'; g.appendChild(lv);
   })();
   const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); };
   $('sbtn').onclick = e => { e.stopPropagation(); setSide(!W.classList.contains('sbo')); };
@@ -1018,7 +1018,7 @@ function THApp(cfg) {
   function apply() {
     const t = STR[L]; W.dir = L === 'ar' ? 'rtl' : 'ltr'; W.classList.toggle('ar', L === 'ar');
     R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
-    R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.name; });
+    R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.sh; b.title = t.name; });
     R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title]; e.setAttribute('aria-label', t[e.dataset.title]); });
     if (cur) $('ltitle').textContent = t['i_' + cur];
     try { crumb(); } catch (e) { }
@@ -1146,33 +1146,44 @@ function THApp(cfg) {
     persPost(k, { type: 'thabit-page-show' });
     if (k === 'messenger' && PG.quote) { persPost(k, { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; }
   }
-  /* Badge count-down placeholder: while the real unread number is still loading, a badge known (from the last visit) to have
-     notifications shows a number counting down from 95: first 30 slowly, next 30 faster, the rest as fast as possible, then lands on the real count. */
+  /* Badge count-down: a badge known (from the last visit) to have notifications starts from a big number and counts down fast.
+     As soon as the real unread number arrives the count rushes straight to it and stops there (no jump, no flicker).
+     If the count reaches the last known number before the real one arrives, it simply waits on that number. */
   const BD = {};
   const bdLast = () => { try { return JSON.parse(localStorage.getItem('thBdgLast') || '{}'); } catch (e) { return {}; } };
   const bdSave = (id, n) => { try { const o = bdLast(); o[id] = n; localStorage.setItem('thBdgLast', JSON.stringify(o)); } catch (e) { } };
   const bdShow = (g, n) => { g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); };
-  function bdRun(id) {
-    const g = $(id); if (!g) return; const st = BD[id] = { real: null, run: true }; let n = 60; g.classList.add('on', 'cnt'); bdShow(g, n);
+  function onShown(fn) {
+    if (!W.classList.contains('hid')) return fn();
+    const mo = new MutationObserver(() => { if (!W.classList.contains('hid')) { mo.disconnect(); fn(); } });
+    mo.observe(W, { attributes: true, attributeFilter: ['class'] });
+  }
+  function bdRun(id, lastN) {
+    const g = $(id); if (!g) return;
+    const hold = Math.min(99, Math.max(1, +lastN || 1)), START = 70;
+    const st = BD[id] = { real: g.dataset.real != null ? +g.dataset.real : null, run: true };
+    let n = Math.max(START, hold + 15); g.classList.add('on', 'cnt'); bdShow(g, n);
     (function tick() {
-      const floor = st.real != null ? st.real : 1;
-      if (n <= floor) { st.run = false; g.classList.remove('cnt'); if (st.real != null) bdShow(g, st.real); return; }
-      n--; bdShow(g, n);
-      const step = 60 - n, d = step <= 15 ? 55 : step <= 30 ? 22 : 7;
-      setTimeout(tick, d);
+      const known = st.real != null, to = known ? Math.min(st.real, 100) : hold;
+      if (known && n === to) { st.run = false; g.classList.remove('cnt'); bdShow(g, st.real); return; }
+      let d;
+      if (known) { n += n > to ? -1 : 1; d = 6; }
+      else if (n > hold) { n--; const s = START - n; d = s <= 10 ? 42 : s <= 25 ? 18 : 9; }
+      else { setTimeout(tick, 40); return; }
+      bdShow(g, n); setTimeout(tick, d);
     })();
   }
   const setBadge = (id, n) => {
-    const g = $(id); if (!g) return; n = +n || 0; bdSave(id, n);
+    const g = $(id); if (!g) return; n = +n || 0; bdSave(id, n); g.dataset.real = n;
     const st = BD[id];
     if (st && st.run) { st.real = n; return; }
     bdShow(g, n); g.classList.remove('cnt');
   };
   (function bdInit() {
     const last = bdLast(), css = document.createElement('style');
-    css.textContent = '.bdg.cnt{font-variant-numeric:tabular-nums;animation:bdgpop .35s ease-out infinite alternate}@keyframes bdgpop{from{transform:scale(1)}to{transform:scale(1.08)}}@media(prefers-reduced-motion:reduce){.bdg.cnt{animation:none}}';
-    document.head.appendChild(css);
-    ['msgBdg', 'feedBdg'].forEach(id => { if (last[id] > 0) bdRun(id); });
+    css.textContent = '.bdg.cnt{font-variant-numeric:tabular-nums}';
+    R.appendChild(css);
+    ['msgBdg', 'feedBdg'].forEach(id => { if (last[id] > 0) onShown(() => bdRun(id, last[id])); });
   })();
   function badgeFrames() {
     if (PG.bf) return;
@@ -1190,8 +1201,8 @@ function THApp(cfg) {
     }
     else if (d.type === 'thabit-close-page') { if (cur === d.page) openLayer('home'); }
   });
-  function sbDot() { try { const n = (+$('msgBdg').textContent || 0) + (+$('feedBdg').textContent || 0); $('sbtn').classList.toggle('hasn', n > 0 || sbDot.base); } catch (e) { } }
-  setTimeout(badgeFrames, 1500);
+  function sbDot() { try { const v = id => { const g = $(id); if (g && g.dataset.real != null) return +g.dataset.real || 0; return bdLast()[id] > 0 ? 1 : 0; }; $('sbtn').classList.toggle('hasn', v('msgBdg') + v('feedBdg') > 0 || sbDot.base); } catch (e) { } }
+  setTimeout(badgeFrames, 600);
   setTimeout(() => { persFrame('feed'); persFrame('messenger'); }, 2500);
 
   /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
@@ -2412,7 +2423,7 @@ function THApp(cfg) {
   const cr = document.createElement('div'); cr.id = 'crumb'; W.appendChild(cr);
   cr.addEventListener('click', e => { const p = e.target.closest('.cp'); if (p) { libI = +p.dataset.i; crumb(); libGo(libI); } });
   function crumb() {
-    const T = DT[L]; let h = '<span class="cm">' + T.menu + '</span><div class="cw"><div class="ci">';
+    const T = DT[L]; let h = '<div class="cw"><div class="ci">';
     if (cur) h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
     if (cur === 'library') h += '<span class="sl"></span>' + LIB.map((k, i) => '<button type="button" class="cp' + (i === libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
     cr.innerHTML = h + '</div></div>';
@@ -2479,6 +2490,54 @@ function THApp(cfg) {
     R.appendChild(st);
   })();
   updBadge();
+  /* ---- v8: round EN / ع language button, round empty Level medal, menu button that draws itself in, more room under the header on phones ---- */
+  (function () {
+    R.querySelectorAll('.js-lg').forEach(b => { b.classList.add('ic'); const t = STR[L]; b.textContent = t.sh; b.title = t.name; });
+    const css = document.createElement('style');
+    css.textContent = `
+      #W{--gl:rgba(255,255,255,.45)}#W.light{--gl:rgba(28,26,22,.28)}
+      .cb.js-lg{font:800 12px/1 Inter,Cairo,sans-serif;letter-spacing:.02em;padding:0}
+      #W.ar .cb.js-lg{font:800 17px/1 Cairo,Inter,sans-serif;letter-spacing:0}
+      .lvl{width:30px;height:30px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+      .lvl svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+      @media(max-width:875px){
+        #sbtn,#crumb{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 18px)}
+        #layer{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 62px)}
+        #side{top:calc(var(--hh) + env(safe-area-inset-top,0px) + 64px);max-height:calc(100dvh - var(--hh) - 86px - env(safe-area-inset-top,0px))}
+        #crumb .cw{left:56px;right:56px}
+      }
+      #sbtn svg.sring{position:absolute;left:-1px;top:-1px;width:36px;height:36px;rotate:-90deg;overflow:visible;pointer-events:none;transition:none!important}
+      #sbtn .sring circle{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:1;stroke-dashoffset:1}
+      #sbtn.intro{background:transparent!important;border-color:transparent!important}
+      #sbtn.intro .ml{opacity:0}
+      #sbtn.go .ml.a{animation:sbLa .5s cubic-bezier(.22,1,.36,1) .15s backwards}
+      #sbtn.go .ml.b{animation:sbLb .5s cubic-bezier(.22,1,.36,1) .3s backwards}
+      #sbtn.go .sring circle{animation:sbDraw .8s cubic-bezier(.65,0,.35,1) .8s both}
+      #sbtn.go .sring{animation:sbRingOut .45s ease 1.55s forwards}
+      #sbtn.go{animation:sbFill .5s ease 1.55s backwards,sbGlow .8s ease 1.6s}
+      @keyframes sbLa{from{transform:translate(-34px,-3.5px);opacity:0}to{transform:translate(0,-3.5px);opacity:1}}
+      @keyframes sbLb{from{transform:translate(-34px,3.5px);opacity:0}to{transform:translate(0,3.5px);opacity:1}}
+      @keyframes sbDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+      @keyframes sbRingOut{to{opacity:0}}
+      @keyframes sbFill{from{background-color:transparent;border-color:transparent}}
+      @keyframes sbGlow{0%{box-shadow:0 0 0 0 transparent}45%{box-shadow:0 0 18px 3px var(--gl)}100%{box-shadow:0 0 0 0 transparent}}
+      #sbtn.hasn:not(.dotok)::after{opacity:0}
+      #sbtn.hasn.dotok::after{animation:sbPop .65s cubic-bezier(.2,.9,.3,1.4) backwards}
+      @keyframes sbPop{0%{scale:0;box-shadow:0 0 0 0 rgba(239,68,68,.65)}60%{scale:1.5;box-shadow:0 0 0 6px rgba(239,68,68,.25)}100%{scale:1;box-shadow:0 0 0 9px rgba(239,68,68,0)}}`;
+    R.appendChild(css);
+    const sb = $('sbtn'); if (!sb) return;
+    const NS = 'http://www.w3.org/2000/svg', ring = document.createElementNS(NS, 'svg'), c = document.createElementNS(NS, 'circle');
+    ring.setAttribute('class', 'sring'); ring.setAttribute('viewBox', '0 0 36 36'); ring.setAttribute('aria-hidden', 'true');
+    c.setAttribute('cx', 18); c.setAttribute('cy', 18); c.setAttribute('r', 17.5); c.setAttribute('pathLength', 1);
+    ring.appendChild(c); sb.appendChild(ring);
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) { sb.classList.add('dotok'); return; }
+    sb.classList.add('intro');
+    onShown(() => {
+      sb.classList.remove('intro'); void sb.offsetWidth; sb.classList.add('go');
+      setTimeout(() => sb.classList.add('dotok'), 2150);
+      setTimeout(() => sb.classList.remove('go'), 2600);
+    });
+  })();
   $('side').addEventListener('click', e => { const b = e.target.closest('.sdi'); if (!b) return; openLayer(b.dataset.k); });
   $('logo').onclick = () => { if (cur !== 'home') openLayer('home'); };
   $('back').onclick = () => closeLayer();
