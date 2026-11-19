@@ -97,7 +97,7 @@ function noteCat(n) {
 }
 function thn_nCard(key, cat, headHtml, bodyHtml, dt, read) {
   const c = thn_NCT(), rd = read == null ? (key in thn_opened()) : !!read;
-  const snip = (() => { const d = document.createElement('div'); d.innerHTML = bodyHtml || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 140); })();
+  const snip = (() => { const d = document.createElement('div'); d.innerHTML = bodyHtml || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300); })();
   return { id: 'n:' + key, noX: true, cnt: !rd, isNew: !rd, cls: 'nf ' + cat + (rd ? ' read' : ' unread'),
     html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${THN_ICON[cat] || 'fa-bell'}"></i></span><div class="nfm"><div class="nfc" dir="auto">${headHtml || c[cat]}</div><div class="nft2" dir="auto">${esc(snip)}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden><div class="rich" dir="auto">${bodyHtml}</div></div>` };
@@ -233,6 +233,7 @@ window.addEventListener('message', e => {
   const d = e.data; if (!d) return;
   if (d.type === 'thabit-theme') applyTheme(d.theme === 'light');
   else if (d.type === 'thabit-feed-refresh' || d.type === 'thabit-badge-refresh') refresh(true);
+  else if (d.type === 'thabit-page-show') { animFirst = true; try { paint(); } catch (x) { } refresh(true); }   /* the page was loaded in advance: play the drop-in again when it is opened */
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 setInterval(() => { if (!document.hidden) refresh(); }, 10000);
@@ -241,11 +242,17 @@ if (!BADGE_ONLY) {
   const st = document.createElement('style');
   st.textContent = `html,body{margin:0;min-height:100%}
 body{font-family:Inter,Cairo,sans-serif}
-#feedPage{max-width:520px;margin:0 auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
+#feedPage{max-width:920px;margin:0 auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
 .fhead{display:flex;align-items:center;gap:10px;margin:6px 4px 16px}.fhead h1{margin:0;font-size:1.25rem;font-weight:800}
 .fhead svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;transform:rotate(-12deg)}
 .pcs{width:100%;max-width:none;max-height:none;overflow:visible}
 .pc{max-width:none;animation:none}
+/* no stray strip at the bottom of a card; every card as tall as its content; the closed body stays closed */
+.pc.nf{height:auto!important;max-height:none!important;overflow:visible!important}
+.pc.nf::before,.pc.nf::after{content:none!important;display:none!important}
+.pc.nf .nfb[hidden]{display:none!important}
+/* closed cards all have the same height: title + two lines of the message; the rest opens with a tap */
+.pc.nf .nft2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.55;min-height:3.1em;opacity:.7}
 #feedEmpty{text-align:center;opacity:.65;padding:60px 10px;font-weight:600}
 .seeold{border:0;background:rgba(148,163,184,.2);color:inherit;border-radius:14px;padding:10px 16px;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer;align-self:center}
 .opx-bar{display:flex;align-items:center;gap:2px;margin-top:6px}
