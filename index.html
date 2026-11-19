@@ -1073,7 +1073,7 @@ function THApp(cfg) {
     if (k !== 'mirror') mirStop();
     b.classList.toggle('full', !!(dash || pg));
     if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => { tidyFrame(f); }); b.appendChild(f); }
-    else if (pg) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = STR[L]['i_' + k]; f.src = pg; f.addEventListener('load', () => { pushTheme(W.classList.contains('light')); if (PG.quote && k === 'messenger') { try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: PG.quote }, '*'); } catch (e) { } PG.quote = null; } }); b.appendChild(f); }
+    else if (pg) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = STR[L]['i_' + k]; f.setAttribute('allow', 'microphone; camera; clipboard-write'); f.src = pg; f.addEventListener('load', () => { pushTheme(W.classList.contains('light')); if (PG.quote && k === 'messenger') { try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: PG.quote }, '*'); } catch (e) { } PG.quote = null; } }); b.appendChild(f); }
     else if (k === 'home') renderHome(b);
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
