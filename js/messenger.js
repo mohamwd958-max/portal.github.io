@@ -62,8 +62,6 @@ if (BADGE_ONLY) {
     eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', msgr: 'ميسنجر', ph: 'اكتب رسالة', rto: 'رد على', photo: 'صورة', link: 'لينك', shot: 'سكرين شوت', video: 'فيديو', min: 'تصغير', close: 'قفل' }
   };
   const T = () => L[(typeof lang === 'string' && lang) || 'en'] || L.en;
-  const LIBL = () => ({ en: 'Library', ar: 'المكتبة', eg: 'المكتبة' }[(typeof lang === 'string' && lang) || 'en'] || 'Library');
-  const LIBSVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
   const css = document.createElement('style'); css.id = 'mgrCss';
   css.textContent = `
 .mgr-veil{position:fixed;inset:0;z-index:2147483000;background:rgba(2,6,23,.55);display:none}
@@ -103,7 +101,7 @@ if (BADGE_ONLY) {
     if (M.built) return; M.built = true; const t = T();
     el.veil = document.createElement('div'); el.veil.className = 'mgr-veil';
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><button type="button" class="mgr-hb mgr-lib" data-lib aria-label="${LIBL()}" title="${LIBL()}">${LIBSVG}</button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
+    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb" data-back hidden aria-label="${t.close}"><i class="fa-solid fa-chevron-left"></i></button><span class="mgr-hav mgr-logo" data-hav hidden></span><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
@@ -111,7 +109,6 @@ if (BADGE_ONLY) {
       <div class="mgr-quote" data-quote hidden><i class="fa-solid fa-reply"></i><span dir="auto"></span><button type="button" class="mgr-hb" data-qx aria-label="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-att" data-att hidden>
         <button type="button" class="mgr-ab"><i class="fa-solid fa-image"></i>${t.photo}</button>
-        <button type="button" class="mgr-ab"><i class="fa-solid fa-link"></i>${t.link}</button>
         <button type="button" class="mgr-ab"><i class="fa-solid fa-camera"></i>${t.shot}</button>
         <button type="button" class="mgr-ab"><i class="fa-solid fa-video"></i>${t.video}</button></div>
       <div class="mgr-comp"><button type="button" class="mgr-ic" data-mic aria-label="record"><i class="fa-solid fa-microphone"></i></button>
@@ -127,7 +124,6 @@ if (BADGE_ONLY) {
     el.title = q('[data-title]'); el.hav = q('[data-hav]'); el.back = q('[data-back]'); el.cells = q('[data-cells]');
     el.veil.addEventListener('pointerdown', leave);                /* tap outside: nested = park as a tab, from the bar = just hide (draft stays) */
     q('[data-x]').onclick = () => askClose();
-    q('[data-lib]').onclick = () => { toParent({ type: 'thabit-open-page', page: 'library' }); };
     el.back.onclick = () => { M.nested = false; setView('list'); };
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach((b, i) => b.onclick = () => { el.att.hidden = true; if (i === 0) pickPhoto(); });   /* photo works; link / screenshot / video are still look only */
