@@ -1012,6 +1012,7 @@ function THApp(cfg) {
     R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title]; e.setAttribute('aria-label', t[e.dataset.title]); });
     if (cur) $('ltitle').textContent = t['i_' + cur];
     try { crumb(); } catch (e) { }
+    Object.keys(PERS.f).forEach(x => { try { PERS.f[x].contentWindow.location.reload(); } catch (e) { } });
     try { const o = localStorage.getItem('thabit_lang'); localStorage.setItem('thabit_lang', L === 'en' ? 'en' : (o === 'eg' ? 'eg' : 'ar')); } catch (e) { }
     if (cur === 'library' || cur === 'home' || cur === 'space' || cur === 'feed' || cur === 'messenger') fillLayer(cur);
     if (cfg.onLang) cfg.onLang(L); hb();
@@ -1029,11 +1030,12 @@ function THApp(cfg) {
   /* the chosen theme goes to the page that is open (the page keeps its own way of showing it) */
   function pushTheme(on) {
     try { localStorage.setItem('thabit_theme', on ? 'light' : 'dark'); } catch (e) { }
-    const f = R.querySelector('.dframe'); if (!f) return;
-    try {
-      const d = f.contentDocument; if (d && d.body) { d.body.classList.toggle('light-theme', on); d.body.classList.toggle('dark-theme', !on); d.documentElement.setAttribute('data-theme', on ? 'light' : 'dark'); }
-    } catch (e) { }
-    try { f.contentWindow.postMessage({ type: 'thabit-theme', theme: on ? 'light' : 'dark' }, '*'); } catch (e) { }
+    R.querySelectorAll('.dframe').forEach(f => {
+      try {
+        const d = f.contentDocument; if (d && d.body) { d.body.classList.toggle('light-theme', on); d.body.classList.toggle('dark-theme', !on); d.documentElement.setAttribute('data-theme', on ? 'light' : 'dark'); }
+      } catch (e) { }
+      try { f.contentWindow.postMessage({ type: 'thabit-theme', theme: on ? 'light' : 'dark' }, '*'); } catch (e) { }
+    });
   }
   function tidyFrame(f) {
     pushTheme(W.classList.contains('light'));
@@ -1071,9 +1073,10 @@ function THApp(cfg) {
     const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute, pg = PAGES[k];
     if (k !== 'home') homeStop();
     if (k !== 'mirror') mirStop();
+    if (!pg) persHide();
     b.classList.toggle('full', !!(dash || pg));
     if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Dashboard'; f.src = cfg.dashRoute(); f.addEventListener('load', () => { tidyFrame(f); }); b.appendChild(f); }
-    else if (pg) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = STR[L]['i_' + k]; f.setAttribute('allow', 'microphone; camera; clipboard-write'); f.src = pg; f.addEventListener('load', () => { pushTheme(W.classList.contains('light')); if (PG.quote && k === 'messenger') { try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: PG.quote }, '*'); } catch (e) { } PG.quote = null; } }); b.appendChild(f); }
+    else if (pg) { b.innerHTML = ''; persShow(k); }
     else if (k === 'home') renderHome(b);
     else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
     else if (k === 'mirror') renderMirror(b);
@@ -1093,6 +1096,44 @@ function THApp(cfg) {
                  Two hidden copies (?badge) only report the unread numbers; the pages talk to the portal with postMessage ---------- */
   const PAGES = { feed: 'feed.html', messenger: 'messenger.html' };
   const PG = { quote: null, bf: null, bm: null };
+  /* Feed and Messenger are loaded in the background a moment after the portal opens and kept; opening one only shows it (no black screen).
+     While one is hidden it is told so ('thabit-page-hide'), so it neither marks messages read nor reports you online. */
+  const PERS = { el: null, f: {}, cur: null };
+  function persPlace() {
+    const b = $('lbody'), d = PERS.el; if (!d || !b) return;
+    const cs = getComputedStyle(b), g = x => parseFloat(cs[x]) || 0;
+    d.style.left = (b.offsetLeft + g('paddingLeft')) + 'px'; d.style.top = (b.offsetTop + g('paddingTop')) + 'px';
+    d.style.width = Math.max(0, b.clientWidth - g('paddingLeft') - g('paddingRight')) + 'px'; d.style.height = Math.max(0, b.clientHeight - g('paddingTop') - g('paddingBottom')) + 'px';
+    d.style.borderRadius = isDk() ? '20px' : '0';
+  }
+  function persBox() {
+    if (PERS.el) return PERS.el;
+    const d = document.createElement('div'); d.id = 'lpers'; d.style.cssText = 'position:absolute;display:none;z-index:2;overflow:hidden';
+    $('layer').appendChild(d); PERS.el = d;
+    try { new ResizeObserver(persPlace).observe($('lbody')); } catch (e) { }
+    window.addEventListener('resize', persPlace);
+    return d;
+  }
+  const persPost = (k, m) => { try { PERS.f[k] && PERS.f[k].contentWindow.postMessage(m, '*'); } catch (e) { } };
+  function persFrame(k) {
+    if (PERS.f[k]) return PERS.f[k];
+    const f = document.createElement('iframe'); f.className = 'dframe'; f.title = STR[L]['i_' + k]; f.setAttribute('allow', 'microphone; camera; clipboard-write'); f.style.display = 'none';
+    f.addEventListener('load', () => {
+      pushTheme(W.classList.contains('light'));
+      if (PERS.cur === k) { persPost(k, { type: 'thabit-page-show' }); if (k === 'messenger' && PG.quote) { persPost(k, { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; } }
+    });
+    f.src = PAGES[k] + '?pre=1'; persBox().appendChild(f); PERS.f[k] = f; return f;
+  }
+  function persHide(keepBox) {
+    if (PERS.cur) persPost(PERS.cur, { type: 'thabit-page-hide' });
+    Object.keys(PERS.f).forEach(x => { PERS.f[x].style.display = 'none'; }); PERS.cur = null;
+    if (PERS.el && !keepBox) PERS.el.style.display = 'none';
+  }
+  function persShow(k) {
+    persHide(true); const box = persBox(), f = persFrame(k); PERS.cur = k; f.style.display = 'block'; box.style.display = 'block'; persPlace();
+    persPost(k, { type: 'thabit-page-show' });
+    if (k === 'messenger' && PG.quote) { persPost(k, { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; }
+  }
   const setBadge = (id, n) => { const g = $(id); if (!g) return; n = +n || 0; g.textContent = n > 99 ? '99+' : n; g.classList.toggle('on', n > 0); };
   function badgeFrames() {
     if (PG.bf) return;
@@ -1104,7 +1145,7 @@ function THApp(cfg) {
     if (d.type === 'thabit-messenger-badge') { setBadge('msgBdg', d.count); sbDot(); }
     else if (d.type === 'thabit-feed-badge') { setBadge('feedBdg', d.count); sbDot(); if (e.source !== (PG.bf && PG.bf.contentWindow)) setTimeout(pingBadges, 500); }
     else if (d.type === 'thabit-open-page') {
-      if (d.page === 'messenger') { PG.quote = d.quote != null ? String(d.quote) : null; if (cur === 'messenger') { const f = R.querySelector('.dframe'); if (f && PG.quote) { try { f.contentWindow.postMessage({ type: 'thabit-messenger-quote', quote: PG.quote }, '*'); } catch (x) { } PG.quote = null; } } else openLayer('messenger'); }
+      if (d.page === 'messenger') { PG.quote = d.quote != null ? String(d.quote) : null; if (cur === 'messenger') { if (PG.quote) { persPost('messenger', { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; } } else openLayer('messenger'); }
       else if (d.page === 'library') openLayer('library');
       else if (d.page === 'dash') openLayer('dash');
     }
@@ -1112,6 +1153,7 @@ function THApp(cfg) {
   });
   function sbDot() { try { const n = (+$('msgBdg').textContent || 0) + (+$('feedBdg').textContent || 0); $('sbtn').classList.toggle('hasn', n > 0 || sbDot.base); } catch (e) { } }
   setTimeout(badgeFrames, 1500);
+  setTimeout(() => { persFrame('feed'); persFrame('messenger'); }, 2500);
 
   /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
   const SPACE_SOON = true;   /* true = the "under development" page; false = the real board (board.html?student=1) */
