@@ -95,10 +95,10 @@ function noteCat(n) {
   if (/system|maint/.test(k)) return 'system';
   return 'note';
 }
-function thn_nCard(key, cat, headHtml, bodyHtml, dt, read) {
+function thn_nCard(key, cat, headHtml, bodyHtml, dt, read, ts) {
   const c = thn_NCT(), rd = read == null ? (key in thn_opened()) : !!read;
-  const snip = (() => { const d = document.createElement('div'); d.innerHTML = bodyHtml || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300); })();
-  return { id: 'n:' + key, noX: true, cnt: !rd, isNew: !rd, cls: 'nf ' + cat + (rd ? ' read' : ' unread'),
+  const snip = (() => { const d = document.createElement('div'); d.innerHTML = bodyHtml || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 140); })();
+  return { id: 'n:' + key, cat, ts: ts || 0, noX: true, cnt: !rd, isNew: !rd, cls: 'nf ' + cat + (rd ? ' read' : ' unread'),
     html: `<div class="nfh" role="button" tabindex="0"><span class="nfi ${cat}"><i class="fa-solid ${THN_ICON[cat] || 'fa-bell'}"></i></span><div class="nfm"><div class="nfc" dir="auto">${headHtml || c[cat]}</div><div class="nft2" dir="auto">${esc(snip)}</div></div><span class="nfd">${esc(dt)}</span><i class="fa-solid fa-chevron-down nfv"></i></div>`
       + `<div class="nfb" hidden><div class="rich" dir="auto">${bodyHtml}</div></div>` };
 }
@@ -106,7 +106,7 @@ function billCard(s) {
   const t = NT(), fmt = v => String(v), due = billDue(), left = billLeft();
   const body = `<div class="billb" dir="auto">${s.past > 0 ? t.past(fmt(s.past), fmt(s.total), fmt(s.sub), due) : t.tot(fmt(s.sub), due)}</div>`
     + (left <= 2 ? `<div class="billl" dir="auto"><i class="fa-regular fa-clock"></i> ${t.left(left)}</div>` : '');
-  return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday());
+  return thn_nCard('bill:' + itToday(), 'money', t.billT, body, itToday(), undefined, Date.now());
 }
 /* the trainer's notifications: not read, not "Understood" on this device, and younger than 24 hours */
 const WORD_KINDS = ['assistant_words', 'word_ready'];
@@ -123,7 +123,7 @@ function thn_noteList() {
 function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt, thn_isRead(n));
+  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt, thn_isRead(n), Date.parse(n.created_at) || 0);
 }
 const escv0 = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
 /* [text](https://link) = a real link the student can tap, inside any rich text */
@@ -144,9 +144,15 @@ function rich(txt) {
 
 const toParent = m => { try { if (window.parent && window.parent !== window) { window.parent.postMessage(m, '*'); return true; } } catch (e) { } return false; };
 const FT = {
-  en: { title: 'Feed', empty: 'No notifications yet.', older: 'See previous notifications', copy: 'Copy', share: 'Share', reply: 'Reply', copied: 'Copied ✓' },
-  ar: { title: 'التطورات', empty: 'لا توجد إشعارات بعد.', older: 'عرض الإشعارات السابقة', copy: 'نسخ', share: 'مشاركة', reply: 'رد', copied: 'تم النسخ ✓' },
-  eg: { title: 'التطورات', empty: 'مفيش إشعارات لسه.', older: 'شوف الإشعارات السابقة', copy: 'كوبي', share: 'شير', reply: 'ريبلاي', copied: 'اتنسخ ✓' }
+  en: { title: 'Feed', empty: 'No notifications yet.', noRes: 'Nothing matches this filter.', older: 'See previous notifications', copy: 'Copy', share: 'Share', reply: 'Reply', copied: 'Copied ✓',
+        fType: 'Type', fTime: 'Time', all: 'All', money: 'Financial', system: 'System', note: 'General', update: 'Updates', alert: 'Important', reply2: 'Replies',
+        any: 'Any time', today: 'Today', d7: 'Last 7 days', d30: 'Last 30 days' },
+  ar: { title: 'فيد', empty: 'لا توجد إشعارات بعد.', noRes: 'لا يوجد ما يطابق هذا الفلتر.', older: 'عرض الإشعارات السابقة', copy: 'نسخ', share: 'مشاركة', reply: 'رد', copied: 'تم النسخ ✓',
+        fType: 'النوع', fTime: 'الوقت', all: 'الكل', money: 'مالي', system: 'النظام', note: 'عام', update: 'تحديثات', alert: 'مهم', reply2: 'الردود',
+        any: 'أي وقت', today: 'اليوم', d7: 'آخر ٧ أيام', d30: 'آخر ٣٠ يومًا' },
+  eg: { title: 'فيد', empty: 'مفيش إشعارات لسه.', noRes: 'مفيش حاجة تطابق الفلتر ده.', older: 'شوف الإشعارات السابقة', copy: 'كوبي', share: 'شير', reply: 'ريبلاي', copied: 'اتنسخ ✓',
+        fType: 'النوع', fTime: 'الوقت', all: 'الكل', money: 'مالي', system: 'النظام', note: 'عام', update: 'تحديثات', alert: 'مهم', reply2: 'الردود',
+        any: 'أي وقت', today: 'النهاردة', d7: 'آخر ٧ أيام', d30: 'آخر ٣٠ يوم' }
 };
 const FX = () => FT[lang] || FT.en;
 const THN_MAX = 8;
@@ -158,6 +164,37 @@ function feedCards() {
   return nts.sort((a, b) => (b.cnt ? 1 : 0) - (a.cnt ? 1 : 0));
 }
 const unreadCount = () => feedCards().filter(c => c.cnt).length;
+
+/* ---------- filters (left quarter): type + time, applied the moment you pick one ---------- */
+const F = { cat: 'all', range: 'all' };
+const FCATS = ['all', 'money', 'system', 'note', 'update', 'alert', 'reply'], FRANGES = ['all', 'today', 'd7', 'd30'];
+const fCatLabel = (t, k) => k === 'all' ? t.all : k === 'reply' ? t.reply2 : t[k];
+const fRangeLabel = (t, k) => k === 'all' ? t.any : t[k];
+function inRange(c) {
+  if (F.range === 'all') return true;
+  const now = cairoNow(), local = (c.ts || 0) + (now - Date.now());
+  return F.range === 'today' ? local >= Math.floor(now / 864e5) * 864e5 : local >= now - (F.range === 'd7' ? 7 : 30) * 864e5;
+}
+const visibleCards = all => all.filter(c => (F.cat === 'all' || c.cat === F.cat) && inRange(c));
+function renderFilters() {
+  const t = FX(), chip = (g, k, label, on) => `<button type="button" class="fchip${on ? ' on' : ''}" data-g="${g}" data-k="${k}">${esc(label)}</button>`;
+  $('feedSide').innerHTML = `<div class="fgt">${esc(t.fType)}</div>` + FCATS.map(k => chip('cat', k, fCatLabel(t, k), F.cat === k)).join('')
+    + `<div class="fgt">${esc(t.fTime)}</div>` + FRANGES.map(k => chip('range', k, fRangeLabel(t, k), F.range === k)).join('');
+}
+
+/* ---------- entrance animation: the cards slide out from under the left quarter, one after another, top to bottom.
+   Any tap / key / scroll while it plays ends it at once and every card sits in its final place. ---------- */
+let animEnd = null;
+function playIn(list, n) {
+  if (animEnd) animEnd();
+  if (!n) return;
+  [...list.children].forEach((c, i) => c.style.setProperty('--i', Math.min(i, THN_MAX)));
+  const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart']; let tm = 0;
+  const done = () => { clearTimeout(tm); evs.forEach(e => document.removeEventListener(e, done, true)); list.classList.remove('anim'); animEnd = null; };
+  animEnd = done; list.classList.add('anim');
+  evs.forEach(e => document.addEventListener(e, done, true));
+  tm = setTimeout(done, Math.min(n, THN_MAX) * 100 + 800);
+}
 let lastSig = '', lastBadge = -1;
 const sigOf = () => feedCards().map(c => c.id + (c.cnt ? 'u' : 'r')).join(',') + '|' + lang;
 function postBadge() { const n = unreadCount(); if (n !== lastBadge) { lastBadge = n; toParent({ type: 'thabit-feed-badge', count: n }); } }
@@ -192,14 +229,16 @@ function toggleNf(pc) {
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
   if (on) { thn_openedSet(pc.dataset.cid.slice(2)); pc.classList.remove('unread'); pc.classList.add('read'); lastSig = sigOf(); postBadge(); }
 }
-let animFirst = true;
-function paint() {
-  const t = FX(), list = $('feedList'), cards = feedCards();
+function paint(animate) {
+  const t = FX(), list = $('feedList'), all = feedCards(), cards = visibleCards(all);
   const keep = new Set([...list.querySelectorAll('.pc.nf.open')].map(x => x.dataset.cid));
-  document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl'; document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
-  document.title = t.title;
+  const dir = lang === 'en' ? 'ltr' : 'rtl';
+  document.documentElement.dir = dir; document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
+  $('feedSide').dir = dir; $('feedMain').dir = dir;
+  $('fTitle').textContent = t.title;
+  renderFilters();
   list.innerHTML = cards.map(c => `<div class="pc ${c.cls || ''}" data-cid="${c.id || ''}">${c.html}</div>`).join('');
-  $('feedEmpty').hidden = cards.length > 0; $('feedEmpty').textContent = t.empty;
+  $('feedEmpty').hidden = cards.length > 0; $('feedEmpty').textContent = all.length ? t.noRes : t.empty;
   list.querySelectorAll('.pc.nf').forEach(pc => {
     const nb = pc.querySelector('.nfb'); if (nb) nb.insertBefore(optBar(), null);
     if (keep.has(pc.dataset.cid)) { pc.classList.add('open'); nb.hidden = false; }
@@ -215,61 +254,55 @@ function paint() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'seeold'; b.textContent = t.older;
     b.onclick = () => { rest.forEach(c => { c.hidden = false; }); b.remove(); }; list.appendChild(b);
   }
-  if (animFirst && cards.length) { animFirst = false; list.querySelectorAll('.pc').forEach((c, i) => { c.style.setProperty('--d', Math.min(i, 10) * 130 + 'ms'); c.classList.add('drop'); c.addEventListener('animationend', () => c.classList.remove('drop'), { once: true }); }); }
   lastSig = sigOf(); postBadge();
+  if (animate) playIn(list, cards.length); else if (animEnd) animEnd();
 }
 
 /* ---------- loading ---------- */
-let busy = false;
+let busy = false, firstPaint = true;
 async function refresh(force) {
   if (busy || !tok()) return; busy = true;
   try {
     const [n, b] = await Promise.all([fetchNotes(), fetchBill()]);
     D.notes = n; D.bill = b;
-    if (BADGE_ONLY) postBadge(); else if (force || sigOf() !== lastSig) paint(); else postBadge();
+    if (BADGE_ONLY) postBadge();
+    else if (force || sigOf() !== lastSig) { paint(firstPaint); firstPaint = false; }   /* the entrance animation plays on the first paint only; later data changes just update in place */
+    else postBadge();
   } finally { busy = false; }
 }
 window.addEventListener('message', e => {
   const d = e.data; if (!d) return;
   if (d.type === 'thabit-theme') applyTheme(d.theme === 'light');
+  else if (d.type === 'thabit-feed-show') { if (!BADGE_ONLY) paint(true); }   /* the portal can send this when it reveals the page, to replay the entrance */
   else if (d.type === 'thabit-feed-refresh' || d.type === 'thabit-badge-refresh') refresh(true);
-  else if (d.type === 'thabit-page-show') { animFirst = true; try { paint(); } catch (x) { } refresh(true); }   /* the page was loaded in advance: play the drop-in again when it is opened */
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 setInterval(() => { if (!document.hidden) refresh(); }, 10000);
 
 if (!BADGE_ONLY) {
   const st = document.createElement('style');
-  st.textContent = `html,body{margin:0;min-height:100%}
+  st.textContent = `html,body{margin:0;height:100%}
 body{font-family:Inter,Cairo,sans-serif}
-#feedPage{max-width:680px;margin:0 auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
+#feedPage{display:grid;grid-template-columns:minmax(96px,1fr) 3fr;height:100vh;height:100dvh;overflow:hidden;direction:ltr}
+#feedSide{position:relative;z-index:2;box-sizing:border-box;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:18px 10px calc(24px + env(safe-area-inset-bottom));border-right:1px solid rgba(148,163,184,.25)}
+#feedMain{position:relative;z-index:1;box-sizing:border-box;overflow-x:hidden;overflow-y:auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}
+.fgt{margin:10px 4px 2px;font:800 .68rem Cairo,Inter,sans-serif;opacity:.6}
+.fchip{box-sizing:border-box;width:100%;padding:8px 10px;border:1px solid rgba(148,163,184,.3);border-radius:12px;background:transparent;color:inherit;font:700 .74rem/1.25 Cairo,Inter,sans-serif;text-align:start;cursor:pointer;transition:background .15s,border-color .15s}
+.fchip.on{background:rgb(31,182,255);border-color:rgb(31,182,255);color:#06283d}
 .fhead{display:flex;align-items:center;gap:10px;margin:6px 4px 16px}.fhead h1{margin:0;font-size:1.25rem;font-weight:800}
 .fhead svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;transform:rotate(-12deg)}
-.pcs{width:100%;max-width:none;max-height:none;overflow:visible}
-.pc{max-width:none;animation:none}
-/* no stray strip at the bottom of a card; every card as tall as its content; the closed body stays closed */
-.pc.nf{height:auto!important;max-height:none!important;overflow:visible!important}
-.pc.nf::before,.pc.nf::after{content:none!important;display:none!important}
-.pc.nf .nfb[hidden]{display:none!important}
-/* closed cards all have the same height: title + two lines of the message; the rest opens with a tap */
-.pc.nf{padding:9px 13px!important}.pc.nf .nfi{width:32px!important;height:32px!important;border-radius:9px!important}
-.pc.nf .nft2{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;min-height:1.5em;opacity:.7;margin-top:7px!important}
+#feedList{display:flex;flex-direction:column;gap:10px;width:100%}
 #feedEmpty{text-align:center;opacity:.65;padding:60px 10px;font-weight:600}
-.seeold{border:0;background:rgba(148,163,184,.2);color:inherit;border-radius:14px;padding:10px 16px;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer;align-self:center}
+.seeold{align-self:center;border:0;border-radius:14px;padding:10px 16px;background:rgba(148,163,184,.2);color:inherit;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer}
 .opx-bar{display:flex;align-items:center;gap:2px;margin-top:6px}
 .opx-i{background:none;border:0;padding:6px 10px;color:inherit;opacity:.7;font-size:16px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .opx-i:hover{opacity:1}.opx-i:active{opacity:1;transform:scale(.88)}
 .opx-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:rgba(15,23,42,.96);color:#fff;border:1px solid rgba(255,255,255,.2);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700}
-.pc .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
-.pc .nxc{flex:none;display:flex;align-items:center;justify-content:center}
-.pc .nxtx{flex:1;min-width:0}
-.pc .nxtx h3{margin-top:0}
-.pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
-.pcs{gap:10px}
-.pc{background:rgba(30,41,59,.5)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border:1px solid rgba(255,255,255,.14)!important;border-radius:22px!important;box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)!important}
-body.light-theme .pc{background:rgba(255,255,255,.6)!important;border-color:rgba(255,255,255,.75)!important;box-shadow:0 8px 24px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.9)!important}
-.pc.nf{padding:12px 14px}
+#feedList .pc{max-width:none;animation:none;background:rgba(30,41,59,.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border:1px solid rgba(255,255,255,.14);border-radius:22px;box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)}
+body.light-theme #feedList .pc{background:rgba(255,255,255,.6);border-color:rgba(255,255,255,.75);box-shadow:0 8px 24px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.9)}
+#feedList .pc.nf{padding:12px 14px}
 .pc.nf .nfh{display:flex;align-items:center;gap:11px;cursor:pointer}
+.pc.nf .nfv{font-size:.7rem;opacity:.6;transition:transform .2s}.pc.nf.open .nfv{transform:rotate(180deg);margin-inline-start:auto}
 .pc.nf .nfi{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;background:linear-gradient(145deg,#94a3b8,#64748b);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .pc.nf .nfi.money{background:linear-gradient(145deg,#fbbf24,#f59e0b)}
 .pc.nf .nfi.system{background:linear-gradient(145deg,#94a3b8,#475569)}
@@ -282,18 +315,13 @@ body.light-theme .pc{background:rgba(255,255,255,.6)!important;border-color:rgba
 .pc.nf .nft2{font-size:.74rem;opacity:.6;margin-top:1px}
 .pc.nf.open .nft2{display:none}
 .pc.nf .nfd{font-size:.7rem;opacity:.6;white-space:nowrap}
-.pc.nf .nfb{margin-top:10px}.pc.nf .ackb{margin-top:12px;width:100%}
-.pc.nf .nth{font-weight:700;margin-bottom:6px}
-.pc.nf.acked{text-align:center;transition:opacity .35s,transform .35s}
-.pc.nf.out{opacity:0;transform:scale(.96)}
-.ackdone{padding:14px 0}.ackdone i{font-size:2.2rem;color:#34d399;animation:ackPop .5s cubic-bezier(.2,.8,.3,1.2)}.ackdone div{margin-top:8px;font-weight:700}
-@keyframes ackPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
-.pc.nf.unread{background:rgba(96,165,250,.18)!important;border-color:rgba(96,165,250,.45)!important}
-body.light-theme .pc.nf.unread{background:rgba(147,197,253,.4)!important;border-color:rgba(96,165,250,.6)!important}
-.pc.drop{animation:cardDrop .95s cubic-bezier(.22,1,.36,1) both;animation-delay:var(--d,0ms)}
-@keyframes cardDrop{0%{opacity:0;transform:translateY(-170px) scale(1.45)}45%{opacity:1;transform:translateY(10px) scale(1.12)}68%{transform:translateY(-4px) scale(.965)}84%{transform:translateY(2px) scale(1.012)}100%{opacity:1;transform:translateY(0) scale(1)}}`;
+.pc.nf .nfb{margin-top:10px}
+@keyframes feedIn{from{opacity:0;transform:translateX(calc(-100% - 24px))}to{opacity:1;transform:none}}
+#feedList.anim .pc{animation:feedIn .55s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0) * 100ms)}
+@media (prefers-reduced-motion:reduce){#feedList.anim .pc{animation:none}}`;
   document.head.appendChild(st);
-  document.body.innerHTML = '<main id="feedPage"><div class="pcs" id="feedList"></div><div id="feedEmpty" hidden></div></main>';
-  paint();
+  document.body.innerHTML = '<main id="feedPage"><aside id="feedSide"></aside><section id="feedMain"><div class="fhead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.06 4.79 5.5 1.43-3.61 4.39.34 5.67L12 17.2l-5.29 2.08.34-5.67L3.44 9.22l5.5-1.43z"/></svg><h1 id="fTitle"></h1></div><div class="pcs" id="feedList"></div><div id="feedEmpty" hidden></div></section></main>';
+  $('feedSide').addEventListener('click', e => { const b = e.target.closest && e.target.closest('.fchip'); if (!b) return; F[b.dataset.g] = b.dataset.k; paint(true); });   /* a filter applies the moment it is picked: no save, no refresh */
+  paint(false);
 }
 refresh(true);
