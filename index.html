@@ -1460,7 +1460,7 @@ function THApp(cfg) {
       .sdi:hover,.sdi.on,.sdi.hm.on{background:var(--sbh);color:var(--ink)}
       @media(hover:hover){.sdi:hover{scale:1.012;translate:0 -1px}}
       .sdi:active{scale:.965;translate:0 1px;transition:scale .22s ease-out,translate .22s ease-out,background .35s}
-      .lpa>*{margin-block:0}
+      .lpa>*{margin-block:0}       .lpp>*,.lpl>*{margin-block:0}       .lpb{flex:1;display:flex;flex-direction:column;gap:6px}.lpb .dmsg{margin:auto 0}       .lday{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:12px 4px 4px;text-align:start}.lday:first-child{margin-top:0}       .ltile{position:relative;width:100%}.ltile img{width:100%;cursor:zoom-in}       .ltx{position:absolute;top:4px;inset-inline-end:4px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font:700 12px Inter,sans-serif;line-height:24px;padding:0;cursor:pointer}       .lk{position:relative;padding-inline-end:42px!important;text-align:start!important}.lk a{display:block;direction:ltr;text-align:start;word-break:break-all;color:#60a5fa;font:500 14px/1.6 Inter,sans-serif;text-decoration:none}.lk .ltx{top:50%;transform:translateY(-50%);background:var(--gbd);color:var(--ink)}
       .lsw{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:2px 0 14px}
       .lsw button{height:34px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer;transition:background .3s,scale .6s var(--ease)}
       .lsw button.on{background:var(--btn);color:var(--onbtn);border-color:var(--btn)}
@@ -1791,9 +1791,9 @@ function THApp(cfg) {
   const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
   const DT = {
     en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
-      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.' },
+      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.', tabPhTask: 'Task photos', tabPhMsg: 'Messenger photos', tabLater: 'Later', laterMsg: 'Available here later.', phMsgEmpty: 'No messenger photos yet.', libDel: 'Remove' },
     ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
-      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.' }
+      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.', tabPhTask: 'صور المهام', tabPhMsg: 'صور المرسال', tabLater: 'لاحقًا', laterMsg: 'هيتوفر هنا لاحقًا.', phMsgEmpty: 'لا توجد صور من المرسال بعد.', libDel: 'إزالة' }
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
@@ -1911,37 +1911,91 @@ function THApp(cfg) {
   function libGo(i) { const p = libPages(); if (p) p.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * i * p.clientWidth, behavior: 'smooth' }); }
   let libUrls = [];
   function libAud(s) { return (s.parts || []).map(p => { const u = URL.createObjectURL(p); libUrls.push(u); return '<audio controls preload="none" src="' + u + '"></audio>'; }).join(''); }
+  /* ---- messenger photos / links are read straight from the messages: nothing extra is stored. "Remove" only hides one from the library, on this device ---- */
+  const LHK = () => 'thLibHide:' + String(localStorage.getItem('thabit_trainee_token') || 'x').slice(0, 16);
+  const libHidden = () => { try { return JSON.parse(localStorage.getItem(LHK()) || '[]') || []; } catch (e) { return []; } };
+  const libHide = id => { const h = libHidden(); if (!h.includes(String(id))) h.push(String(id)); try { localStorage.setItem(LHK(), JSON.stringify(h.slice(-2000))); } catch (e) { } };
+  let LM = null;
+  async function libMsgLoad() {
+    if (LM && LM.ok && Date.now() - LM.t < 15000) return LM;
+    const out = { photos: [], links: [], t: Date.now(), ok: false }, tk = localStorage.getItem('thabit_trainee_token');
+    if (!tk) return out;
+    const call = (fn, body) => fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) }).then(r => r.json()).catch(() => null);
+    const [r, mk] = await Promise.all([call('trainee_msg_list', { p_token: tk, p_after: 0 }), call('trainee_msg_marks_list', { p_token: tk })]);
+    if (!(r && r.ok && Array.isArray(r.messages))) return out;
+    const gone = new Set(((mk && mk.marks) || []).filter(x => x.kind === 'del_all').map(x => String(x.message_id)));
+    r.messages.forEach(m => {
+      if (gone.has(String(m.id))) return;
+      const at = Date.parse(m.created_at) || 0;
+      if (m.kind === 'image' && m.url) out.photos.push({ id: String(m.id), url: m.url, at });
+      else if (m.kind === 'link' && /^https?:\/\//i.test(m.body || '')) out.links.push({ id: m.id + '#0', url: m.body, at });
+      else if ((!m.kind || m.kind === 'text') && m.body) (m.body.match(/https?:\/\/[^\s<>"']+/gi) || []).forEach((u, i) => out.links.push({ id: m.id + '#' + (i + 1), url: u.replace(/[.,;:!?)\]]+$/, ''), at }));
+    });
+    out.photos.sort((x, y) => y.at - x.at); out.links.sort((x, y) => y.at - x.at); out.ok = true;
+    return (LM = out);
+  }
+  const libDay = at => new Date(at).toLocaleDateString(L === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const libByDay = items => { const g = []; items.forEach(x => { const d = libDay(x.at), l = g[g.length - 1]; if (l && l.d === d) l.a.push(x); else g.push({ d, a: [x] }); }); return g; };
   function renderLib(b) {
     libUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); libUrls = [];
     const T = DT[L]; let a = []; try { a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); } catch (e) { }
     const ps = passList(), empty = m => '<div class="dmsg">' + m + '</div>';
+    const sw = (items, on) => '<div class="lsw">' + items.map(x => '<button type="button"' + (x[0] === on ? ' class="on"' : '') + ' data-a="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
     b.innerHTML = '<div class="pcard dpc dlib"><div class="lpages">' +
-      '<section class="lpg lph">' + (a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty)) + '</section>' +
-      '<section class="lpg lpa"><div class="lsw"><button type="button" class="on" data-a="msg">' + T.tabMsg + '</button><button type="button" data-a="task">' + T.tabTask + '</button></div><div class="lab">' + empty(T.audEmpty) + '</div></section>' +
+      '<section class="lpg lpp lph">' + sw([['task', T.tabPhTask], ['msg', T.tabPhMsg]], 'task') + '<div class="lpb"></div></section>' +
+      '<section class="lpg lpa">' + sw([['task', T.tabTask], ['later', T.tabLater]], 'task') + '<div class="lab"></div></section>' +
       '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + T.passage + ' #' + p.n + '</b><p>' + esc(p.text) + '</p>' + (p.answer ? '<p class="la">' + esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
-      '<section class="lpg">' + empty(T.linkEmpty) + '</section></div></div>';
+      '<section class="lpg lpl"><div class="lpb"></div></section></div></div>';
     const pg = libPages();
     pg.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * libI * pg.clientWidth, behavior: 'instant' });
     pg.addEventListener('scroll', () => { const i = Math.round(Math.abs(pg.scrollLeft) / (pg.clientWidth || 1)); if (i !== libI && i >= 0 && i < LIB.length) { libI = i; crumb(); } }, { passive: true });
+    /* photos: task photos (kept on this device) | messenger photos (sent or received, newest day first) */
+    const ph = b.querySelector('.lph'), phB = ph.querySelector('.lpb'), lkB = b.querySelector('.lpl .lpb');
+    let phK = 'task';
+    const drawMsgPh = () => {
+      if (phK !== 'msg' || !phB.isConnected) return;
+      const hid = libHidden(), items = ((LM && LM.photos) || []).filter(p => !hid.includes(p.id));
+      phB.innerHTML = items.length ? libByDay(items).map(g => '<div class="lday">' + esc(g.d) + '</div><div class="dgrid" style="--cols:' + libCols + '">' + g.a.map(p => '<div class="ltile" data-id="' + esc(p.id) + '"><img alt="" draggable="false" loading="lazy" src="' + esc(p.url) + '"><button type="button" class="ltx" aria-label="' + T.libDel + '">✕</button></div>').join('') + '</div>').join('') : empty(T.phMsgEmpty);
+    };
+    const drawLinks = () => {
+      if (!lkB.isConnected) return;
+      const hid = libHidden(), items = ((LM && LM.links) || []).filter(x => !hid.includes(x.id));
+      lkB.innerHTML = items.length ? '<div class="lcol">' + libByDay(items).map(g => '<div class="lday">' + esc(g.d) + '</div>' + g.a.map(x => '<div class="lpc lk" data-id="' + esc(x.id) + '"><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.url) + '</a><button type="button" class="ltx" aria-label="' + T.libDel + '">✕</button></div>').join('')).join('') + '</div>' : empty(T.linkEmpty);
+    };
+    const showPh = async k => {
+      phK = k; ph.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
+      if (k === 'task') { phB.innerHTML = a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty); return; }
+      if (LM) drawMsgPh(); else phB.innerHTML = '';
+      await libMsgLoad(); drawMsgPh();
+    };
+    ph.querySelector('.lsw').addEventListener('click', e => { const x = e.target.closest('button'); if (x) showPh(x.dataset.a); });
+    b.querySelector('.dlib').addEventListener('click', e => {
+      const x = e.target.closest('.ltx');
+      if (x) { const t = x.closest('[data-id]'); if (t) { libHide(t.dataset.id); drawMsgPh(); drawLinks(); } return; }
+      const im = e.target.closest('.ltile img'); if (im) window.open(im.src, '_blank', 'noopener');
+    });
+    showPh('task'); drawLinks();
+    libMsgLoad().then(() => { drawLinks(); drawMsgPh(); });
+    /* audio: task recordings (the mirror room) | a second part that comes later. Voice messages stay in the messenger only. */
     const pa = b.querySelector('.lpa');
     if (pa) {
       const lab = pa.querySelector('.lab');
       const show = async k => {
         pa.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
-        if (k === 'msg') { lab.innerHTML = empty(T.audEmpty); return; }
+        if (k === 'later') { lab.innerHTML = empty(T.laterMsg); return; }
         lab.innerHTML = '';
         const all = (await mirDb.all(uKey())).filter(x => x.state === 'done').sort((x, y) => y.n - x.n);
         if (!lab.isConnected || !pa.querySelector('.lsw button.on[data-a="task"]')) return;
         lab.innerHTML = all.length ? '<div class="lcol">' + all.map(x => '<div class="lpc"><b>' + T.sessN + ' #' + x.n + '</b>' + libAud(x) + (x.text ? '<p class="la">' + esc(x.text) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.taskEmpty);
       };
       pa.querySelector('.lsw').addEventListener('click', e => { const x = e.target.closest('button'); if (x) show(x.dataset.a); });
+      show('task');
     }
     /* photos: spread two fingers = bigger pictures (fewer per row), pinch = smaller pictures, more side by side (Ctrl + wheel on a computer) */
-    const ph = b.querySelector('.lph'), gr = b.querySelector('.dgrid');
-    if (gr) {
+    {
       const pts = new Map(); let d0 = 0, c0 = libCols;
       const dist = () => { const v = [...pts.values()]; return Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1; };
-      const setC = n => { n = Math.max(1, Math.min(7, n)); if (n === libCols) return; libCols = n; gr.style.setProperty('--cols', n); };
+      const setC = n => { n = Math.max(1, Math.min(7, n)); if (n === libCols) return; libCols = n; ph.querySelectorAll('.dgrid').forEach(g => g.style.setProperty('--cols', n)); };
       ph.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { d0 = dist(); c0 = libCols; } });
       ph.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) setC(Math.round(c0 / (dist() / d0))); });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => ph.addEventListener(ev, e => pts.delete(e.pointerId)));
