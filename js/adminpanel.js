@@ -5047,6 +5047,65 @@ async function runPlan(msg) {
   catch (e) { return { text: 'فشل الحفظ: ' + e.message, error: true }; }
 }
 
+/* ---------- الفهم بالـ AI: Worker على Cloudflare بيكلم Gemma ---------- */
+const ASST_API = 'https://withered-sound-2b08.mohamwd958.workers.dev';
+function llmPrompt() {
+  const now = new Date(), wk = asstWeek(now);
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const fields = ASST_FIELDS.map((f) => f.key + ' (' + f.type + (f.min !== undefined ? ' ' + f.min + '-' + f.max : '') + ') = ' + f.label).join('\n');
+  return 'You extract data-entry commands from short dictated Egyptian-Arabic (or English) messages for a trainer\'s "Daily Supply" sheet.\n' +
+    'Today is ' + days[now.getDay()] + ' ' + asstLds(now) + '. The sheet week runs Saturday ' + wk.min + ' to Thursday ' + wk.max + '.\n' +
+    'Fields:\n' + fields + '\n' +
+    'Rules:\n' +
+    '- "student": the trainee name exactly as spoken, nothing else. If the message is not about entering data for a trainee, return {"student":null}.\n' +
+    '- "date": YYYY-MM-DD only if the user names a day (امبارح = yesterday, يوم الاتنين = that weekday this week), otherwise null.\n' +
+    '- "fields": include ONLY fields the user actually mentioned, keyed by the field names above.\n' +
+    '- time fields: 24-hour "HH:MM". If am/pm is not said, treat hours 1-6 as PM and 7-11 as AM. "3 ونص" = 15:30, "الا ربع" = quarter to.\n' +
+    '- num fields: a number. attendance and attitude are 1-10. Any explanation goes in the matching *_details field.\n' +
+    '- text fields: copy the user\'s own words, do not translate or embellish.\n' +
+    '- Never invent values. Reply with ONE JSON object only, no markdown, no explanation:\n' +
+    '{"student":"...","date":null,"fields":{"start_time":"15:30"}}';
+}
+async function llmParse(text) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 20000);
+  let res;
+  try {
+    res = await fetch(ASST_API, {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (window.SB_ACCESS_TOKEN || '') },
+      body: JSON.stringify({ messages: [{ role: 'system', content: llmPrompt() }, { role: 'user', content: text }] })
+    });
+  } catch (e) { throw new Error(e.name === 'AbortError' ? 'انتهت المهلة' : 'مفيش اتصال'); }
+  finally { clearTimeout(tm); }
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.response || (j.result && j.result.response) || '';
+  const m = /\{[\s\S]*\}/.exec(String(raw));
+  if (!m) throw new Error('رد غير مفهوم');
+  let o; try { o = JSON.parse(m[0]); } catch (e) { throw new Error('JSON غير سليم'); }
+  if (!o.student) return null;
+  const found = asstFindStudent(asstFold(String(o.student)), A.students);
+  if (!found) return null;
+  if (found.ambiguous) return { ambiguous: found.ambiguous };
+  const warnings = [], changes = [];
+  Object.entries(o.fields || {}).forEach(([k, v]) => {
+    const fd = ASST_FIELDS.find((f) => f.key === k);
+    if (!fd || v === null || v === undefined || String(v).trim() === '') return;
+    if (fd.type === 'time') {
+      const t = /^(\d{1,2}):(\d{2})/.exec(String(v));
+      if (!t || +t[1] > 23 || +t[2] > 59) { warnings.push('مفهمتش وقت ' + fd.label + '، اتخطيتها'); return; }
+      v = String(t[1]).padStart(2, '0') + ':' + t[2];
+    } else if (fd.type === 'num') {
+      const n = Number(v);
+      if (Number.isNaN(n) || (fd.min !== undefined && n < fd.min) || (fd.max !== undefined && n > fd.max)) { warnings.push(fd.label + ' لازم تكون رقم صحيح، اتخطيتها'); return; }
+      v = n;
+    } else v = String(v).trim();
+    changes.push({ fd, val: v });
+  });
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(o.date || '') ? o.date : asstLds(new Date());
+  return { st: found.st, date, changes, warnings, hasHits: changes.length > 0 || warnings.length > 0 };
+}
+
 async function handle(text) {
   const folded = asstFold(text).trim().replace(/\s+/g, ' ');
   const last = [...A.msgs].reverse().find((m) => m.role === 'ai');
@@ -5055,7 +5114,9 @@ async function handle(text) {
   if (pend && ASST_NO.test(folded)) { pend.plan.status = 'cancelled'; return { text: 'تمام، ألغيت.' }; }
 
   if (!A.students) await loadStudents();
-  const p = asstParse(text, A.students);
+  let p;
+  try { p = await llmParse(text); }                       // الفهم بالـ AI (Gemma على Cloudflare)
+  catch (e) { p = asstParse(text, A.students); status('الـ AI مش متاح (' + e.message + ')، فهمت بالطريقة المحلية'); }   // لو وقع بنرجع للفهم المحلي
   if (!p) return { text: 'مالقيتش اسم طالب من الطلاب في كلامك. قول الاسم وبعده اللي عايز تسجله، مثلاً: «محمود بدأ 3 وخلص 5 والحضور 9».' };
   if (p.ambiguous) return { text: 'لقيت أكتر من طالب بنفس الاسم:\n' + p.ambiguous.map((n, i) => (i + 1) + '. ' + n).join('\n') + '\nقولي الاسم أطول شوية.' };
   if (!p.hasHits) return { text: 'فهمت إنك بتتكلم عن «' + p.st.trainee + '» بس مفيش حقل من الديلي سبلاي في كلامك (بداية، نهاية، ملاحظات، حضور...).' };
