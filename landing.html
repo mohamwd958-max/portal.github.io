@@ -600,45 +600,49 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   function renderReviews() {
     const tr = $('mtrack'), li = $('rlist'); if (!tr) return;
     const set = REV.map(revCard).join('');
-    tr.innerHTML = REV.slice().reverse().map(revCard).join(''); li.innerHTML = set;   /* each comment once: the newest is on the right, so it is the first one seen */
+    const real = REV.slice().reverse().map(revCard).join('');
+    tr.innerHTML = real + real.repeat(3); li.innerHTML = set;   /* real comments (oldest -> newest), then extra copies that only fill the fast flight and pass by; the newest is where it lands */
     rvN = REV.length; if (rvOn) rvStart(true);
   }
-  /* ---- comments: fly in from the left, then drift slowly left -> right, once (no repeat) ---- */
-  const RV_SPEED = 26, RV_HOLD = 10000;   /* px per second, and how long a tap keeps a comment still */
-  let rvN = 0, rvOn = false, rvRaf = 0, rvPhase = 0, rvT0 = 0, rvLast = 0, rvRamp = 0, rvHold = 0, rvHover = false, rvX = 0, rvX0 = 0, rvX1 = 0, rvX2 = 0;
+  /* ---- comments: a very fast flight across the whole screen (looks like there are many), then it stops on the newest one and goes on one by one ---- */
+  const RV_DWELL = 5000, RV_MOVE = 1100, RV_HOLD = 10000, RV_FLY = 2200;
+  let rvN = 0, rvOn = false, rvRaf = 0, rvPhase = 0, rvT0 = 0, rvLast = 0, rvHold = 0, rvHover = false, rvX = 0, rvX0 = 0, rvIdx = 0, rvDwell = 0, rvP = 0, rvFrom = 0;
   const rvReduced = matchMedia('(prefers-reduced-motion:reduce)').matches, rvCanHover = matchMedia('(hover:hover)').matches;
   function rvOffset(i) { const tr = $('mtrack'), c = tr.children[i]; return c ? tr.parentNode.clientWidth / 2 - (c.offsetLeft + c.offsetWidth / 2) : 0; }
   function rvPlace(x) { rvX = x; $('mtrack').style.translate = x + 'px 0'; }
-  function rvLayout() { const tr = $('mtrack'); rvX0 = -tr.scrollWidth - 20; rvX1 = rvOffset(rvN - 1); rvX2 = rvOffset(0); }
   function rvFrame(now) {
     if (!rvOn) return;
-    if (rvPhase === 1) {   /* fast flight, slowing down on the newest comment */
-      const k = (now - rvT0) / 2600;
-      if (k >= 1) { rvPlace(rvX1); rvPhase = 2; rvRamp = 0; }
-      else if (k > 0) rvPlace(rvX0 + (rvX1 - rvX0) * (1 - Math.pow(1 - k, 3)));
-    } else if (rvPhase === 2) {
-      const dt = Math.min(now - (rvLast || now), 100) / 1000;
-      if (now >= rvHold && !rvHover && !document.hidden) { rvRamp = Math.min(1, rvRamp + dt / 1.2); rvPlace(Math.min(rvX2, rvX + RV_SPEED * rvRamp * dt)); }
-      else rvRamp = 0;
-      if (rvX >= rvX2) rvPhase = 3;   /* the oldest comment is in the middle: it rests there */
+    const dt = Math.min(now - (rvLast || now), 100); rvLast = now;
+    const free = now >= rvHold && !rvHover && !document.hidden;   /* a tap (or the mouse) holds everything still */
+    if (rvPhase === 1) {   /* the flight: very fast at first, then it settles on the newest comment */
+      const k = (now - rvT0) / RV_FLY, to = rvOffset(rvIdx);
+      if (k >= 1) { rvPlace(to); rvPhase = 2; rvDwell = RV_DWELL; }
+      else if (k > 0) rvPlace(rvX0 + (to - rvX0) * (1 - Math.pow(1 - k, 4)));
+    } else if (rvPhase === 2) {   /* resting in the middle */
+      if (free) { rvDwell -= dt; if (rvDwell <= 0) { if (rvIdx === 0) rvPhase = 3; else { rvPhase = 4; rvP = 0; rvFrom = rvX; } } }
+    } else if (rvPhase === 4) {   /* on to the next one (the next one comes from the left) */
+      if (free) {
+        rvP = Math.min(1, rvP + dt / RV_MOVE); const e = rvP < .5 ? 4 * rvP * rvP * rvP : 1 - Math.pow(-2 * rvP + 2, 3) / 2;
+        rvPlace(rvFrom + (rvOffset(rvIdx - 1) - rvFrom) * e);
+        if (rvP >= 1) { rvIdx--; rvPhase = 2; rvDwell = RV_DWELL; }
+      }
     }
-    rvLast = now; if (rvPhase < 3) rvRaf = requestAnimationFrame(rvFrame);
+    if (rvPhase < 3) rvRaf = requestAnimationFrame(rvFrame);   /* phase 3: the oldest comment is in the middle, it stays there */
   }
   function rvStart(quick) {
-    if (!rvN) return; cancelAnimationFrame(rvRaf); rvOn = true; rvHover = false; rvHold = 0; rvLast = 0;
-    $('mtrack').style.transition = 'none'; rvLayout();
-    if (rvReduced) { rvPlace(rvX1); return; }
-    if (quick) { rvPlace(rvX1); rvPhase = 2; rvRamp = 0; }
-    else { rvPlace(rvX0); rvPhase = 1; rvT0 = performance.now() + 900; }   /* every comment waits outside on the left */
+    if (!rvN) return; cancelAnimationFrame(rvRaf); rvOn = true; rvHover = false; rvHold = 0; rvLast = 0; rvIdx = rvN - 1;
+    const tr = $('mtrack'); tr.style.transition = 'none'; rvX0 = -tr.scrollWidth - 20;
+    if (quick || rvReduced) { rvPlace(rvOffset(rvIdx)); rvPhase = 2; rvDwell = RV_DWELL; }
+    else { rvPlace(rvX0); rvPhase = 1; rvT0 = performance.now() + 700; }   /* everything waits outside on the left */
     rvRaf = requestAnimationFrame(rvFrame);
   }
   function rvStop() { rvOn = false; cancelAnimationFrame(rvRaf); }
-  addEventListener('resize', () => { if (!rvOn) return; const o = rvX1; rvLayout(); if (rvPhase >= 2) rvPlace(Math.min(rvX2, rvX + (rvX1 - o))); });
+  addEventListener('resize', () => { if (rvOn && rvPhase !== 1) rvPlace(rvOffset(rvIdx)); });
   let rvFocusT = 0;
   function rvUnfocus() { clearTimeout(rvFocusT); document.querySelectorAll('#mtrack .rc.rvf').forEach(c => c.classList.remove('rvf')); }
   $('rev').addEventListener('pointerdown', e => {   /* a tap: the comment stops and grows for 10 s, then goes back and moves on; tapping another one moves the focus to it */
     const c = e.target.closest('.rc'); if (!c) return;
-    rvHold = performance.now() + RV_HOLD;
+    rvHold = performance.now() + RV_HOLD; rvDwell = 0;
     if (!c.classList.contains('rvf')) { rvUnfocus(); c.classList.add('rvf'); }
     clearTimeout(rvFocusT); rvFocusT = setTimeout(rvUnfocus, RV_HOLD);
   });
