@@ -48,11 +48,68 @@ function setLanguage(l) {
   const r = $('htmlRoot'); r.lang = l; r.dir = l === 'en' ? 'ltr' : 'rtl';
   if (D) { render(); if (typeof updateFeed === 'function') updateFeed(); }
 }
-function toggleTheme() {
+function toggleThemeNow() {
   const light = $('bodyRoot').classList.toggle('light-theme');
   $('themeIcon').className = 'fa-solid text-sm ' + (light ? 'fa-sun' : 'fa-moon');
   try { localStorage.setItem('thabit_theme', light ? 'light' : 'dark'); } catch (e) {}
   try { const tb = $('floatBtnTheme'); if (tb) tb.blur(); } catch (e) {}
+}
+
+/* ===== Theme switch: the sun and the moon turn into each other (about 1 second) =====
+   Sun -> moon : the rays shrink away, the right half is erased, the left half tilts 45 degrees, the inner edge is drawn = a crescent.
+   Moon -> sun : the inner edge swings out and meets the other half (full circle again), then the rays come back one after another.
+   The theme itself changes behind a soft veil in the middle of the animation. */
+const THFX = { on: false, swapped: true, raf: 0, ov: null };
+function themeFxStop() {
+  cancelAnimationFrame(THFX.raf);
+  if (THFX.ov) { THFX.ov.remove(); THFX.ov = null; }
+  THFX.on = false;
+  if (!THFX.swapped) { THFX.swapped = true; toggleThemeNow(); }   /* never lose the change that was waiting for the middle of the animation */
+}
+function toggleTheme() {
+  let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+  if (THFX.on) { themeFxStop(); toggleThemeNow(); return; }
+  if (reduce || !document.body) { toggleThemeNow(); return; }
+  const toLight = !$('bodyRoot').classList.contains('light-theme');   /* going to light = moon -> sun */
+  const clamp = v => Math.min(1, Math.max(0, v)), seg = (t, a, b) => clamp((t - a) / (b - a));
+  const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  const ov = document.createElement('div'); THFX.ov = ov; THFX.on = true; THFX.swapped = false;
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483600;pointer-events:none;display:grid;place-items:center;background:rgba(2,6,23,0);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px)';
+  let rays = ''; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, c = Math.cos(a), n = Math.sin(a); rays += `<path data-r="${k}" d="M${(50 + 31 * c).toFixed(2)},${(50 + 31 * n).toFixed(2)} L${(50 + 40 * c).toFixed(2)},${(50 + 40 * n).toFixed(2)}" pathLength="1" stroke-dasharray="1 2"/>`; }
+  ov.innerHTML = `<svg viewBox="0 0 100 100" width="150" height="150" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="overflow:visible">${rays}
+    <path data-right d="M50,28 A22,22 0 0 1 50,72" pathLength="1" stroke-dasharray="1 2"/>
+    <g data-grp><path data-left d="M50,28 A22,22 0 0 0 50,72"/><path data-in pathLength="1" stroke-dasharray="1 2"/></g></svg>`;
+  document.body.appendChild(ov);
+  const svg = ov.firstChild, R = [...svg.querySelectorAll('[data-r]')], right = svg.querySelector('[data-right]'), grp = svg.querySelector('[data-grp]'), inn = svg.querySelector('[data-in]');
+  const HID = 1.02, mix = (a, b, p) => a + (b - a) * p;
+  const arc = b => { const sg = Math.max(Math.abs(b), .01), r = (484 + sg * sg) / (2 * sg); return `M50,28 A${r.toFixed(2)},${r.toFixed(2)} 0 0 ${b > 0 ? 1 : 0} 50,72`; };
+  const DUR = toLight ? 960 : 980, SWAP = toLight ? 220 : 400, t0 = performance.now();
+  const frame = now => {
+    const t = now - t0; let rot, bulge, inP, rightP, moonP;
+    if (!toLight) {                                              /* sun -> moon */
+      R.forEach((r, k) => r.setAttribute('stroke-dashoffset', (ease(seg(t, k * 14, k * 14 + 150)) * HID).toFixed(3)));
+      rightP = 1 - ease(seg(t, 130, 340));                       /* right half erased */
+      rot = -45 * ease(seg(t, 300, 610));                        /* the rest tilts to 45 degrees */
+      bulge = -10; inP = ease(seg(t, 540, 900));                 /* the inner edge is drawn top to bottom */
+      moonP = ease(seg(t, 300, 900));
+    } else {                                                     /* moon -> sun */
+      const p = ease(seg(t, 0, 320));
+      rot = -45 * (1 - p); bulge = mix(-10, 22, p);              /* the inner edge swings out and becomes the missing half */
+      inP = 1; rightP = p >= 1 ? 1 : 0;
+      R.forEach((r, k) => r.setAttribute('stroke-dashoffset', ((1 - ease(seg(t, 340 + k * 44, 340 + k * 44 + 130))) * HID).toFixed(3)));
+      moonP = 1 - ease(seg(t, 0, 320));
+    }
+    right.setAttribute('stroke-dashoffset', ((1 - rightP) * HID).toFixed(3));
+    inn.setAttribute('d', arc(bulge)); inn.setAttribute('stroke-dashoffset', ((1 - inP) * HID).toFixed(3));
+    inn.style.opacity = (toLight && rightP === 1) ? 0 : 1;
+    grp.setAttribute('transform', `rotate(${rot.toFixed(2)} 50 50)`);
+    const col = `rgb(${Math.round(mix(251, 226, moonP))},${Math.round(mix(191, 232, moonP))},${Math.round(mix(36, 240, moonP))})`; svg.setAttribute('stroke', col);
+    const veil = Math.min(seg(t, 0, 160), 1 - seg(t, DUR - 140, DUR)); ov.style.background = `rgba(2,6,23,${(.46 * veil).toFixed(3)})`; const bl = `blur(${(7 * veil).toFixed(1)}px)`; ov.style.backdropFilter = ov.style.webkitBackdropFilter = bl;
+    svg.style.transform = `scale(${(.86 + .14 * seg(t, 0, 200)).toFixed(3)})`; svg.style.opacity = Math.min(seg(t, 0, 120), 1 - seg(t, DUR - 120, DUR)).toFixed(3);
+    if (!THFX.swapped && t >= SWAP) { THFX.swapped = true; toggleThemeNow(); }
+    if (t < DUR) THFX.raf = requestAnimationFrame(frame); else themeFxStop();
+  };
+  THFX.raf = requestAnimationFrame(frame);
 }
 
 
