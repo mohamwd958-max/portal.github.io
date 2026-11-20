@@ -936,6 +936,44 @@ const THAPP_CSS="\n#W{--hh:60px;--ink:#ece8df;--ink2:rgba(236,232,223,.72);--gbg
 const THAPP_HTML="<div id=\"W\" class=\"hid\" dir=\"ltr\">\n<header id=\"hdr\"><div id=\"hbar\"></div>\n    <span class=\"sdlogo\" id=\"logo\" role=\"button\" tabindex=\"0\" aria-label=\"Thabit\"></span>\n    <div id=\"hctl\">\n      <button class=\"stdot\" id=\"stDot\" type=\"button\" data-title=\"stOn\" aria-label=\"Online\"><i></i></button>\n      <button class=\"cb ic\" id=\"prof\" type=\"button\" aria-label=\"Profile\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2\"/></svg></button>\n    </div>\n  </header>\n  <button class=\"cb ic\" id=\"sbtn\" type=\"button\" aria-label=\"Menu\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><g class=\"g3\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></g><g class=\"gx\"><path d=\"M6 6l12 12M18 6L6 18\"/></g></svg></button>\n  <div id=\"sbs\"></div>\n  <aside id=\"side\" aria-label=\"Menu\"></aside>\n  <section id=\"layer\" aria-hidden=\"true\">\n    <div class=\"ltop\"><button class=\"cb ic bk\" id=\"back\" type=\"button\" aria-label=\"Back\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M15 5l-7 7 7 7\"/></svg></button><h2 id=\"ltitle\"></h2></div>\n    <div id=\"lbody\"><div class=\"pcard\" data-t=\"soonc\"></div></div>\n  </section>\n\n<div class=\"ov\" id=\"pov\"><div class=\"pop\" id=\"ppop\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"pav\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2\"/></svg></div>\n  <div class=\"ptools\"><button class=\"cb js-lg\" type=\"button\" aria-label=\"Language\"></button><button class=\"cb ic js-tg\" type=\"button\" aria-label=\"Theme\">\n        <svg class=\"sm\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"ry\" style=\"--i:0\" pathLength=\"1\" d=\"M12.00 3.80L12.00 1.40\"/><path class=\"ry\" style=\"--i:1\" pathLength=\"1\" d=\"M17.80 6.20L19.50 4.50\"/><path class=\"ry\" style=\"--i:2\" pathLength=\"1\" d=\"M20.20 12.00L22.60 12.00\"/><path class=\"ry\" style=\"--i:3\" pathLength=\"1\" d=\"M17.80 17.80L19.50 19.50\"/><path class=\"ry\" style=\"--i:4\" pathLength=\"1\" d=\"M12.00 20.20L12.00 22.60\"/><path class=\"ry\" style=\"--i:5\" pathLength=\"1\" d=\"M6.20 17.80L4.50 19.50\"/><path class=\"ry\" style=\"--i:6\" pathLength=\"1\" d=\"M3.80 12.00L1.40 12.00\"/><path class=\"ry\" style=\"--i:7\" pathLength=\"1\" d=\"M6.20 6.20L4.50 4.50\"/><path class=\"o\" pathLength=\"100\" d=\"M12 6.8A5.2 5.2 0 0 0 12 17.2A5.2 5.2 0 0 0 12 6.8\"/><path class=\"i\" pathLength=\"100\" d=\"M12 17.2A2.6 5.2 0 0 1 12 6.8\"/></svg>\n      </button></div>\n  <div class=\"prow\" id=\"rN\"><b data-t=\"pName\"></b><span id=\"pn\"></span></div>\n  <div class=\"prow\" id=\"rU\"><b data-t=\"pUser\"></b><span id=\"pus\"></span></div>\n  <div class=\"plan\"><b data-t=\"plT\"></b><button class=\"plbtn\" id=\"planBtn\" type=\"button\"><span data-t=\"pl1s\"></span><span data-t=\"pl2s\"></span><span data-t=\"pl3s\"></span></button></div>\n  <div class=\"prow\" id=\"rP\"><b data-t=\"pPhone\"></b><span id=\"pph\"></span></div>\n  <div class=\"prow\" id=\"rE\" style=\"border-bottom:0\"><b data-t=\"pEmail\"></b><span id=\"pem\"></span></div>\n  <button class=\"btn ghost\" id=\"lout\" type=\"button\" data-t=\"logout\"></button>\n</div></div>\n\n<div class=\"ov\" id=\"gov\" role=\"dialog\" aria-modal=\"true\"><div class=\"pop\">\n  <h3 data-t=\"gT\"></h3><p data-t=\"gP\"></p>\n  <button class=\"btn\" id=\"gStay\" type=\"button\" data-t=\"gStay\"></button>\n  <button class=\"btn ghost\" id=\"gLeave\" type=\"button\" data-t=\"gLeave\"></button>\n</div></div>\n</div>";
 /* ===== Thabit app shell (sidebar + header + pages). Lives in a shadow root so it never clashes with the page around it.
    cfg: host, lang, light, setLight(b), getUser(), guard(bool), leave(), logout(), dashRoute() ===== */
+
+/* ===== name helper: English name -> nearest real Arabic name + gender (used for the greeting) ===== */
+const TH_NAMES = [
+'f:fatma fatima fatema fatmah|فاطمة','f:mariam maryam mariem meryem|مريم','f:sara sarah|سارة','f:salma selma|سلمى','f:yasmin yasmine yasmeen jasmine|ياسمين','f:aya|آية','f:esraa israa|إسراء','f:mona|منى','f:hana hanaa|هنا','f:heba hiba|هبة','f:hagar hajar|هاجر','f:asmaa asma|أسماء','f:aisha aesha aysha|عائشة','f:amira ameera|أميرة','f:rana|رنا','f:reem rim|ريم','f:rawan rowan|روان','f:razan|رزان','f:dina|دينا','f:doaa dua duaa|دعاء','f:eman iman|إيمان','f:ghada|غادة','f:huda hoda|هدى','f:hanan|حنان','f:mai may|مي','f:menna mennah|منة','f:mervat|مرفت','f:nada|ندى','f:nadia nadya|نادية','f:nagwa|نجوى','f:noha|نهى','f:nermeen nirmeen|نرمين','f:rasha|رشا','f:radwa|رضوى','f:rehab|رحاب','f:safaa|صفاء','f:samar|سمر','f:sondos sondus|سندس','f:shaimaa shaymaa|شيماء','f:sherine shereen|شيرين','f:soha|سها','f:tasneem|تسنيم','f:walaa|ولاء','f:yara|يارا','f:zeinab zainab zaynab|زينب','f:zahra|زهراء','f:lamis|لميس','f:layla laila leila|ليلى','f:lina leena|لينا','f:marwa|مروة','f:maha|مها','f:nourhan norhan|نورهان','f:rahma|رحمة','f:samira|سميرة','f:sawsan|سوسن','f:sahar|سحر','f:shahd|شهد','f:shorouk shorok|شروق','f:hadeer|هدير','f:habiba|حبيبة','f:farida fareeda|فريدة','f:farah|فرح','f:jana|جنى','f:malak|ملك','f:mirna|ميرنا','f:nancy|نانسي','f:aliaa alia|علياء','f:amal|أمل','f:azza|عزة','f:basma|بسمة','f:dalia dalya|داليا','f:ola|علا','f:rania ranya|رانيا','f:suha|سهى','f:hend|هند','f:inas|إيناس','f:kholoud|خلود','f:mayar|ميار','f:nouran|نوران','f:sama|سما','f:somaya sumaya|سمية',
+'u:nour noor|نور',
+'m:ahmed ahmad|أحمد','m:mohamed mohammed muhammad mohammad mohamad|محمد','m:mahmoud mahmood|محمود','m:mostafa mustafa moustafa|مصطفى','m:ali|علي','m:omar omer|عمر','m:hassan hasan|حسن','m:hussein hussain husain|حسين','m:ibrahim ebrahim|إبراهيم','m:ismail ismael|إسماعيل','m:youssef yousef yusuf yossef|يوسف','m:khaled khalid|خالد','m:karim kareem|كريم','m:tarek tariq|طارق','m:amr amro|عمرو','m:ayman|أيمن','m:ashraf|أشرف','m:adel|عادل','m:hany hani|هاني','m:hesham hisham|هشام','m:walid waleed|وليد','m:sherif sherief shereef|شريف','m:tamer|تامر','m:sami samy|سامي','m:saeed said|سعيد','m:salah|صلاح','m:sayed|السيد','m:samir sameer|سمير','m:ramy rami|رامي','m:mazen|مازن','m:mina|مينا','m:marwan|مروان','m:magdy|مجدي','m:nabil|نبيل','m:nader nadir|نادر','m:osama usama|أسامة','m:othman osman|عثمان','m:ramadan|رمضان','m:reda ridha|رضا','m:sameh|سامح','m:shady|شادي','m:wael|وائل','m:yahya|يحيى','m:yassin yassine|ياسين','m:zakaria|زكريا','m:ziad ziyad|زياد','m:abdullah abdallah|عبدالله','m:abdelrahman abdulrahman|عبدالرحمن','m:hamza|حمزة','m:bilal|بلال','m:anas|أنس','m:eyad iyad|إياد','m:fady|فادي','m:fares|فارس','m:hazem|حازم','m:hossam hosam|حسام','m:islam|إسلام','m:kamal|كمال','m:mohab|مهاب','m:moaz mouaz|معاذ','m:nasser|ناصر','m:ehab ihab|إيهاب','m:essam issam|عصام','m:gamal|جمال','m:hatem|حاتم','m:abdelaziz|عبدالعزيز','m:khalil|خليل','m:bassem basem|باسم','m:ayoub|أيوب','m:adam|آدم','m:hamdy|حمدي','m:medhat|مدحت','m:mohsen|محسن','m:fathy|فتحي'
+];
+const THN = (() => {
+  const en = new Map(), en2 = new Map(), ar = new Map();
+  const nz = s => s.replace(/[ً-ٰٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
+  const dd = s => s.replace(/(.)\1+/g, '$1'), cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+  TH_NAMES.forEach(r => {
+    const x = r.split('|'), p = x[0].split(':'), vs = p[1].split(' '), e = { a: x[1], g: p[0] === 'u' ? '' : p[0], c: cap(vs[0]) };
+    vs.forEach(v => { if (!en.has(v)) en.set(v, e); const d = dd(v); if (!en2.has(d)) en2.set(d, e); });
+    ar.set(nz(x[1]), e);
+  });
+  const near = (a, b) => {
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, e = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++e > 1) return false;
+      if (a.length > b.length) i++; else if (a.length < b.length) j++; else { i++; j++; }
+    }
+    return e + (a.length - i) + (b.length - j) <= 1;
+  };
+  /* raw name -> { n: name to show, g: 'f' | 'm' | '' }.  Arabic page: the nearest real Arabic name, or the English name as is when none fits. */
+  return function (raw, wantAr) {
+    let t = String(raw || '').trim().split(/[\s._\-@]+/)[0] || ''; t = t.replace(/[0-9]+/g, '');
+    if (!t) return { n: '', g: '' };
+    if (/[؀-ۿ]/.test(t)) { const e = ar.get(nz(t)); return { n: wantAr ? t : (e ? e.c : t), g: e ? e.g : (/ة$/.test(t) ? 'f' : '') }; }
+    const key = t.toLowerCase().replace(/[^a-z]/g, ''); if (!key) return { n: t, g: '' };
+    let e = en.get(key) || en2.get(dd(key));
+    if (!e && key.length >= 4) { const d = dd(key); for (const [k, v] of en2) { if (k.length >= 4 && near(d, k)) { e = v; break; } } }
+    return { n: wantAr && e ? e.a : cap(t), g: e ? e.g : '' };
+  };
+})();
+const thName = THN;
 function THApp(cfg) {
   'use strict';
   const R = cfg.host.attachShadow({ mode: 'open' });
@@ -960,13 +998,13 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', plT: 'Platform View', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Personal Skills', skT: 'Personal Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Online', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Vital Signs', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Media Library', i_support: 'Support', i_ydict: 'Your Dictionary', i_passist: 'Pronunciation Assistant',
+    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Personal Skills', skT: 'Personal Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Online', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Vital Signs', i_home: 'Home', i_finance: 'Finance', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Media Library', i_support: 'Support', i_ydict: 'Your Dictionary', i_passist: 'Pronunciation Assistant',
       supportMsg: 'All the information and all the policies will be shown here, and you will find the answers to every question that may come to mind about the program and the services we offer. Coming soon.',
       ydictMsg: 'All your important words that you can practise and improve your pronunciation of over time will be collected here, so that, with time, you have a dictionary built especially for you.',
       passistMsg: 'Your Pronunciation Assistant will be here soon.', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', plT: 'عرض المنصة', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات الشخصية', skT: 'المهارات الشخصية', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'أونلاين', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'العلامات الحيوية', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'مكتبة الوسائط', i_support: 'الدعم', i_ydict: 'قاموسك', i_passist: 'مساعد النطق',
+    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات الشخصية', skT: 'المهارات الشخصية', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'أونلاين', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'العلامات الحيوية', i_home: 'الرئيسية', i_finance: 'المالية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'مكتبة الوسائط', i_support: 'الدعم', i_ydict: 'قاموسك', i_passist: 'مساعد النطق',
       supportMsg: 'ستُعرض هنا جميع البيانات وجميع السياسات، وستجد هنا إجابات جميع الأسئلة التي قد تخطر في بالك عن البرنامج والخدمات التي نقدمها، قريبًا.',
       ydictMsg: 'ستجد هنا جميع كلماتك المهمة التي يمكنك التدرّب عليها وتحسين نطقها مع الوقت، وستُطلب منك هنا، بحيث يتكوّن لديك مع الوقت قاموس مبنيّ خصيصًا لك أنت.',
       passistMsg: 'مساعد النطق سيكون هنا قريبًا.', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
@@ -977,6 +1015,7 @@ function THApp(cfg) {
 
   /* ---------- sidebar ---------- */
   const IC = {
+    finance: '<path d="M4 7a2 2 0 0 1 2-2h11v3"/><path d="M4 7v10a2 2 0 0 0 2 2h12.5a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 8H6a2 2 0 0 1-2-1z"/><circle cx="16.2" cy="13.5" r="1.1" fill="currentColor"/>',
     feed: '<path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
     messenger: '<path d="M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z"/><path d="M7.6 13.8 17.4 7"/>',
     home: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5a.5.5 0 0 0 .5.5h4v-5.5h4V20h4a.5.5 0 0 0 .5-.5V10"/>',
@@ -1004,9 +1043,10 @@ function THApp(cfg) {
   const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
   const feedBtn = '<button type="button" class="sdi st" data-k="feed" data-title="i_feed"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.feed + '</svg><i class="bdg" id="feedBdg"></i></button>';
   const calBtn = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.calendar + '</svg></button>';
-  const supBtn = '<button type="button" class="sdi st sup" data-k="support" data-title="i_support"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.support + '</svg></button>';
+  const supBtn = '<button type="button" class="sdi st sup lbl" data-k="support"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.support + '</svg><span data-t="i_support"></span></button>';
+  const finBtn = '<button type="button" class="sdi st sup lbl" data-k="finance"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.finance + '</svg><span data-t="i_finance"></span></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + supBtn + '<i class="sdbr"></i>' + storeBtn + feedBtn + msgBtn + calBtn + '</div>' + LINE +
+  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<i class="sdbr"></i>' + storeBtn + feedBtn + msgBtn + calBtn + '<i class="sdbr"></i>' + supBtn + finBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1035,7 +1075,7 @@ function THApp(cfg) {
     try { crumb(); } catch (e) { }
     Object.keys(PERS.f).forEach(x => { try { PERS.f[x].contentWindow.location.reload(); } catch (e) { } });
     try { const o = localStorage.getItem('thabit_lang'); localStorage.setItem('thabit_lang', L === 'en' ? 'en' : (o === 'eg' ? 'eg' : 'ar')); } catch (e) { }
-    if (cur === 'library' || cur === 'home' || cur === 'space' || cur === 'feed' || cur === 'messenger' || cur === 'calendar') fillLayer(cur);
+    if (cur === 'library' || cur === 'home' || cur === 'space' || cur === 'feed' || cur === 'messenger' || cur === 'calendar' || cur === 'finance') fillLayer(cur);
     if (cfg.onLang) cfg.onLang(L); hb();
   }
   R.querySelectorAll('.js-lg').forEach(b => b.onclick = () => { L = L === 'ar' ? 'en' : 'ar'; try { localStorage.setItem(KEY_L, L); } catch (e) { } apply(); });
@@ -1105,6 +1145,7 @@ function THApp(cfg) {
     else if (k === 'library') renderLib(b);
     else if (k === 'space') renderSpace(b);
     else if (k === 'calendar') renderCal(b);
+    else if (k === 'finance') renderFin(b);
     else if (k === 'store') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L].storeMsg; }
     else if (k === 'support' || k === 'ydict' || k === 'passist') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L][k + 'Msg']; }
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
@@ -1702,16 +1743,22 @@ function THApp(cfg) {
     const T = HT[L], ar = L === 'ar', sleep = ms => new Promise(r => setTimeout(r, ms));
     /* greeting: by the time of day, a different line on every visit; the first name comes from the member's name / username (omar.elsayed -> Omar). "guest" only for a real guest. */
     const U0 = (cfg.getUser && cfg.getUser()) || {}, isGuest = !!cfg.guard;
-    const first = (() => { const w = String(U0.name || U0.username || '').trim().split(/[\s._\-@]+/)[0] || ''; return /^[a-z]/i.test(w) ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w; })();
+    const nm0 = thName(U0.name || U0.username || '', ar), first = nm0.n;
     const GR = (() => {
-      const h = new Date().getHours(), per = h >= 5 && h < 12 ? 'm' : h >= 12 && h < 17 ? 'a' : 'e';
-      const P = {
-        en: { m: 'Good morning', a: 'Good afternoon', e: 'Good evening', any: ['Hey', 'Hello', 'Welcome back', "What's up", 'Nice to see you', 'Great to have you back', 'Hi there', 'Good to see you again'], guest: ['Welcome, guest', 'Hello, guest', 'Hi, guest'] },
-        ar: { m: 'صباح الخير', a: 'نهارك سعيد', e: 'مساء الخير', any: ['أهلًا', 'مرحبًا', 'أهلًا بعودتك', 'نورتنا', 'سعيد برؤيتك', 'يا هلا', 'أهلًا وسهلًا', 'حياك الله'], guest: ['مرحبًا بك ضيفنا', 'أهلًا بك ضيفنا', 'أهلًا وسهلًا بضيفنا'] }
-      }[ar ? 'ar' : 'en'];
-      const pool = isGuest ? P.guest : [P[per]].concat(P.any), kk = 'thGrt:' + (isGuest ? 'g' : per);
+      const h = new Date().getHours(), per = h >= 5 && h < 12 ? 'm' : h >= 12 && h < 17 ? 'a' : 'e', g = nm0.g, f = g === 'f';
+      let pool;
+      if (isGuest) pool = ar ? ['مرحبًا بك ضيفنا', 'أهلًا بك ضيفنا', 'أهلًا وسهلًا بضيفنا'] : ['Welcome, guest', 'Hello, guest', 'Hi, guest'];
+      else if (ar) {
+        const y = first ? ' ' + first : '', ya = first ? ' يا ' + first : '', on = g ? (f ? ' عليكِ' : ' عليك') : '';
+        const P = { m: 'صباح الخير' + on + ya, a: 'نهارك سعيد' + ya, e: 'مساء الخير' + on + ya };
+        pool = [P[per], 'أهلًا' + y, (g ? (f ? 'مرحبًا بكِ' : 'مرحبًا بك') : 'مرحبًا') + y, (f ? 'أهلًا بعودتكِ' : 'أهلًا بعودتك') + y, (f ? 'نورتينا' : 'نورتنا') + ya, (f ? 'سعيد برؤيتكِ' : 'سعيد برؤيتك') + ya, 'يا هلا' + y, 'أهلًا وسهلًا' + y, (f ? 'حياكِ الله' : 'حياك الله') + y];
+      } else {
+        const E = { m: 'Good morning', a: 'Good afternoon', e: 'Good evening' }, any = ['Hey', 'Hello', 'Welcome back', "What's up", 'Nice to see you', 'Great to have you back', 'Hi there', 'Good to see you again'];
+        pool = [E[per]].concat(any).map(s => s + (first ? ', ' + first : ''));
+      }
+      const kk = 'thGrt:' + L + (isGuest ? 'g' : per);
       let i = 0; try { i = (parseInt(localStorage.getItem(kk) || '-1', 10) + 1) % pool.length; localStorage.setItem(kk, String(i)); } catch (e) { i = Math.floor(Math.random() * pool.length); }
-      return isGuest ? pool[i] : pool[i] + (first ? (ar ? ' ' : ', ') + first : '');
+      return pool[i];
     })();
     const SV = {
       plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
@@ -1725,7 +1772,7 @@ function THApp(cfg) {
     };
     b.innerHTML = '<div class="hm-w" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
       '<div class="hm-hero">' +
-        '<div class="hm-hi">' + esc(GR) + (isGuest ? '' : (ar ? '،' : ',')) + '<small>' + esc(T.how) + '</small></div>' +
+        '<div class="hm-hi">' + esc(GR) + (isGuest || ar ? '' : ',') + '<small>' + esc(T.how) + '</small></div>' +
         '<div class="hm-bar" id="hmBar">' +
           '<button type="button" class="hm-ib2" id="hmPlus" aria-label="' + esc(T.plus) + '">' + SV.plus + '</button>' +
           '<div class="hm-ib"><textarea class="hm-ta" id="hmTa" rows="1" dir="auto" aria-label="' + esc(T.ask) + '"></textarea><div class="hm-ph" id="hmPh"><span></span></div></div>' +
@@ -2559,6 +2606,59 @@ function THApp(cfg) {
       '.dtoast{position:fixed;left:50%;bottom:30px;translate:-50% 0;z-index:200;padding:9px 18px;border-radius:999px;background:#0f172a;color:#fff;font:600 13px Cairo,Inter,sans-serif}';
     R.appendChild(st);
   })();
+  /* ---- v10: finance page, Platform View options, Claude-style plan cards, strong blur behind pop-ups, sidebar rows ---- */
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = `
+      .ov{background:rgba(6,8,14,.66)!important;-webkit-backdrop-filter:blur(40px) saturate(1.2)!important;backdrop-filter:blur(40px) saturate(1.2)!important}
+      #W.light .ov{background:rgba(232,234,240,.7)!important}
+      .sdr .sdi.hm.hm{flex:1 1 100%!important;width:100%!important;max-width:none}
+      .sdr .sdi.sup.lbl{font-size:13px!important;gap:8px;padding:0 10px;height:40px!important}
+      .sdr .sdi.lbl span{flex:none}
+      /* plan cards, Claude style */
+      .plc{display:flex;flex-direction:column;padding:24px 22px 20px;border-radius:20px;background:var(--gfield);border:1px solid var(--gbd)}
+      .plch{flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 16px;padding-bottom:16px;border-bottom:1px solid var(--gbd)}
+      .plch b{font:800 17px Cairo,Inter,sans-serif}
+      .plch .pr{display:flex;align-items:baseline;gap:8px;color:var(--ink)}
+      #W.light .plch .pr{color:var(--ink)}
+      .plch .pr strong{font:700 44px/1 Inter,Cairo,sans-serif;letter-spacing:-.02em}
+      .plch .pr small{font:600 13px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .plf{display:grid;grid-template-columns:20px 1fr;column-gap:10px;row-gap:1px;align-items:start;padding:8px 0}
+      .plf>span:first-child{grid-column:2;grid-row:1;font:700 13.5px Cairo,Inter,sans-serif}
+      .plf em{display:contents}
+      .plf em svg{grid-column:1;grid-row:1;margin-top:2px;width:18px;height:18px}
+      .plf em.y svg{color:#34d399}.plf em.n svg{color:#f87171}
+      .plf em span{grid-column:2;grid-row:2;font:600 12px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .plf:has(em.n)>span:first-child{opacity:.55}
+      .fin-w{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 30px}
+      .fin-c{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:20px;background:var(--pcard);border:1px solid var(--sbd);color:var(--ink)}
+      .fin-l{font:700 12px Cairo,Inter,sans-serif;color:var(--ink2)}
+      .fin-t{font:800 22px Cairo,Inter,sans-serif}
+      .fin-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:10px;border-top:1px solid var(--sbd);font:600 13.5px Cairo,Inter,sans-serif}
+      .fin-r span{color:var(--ink2)}
+      .fin-e{font:600 13.5px Cairo,Inter,sans-serif;color:var(--ink2);padding:6px 0}
+    `;
+    R.appendChild(st);
+    /* Platform View: three options, under the Subscription row in the profile pop-up */
+    const plan = R.querySelector('.plan'); if (!plan) return;
+    const d = document.createElement('div'); d.className = 'plan';
+    d.innerHTML = '<b data-t="pv"></b><div class="plbtn" id="pvBtn"><span data-t="pv1"></span><span data-t="pv2"></span><span data-t="pv3"></span></div>';
+    plan.parentNode.insertBefore(d, plan.nextSibling);
+    const sp = [...d.querySelectorAll('.plbtn span')]; sp[0].classList.add('on');
+    sp.forEach(s => s.addEventListener('click', e => { e.stopPropagation(); sp.forEach(x => x.classList.toggle('on', x === s)); }));
+  })();
+  const TX = {
+    en: { cur: 'EGP', finCur: 'Current month', due: 'Amount due', status: 'Status', none: 'No dues', prev: 'My previous bills', noPrev: 'No previous bills yet.' },
+    ar: { cur: 'جنيه مصري', finCur: 'الشهر الحالي', due: 'المستحق', status: 'الحالة', none: 'لا توجد مستحقات', prev: 'فواتيري السابقة', noPrev: 'لا توجد فواتير سابقة بعد.' }
+  };
+  function renderFin(b) {
+    const T = TX[L], ar = L === 'ar';
+    let mon = ''; try { mon = new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: CAL_TZ.eg, month: 'long', year: 'numeric' }).format(new Date()); } catch (e) { }
+    b.classList.remove('full');
+    b.innerHTML = '<div class="fin-w" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="fin-c"><div class="fin-l">' + esc(T.finCur) + '</div><div class="fin-t">' + esc(mon) + '</div>' +
+      '<div class="fin-r"><span>' + esc(T.due) + '</span><b>0 ' + esc(T.cur) + '</b></div><div class="fin-r"><span>' + esc(T.status) + '</span><b>' + esc(T.none) + '</b></div></div>' +
+      '<div class="fin-c"><div class="fin-l">' + esc(T.prev) + '</div><div class="fin-e">' + esc(T.noPrev) + '</div></div></div>';
+  }
   updBadge();
   /* ---- v8: round EN / ع language button, round empty Level medal, menu button that draws itself in, more room under the header on phones ---- */
   (function () {
@@ -2685,7 +2785,7 @@ function THApp(cfg) {
     ];
     const plov = document.createElement('div'); plov.className = 'ov'; plov.id = 'plov';
     plov.innerHTML = '<div class="pop" role="dialog" aria-modal="true"><h3 data-t="plT"></h3><p class="pn" data-t="plN1"></p><p class="pn" data-t="plN2"></p><div class="plrow">' +
-      PLANS.map((rows, i) => '<div class="plc"><div class="plch"><b data-t="pl' + (i + 1) + '"></b><span data-t="plP' + (i + 1) + '"></span></div>' +
+      PLANS.map((rows, i) => '<div class="plc"><div class="plch"><b data-t="pl' + (i + 1) + '"></b><span class="pr"><strong>' + ['0', '500', '1000'][i] + '</strong><small data-t="plU"></small></span></div>' +
         rows.map((r, k) => '<div class="plf"><span data-t="plF' + (k + 1) + '"></span><em class="' + (r[1] ? 'y' : 'n') + '">' + (r[1] ? CK : XX) + '<span data-t="' + r[0] + '"></span></em></div>').join('') + '</div>').join('') + '</div></div>';
     W.appendChild(plov);
     plov.querySelectorAll('[data-t]').forEach(e => { e.textContent = STR[L][e.dataset.t]; });
