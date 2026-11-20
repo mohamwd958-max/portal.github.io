@@ -292,13 +292,13 @@ function render() {
   thAutoApply();   // Today only when a session was taken today; otherwise This week (until the trainee picks something himself)
   const t = T[lang], all = D.rows, rows = CUR = all.filter(inRange), p = D.profile || {}, S = SER = series(rows);
   MD.length = 0; TK.length = 0;
-  { const hl = $('hello'); hl.textContent = t.hi + (p.trainee || ''); if (window.Thabit) Thabit.setProfile(p.trainee); if (window.Thabit && Thabit.hasName && Thabit.hasName()) { hl.textContent = ''; hl.style.display = 'none'; } } $('kAccT').textContent = t.metrics;
+  if (window.Thabit) Thabit.setProfile(p.trainee); $('kAccT').textContent = t.metrics;
   thRangeUI();
   { const last = rows.length ? rows[rows.length - 1].supply_date : '', n = $('rngNote');
     if (n) { n.hidden = range === 'today' || !last; n.textContent = (lang === 'en' ? 'Last day counted: ' : 'آخر يوم محسوب: ') + last; } }
   $('kpis').innerHTML = `<div class="thabit-card dcard" onclick="openSessions()" role="button" tabindex="0" style="display:flex;gap:14px;cursor:pointer"><div style="flex:1"><h4>${t.sessions} <i class="fa-solid fa-up-right-from-square" style="font-size:.75em;opacity:.55"></i></h4><div class="big">${rows.length}</div></div><div style="flex:1;border-inline-start:1px solid var(--border-color);padding-inline-start:14px"><h4>${t.duration}</h4><div class="big">${fmtDur(rows.reduce((a, r) => a + mins(r), 0))}</div></div></div>` + MET.map(k => kpi(k, rows, all, S)).join('');
   $('overall').innerHTML = overall(rows, S); thDetRefresh();
-  $('lists').innerHTML = tasksCard() + dandanaCard() + cap(all, 'notes', t.notes) + cap(all, 'tefl', lang === 'en' ? 'Passages' : 'النصوص') + cap(all, 'qol', lang === 'en' ? 'Words and sounds' : 'الكلمات والأصوات') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
+  $('lists').innerHTML = cap(all, 'notes', t.notes) + cap(all, 'tefl', lang === 'en' ? 'Passages' : 'النصوص') + cap(all, 'qol', lang === 'en' ? 'Words and sounds' : 'الكلمات والأصوات') + scratchCard(); thListsApply();   // the time filter affects the charts only: Notes / TEFL / QOL always show everything
   { const e = $('tInfo'); if (e) e.textContent = t.info; }
   rqUI();
   const L = all[all.length - 1], line = sessLine;
@@ -308,8 +308,7 @@ function render() {
   renderSessions(rows);
   watchTodo();
   renderAvatar();
-  requestAnimationFrame(() => { fitCaps(); fitTk(); });
-  tkRefill();
+  requestAnimationFrame(() => { fitCaps(); });
 }
 const fetchDone = () => rpc('trainee_done_tasks', { p_token: tok() }).then(a => Array.isArray(a) ? a : []).catch(() => []);
 /* ===== Scratches: screenshots / drawings from the trainer's board (Board system), shown in the Notes section =====
@@ -457,9 +456,6 @@ function inMonthBreak(ms) {   // ms = Cairo wall-clock timestamp (same format as
   const d = new Date(ms), last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   return d.getUTCDate() > last - MB.week + MB.work;
 }
-const monthBreak = () => inMonthBreak(cairoNow());
-const isHoliday = () => { const n = new Date(cairoNow()), w = n.getUTCDay(); return (w === 4 && n.getUTCHours() >= 12) || w === 5 || monthBreak(); };
-const holBanner = () => isHoliday() ? `<div class="hol"><i class="fa-solid fa-umbrella-beach"></i> ${monthBreak() ? itT().hol_m : itT().hol}</div>` : '';
 const closedText = x => { const t = itT(), p = x.plan; return `${t.closedDue} ${t['why_' + (p && p.deadline_reason)] || ''}`.trim(); };
 setInterval(() => { document.querySelectorAll('.cd[data-dl]').forEach(el => { const dl = +el.dataset.dl; if (dl - cairoNow() <= 0) { render(); return; } el.innerHTML = cdHtml(dl); }); }, 30000);
 
@@ -568,12 +564,8 @@ function itemRow(it) {
     + ((s.k === 'lock' || s.k === 'open') && p ? `<div class="its cd" data-dl="${endAt}">${cdHtml(endAt)}</div>` : '') + pickBtn + `</div>`
     + `</div>`;
 }
-const TKT = {
-  en: { tasks: 'Tasks', urgent: 'Urgent', prev: 'Previous', log: 'Log', logT: 'Done tasks', none: 'Nothing here' },
-  ar: { tasks: 'المهام', urgent: 'عاجل', prev: 'السابقة', log: 'السجل', logT: 'المهام المنجزة', none: 'لا يوجد شيء' },
-  eg: { tasks: 'المهام', urgent: 'عاجل', prev: 'اللي فاتت', log: 'السجل', logT: 'التاسكس الخلصانة', none: 'مفيش حاجة' }
-};
 let TKOPEN = null, TKL = {};
+let TKNEW = new Set(), TKDIRTY = false;
 const tkHead = x => {
   const t2 = itT(), k = itState(x).k, ok = k === 'done';
   return `<summary><div class="ssd"><b dir="auto">${esc(x.title || '')}</b><span>${esc(x.date)}</span><i>${(x.checks || []).length}/${x.plan ? x.plan.n_eff : x.repeats}</i></div>${x.badge ? `<div class="sst" dir="auto">${esc(x.badge)}</div>` : ''}<div class="sss"><span style="${ok ? 'color:#34d399' : 'color:#fb7185'}">${ok ? t2.done : t2.missed}</span>${x.kind === 'dandana' ? `<span>${esc(t2.dnd)}</span>` : ''}${k === 'closed' ? `<span>${esc(closedText(x))}</span>` : ''}</div></summary>`;
@@ -581,41 +573,7 @@ const tkHead = x => {
 /* preview cell inside the card: just a look, a tap anywhere opens the whole container */
 const tkLogCell = x => `<div class="ssi tkprev">${tkHead(x).replace(/^<summary>|<\/summary>$/g, '')}</div>`;
 /* cell inside the container pop-up: opens its own details */
-const tkLogDet = x => {
-  const s = itState(x), p = x.plan, ap = appSplit(x.body), atts = ap.app && Array.isArray(ap.app.l) ? ap.app.l.filter(a => a && attOk(a.u)) : [];
-  const endAt = p && p.custom && p.range_end ? p.range_end : (p && p.deadline);
-  return `<details class="ssi">${tkHead(x)}<div class="ssdet">${ap.text ? `<div class="rich" dir="auto">${rich(ap.text)}</div>` : ''}${appExtra(x, ap.app, atts, endAt)}${s.k === 'closed' ? `<div class="row"><b dir="auto">${esc(closedText(x))}</b></div>` : ''}${window.thDispHtml ? thDispHtml(x) : ''}</div></details>`;
-};
-const tkGroup = list => { const by = {}; list.forEach(x => (by[x.date] = by[x.date] || []).push(x));
-  return Object.keys(by).sort().reverse().map(dt => `<div class="it"><div class="dt">${dt}</div>${by[dt].sort((a, b) => a.no - b.no).map(itemRow).join('')}</div>`).join(''); };
 /* ===== Collapsed cell: ONE cell per container (title, number, date). The check circle is not even drawn until the trainee has opened the container once. ===== */
-const TKSEEN_KEY = 'thabit_tk_seen'; let TKNEW = new Set(), TKDIRTY = false;
-const tkSeen = () => { try { return JSON.parse(localStorage.getItem(TKSEEN_KEY) || '{}') || {}; } catch (e) { return {}; } };
-const tkCell = x => {
-  if (!x) return '';
-  const s = itState(x), seen = !!tkSeen()[x.id], t2 = itT();
-  const icon = { done: 'fa-check', open: '', lock: 'fa-lock', wait: 'fa-hourglass-half', closed: 'fa-ban' }[s.k];
-  const lbl = x.kind === 'dandana' ? t2.dnd : (lang === 'en' ? 'Task' : 'تاسك');
-  return `<div class="tkcell"><div class="tkcm"><div class="tkc1"><b>${esc(lbl)} #${esc(x.no)}</b><span class="sm">${esc(x.date)}</span></div><div class="tkc2" dir="auto">${esc(x.title || '')}${x.badge ? ' · ' + esc(x.badge) : ''}</div></div>`
-    + (seen ? `<span class="tkdot ${s.k}" aria-hidden="true">${icon ? `<i class="fa-solid ${icon}"></i>` : ''}</span>` : '') + `</div>`;
-};
-const tkEmpty = () => `<div class="tkcell tkempty"><div class="tkcm"><div class="tkc2">${esc((TKT[lang] || TKT.en).none)}</div></div></div>`;
-const tkEmptyFull = () => `<div class="sm" style="padding:10px 4px">${esc((TKT[lang] || TKT.en).none)}</div>`;
-function tkSec(key, cls, title, n, cells, full, mt, ids) {
-  TKL[key] = { t: mt, f: full, ids: ids || [] };
-  return `<div class="tkc ${cls}" data-k="${key}"><div class="tkt">${title}<b>${n || ''}</b></div><div class="tkl">${cells}</div></div>`;
-}
-function tasksCard() {
-  const t = TKT[lang] || TKT.en, its = (D.items || []).filter(x => x.kind === 'task');
-  const fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no);
-  const today = itToday(), pend = its.filter(itShown);
-  const urg = pend.filter(x => x.date === today || x.priority === 'high').sort((a, b) => (b.priority === 'high') - (a.priority === 'high') || b.date.localeCompare(a.date) || a.no - b.no);
-  const prv = pend.filter(x => !(x.date === today || x.priority === 'high'));
-  /* the card and BOTH containers are always there, even when empty (an empty one just says "nothing here"; the old one can always be opened) */
-  const c1 = tkSec('tk:urg', 'urg', t.urgent, urg.length, urg.length ? tkCell(urg[0]) : tkEmpty(), () => urg.length ? tkGroup(urg) : tkEmptyFull(), `${t.tasks} · ${t.urgent}`, urg.map(x => x.id));
-  const c2 = tkSec('tk:prv', 'prv', t.prev, prv.length + fin.length, (prv[0] || fin[0]) ? tkCell(prv[0] || fin[0]) : tkEmpty(), () => (prv.length + fin.length) ? (prv.length ? tkGroup(prv) : '') + fin.map(tkLogDet).join('') : tkEmptyFull(), `${t.tasks} · ${t.prev}`, prv.concat(fin).map(x => x.id));
-  return `<div class="thabit-card dcard" id="taskCard">${holBanner()}<div class="tkh"><h4>${t.tasks}</h4></div><div class="tk2">${c1}${c2}</div></div>`;
-}
 
 /* ===== "Choose your time": the student moves the check time of a dot that has not come yet =====
    Rules: never into the past, never after the deadline, only dots not checked yet. Nothing is forced:
@@ -826,72 +784,11 @@ body.light-theme .tpl{color:#047857}
 .tpbs button{flex:1;padding:9px 6px;border-radius:12px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit;font:700 .76rem Inter,Cairo,sans-serif;cursor:pointer}
 .tpbs .tps{background:#34d399;border-color:#34d399;color:#04231a}
 .tpbs .tpnow{border-color:rgba(251,191,36,.6);color:#fbbf24;background:rgba(251,191,36,.12)}`; document.head.appendChild(st); })();
-const DNX = { en: { cur: 'Current' }, ar: { cur: 'الحالية' }, eg: { cur: 'الحالية' } };
-function dandanaCard() {
-  const t = TKT[lang] || TKT.en, t2 = itT(), its = (D.items || []).filter(x => x.kind === 'dandana');
-  const pend = its.filter(itShown), fin = its.filter(x => !itShown(x)).sort((a, b) => b.date.localeCompare(a.date) || a.no - b.no), cur = (DNX[lang] || DNX.en).cur;
-  const c1 = tkSec('dn:cur', 'urg', cur, pend.length, pend.length ? tkCell(pend[0]) : tkEmpty(), () => pend.length ? tkGroup(pend) : tkEmptyFull(), `${t2.dnd} · ${cur}`, pend.map(x => x.id));
-  const c2 = tkSec('dn:old', 'prv', t.prev, fin.length, fin.length ? tkCell(fin[0]) : tkEmpty(), () => fin.length ? fin.map(tkLogDet).join('') : tkEmptyFull(), `${t2.dnd} · ${t.prev}`, fin.map(x => x.id));
-  return `<div class="thabit-card dcard" id="dandanaCard"><div class="tkh"><h4>${t2.dnd}</h4></div><div class="tk2">${c1}${c2}</div></div>`;
-}
-function openTkModal(key) {
-  const o = TKL[key]; if (!o) return; TKOPEN = key;
-  /* first time this container is opened: its circles pop in (once), and from now on they are drawn in the collapsed cell too */
-  const seen = tkSeen(); TKNEW = new Set((o.ids || []).filter(id => !seen[id]));
-  if (TKNEW.size && !VIEW) { (o.ids || []).forEach(id => { seen[id] = 1; }); try { localStorage.setItem(TKSEEN_KEY, JSON.stringify(seen)); } catch (e) {} TKDIRTY = true; }
-  $('mdl').dataset.ear = ''; $('mT').textContent = o.t; $('mB').innerHTML = `<div class="tkm">${o.f()}</div>`;
-  TKNEW = new Set();
-  $('mdl').classList.add('open');
-  const box = document.querySelector('#mdl .mbox'); if (box) box.scrollTop = 0;
-}
-function tkRefill() {   // after a check / re-render, keep the open container pop-up up to date
-  if (!TKOPEN || !TKL[TKOPEN] || !$('mdl').classList.contains('open') || !document.querySelector(`[data-k="${TKOPEN}"]`)) return;
-  const box = document.querySelector('#mdl .mbox'), y = box ? box.scrollTop : 0;
-  $('mB').innerHTML = `<div class="tkm">${TKL[TKOPEN].f()}</div>`; if (box) box.scrollTop = y;
-}
-/* a tap anywhere on a container (except the check circle / links) opens the whole list */
-document.addEventListener('click', e => {
-  const c = e.target.closest && e.target.closest('#taskCard .tkc, #dandanaCard .tkc'); if (!c) return;
-  if (e.target.closest('button,a,.ed')) return;
-  openTkModal(c.dataset.k);
-});
-/* each list shows one cell and a quarter of the next one, so you know there is more below; scroll to see it */
-function fitTk() {
-  document.querySelectorAll('#taskCard .tkl, #dandanaCard .tkl').forEach(l => {
-    const c = [...l.children]; l.style.maxHeight = ''; l.style.overflowY = '';
-    if (c.length < 2 || !c[0].offsetHeight) return;
-    l.style.overflowY = 'hidden';
-    l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
-  });
-}
-window.addEventListener('resize', fitTk);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTk);
 (function () { const st = document.createElement('style'); st.textContent = `
-.tk2.one{grid-template-columns:1fr!important}
-/* ===== Facebook-style bottom tab bar: fixed, full width, icons evenly spaced, no dividers ===== */
-html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;margin:0 auto!important;transform:none!important;width:min(100%,520px)!important;max-width:none!important;height:calc(54px + env(safe-area-inset-bottom,0px))!important;min-height:0!important;box-sizing:border-box!important;padding:0 8px env(safe-area-inset-bottom,0px)!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around!important;align-items:center!important;gap:0!important;border-radius:16px 16px 0 0!important;border-bottom-width:0!important}
-@media(max-width:600px){html #mobileFloatingBar,html[data-dv] #mobileFloatingBar,html[data-bar] #mobileFloatingBar{width:100%!important;border-radius:0!important;border-left-width:0!important;border-right-width:0!important}}
-html #mobileFloatingBar .bar-divider{display:none!important}
-/* one icon-to-circle ratio everywhere (about 45%): bar buttons and pop-out buttons */
-html #mobileFloatingBar svg.asv,html #mobileFloatingBar [data-bk="assist"] svg{width:16px!important;height:16px!important}
-html #langPop .lgi>i,html #langPop .lgi .plS{font-size:20px!important}
-html #langPop .lgi .plA svg{width:21px!important;height:21px!important}
-html #langPop .lgi svg:not(.asv){width:21px!important;height:21px!important}
-html #thHint .thnx,html[data-bar="bottom"] #thHint .thnx{bottom:calc(66px + env(safe-area-inset-bottom,0px))!important}
-/* each of the 3 sections sits in the vertical middle of the screen */
+html #thHint .thnx,html[data-bar="bottom"] #thHint .thnx{bottom:calc(18px + env(safe-area-inset-bottom,0px))!important}
 html .thsec{justify-content:center!important}
-.tkl{overflow:hidden;cursor:pointer}
-.tkl>.ssi.tkprev{cursor:pointer}
 .ittp span b{font-size:.78rem;margin-inline-end:3px}.ittp span{unicode-bidi:isolate}
-#taskCard *,#dandanaCard *{scrollbar-width:none!important;-ms-overflow-style:none!important}
-#taskCard *::-webkit-scrollbar,#dandanaCard *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
-#dandanaCard{grid-column:1/-1}
-.tkl::-webkit-scrollbar{display:none;width:0;height:0}
-.lst{scrollbar-width:none;-ms-overflow-style:none}.lst::-webkit-scrollbar{display:none;width:0;height:0}
-/* same look as the Notes / TEFL / QOL cells */
-.tkl>.it,.tkl>.ssi,.tkm>.it,.tkm>.ssi{box-sizing:border-box;margin:0 0 8px;padding:10px 14px;border-radius:16px;border:1px solid rgba(148,163,184,.22);background:rgba(148,163,184,.08)}
-.tkl>.it>.dt,.tkm>.it>.dt{text-align:center;font-weight:700;margin-bottom:6px}
-#taskCard .itc,#dandanaCard .itc{zoom:.8}`; document.head.appendChild(st); })();
+.lst{scrollbar-width:none;-ms-overflow-style:none}.lst::-webkit-scrollbar{display:none;width:0;height:0}`; document.head.appendChild(st); })();
 /* tap any finished / missed item in the log: its full details (text, attachments, dates, status) open in the pop-up */
 function openLogItem(id) {
   TKOPEN = null;
@@ -971,7 +868,7 @@ function raiseHand(i) {
   $('mdl').classList.add('open');
 }
 function watchTodo() {
-  const c = $('todoCard') || $('taskCard'), tip = $('handTip'); if (!c || !tip) return;
+  const c = $('todoCard'), tip = $('handTip'); if (!c || !tip) return;
   const go = () => { tip.classList.add('show'); setTimeout(() => { try { localStorage.setItem('thabit_hand_seen', '1'); } catch (e) {} }, 10000); };
   if (!window.IntersectionObserver) return go();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { go(); o.disconnect(); } }, { threshold: .6 }).observe(c);
@@ -988,7 +885,7 @@ async function load() {
     console.warn('Thabit dashboard: no valid session', d);
     if (location.protocol !== 'file:') setTimeout(() => { location.href = PORTAL; }, 2500);
     return; }
-  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { history.scrollRestoration = 'manual'; } catch (e) {} window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 350); setTimeout(thDiag, 900);   // always open on the first section (Tasks / Dandana) try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
+  d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0'))); applyPrefLang(d.profile); USER_TZ = tzFromProfile(d.profile); D = d; range = 'today'; D.done = await fetchDone(); { const f = await rpc('trainee_items', { p_token: tok() }).catch(e => ({ fetchError: String(e) })); if (f && Array.isArray(f.items)) D.items = f.items; else { if (!Array.isArray(D.items)) D.items = []; console.warn('[tasks] trainee_items did not return {items:[...]}:', f); } console.info('[tasks] items:', D.items.length, 'kinds:', D.items.map(i => i.kind).join(',')); } D.notes = await fetchNotes(); D.bill = await fetchBill(); D.times = await fetchTimes(); mergeTimes(); if (!Array.isArray(D.scratches)) D.scratches = await fetchScratches(); render(); try { history.scrollRestoration = 'manual'; } catch (e) {} window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 350);    // always open on the first section (Tasks / Dandana) try { initFloat(); } catch (e) { console.error('[feed]', e); try { chartsGo(); } catch (x) {} }
 }
 
 
@@ -2843,11 +2740,10 @@ function thSections() {
   const top = wrap.querySelector('.top'), ov = $('overall'), lists = $('lists'), kacc = $('kpiAcc');
   if (!top || !ov || !lists) return; wrap.dataset.ths = '1';
   const mk = id => { const e = document.createElement('section'); e.className = 'thsec'; e.id = id; return e; };
-  const s1 = mk('thS1'), s2 = mk('thS2'), s3 = mk('thS3');
+  const s1 = mk('thS1'), s3 = mk('thS3');
   /* page order: 1 = greeting + Tasks / Dandana, 2 = chart (with its time filter), 3 = Notes / TEFL / QOL */
   const rr = document.createElement('div'); rr.id = 'thRngRow'; const rg = $('rng'), rn = $('rngNote'); if (rg) rr.appendChild(rg); if (rn) rr.appendChild(rn);
-  wrap.insertBefore(s2, top); s2.appendChild(top); s2.appendChild(lists);
-  wrap.appendChild(s3); wrap.appendChild(s1); s1.appendChild(rr); s1.appendChild(ov);   // order: 1 tasks + dandana, 2 notes / TEFL / QOL, 3 numbers (chart)
+    wrap.appendChild(s3); wrap.appendChild(s1); s1.appendChild(rr); s1.appendChild(ov);   // order: 1 tasks + dandana, 2 notes / TEFL / QOL, 3 numbers (chart)
   const ar = document.createElement('button'); ar.type = 'button'; ar.id = 'thArrow'; ar.className = 'tharr'; ar.innerHTML = '<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><g class="pq"><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2" fill="none" stroke="#fbbf24" stroke-width="1.6"/><path d="M17.25 15.6v3.8M15.35 17.5h3.8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g></svg>'; ar.setAttribute('aria-label', (thRX[lang] || thRX.en).more);
   ar.addEventListener('click', () => thDetOpen()); s1.appendChild(ar);
   const l2 = document.createElement('div'); l2.className = 'grid'; l2.id = 'lists2'; s3.appendChild(l2);
@@ -2983,7 +2879,7 @@ const thLX = {
   ar: 'نصيحة: اضغط مطولاً على أي كارت ثم اسحبه إلى المكان الذي تريده',
   eg: 'نصيحة: دوس دوسة طويلة على أي كارت واسحبه للمكان اللي عايزه'
 };
-const thCardKey = el => el.id === 'taskCard' ? 'tasks' : el.id === 'dandanaCard' ? 'dandana' : ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
+const thCardKey = el => ((el.querySelector && el.querySelector('.ear') && el.querySelector('.ear').dataset.ear) || el.id || '');
 const THL_KEYS = ['notes', 'tefl', 'qol', 'scratchCard'];
 function thListsApply() {
   const L = $('lists'), L2 = $('lists2'); if (!L) return;
@@ -2997,9 +2893,7 @@ function thListsApply() {
     }
     thListsBind(x);
   });
-  const s2 = $('thS2'), s3 = $('thS3'); { const tp = document.querySelector('.top'), s1 = $('thS1'), empty = !L.children.length;   // greeting lives with the Tasks section; if that one is empty it moves to the chart section so it never disappears
-    if (tp && s1 && s2) { if (empty) { if (tp.parentNode !== s1) s1.insertBefore(tp, s1.firstChild); } else if (tp.parentNode !== s2) s2.insertBefore(tp, s2.firstChild); }
-    if (s2) s2.hidden = empty; } if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
+  const s3 = $('thS3'); if (s3) s3.hidden = !(L2 && L2.children.length);   // an empty section is not shown
   thHintRefresh();
 }
 function thListsBind(L) {
@@ -3125,22 +3019,6 @@ body.light-theme .tpwarn{color:#92400e}
 .tpt .tpbs{max-width:360px;margin-inline:auto}`; document.head.appendChild(st);
 })();
 
-/* temporary diagnostics: prints where the Tasks / Dandana cards are (console only, nothing on screen). Safe to delete. */
-function thDiag() {
-  try {
-    const secs = [...document.querySelectorAll('.thsec')].map(s => s.id + ' hidden=' + s.hidden + ' display=' + getComputedStyle(s).display + ' h=' + Math.round(s.getBoundingClientRect().height));
-    const info = id => { const c = document.getElementById(id); if (!c) return id + ': NOT IN DOM'; const r = c.getBoundingClientRect(), cs = getComputedStyle(c), s = c.closest('.thsec'); return id + ': section=' + (s && s.id) + ' display=' + cs.display + ' visibility=' + cs.visibility + ' opacity=' + cs.opacity + ' w=' + Math.round(r.width) + ' h=' + Math.round(r.height) + ' top=' + Math.round(r.top + scrollY) + ' htmlLen=' + c.innerHTML.length; };
-    const L = document.getElementById('lists');
-    console.info('[diag] sections:', secs.join(' | '));
-    console.info('[diag]', info('taskCard'));
-    console.info('[diag]', info('dandanaCard'));
-    console.info('[diag] #lists children:', L ? [...L.children].map(e => e.id || e.className).join(',') : 'no #lists', '| scripts:', [...document.scripts].map(s => (s.src || 'inline').split('/').pop()).join(','));
-    console.info('[diag] items by state:', (D.items || []).map(i => i.kind + ':' + itState(i).k).join(','));
-    const w = ms => ms ? new Date(ms).toISOString().slice(5, 16).replace('T', ' ') : '-';
-    console.info('[diag] now(wall):', w(cairoNow()), '| tz:', USER_TZ);
-    (D.items || []).forEach(i => { const p = i.plan; console.info('[diag] item', i.id, i.kind, 'date=' + i.date, 'no=' + i.no, 'state=' + itState(i).k, 'checks=' + (i.checks || []).length + '/' + (p ? p.n_eff : i.repeats), p ? 'opens=' + (p.opens || []).map(w).join(',') + ' deadline=' + w(p.deadline) + ' reason=' + p.deadline_reason : 'NO PLAN'); });
-  } catch (e) { console.warn('[diag] failed', e); }
-}
 
 (function(){const st=document.createElement('style');st.textContent='.tkcell.tkempty{opacity:.6}.tkcell.tkempty .tkc2{font-weight:500}';document.head.appendChild(st);})();
 
@@ -5252,150 +5130,6 @@ body.light-theme .thsel-loupe{background:#fff;color:#0f172a}
 })();
 
 
-/* ==========================================================
-   DAYS button (next to Notifications / Messenger / Settings) + Days page
-   - button: small calendar icon with TODAY's number inside, label "Days", red number badge like Notifications
-   - page: the "Next session" card (moved here from Notifications, same card, always pinned) + Calendar
-   - opens like the other pages: full page on phones, centred box on computers
-   Appended at the END of dashboard.js. Delete this block to remove it.
-   ========================================================== */
-(function () {
-  if (window.__thDays) return; window.__thDays = 1;
-  const tr = (a, b, c) => { const l = (typeof lang === 'string' && lang) || 'en'; return l === 'en' ? a : (l === 'ar' ? b : c); };
-  const G = id => document.getElementById(id);
-  const SEEN = 'thabit_days_seen';
-  const todayStr = () => { try { return itToday(); } catch (e) { return new Date().toISOString().slice(0, 10); } };
-  const dayNum = () => String(parseInt(todayStr().slice(8, 10), 10));
-
-  const css = document.createElement('style'); css.id = 'thDaysCss';
-  css.textContent = `
-#daysBtn{background:transparent!important;border:0!important;box-shadow:none!important;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fbbf24}
-html body #mobileFloatingBar #daysBtn>svg.dys{width:28px!important;height:28px!important;display:block;flex:none;overflow:visible}
-#daysBtn .dys .fr{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-#daysBtn .dys .rg{stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
-#daysBtn .dys text{fill:currentColor;font:800 11px/1 Inter,Cairo,sans-serif;text-anchor:middle}
-body.light-theme #daysBtn{color:#d97706}
-#daysNum{display:none;position:absolute!important;top:9px;left:calc(50% + 12px);z-index:5;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;-webkit-text-fill-color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px #181c20,0 2px 6px rgba(239,68,68,.55);pointer-events:none}
-#daysNum.on{display:block}
-#daysNum.l2{font-size:8px}
-#daysNum.bump{animation:mgrBump .4s cubic-bezier(.3,1.7,.5,1)}
-body.light-theme #daysNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.55)}
-html.th-page #daysBtn{visibility:hidden!important}
-
-#thDays{position:fixed;inset:0;z-index:10040;display:none;justify-content:center;align-items:flex-start;padding:max(14px,env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));background:rgba(2,6,23,.5);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);overflow:auto;box-sizing:border-box}
-#thDays.open{display:flex}
-#thDays .tsc{position:relative;width:min(440px,100%);margin:auto 0;padding:12px;border-radius:22px;background:rgba(15,23,42,.97);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 50px rgba(0,0,0,.55);box-sizing:border-box;font-family:Cairo,Inter,sans-serif}
-body.light-theme #thDays .tsc{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.14)}
-#thDays .tsh{display:flex;direction:ltr;align-items:center;gap:10px;padding:4px 6px 12px}
-#thDays .tsh .tsi{width:30px;text-align:center;font-size:20px;flex:none;color:#fbbf24}
-#thDays .tsh b{flex:1;text-align:center;font-size:1.02rem;font-weight:800}
-#thDays .tsx{width:30px;height:30px;flex:none;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;font-size:14px}
-#thDays .dcard{margin-bottom:10px;padding:14px;border-radius:16px;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.24);box-shadow:0 3px 0 rgba(0,0,0,.22),0 6px 14px rgba(0,0,0,.18)}
-body.light-theme #thDays .dcard{background:#f1f5f9;border-color:rgba(15,23,42,.12);box-shadow:0 2px 0 rgba(15,23,42,.1),0 5px 12px rgba(15,23,42,.08)}
-#thDays .dcard .nxrow{display:flex;align-items:center;gap:16px;direction:ltr}
-#thDays .dcard .nxc{flex:none;display:flex;align-items:center;justify-content:center}
-#thDays .dcard .nxtx{flex:1;min-width:0}
-#thDays .dcard .nxtx h3{margin:0 0 4px;font-size:1rem}
-#thDays .dcard .sm{font-size:.78rem;opacity:.7;margin-top:4px}
-#thDays .dcard .cdn{font-weight:800;font-size:1.25rem;letter-spacing:.02em}
-#thDays .dcard.none{text-align:center;opacity:.75;font-weight:700;font-size:.9rem}
-#thDays .drow{display:flex;direction:ltr;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;cursor:pointer;background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.24);box-shadow:0 3px 0 rgba(0,0,0,.22),0 6px 14px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;user-select:none}
-body.light-theme #thDays .drow{background:#f1f5f9;border-color:rgba(15,23,42,.12);box-shadow:0 2px 0 rgba(15,23,42,.1),0 5px 12px rgba(15,23,42,.08)}
-#thDays .drow .tsi{width:26px;text-align:center;font-size:18px;flex:none}
-#thDays .drow .tst{flex:1;text-align:center;font-weight:700;font-size:.9rem}
-#thDays .drow .tsv{width:26px;text-align:center;font-size:12px;opacity:.6;flex:none}
-html.th-page #thDays .tsh{display:none}
-@media (max-width:820px) and (pointer:coarse){
-#thDays.open{position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;border-radius:0!important;padding:calc(60px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:#000!important;display:flex}
-body.light-theme #thDays.open{background:#f4f6f9!important}
-#thDays .tsh{display:none!important}
-#thDays .tsc{width:min(480px,100%);background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 auto auto}
-}`;
-  document.head.appendChild(css);
-
-  /* ---------- the button ---------- */
-  const SVG = () => `<svg class="dys" viewBox="0 0 28 28" aria-hidden="true"><rect class="fr" x="3.5" y="5.5" width="21" height="19" rx="4.5"/><path class="rg" d="M9.5 3v5M18.5 3v5"/><path class="fr" d="M3.5 11h21"/><text x="14" y="21.2" id="dysTxt">${dayNum()}</text></svg>`;
-  const LBL = () => tr('Time', 'الوقت', 'تايم');
-  function install() {
-    if (G('daysBtn')) return true;
-    const bar = G('mobileFloatingBar'), anchor = G('homeBtn') || G('reload') || (G('mobileFloatingBar') && G('mobileFloatingBar').querySelector(':scope > [data-bk]'));
-    if (!bar || !anchor) return false;
-    const b = document.createElement('button'); b.type = 'button'; b.id = 'daysBtn'; b.dataset.bk = 'days';
-    b.className = 'circle-badge-btn';
-    b.title = LBL(); b.setAttribute('aria-label', LBL());
-    b.innerHTML = SVG() + '<span class="thl"></span><span id="daysNum"></span>';
-    b.querySelector('.thl').textContent = LBL();
-    b.onclick = e => { e.stopPropagation(); toggle(); };
-    anchor.insertAdjacentElement('afterend', b);
-    try { if (typeof layoutBar === 'function') layoutBar(); } catch (e) { }
-    return true;
-  }
-  { let n = 0; const iv = setInterval(() => { if (install() || ++n > 120) clearInterval(iv); }, 500); }
-
-  /* today's number + label follow the Cairo date and the language */
-  setInterval(() => {
-    const t = G('dysTxt'); if (t && t.textContent !== dayNum()) t.textContent = dayNum();
-    const l = document.querySelector('#daysBtn .thl'); if (l && l.textContent !== LBL()) { l.textContent = LBL(); const b = G('daysBtn'); b.title = LBL(); b.setAttribute('aria-label', LBL()); }
-  }, 2000);
-
-  /* ---------- the badge: a number on the button when there is something new ----------
-     Right now: a session day that has not been looked at yet = 1.  Change thDays.count() to add more kinds of updates. */
-  function count() {
-    try {
-      if (typeof VIEW !== 'undefined' && VIEW) return 0;
-      if (typeof D === 'undefined' || !D) return 0;
-      const s = nxState(); if (!s) return 0;
-      let n = 0;
-      if ((s.st === 'count' || s.st === 'started') && localStorage.getItem(SEEN) !== todayStr()) n++;
-      return n;
-    } catch (e) { return 0; }
-  }
-  function badge() {
-    const el = G('daysNum'); if (!el) return;
-    const n = count(), txt = n > 99 ? '99+' : String(n || '');
-    if (!n) { el.classList.remove('on'); el.textContent = ''; return; }
-    if (el.textContent !== txt) { el.textContent = txt; el.classList.toggle('l2', txt.length > 1); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
-    el.classList.add('on');
-  }
-  setInterval(badge, 3000); setTimeout(badge, 1500);
-
-  /* ---------- the page ---------- */
-  let root = null;
-  function ensure() {
-    if (root) return;
-    root = document.createElement('div'); root.id = 'thDays'; document.body.appendChild(root);
-    root.addEventListener('pointerdown', e => { if (e.target === root) close(); });
-    document.addEventListener('keydown', e => {
-      if (e.key !== 'Escape' || !root.classList.contains('open')) return;
-      if (document.querySelector('#thCal.open')) return;
-      e.stopImmediatePropagation(); close();
-    }, true);
-  }
-  function card() {
-    let h = '';
-    try { const s = (typeof D !== 'undefined' && D) ? nxState() : null; if (s) h = nextCard(s).html; } catch (e) { console.warn('[days] next session', e); }
-    return h ? `<div class="dcard pc nxt">${h}</div>` : `<div class="dcard none">${esc(tr('No upcoming session yet', 'لا توجد جلسة قادمة بعد', 'مفيش سيشن جاية لسه'))}</div>`;
-  }
-  function draw() {
-    if (!root || !root.classList.contains('open')) return;
-    const cal = tr('Calendar', 'التقويم', 'التقويم');
-    root.innerHTML = `<div class="tsc"><div class="tsh"><span class="tsi"><i class="fa-regular fa-calendar-days"></i></span><b>${esc(LBL())}</b><button type="button" class="tsx" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>`
-      + `<div id="dysCard">${card()}</div>`
-      + `<div class="drow" role="button" tabindex="0" id="dysCal"><span class="tsi"><i class="fa-regular fa-calendar"></i></span><span class="tst">${esc(cal)}</span><span class="tsv"><i class="fa-solid fa-chevron-right"></i></span></div></div>`;
-    root.querySelector('.tsx').onclick = close;
-    const c = G('dysCal'); c.onclick = () => { if (window.openCal) window.openCal(); };
-    c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); } };
-  }
-  function open() {
-    ensure();
-    try { if (!(typeof VIEW !== 'undefined' && VIEW)) localStorage.setItem(SEEN, todayStr()); } catch (e) { }
-    root.classList.add('open'); draw(); badge();
-  }
-  function close() { if (!root) return; root.classList.remove('open'); root.innerHTML = ''; }
-  function toggle() { if (root && root.classList.contains('open')) close(); else open(); }
-
-  window.thDays = { open, close, toggle, count };
-})();
 
 
 /* ==========================================================
@@ -5583,122 +5317,6 @@ body.thb-act #thLibCell{display:none!important}
   document.head.appendChild(c);
 })();
 
-/* ==========================================================
-   SPACE: the trainee's own board (button on the bar). Opens as a full page, saves by itself.
-   board.html?student=1 runs in a frame; it talks to Supabase through trainee_space_* functions using the trainee token.
-   ========================================================== */
-(function () {
-  if (window.thSpace) return;
-  const bar = document.getElementById('mobileFloatingBar'); if (!bar) return;
-  const G = id => document.getElementById(id);
-  const css = document.createElement('style'); css.id = 'thSpaceCss';
-  css.textContent = `
-#thSpace{position:fixed;inset:0;z-index:10030;display:none;background:#fff}
-body:not(.light-theme) #thSpace{background:#17171b}
-#thSpace.open{display:block}
-#thSpace iframe{width:100%;height:100%;border:0;display:block;background:transparent}
-#thSpace .tsx{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:rgba(15,23,42,.88);color:#fff;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-@media (max-width:820px) and (pointer:coarse){#thSpace{padding-top:calc(52px + env(safe-area-inset-top))}#thSpace .tsx{display:none}}`;
-  document.head.appendChild(css);
-
-  const box = document.createElement('div'); box.id = 'thSpace';
-  box.innerHTML = '<button type="button" class="tsx" aria-label="Close">&times;</button>';
-  document.body.appendChild(box);
-  const SPACE_SOON = true;   /* true = show the "under development" page; false = the real board */
-  const SOON_T = {
-    en: { d: 'On this page you can pick up a pen and start drawing your own free space however you like.', s: 'This page is still being updated and is under development. It will be available very soon.' },
-    ar: { d: 'في هذه الصفحة تستطيع أن تلتقط قلمًا وتبدأ برسم مساحتك الحرة كيفما شئت.', s: 'لا زالت هذه الصفحة تحت التحديث أو قيد التطوير، وستكون متاحة في أقرب وقت.' }
-  };
-  const gearD = (cx, cy, R, r, n) => { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; };
-  const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
-  const soonCss = document.createElement('style'); soonCss.id = 'thSpaceSoonCss';
-  soonCss.textContent = `
-#thSpace .tsoon{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 26px;text-align:center;overflow:auto}
-#thSpace .tsoon svg{width:min(250px,70vw);height:auto;overflow:visible;flex:none}
-#thSpace .tsoon .gl{fill:url(#tsGlow)}
-#thSpace .tsoon .g1{fill:none;stroke:#fbbf24;stroke-width:3.2;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(251,191,36,.75))}
-#thSpace .tsoon .g1r{fill:none;stroke:#fbbf24;stroke-width:3;filter:drop-shadow(0 0 5px rgba(251,191,36,.7))}
-#thSpace .tsoon .g1c{fill:#fbbf24;filter:drop-shadow(0 0 7px rgba(251,191,36,.95))}
-#thSpace .tsoon .g2{fill:none;stroke:#f1f5f9;stroke-width:2.2;stroke-linejoin:round;opacity:.92}
-#thSpace .tsoon .orb{fill:none;stroke:#fbbf24;stroke-width:1.4;stroke-dasharray:1 6;stroke-linecap:round;opacity:.35}
-#thSpace .tsoon .sp1{fill:#f1f5f9}.tsoon .sp2{fill:#fbbf24;filter:drop-shadow(0 0 5px rgba(251,191,36,.9))}.tsoon .dt{fill:#fbbf24;opacity:.7}
-#thSpace .tsoon .td{max-width:340px;margin:0;font:600 .98rem/1.7 Inter,Cairo,sans-serif;color:#f1f5f9}
-#thSpace .tsoon .ts{max-width:340px;margin:0;padding:8px 16px;border-radius:16px;font:700 .82rem/1.6 Inter,Cairo,sans-serif;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.32)}
-body.light-theme #thSpace .tsoon .td{color:#0f172a}
-body.light-theme #thSpace .tsoon .ts{color:#92400e;background:rgba(245,158,11,.12);border-color:rgba(180,83,9,.35)}
-body.light-theme #thSpace .tsoon .g2{stroke:#475569}body.light-theme #thSpace .tsoon .sp1{fill:#475569}
-body.light-theme #thSpace .tsoon .g1,body.light-theme #thSpace .tsoon .g1r{stroke:#d97706}body.light-theme #thSpace .tsoon .g1c,body.light-theme #thSpace .tsoon .sp2,body.light-theme #thSpace .tsoon .dt{fill:#d97706}`;
-  document.head.appendChild(soonCss);
-  function soon() {
-    const L = (typeof lang === 'string' && lang === 'en') ? 'en' : 'ar', T = SOON_T[L];
-    let s = box.querySelector('.tsoon');
-    if (!s) {
-      s = document.createElement('div'); s.className = 'tsoon';
-      s.innerHTML = '<svg viewBox="0 0 240 190" aria-hidden="true"><defs><radialGradient id="tsGlow"><stop offset="0" stop-color="#fbbf24" stop-opacity=".38"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>'
-        + '<circle class="gl" cx="100" cy="108" r="92"/><circle class="orb" cx="100" cy="108" r="76"/>'
-        + '<path class="g1" d="' + gearD(100, 108, 50, 41, 12) + '"/><circle class="g1r" cx="100" cy="108" r="20"/><circle class="g1c" cx="100" cy="108" r="6.5"/>'
-        + '<path class="g2" d="' + gearD(168, 58, 28, 23, 10) + '"/><circle class="g2" cx="168" cy="58" r="8"/>'
-        + '<path class="sp1" d="' + spark(34, 70, 7) + '"/><path class="sp2" d="' + spark(216, 128, 10) + '"/>'
-        + '<circle class="dt" cx="58" cy="34" r="1.6"/><circle class="dt" cx="196" cy="22" r="1.4"/><circle class="dt" cx="22" cy="140" r="1.4"/><circle class="dt" cx="150" cy="172" r="1.6"/></svg>'
-        + '<p class="td"></p><p class="ts"></p>';
-      box.appendChild(s);
-    }
-    s.dir = L === 'en' ? 'ltr' : 'rtl'; s.querySelector('.td').textContent = T.d; s.querySelector('.ts').textContent = T.s;
-  }
-  let fr = null;
-  function open() {
-    if (SPACE_SOON) soon(); else if (!fr) {
-      fr = document.createElement('iframe'); fr.title = 'Space'; fr.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen');
-      fr.src = 'board.html?student=1' + (VIEW ? '&mode=view#vt=' + VT : '');
-      box.appendChild(fr);
-    }
-    box.classList.add('open');
-    if (window.thFpSync) thFpSync();
-    if (!SPACE_SOON) probe();
-  }
-  /* If Space cannot load, say exactly why on screen (missing file, or the server function is missing / rejected the token) */
-  let probed = false;
-  async function probe() {
-    if (probed) return; probed = true;
-    const bad = [];
-    for (const u of ['board.html', 'Css/board.css', 'css/board.css', 'js/board.js']) {
-      try {
-        const r = await fetch(u, { cache: 'no-store' }), t = r.ok ? await r.text() : '', ty = r.headers.get('content-type') || '';
-        const asset = /\.(css|js)$/.test(u), isCss = /\.css$/.test(u);
-        if (!r.ok) { if (u !== 'css/board.css') bad.push(u + '  ->  HTTP ' + r.status); }   /* css/board.css is only a second guess for the folder case */
-        else if (asset && (/^\s*</.test(t) || t.length < (isCss ? 300 : 3000))) bad.push(u + '  ->  not a real ' + (isCss ? 'CSS' : 'JS') + ' file (' + t.length + ' bytes, ' + ty + ')');
-        else if (u === 'css/board.css') bad.push('css/board.css exists but board.html asks for Css/board.css (capital C): the page loads without styles');
-      } catch (e) { bad.push(u + '  ->  ' + e.message); }
-    }
-    try {
-      const t = tok();
-      if (!t) bad.push('no trainee token on this device (log in again)');
-      else { const r = await rpc('trainee_space_list', { p_token: t }); if (r && !Array.isArray(r) && (r.message || r.code)) bad.push('trainee_space_list  ->  ' + (r.message || r.code) + (r.hint ? ' (' + r.hint + ')' : '')); }
-    } catch (e) { bad.push('trainee_space_list  ->  ' + e.message); }
-    if (!bad.length) return;
-    console.warn('[space] problems:', bad);
-    const d = document.createElement('div');
-    d.style.cssText = 'position:absolute;left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:5;padding:12px 14px;border-radius:14px;background:rgba(127,29,29,.92);color:#fff;font:600 12px/1.5 Inter,Cairo,sans-serif;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-word';
-    d.textContent = 'Space problem:\n' + bad.join('\n') + '\n(tap to close)';
-    d.onclick = () => d.remove();
-    box.appendChild(d);
-  }
-  function close() {
-    try { fr && fr.contentWindow.ThabitBoard && fr.contentWindow.ThabitBoard.flush(); } catch (e) { }   /* saves by itself, nothing to ask */
-    box.classList.remove('open');
-    if (window.thFpSync) thFpSync();
-  }
-  box.querySelector('.tsx').onclick = close;
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && box.classList.contains('open')) close(); });
-  window.thSpace = { open, close };
-
-  const b = document.createElement('button');
-  b.type = 'button'; b.id = 'spaceBtn'; b.dataset.bk = 'space'; b.className = 'circle-badge-btn'; b.title = 'Space'; b.setAttribute('aria-label', 'Space');
-  b.style.color = '#38bdf8'; b.innerHTML = '<svg class="spco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-3.8L16.2 4a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L7.8 20z"/><path d="M13.6 6.7l3.7 3.7"/></svg>';
-  b.onclick = open;
-  bar.appendChild(b);
-  try { layoutBar(); } catch (e) { }
-})();
 
 
 /* ==========================================================
@@ -6965,42 +6583,23 @@ body.light-theme .thTg.nw,body.light-theme .thTg.al,body.light-theme .thTg.ct{bo
    ========================================================== */
 (function () {
   if (window.__thHv2) return; window.__thHv2 = 1;
-  const TT = {
-    thS2: { en: 'Tasks and To-Dos', ar: 'المهام والمطلوبات' },
-    thS3: { en: 'Words and passages bucket', ar: 'مخزن الكلمات والنصوص' },
-    thS1: { en: 'Numbers dashboard', ar: 'لوحة الأرقام' }
-  };
   const st = document.createElement('style'); st.id = 'thHv2css';
   st.textContent = `
 html body .thsec:not(#z):not(#y){justify-content:center!important}
 html body .thsec.th-first:not(#z):not(#y){justify-content:center!important;padding-top:calc(var(--th-hd) + var(--th-gap) + 8px)!important}
 html body .thsec:not(#z):not(#y){padding-top:calc(var(--th-hd) + var(--th-gap) + 8px)!important}
-.thsl{position:absolute;top:calc(var(--th-hd) + 12px);inset-inline-start:22px;font:800 15px/1.2 Inter,Cairo,sans-serif;letter-spacing:.2px;color:#fbbf24;opacity:.95;pointer-events:none;max-width:calc(100% - 44px)}
-html[dir=rtl] .thsl{font-size:16px}
-body.light-theme .thsl{color:#b45309}
-@media(min-width:601px){.thsl{inset-inline-start:30px}}`;
+`;
   document.head.appendChild(st);
-  const paint = () => {
-    const l = (typeof lang === 'string' && lang === 'en') ? 'en' : 'ar';
-    Object.keys(TT).forEach(id => {
-      const sec = document.getElementById(id); if (!sec) return;
-      let e = sec.querySelector(':scope > .thsl');
-      if (!e) { e = document.createElement('div'); e.className = 'thsl'; e.setAttribute('aria-hidden', 'true'); sec.insertBefore(e, sec.firstChild); }
-      if (e.dataset.l !== l) { e.dataset.l = l; e.textContent = TT[id][l]; }
-    });
-  };
-  setInterval(paint, 600); paint();
+
 
   /* ---------- one-time "what's new" card ---------- */
   const NEWS = {
     en: { h: 'What’s new on Home', items: [
       ['fa-hand-pointer', 'Pull-down refresh is gone. Tap the Home button to refresh.'],
-      ['fa-heading', 'Each section now has its own title.'],
       ['fa-file-lines', 'TEFL is now “Passages”.'],
       ['fa-volume-high', 'QOL is now “Words and sounds”.']], ok: 'Got it' },
     ar: { h: 'إيه الجديد في الرئيسية', items: [
       ['fa-hand-pointer', 'السحب لتحت للتحديث اتشال. اضغط زر الرئيسية عشان تحدّث.'],
-      ['fa-heading', 'كل قسم بقى له عنوان.'],
       ['fa-file-lines', 'TEFL بقت «النصوص».'],
       ['fa-volume-high', 'QOL بقت «الكلمات والأصوات».']], ok: 'تمام' }
   };
@@ -7027,5 +6626,5 @@ body.light-theme #thNews h3{color:#b45309}
 #thNews li i{color:#38bdf8;width:18px;text-align:center;margin-top:3px}
 #thNews .thn-ok{width:100%;border:0;border-radius:12px;padding:10px;font:800 14px Inter,Cairo,sans-serif;background:#fbbf24;color:#0f172a;cursor:pointer}`;
   document.head.appendChild(ns);
-  const wait = setInterval(() => { if (document.getElementById('thS2') && document.querySelector('#lists .dcard')) { clearInterval(wait); setTimeout(() => window.thNewsShow(false), 1200); } }, 700);
+  const wait = setInterval(() => { if (document.getElementById('thS3') && document.querySelector('#lists2 .dcard')) { clearInterval(wait); setTimeout(() => window.thNewsShow(false), 1200); } }, 700);
 })();
