@@ -108,6 +108,7 @@ function toggleAdminPanel() {
 }
 
 function showAdminView(v) {
+    try { asstStopDict(); if (v === 'dashboardMain') asstEnsureButton(); } catch (e) { }
     const panelBox = document.getElementById('adminPanel');
     if (panelBox) panelBox.style.maxWidth = '680px';
     const homeEl = document.getElementById('adminHome');
@@ -970,6 +971,7 @@ async function openDashboardSubView(actionType) {
     if (actionType === 'dailySupply') return renderDailySupply(backBtnHtml);
     if (actionType === 'masterProfiles') return renderMasterProfiles(backBtnHtml);
     if (actionType === 'archive') return renderArchive(backBtnHtml);
+    if (actionType === 'assistant') return renderAssistant(backBtnHtml);
 
     subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
@@ -4823,4 +4825,425 @@ function mgEnsureBar() {
     try { await mutate(`portal_guests?id=eq.${enc(id)}`, 'DELETE'); gs.guests = gs.guests.filter(x => String(x.id) !== String(id)); gPaint(); showToast('اتمسح ✓'); }
     catch (e) { showToast('فشل المسح: ' + e.message, true); }
   };
+})();
+
+/* ==========================================================
+   Assistant: أيجنت الديلي سبلاي جوه الأدمن بانل
+   - بتقول اسم طالب + بياناته، يقولك "هعمل 1 2 3"، وبعد "اوكي" يكتب في daily_supply بنفسه
+   - بيستخدم نفس تسجيل دخول الأدمن بانل (sbFetch)، مفيش لوجن تاني
+   - الفهم محلي من غير AI. لو عايز حقل جديد زوّده في ASST_FIELDS
+   ========================================================== */
+(function () {
+/* الحقول: al = الكلمات اللي بتقولها، type = time/num/text، det = حقل التفاصيل لو الرقم ليه تفاصيل */
+const ASST_FIELDS = [
+  { key: "start_time", type: "time", label: "بداية الجلسة", al: ["بداية الجلسة", "بداية", "بدأ", "بدا", "بدات", "ابتدا", "ابتدى", "start time", "start"] },
+  { key: "end_time", type: "time", label: "نهاية الجلسة", al: ["نهاية الجلسة", "نهاية", "خلص", "خلصت", "انتهى", "انتهت", "end time", "end"] },
+  { key: "notes", type: "text", label: "الملاحظات", append: true, al: ["ملاحظات", "ملاحظة", "نوتس", "notes", "note"] },
+  { key: "attendance", type: "num", min: 1, max: 10, det: "attendance_details", label: "الحضور", al: ["الحضور", "حضور", "attendance"] },
+  { key: "attendance_details", type: "text", label: "تفاصيل الحضور", al: ["تفاصيل الحضور"] },
+  { key: "attitude", type: "num", min: 1, max: 10, det: "attitude_details", label: "السلوك (attitude)", al: ["attitude", "سلوك", "السلوك"] },
+  { key: "attitude_details", type: "text", label: "تفاصيل السلوك", al: ["تفاصيل السلوك", "attitude details"] },
+  { key: "performance", type: "num", det: "performance_details", label: "الأداء", al: ["الاداء", "اداء", "performance"] },
+  { key: "performance_details", type: "text", label: "تفاصيل الأداء", al: ["تفاصيل الاداء", "performance details"] },
+  { key: "soft_skills", type: "num", det: "soft_skills_details", label: "السوفت سكيلز", al: ["سوفت سكيلز", "soft skills"] },
+  { key: "soft_skills_details", type: "text", label: "تفاصيل السوفت سكيلز", al: ["تفاصيل السوفت سكيلز"] },
+  { key: "revision", type: "text", label: "المراجعة", al: ["مراجعة", "revision"] },
+  { key: "revision_details", type: "text", label: "تفاصيل المراجعة", al: ["تفاصيل المراجعة", "revision details"] },
+  { key: "tefl", type: "text", label: "TEFL", al: ["tefl", "تيفل"] },
+  { key: "qol", type: "text", label: "QOL", al: ["qol"] },
+  { key: "weak_points", type: "text", label: "نقاط الضعف", al: ["نقاط الضعف", "نقاط ضعف", "weak points"] },
+  { key: "left_overs", type: "text", label: "المتبقي", al: ["المتبقي", "متبقي", "left overs", "leftovers"] },
+  { key: "plans", type: "text", label: "الخطة", al: ["الخطة", "خطة", "plans", "plan"] },
+  { key: "session_title", type: "text", label: "عنوان الجلسة", al: ["عنوان الجلسة", "session title"] },
+  { key: "sub_title", type: "text", label: "العنوان الفرعي", al: ["عنوان فرعي", "sub title"] },
+  { key: "session_number", type: "num", label: "رقم الجلسة", al: ["رقم الجلسة", "session number"] },
+  { key: "group_name", type: "text", label: "الجروب", al: ["جروب", "مجموعة", "group"] }
+];
+/* كلمات اليوم: بتحدد تاريخ السجل (الافتراضي النهارده، ونطاق السبت-الخميس زي الأدمن بانل) */
+const ASST_DATES = [
+  { date: true, off: 0, al: ["النهارده", "انهارده", "النهاردة"] },
+  { date: true, off: -1, al: ["امبارح", "أمس", "امس"] },
+  { date: true, day: 0, al: ["يوم السبت"] }, { date: true, day: 1, al: ["يوم الاحد"] },
+  { date: true, day: 2, al: ["يوم الاتنين", "يوم الاثنين"] }, { date: true, day: 3, al: ["يوم التلات", "يوم الثلاثاء"] },
+  { date: true, day: 4, al: ["يوم الاربع", "يوم الاربعاء"] }, { date: true, day: 5, al: ["يوم الخميس"] }
+];
+
+/* ---------- أدوات الفهم ---------- */
+// نسخة موحّدة من النص لنفس الطول بالظبط (عشان نقطع من النص الأصلي بنفس الأماكن)
+const asstDigits = (s) => String(s).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+const asstFold = (s) => asstDigits(String(s).toLowerCase())
+  .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+  .replace(/[^\p{L}\p{N}:]/gu, (m) => " ".repeat(m.length));
+const asstLds = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function asstWeek(now) {
+  const idx = (now.getDay() + 1) % 7;   // السبت = 0
+  const sat = new Date(now.getFullYear(), now.getMonth(), now.getDate() - idx);
+  const thu = new Date(sat.getFullYear(), sat.getMonth(), sat.getDate() + 5);
+  return { sat, min: asstLds(sat), max: asstLds(thu) };
+}
+const asstStrip = (w) => w.replace(/^(?:وال|بال|لل|ال|ل|و|ب)(?=.{2,})/, "");
+
+function asstHits(f) {
+  const all = [];
+  ASST_FIELDS.concat(ASST_DATES).forEach((fd) => fd.al.forEach((a) => all.push({ fd, a: asstFold(a).replace(/^ال/, "") })));
+  all.sort((x, y) => y.a.length - x.a.length);
+  const used = new Array(f.length).fill(false), hits = [];
+  for (const { fd, a } of all) {
+    const re = new RegExp("(^|\\s)((?:و)?(?:ال)?" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?=\\s|:|$)", "g");
+    let m;
+    while ((m = re.exec(f))) {
+      const s = m.index + m[1].length, e = s + m[2].length;
+      if (used.slice(s, e).some(Boolean)) continue;
+      for (let i = s; i < e; i++) used[i] = true;
+      hits.push({ fd, s, e });
+    }
+  }
+  return hits.sort((x, y) => x.s - y.s);
+}
+
+function asstFindStudent(f, students) {
+  const toks = [];
+  f.replace(/\S+/g, (w, i) => { toks.push({ w: asstStrip(w), i, len: w.length }); return w; });
+  for (let k = 4; k >= 1; k--) {
+    const found = new Map();
+    for (const st of students) {
+      if (st._n.length < k) continue;
+      const pre = st._n.slice(0, k).map(asstStrip).join(" ");
+      for (let i = 0; i + k <= toks.length; i++) {
+        if (toks.slice(i, i + k).map((t) => t.w).join(" ") === pre && pre.length >= 2) {
+          if (!found.has(st.id)) found.set(st.id, { st, s: toks[i].i, e: toks[i + k - 1].i + toks[i + k - 1].len });
+        }
+      }
+    }
+    if (found.size === 1) return [...found.values()][0];
+    if (found.size > 1) return { ambiguous: [...found.values()].map((x) => x.st.trainee) };
+  }
+  return null;
+}
+
+function asstTime(seg) {
+  const m = /(\d{1,2})(?::(\d{2}))?/.exec(seg);
+  if (!m) return null;
+  let h = +m[1], mi = m[2] ? +m[2] : 0;
+  const rest = seg.slice(m.index + m[0].length);
+  if (!m[2]) {
+    if (/^\s*و?\s*(?:نص|نصف)/.test(rest)) mi = 30;
+    else if (/^\s*و?\s*ربع/.test(rest)) mi = 15;
+    else if (/^\s*و?\s*(?:تلت|ثلث)/.test(rest)) mi = 20;
+    else if (/^\s*الا\s*ربع/.test(rest)) { mi = 45; h = h <= 1 ? 12 : h - 1; }
+    else if (/^\s*الا\s*(?:تلت|ثلث)/.test(rest)) { mi = 40; h = h <= 1 ? 12 : h - 1; }
+  }
+  const pm = /مساء|العصر|عصرا|بعد الضهر|بعد الظهر|ظهرا|بالليل|الليل|المغرب|\bpm\b/.test(seg);
+  const am = /صباحا|الصبح|الفجر|\bam\b/.test(seg);
+  if (h <= 12) {
+    if (pm) h = h < 12 ? h + 12 : 12;
+    else if (am) h = h === 12 ? 0 : h;
+    else if (h >= 1 && h <= 6) h += 12;     // من غير توضيح: 1 لـ 6 = بعد الضهر (بيظهر في الملخص عشان تصححه)
+  }
+  if (h > 23 || mi > 59) return null;
+  return String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
+}
+const asstShowTime = (t) => { const h = +t.slice(0, 2); return t + " (" + ((h % 12) || 12) + ":" + t.slice(3) + (h >= 12 ? " م" : " ص") + ")"; };
+const asstClean = (t) => t
+  .replace(/^[\s:,،؛\-–=]+/, "")
+  .replace(/^(?:(?:كان|كانت|كانوا|هو|هي|ب|بـ|في|بتاع|بتاعه|بتاعها|يبقى|يبقي|هتبقى|هتبقي|اكتب|سجل|عن)\s+)+/, "")
+  .replace(/[\s,،؛\-–]+$/, "").replace(/\s+(?:و|يوم|في)$/, "").trim();
+
+/* الدالة الأساسية: نص كلامك -> { student, date, changes, warnings } */
+function asstParse(text, students, now) {
+  now = now || new Date();
+  let f = asstFold(text), o = asstDigits(text);
+  const found = asstFindStudent(f, students);
+  if (!found) return null;
+  if (found.ambiguous) return { ambiguous: found.ambiguous };
+  const blank = (s) => s.slice(0, found.s) + " ".repeat(found.e - found.s) + s.slice(found.e);
+  f = blank(f); o = blank(o);
+  const hits = asstHits(f), changes = new Map(), warnings = [];
+  let date = null;
+  hits.forEach((h, i) => {
+    const end = i + 1 < hits.length ? hits[i + 1].s : f.length;
+    const fs = f.slice(h.e, end), os = o.slice(h.e, end), fd = h.fd;
+    if (fd.date) {
+      if (fd.day !== undefined) { const sat = asstWeek(now).sat; date = asstLds(new Date(sat.getFullYear(), sat.getMonth(), sat.getDate() + fd.day)); }
+      else date = asstLds(new Date(now.getFullYear(), now.getMonth(), now.getDate() + fd.off));
+      return;
+    }
+    let val = null;
+    if (fd.type === "time") {
+      val = asstTime(fs);
+      if (!val) { warnings.push("مفهمتش وقت " + fd.label + "، اتخطيتها"); return; }
+    } else if (fd.type === "num") {
+      const m = /\d+(?:\.\d+)?/.exec(fs);
+      if (!m) { warnings.push("مفيش رقم لـ " + fd.label + "، اتخطيتها"); return; }
+      val = +m[0];
+      if ((fd.min !== undefined && val < fd.min) || (fd.max !== undefined && val > fd.max)) { warnings.push(fd.label + " لازم تكون من " + fd.min + " لـ " + fd.max + "، اتخطيتها"); return; }
+      if (fd.det) {
+        const d = asstClean((os.slice(0, m.index) + " " + os.slice(m.index + m[0].length)).replace(/^\s*(?:من|\/)\s*10/, " ").replace(/\s+/g, " "));
+        if (d) changes.set(fd.det, { fd: ASST_FIELDS.find((x) => x.key === fd.det), val: d });
+      }
+    } else {
+      val = asstClean(os.replace(/\s+/g, " "));
+      if (!val) return;
+    }
+    if (fd.append && changes.has(fd.key)) val = changes.get(fd.key).val + "\n" + val;
+    changes.set(fd.key, { fd, val });
+  });
+  return { st: found.st, date: date || asstLds(now), changes: [...changes.values()], warnings, hasHits: hits.some((h) => !h.fd.date) };
+}
+
+
+/* ---------- الخطة + التنفيذ ---------- */
+const ASST_OK = /^(?:اوكي|اوكيه|ok|okay|تمام|ماشي|نفذ|نفذها|موافق|ايوه|اه|yes)$/;
+const ASST_NO = /^(?:لا|الغي|الغاء|الغيها|بلاش|cancel|no)$/;
+const $a = (id) => document.getElementById(id);
+const A = { msgs: [], students: null, busy: false };
+
+async function loadStudents() {
+  const rows = await fetchStudentsFromSupabase();
+  A.students = rows.filter((r) => r.trainee).map((r) => Object.assign({}, r, { _n: asstFold(r.trainee).split(/\s+/).filter(Boolean) }));
+}
+
+async function buildPlan(p) {
+  const key = 'trainee_id=eq.' + encodeURIComponent(p.st.id) + '&supply_date=eq.' + encodeURIComponent(p.date);
+  const rows = await (await sbFetch('daily_supply?select=*&' + key)).json();
+  const ex = Array.isArray(rows) && rows[0] || null;
+  const warnings = p.warnings.slice(), steps = [], body = {};
+  if (ex && ex.archived_at) return { error: 'سجل «' + p.st.trainee + '» ليوم ' + p.date + ' مؤرشف، فمش هعدّل فيه. افتحه من DailySupply لو عايز.' };
+  const sep = ex && ex.session_type === 'separated';
+  p.changes.forEach(({ fd, val }) => {
+    if (sep && (fd.type === 'time' || fd.key === 'notes')) { warnings.push('الجلسة Separated، فاتخطيت ' + fd.label + ' (بتتسجل على الأجزاء من جدول DailySupply)'); return; }
+    const old = ex ? ex[fd.key] : null, hasOld = old !== null && old !== undefined && String(old).trim() !== '';
+    const oldShown = hasOld && fd.type === 'time' ? String(old).slice(0, 5) : old;
+    const shown = fd.type === 'time' ? asstShowTime(val) : val;
+    let nv = val;
+    if (fd.append && hasOld) { nv = String(old).trim() + '\n' + val; steps.push('أضيف على ' + fd.label + ' (الموجود: «' + String(old).trim().slice(0, 40) + '»): ' + val); }
+    else if (hasOld && String(oldShown) === String(val)) { steps.push(fd.label + ' أصلاً ' + shown + ' (مفيش تغيير)'); return; }
+    else if (hasOld) steps.push('أغيّر ' + fd.label + ' من ' + oldShown + ' إلى ' + shown);
+    else steps.push('أضيف ' + fd.label + ': ' + shown);
+    body[fd.key] = nv;
+  });
+  if (!Object.keys(body).length) return { error: 'مفيش حاجة جديدة أعملها' + (warnings.length ? ':\n' + warnings.map((w) => '⚠ ' + w).join('\n') : '.') };
+  if (!sep && (body.start_time || body.end_time)) {
+    const s = body.start_time || (ex && ex.start_time) || '', e = body.end_time || (ex && ex.end_time) || '';
+    const around = ex ? dsAround(ex.around_h, ex.around_m) : 0;
+    const tm = around > 0 ? around : dsMinutes(s, e);
+    if (tm) { body.total_minutes = tm; steps.push('أحسب مدة الجلسة: ' + tm + ' دقيقة'); }
+  }
+  return { plan: { status: 'pending', studentId: p.st.id, studentName: p.st.trainee, date: p.date, isNew: !ex, body, steps, warnings } };
+}
+function planText(pl) {
+  return 'فهمت إنك عايزني أعمل في «' + pl.studentName + '» (' + pl.date + ')' + (pl.isNew ? ' [سجل جديد]' : '') + ':\n' +
+    pl.steps.map((s, i) => (i + 1) + '. ' + s).join('\n') +
+    (pl.warnings.length ? '\n' + pl.warnings.map((w) => '⚠ ' + w).join('\n') : '') +
+    '\n\nقول «اوكي» أو دوس تنفيذ.';
+}
+async function execPlan(pl) {
+  const key = 'trainee_id=eq.' + encodeURIComponent(pl.studentId) + '&supply_date=eq.' + encodeURIComponent(pl.date), hdr = { Prefer: 'return=representation' };
+  const rows = await (await sbFetch('daily_supply?' + key, { method: 'PATCH', headers: hdr, body: JSON.stringify(pl.body) })).json();
+  if (Array.isArray(rows) && rows.length) return;
+  const full = Object.assign({ trainee_id: pl.studentId, supply_date: pl.date, session_type: 'mono', parts_count: 1, archived_at: null }, pl.body);
+  await sbFetch('daily_supply', { method: 'POST', headers: hdr, body: JSON.stringify(full) });
+}
+async function runPlan(msg) {
+  try { await execPlan(msg.plan); msg.plan.status = 'done'; showToast('اتسجّل في «' + msg.plan.studentName + '» ✓'); return { text: 'تم ✓ اتسجّل في «' + msg.plan.studentName + '» (' + msg.plan.date + ')، وهتلاقيه في DailySupply.' }; }
+  catch (e) { return { text: 'فشل الحفظ: ' + e.message, error: true }; }
+}
+
+async function handle(text) {
+  const folded = asstFold(text).trim().replace(/\s+/g, ' ');
+  const last = [...A.msgs].reverse().find((m) => m.role === 'ai');
+  const pend = last && last.plan && last.plan.status === 'pending' ? last : null;
+  if (pend && ASST_OK.test(folded)) return await runPlan(pend);
+  if (pend && ASST_NO.test(folded)) { pend.plan.status = 'cancelled'; return { text: 'تمام، ألغيت.' }; }
+
+  if (!A.students) await loadStudents();
+  const p = asstParse(text, A.students);
+  if (!p) return { text: 'مالقيتش اسم طالب من الطلاب في كلامك. قول الاسم وبعده اللي عايز تسجله، مثلاً: «محمود بدأ 3 وخلص 5 والحضور 9».' };
+  if (p.ambiguous) return { text: 'لقيت أكتر من طالب بنفس الاسم:\n' + p.ambiguous.map((n, i) => (i + 1) + '. ' + n).join('\n') + '\nقولي الاسم أطول شوية.' };
+  if (!p.hasHits) return { text: 'فهمت إنك بتتكلم عن «' + p.st.trainee + '» بس مفيش حقل من الديلي سبلاي في كلامك (بداية، نهاية، ملاحظات، حضور...).' };
+  const wk = getCurrentWeekRange();
+  if (p.date < wk.min || p.date > wk.max) return { text: 'التاريخ ' + p.date + ' برة أسبوع الديلي سبلاي (السبت-الخميس: ' + wk.min + ' → ' + wk.max + '). قول اليوم تاني.', error: true };
+  if (!p.changes.length) return { text: 'فهمت إنك بتتكلم عن «' + p.st.trainee + '» بس مفهمتش أعمل إيه:\n' + p.warnings.map((w) => '⚠ ' + w).join('\n'), error: true };
+  const r = await buildPlan(p);
+  if (r.error) return { text: r.error, error: true };
+  if (pend) pend.plan.status = 'superseded';
+  return { text: planText(r.plan), plan: r.plan };
+}
+
+/* ---------- الإملاء الصوتي ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const LANGS = [{ c: 'ar-EG', l: 'ع' }, { c: 'en-US', l: 'EN' }];
+let rec = null, listening = false, langI = 0, baseText = '', startedAt = 0, quick = 0;
+function status(m) { const s = $a('asstStatus'); if (s) s.textContent = m || ''; }
+function micUI(on) {
+  const b = $a('asstMic'); if (b) b.classList.toggle('on', on);
+  if (on) status('بسمعك… (' + LANGS[langI].l + ')');
+  else if (/^بسمعك/.test(($a('asstStatus') || {}).textContent || '')) status('');
+}
+function startDict() {
+  if (!SR) { status('المتصفح ده مش بيدعم الإملاء. استخدم Chrome أو Edge.'); return; }
+  if (!window.isSecureContext) { status('المايك بيشتغل بس على https أو localhost.'); return; }
+  const ta = $a('asstIn');
+  baseText = ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '';
+  listening = true; quick = 0; micUI(true); beginRec();
+}
+function beginRec() {
+  rec = new SR(); rec.lang = LANGS[langI].c; rec.continuous = true; rec.interimResults = true;
+  rec.onstart = () => { startedAt = Date.now(); };
+  rec.onresult = (e) => {
+    quick = 0;
+    let sp = ''; for (let i = 0; i < e.results.length; i++) sp += e.results[i][0].transcript;
+    const ta = $a('asstIn'); if (!ta) return;
+    ta.value = baseText + sp; autosize();
+  };
+  rec.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    listening = false;
+    status(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'المتصفح رفض المايك. اسمح له من أيقونة القفل جنب الرابط.'
+      : e.error === 'network' ? 'الإملاء مش قادر يوصل لخدمة الصوت. تأكد من الإنترنت (Brave مش بيدعم الإملاء).'
+      : 'خطأ في الإملاء: ' + e.error);
+    micUI(false);
+  };
+  rec.onend = () => {
+    if (!listening) { micUI(false); return; }
+    quick = (Date.now() - startedAt < 500) ? quick + 1 : 0;
+    if (quick >= 3) { listening = false; status('الإملاء بيقفل لوحده. جرب Chrome أو Edge.'); micUI(false); return; }
+    const ta = $a('asstIn'); baseText = ta && ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '';
+    try { beginRec(); } catch (e) { listening = false; micUI(false); }
+  };
+  try { rec.start(); } catch (e) { listening = false; status('ما قدرتش أشغل الإملاء: ' + e.message); micUI(false); }
+}
+function stopDict() { listening = false; if (rec) { try { rec.stop(); } catch (e) { } } micUI(false); }
+window.asstStopDict = stopDict;
+
+/* ---------- الواجهة ---------- */
+function autosize() { const t = $a('asstIn'); if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 150) + 'px'; }
+function paint() {
+  const box = $a('asstMsgs'); if (!box) return;
+  box.innerHTML = '';
+  if (!A.msgs.length) {
+    const h = document.createElement('div');
+    h.className = 'asst-hint';
+    h.textContent = 'قول اسم الطالب وبعده اللي عايز تسجله في الديلي سبلاي، مثلاً:\n«محمود سعيد بدأ 3 ونص وخلص 5 والحضور 9 ملاحظات ممتاز»\nهقولك هعمل إيه، وبعد ما تقول «اوكي» بسجّله بنفسي.';
+    box.appendChild(h);
+  }
+  A.msgs.forEach((m) => {
+    const d = document.createElement('div');
+    d.className = 'asst-m ' + m.role + (m.error ? ' err' : '');
+    d.dir = 'auto'; d.textContent = m.text;
+    if (m.plan && m.plan.status === 'pending') {
+      const bar = document.createElement('div');
+      bar.className = 'asst-act';
+      bar.innerHTML = '<button type="button" class="asst-b go">تنفيذ ✓</button><button type="button" class="asst-b">إلغاء</button>';
+      const [go, no] = bar.querySelectorAll('button');
+      go.onclick = async () => { if (A.busy) return; A.busy = true; paint(); const r = await runPlan(m); A.msgs.push(Object.assign({ role: 'ai' }, r)); A.busy = false; paint(); };
+      no.onclick = () => { m.plan.status = 'cancelled'; A.msgs.push({ role: 'ai', text: 'تمام، ألغيت.' }); paint(); };
+      d.appendChild(bar);
+    } else if (m.plan) {
+      const t = document.createElement('div');
+      t.className = 'asst-tag';
+      t.textContent = { done: '✓ اتنفذت', cancelled: '✗ اتلغت', superseded: 'اتستبدلت بخطة أحدث' }[m.plan.status] || '';
+      d.appendChild(t);
+    }
+    box.appendChild(d);
+  });
+  if (A.busy) { const t = document.createElement('div'); t.className = 'asst-hint'; t.textContent = 'بفكر…'; box.appendChild(t); }
+  box.scrollTop = box.scrollHeight;
+  const sb = $a('asstSend'); if (sb) sb.disabled = A.busy;
+}
+async function send() {
+  const ta = $a('asstIn'), text = ta.value.trim();
+  if (!text || A.busy) return;
+  stopDict(); ta.value = ''; autosize();
+  A.msgs.push({ role: 'user', text }); A.busy = true; paint();
+  let r;
+  try { r = await handle(text); } catch (e) { r = { text: 'حصلت مشكلة: ' + e.message, error: true }; }
+  A.msgs.push(Object.assign({ role: 'ai' }, r)); A.busy = false; paint();
+}
+
+(function () {
+  if (document.getElementById('asstCss')) return;
+  const s = document.createElement('style'); s.id = 'asstCss';
+  s.textContent = `
+.asst-wrap{display:flex;flex-direction:column;gap:10px;height:70vh;min-height:380px;direction:rtl}
+.asst-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #334155;border-radius:12px;background:#020617}
+.asst-m{max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;padding:9px 14px;border-radius:14px;font-size:14px;line-height:1.75;color:#e2e8f0}
+.asst-m.user{align-self:flex-start;background:#1e293b}
+.asst-m.ai{align-self:flex-end;background:#0f172a;border:1px solid rgba(245,158,11,.3)}
+.asst-m.err{color:#fda4af;border-color:rgba(244,63,94,.5)}
+.asst-hint{margin:auto;color:#64748b;font-size:13px;text-align:center;white-space:pre-wrap;line-height:1.9}
+.asst-act{display:flex;gap:8px;margin-top:10px}
+.asst-b{padding:7px 18px;border-radius:999px;font-weight:700;font-size:13px;color:#e2e8f0;border:1px solid #475569;background:transparent}
+.asst-b.go{background:#059669;border-color:#059669;color:#fff}
+.asst-b:disabled{opacity:.4}
+.asst-tag{margin-top:6px;font-size:12px;color:#94a3b8}
+.asst-comp{display:flex;align-items:flex-end;gap:6px;border:1px solid #334155;border-radius:16px;padding:6px 8px;background:#020617}
+.asst-comp textarea{flex:1;background:transparent;border:0;outline:0;resize:none;color:#fff;font:inherit;font-size:15px;line-height:1.6;padding:6px 8px;max-height:150px;direction:rtl}
+.asst-ic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex:none;font-weight:700;font-size:13px}
+.asst-ic:hover{background:#1e293b;color:#fff}
+.asst-ic.on{background:#4c0519;color:#fda4af;animation:asstPulse 1.4s infinite}
+.asst-ic.send{background:#f59e0b;color:#0f172a}
+.asst-ic.send:disabled{opacity:.4}
+.asst-st{font-size:12px;color:#94a3b8;min-height:18px;text-align:center}
+@keyframes asstPulse{0%{box-shadow:0 0 0 0 rgba(244,63,94,.4)}70%{box-shadow:0 0 0 10px rgba(244,63,94,0)}100%{box-shadow:0 0 0 0 rgba(244,63,94,0)}}`;
+  document.head.appendChild(s);
+})();
+
+window.renderAssistant = async function (backBtnHtml) {
+  const sub = document.getElementById('adminDynamicSubContainer');
+  stopDict();
+  sub.innerHTML = backBtnHtml + `<div class="flex flex-col gap-2">
+    <h4 class="text-amber-400 font-bold text-base"><i class="fa-solid fa-robot"></i> Assistant — سجّل الديلي سبلاي بصوتك</h4>
+    <div class="asst-wrap">
+      <div class="asst-msgs" id="asstMsgs"></div>
+      <div class="asst-comp">
+        <button type="button" class="asst-ic send" id="asstSend" aria-label="إرسال">➤</button>
+        <textarea id="asstIn" rows="1" dir="auto" placeholder="اكتب أو اضغط المايك واتكلم…"></textarea>
+        <button type="button" class="asst-ic" id="asstLang" title="لغة الإملاء">ع</button>
+        <button type="button" class="asst-ic" id="asstMic" aria-label="إملاء صوتي">🎤</button>
+      </div>
+      <div class="asst-st" id="asstStatus"></div>
+    </div></div>`;
+  const ta = $a('asstIn');
+  ta.addEventListener('input', autosize);
+  ta.addEventListener('keydown', (e) => {
+    if (listening && !e.isComposing) stopDict();
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+  });
+  $a('asstSend').onclick = send;
+  $a('asstMic').onclick = () => { listening ? stopDict() : startDict(); };
+  $a('asstLang').onclick = () => {
+    const was = listening; stopDict();
+    langI = (langI + 1) % LANGS.length;
+    $a('asstLang').textContent = LANGS[langI].l; ta.dir = langI === 0 ? 'rtl' : 'ltr';
+    if (was) setTimeout(startDict, 350); else status('لغة الإملاء: ' + (langI === 0 ? 'عربي' : 'English'));
+  };
+  paint();
+  ta.focus();
+  try { await loadStudents(); }                      // بنحدّث قايمة الطلاب كل مرة تفتح فيها الصفحة
+  catch (e) { status('تعذر تحميل الطلاب: ' + e.message); }
+};
+
+/* زرار Assistant في شاشة الداشبورد: بيتحط هنا من الكود (من غير ما نلمس الـ HTML) بنفس شكل زرار DailySupply */
+window.asstEnsureButton = function () {
+  const main = document.getElementById('adminViewDashboardMain');
+  if (!main || document.getElementById('asstOpenBtn')) return;
+  const ref = [...main.querySelectorAll('[onclick]')].find((b) => /openDashboardSubView\(\s*['"]dailySupply['"]\s*\)/.test(b.getAttribute('onclick')));
+  let btn;
+  if (ref) {
+    btn = ref.cloneNode(true);
+    const w = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
+    let first = true, n;
+    while ((n = w.nextNode())) { if (!n.nodeValue.trim()) continue; n.nodeValue = first ? 'Assistant' : ''; first = false; }
+    const ic = btn.querySelector('i'); if (ic) ic.className = 'fa-solid fa-robot';
+    if (first) btn.textContent = 'Assistant';
+  } else {
+    btn = document.createElement('button'); btn.type = 'button'; btn.className = 'tha-b blue';
+    btn.innerHTML = '<i class="fa-solid fa-robot"></i> Assistant';
+  }
+  btn.id = 'asstOpenBtn';
+  btn.setAttribute('onclick', "openDashboardSubView('assistant')");
+  if (ref) ref.after(btn); else main.appendChild(btn);
+};
+window.addEventListener('DOMContentLoaded', () => { try { asstEnsureButton(); } catch (e) { } });
 })();
