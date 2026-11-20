@@ -5050,11 +5050,29 @@ async function runPlan(msg) {
 /* ---------- الأسيستنت كشات حقيقي: Gemma على Cloudflare بيرد عليك، ولما تطلب تسجيل بيطلّع "أكشن" والنظام بيعرضه للتأكيد ---------- */
 const ASST_API = 'https://withered-sound-2b08.mohamwd958.workers.dev';
 
+
+   /* يبعت للموديل بس الأسماء اللي بتشبه كلامك (بدل 400 اسم) عشان الطلب يبقى أخف وأسرع */
+function namesFor(text) {
+  const words = asstFold(text || '').split(/\s+/).map(asstStrip).filter((w) => w.length >= 2);
+  const all = A.students || [];
+  const hit = all.filter((s) => s._n.some((p) => words.includes(asstStrip(p))));
+  return (hit.length ? hit : all).slice(0, 60).map((x) => x.trainee).join(' | ');
+}
+
+
+
+   
 function llmSystem(pend) {
   const now = new Date(), wk = asstWeek(now);
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const fields = ASST_FIELDS.map((f) => f.key + ' (' + f.type + (f.min !== undefined ? ' ' + f.min + '-' + f.max : '') + ') = ' + f.label).join('\n');
-  const names = (A.students || []).slice(0, 400).map((x) => x.trainee).join(' | ');
+  
+
+   const lastUser = [...A.msgs].reverse().find((m) => m.role === 'user');
+const names = namesFor(lastUser ? lastUser.text : '');
+   
+
+   
   return 'You are "Assistant", a friendly helper inside a trainer\'s admin panel. Talk in natural, short Egyptian Arabic like a real person, and you may chat or answer general questions too. ' +
     'The user mostly dictates by voice, so words and names can be garbled or misspelled. If you really cannot understand a message, say so and ask them to repeat (for example: ما فهمتش، قولي تاني). Do not pretend to understand.\n\n' +
     'The only thing you can DO right now is record data in the "Daily Supply" sheet for a trainee. If asked to do anything else in the panel (announcements, dashboard, payments...), say honestly that you cannot do that yet.\n' +
@@ -5070,28 +5088,45 @@ function llmSystem(pend) {
     (pend ? 'A plan is waiting for the user\'s confirmation:\n' + pend.text + '\nIf the user agrees in any wording answer {"reply":"","action":{"type":"confirm"}}; if they refuse answer {"reply":"","action":{"type":"cancel"}}; if they change the request, produce a new daily_supply action.\n' : '');
 }
 
+
 async function llmChat(pend) {
   const hist = A.msgs.filter((m) => !m.error).slice(-10).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
   while (hist.length && hist[0].role !== 'user') hist.shift();
-  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 30000);
-  let res;
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 90000);   // 90 ثانية
+  let res, txt;
   try {
     res = await fetch(ASST_API, {
       method: 'POST', signal: ctl.signal,
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (window.SB_ACCESS_TOKEN || '') },
-      body: JSON.stringify({ messages: [{ role: 'system', content: llmSystem(pend) }].concat(hist) })
+      body: JSON.stringify({ messages: [{ role: 'system', content: llmSystem(pend) }].concat(hist), max_tokens: 1500, temperature: 0.2 })
     });
-  } catch (e) { throw new Error(e.name === 'AbortError' ? 'انتهت المهلة' : 'مفيش اتصال بالـ Worker (لو متأكد إنه شغال يبقى مشكلة CORS: حدّث كود الـ Worker)'); }
+    txt = await res.text();
+  } catch (e) { throw new Error(e.name === 'AbortError' ? 'انتهت المهلة (90 ثانية)' : 'مفيش اتصال بالـ Worker (لو متأكد إنه شغال يبقى مشكلة CORS: حدّث كود الـ Worker)'); }
   finally { clearTimeout(tm); }
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error('HTTP ' + res.status + (j && j.error ? ' ' + String(j.error).slice(0, 120) : ''));
-  let raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.response || (j.result && j.result.response) || '';
+
+  console.log('[Assistant raw]', res.status, String(txt).slice(0, 2000));   // الرد الخام يظهر في الـ Console
+
+  let j = null; try { j = JSON.parse(txt); } catch (e) { }
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + String((j && (j.error || j.message)) || txt).slice(0, 150));
+
+  let raw = '';
+  if (j) {
+    const c = j.choices && j.choices[0];
+    raw = (c && c.message && (c.message.content || c.message.reasoning_content)) || (c && c.text)
+      || j.response || (j.result && (j.result.response || (j.result.choices && j.result.choices[0] && j.result.choices[0].message && j.result.choices[0].message.content)))
+      || j.text || j.output_text || '';
+  } else raw = txt;
+
+  if (raw && typeof raw === 'object') return { reply: String(raw.reply || '').trim(), action: raw.action || null };   // لو رجّع JSON جاهز
   raw = String(raw).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-  if (!raw) throw new Error('الموديل رجّع رد فاضي');
+  if (!raw) throw new Error('الموديل رجّع رد فاضي. الرد الخام: ' + String(txt).slice(0, 150));
   const m = /\{[\s\S]*\}/.exec(raw);
   if (m) { try { const o = JSON.parse(m[0]); if (o && typeof o === 'object') return { reply: String(o.reply || '').trim(), action: o.action || null }; } catch (e) { } }
-  return { reply: raw, action: null };            // لو مرجّعش JSON بنعرض كلامه زي ما هو (شات عادي)
+  return { reply: raw, action: null };
 }
+   
+
+   
 
 function actionToParsed(act) {
   const found = asstFindStudent(asstFold(String(act.student || '')), A.students || []);
