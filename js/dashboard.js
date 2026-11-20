@@ -5676,9 +5676,6 @@ html body #thBrand .thb-n:not(#z){display:none!important}
 html body #mobileFloatingBar:not(#z),html body .thHdr:not(#z),html body #thBrand:not(#z),
 html body.light-theme #mobileFloatingBar:not(#z),html body.light-theme .thHdr:not(#z),html body.light-theme #thBrand:not(#z),html body.light-theme~#thBrand:not(#z){background-image:none!important}
 
-/* coal-black page (dark theme) */
-html:has(body:not(.light-theme)),html body:not(.light-theme){background-color:#050506!important;background-image:none!important}
-
 /* glass cards: soft blur + a thin bright edge */
 html body :is(.thabit-card,.test-card,.dcard){-webkit-backdrop-filter:blur(24px) saturate(1.3)!important;backdrop-filter:blur(24px) saturate(1.3)!important}
 html body:not(.light-theme) :is(.thabit-card,.test-card,.dcard){background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 10px 30px rgba(0,0,0,.45)!important}
