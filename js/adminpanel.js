@@ -5047,48 +5047,58 @@ async function runPlan(msg) {
   catch (e) { return { text: 'فشل الحفظ: ' + e.message, error: true }; }
 }
 
-/* ---------- الفهم بالـ AI: Worker على Cloudflare بيكلم Gemma ---------- */
+/* ---------- الأسيستنت كشات حقيقي: Gemma على Cloudflare بيرد عليك، ولما تطلب تسجيل بيطلّع "أكشن" والنظام بيعرضه للتأكيد ---------- */
 const ASST_API = 'https://withered-sound-2b08.mohamwd958.workers.dev';
-function llmPrompt() {
+
+function llmSystem(pend) {
   const now = new Date(), wk = asstWeek(now);
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const fields = ASST_FIELDS.map((f) => f.key + ' (' + f.type + (f.min !== undefined ? ' ' + f.min + '-' + f.max : '') + ') = ' + f.label).join('\n');
-  return 'You extract data-entry commands from short dictated Egyptian-Arabic (or English) messages for a trainer\'s "Daily Supply" sheet.\n' +
+  const names = (A.students || []).slice(0, 400).map((x) => x.trainee).join(' | ');
+  return 'You are "Assistant", a friendly helper inside a trainer\'s admin panel. Talk in natural, short Egyptian Arabic like a real person, and you may chat or answer general questions too. ' +
+    'The user mostly dictates by voice, so words and names can be garbled or misspelled. If you really cannot understand a message, say so and ask them to repeat (for example: ما فهمتش، قولي تاني). Do not pretend to understand.\n\n' +
+    'The only thing you can DO right now is record data in the "Daily Supply" sheet for a trainee. If asked to do anything else in the panel (announcements, dashboard, payments...), say honestly that you cannot do that yet.\n' +
     'Today is ' + days[now.getDay()] + ' ' + asstLds(now) + '. The sheet week runs Saturday ' + wk.min + ' to Thursday ' + wk.max + '.\n' +
-    'Fields:\n' + fields + '\n' +
-    'Rules:\n' +
-    '- "student": the trainee name exactly as spoken, nothing else. If the message is not about entering data for a trainee, return {"student":null}.\n' +
-    '- "date": YYYY-MM-DD only if the user names a day (امبارح = yesterday, يوم الاتنين = that weekday this week), otherwise null.\n' +
-    '- "fields": include ONLY fields the user actually mentioned, keyed by the field names above.\n' +
-    '- time fields: 24-hour "HH:MM". If am/pm is not said, treat hours 1-6 as PM and 7-11 as AM. "3 ونص" = 15:30, "الا ربع" = quarter to.\n' +
-    '- num fields: a number. attendance and attitude are 1-10. Any explanation goes in the matching *_details field.\n' +
-    '- text fields: copy the user\'s own words, do not translate or embellish.\n' +
-    '- Never invent values. Reply with ONE JSON object only, no markdown, no explanation:\n' +
-    '{"student":"...","date":null,"fields":{"start_time":"15:30"}}';
+    'Trainees: ' + (names || '(none loaded)') + '\n' +
+    'Daily Supply fields:\n' + fields + '\n\n' +
+    'ALWAYS answer with exactly ONE JSON object, nothing else (no markdown):\n' +
+    '{"reply":"what you say to the user","action":null}\n' +
+    'When the user clearly asks to record or change data for a trainee, answer:\n' +
+    '{"reply":"","action":{"type":"daily_supply","student":"name copied EXACTLY from the Trainees list","date":null,"fields":{"start_time":"15:30"}}}\n' +
+    'The system will show the user a confirmation step, so never say that something was saved.\n' +
+    'Rules for action: include ONLY fields the user mentioned. Time fields are 24-hour "HH:MM" (if am/pm is not said: hours 1-6 mean PM, 7-11 mean AM; "3 ونص" = 15:30). Num fields are numbers (attendance and attitude are 1-10; explanations go in the matching *_details field). Text fields: copy the user\'s own words. "date" is YYYY-MM-DD only if the user names a day (امبارح = yesterday, يوم الاتنين = that weekday this week), otherwise null. Match the trainee to the closest name in the list; if several trainees could match or none does, or a value is unclear, do NOT guess: set action to null and ask one short question.\n' +
+    (pend ? 'A plan is waiting for the user\'s confirmation:\n' + pend.text + '\nIf the user agrees in any wording answer {"reply":"","action":{"type":"confirm"}}; if they refuse answer {"reply":"","action":{"type":"cancel"}}; if they change the request, produce a new daily_supply action.\n' : '');
 }
-async function llmParse(text) {
-  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 20000);
+
+async function llmChat(pend) {
+  const hist = A.msgs.filter((m) => !m.error).slice(-10).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 30000);
   let res;
   try {
     res = await fetch(ASST_API, {
       method: 'POST', signal: ctl.signal,
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (window.SB_ACCESS_TOKEN || '') },
-      body: JSON.stringify({ messages: [{ role: 'system', content: llmPrompt() }, { role: 'user', content: text }] })
+      body: JSON.stringify({ messages: [{ role: 'system', content: llmSystem(pend) }].concat(hist) })
     });
-  } catch (e) { throw new Error(e.name === 'AbortError' ? 'انتهت المهلة' : 'مفيش اتصال'); }
+  } catch (e) { throw new Error(e.name === 'AbortError' ? 'انتهت المهلة' : 'مفيش اتصال بالـ Worker (لو متأكد إنه شغال يبقى مشكلة CORS: حدّث كود الـ Worker)'); }
   finally { clearTimeout(tm); }
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const j = await res.json();
-  const raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.response || (j.result && j.result.response) || '';
-  const m = /\{[\s\S]*\}/.exec(String(raw));
-  if (!m) throw new Error('رد غير مفهوم');
-  let o; try { o = JSON.parse(m[0]); } catch (e) { throw new Error('JSON غير سليم'); }
-  if (!o.student) return null;
-  const found = asstFindStudent(asstFold(String(o.student)), A.students);
-  if (!found) return null;
-  if (found.ambiguous) return { ambiguous: found.ambiguous };
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error('HTTP ' + res.status + (j && j.error ? ' ' + String(j.error).slice(0, 120) : ''));
+  let raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.response || (j.result && j.result.response) || '';
+  raw = String(raw).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!raw) throw new Error('الموديل رجّع رد فاضي');
+  const m = /\{[\s\S]*\}/.exec(raw);
+  if (m) { try { const o = JSON.parse(m[0]); if (o && typeof o === 'object') return { reply: String(o.reply || '').trim(), action: o.action || null }; } catch (e) { } }
+  return { reply: raw, action: null };            // لو مرجّعش JSON بنعرض كلامه زي ما هو (شات عادي)
+}
+
+function actionToParsed(act) {
+  const found = asstFindStudent(asstFold(String(act.student || '')), A.students || []);
+  if (!found) return { text: 'مالقيتش طالب اسمه «' + (act.student || '') + '». قولي الاسم تاني؟' };
+  if (found.ambiguous) return { text: 'لقيت أكتر من طالب بالاسم ده:\n' + found.ambiguous.map((n, i) => (i + 1) + '. ' + n).join('\n') + '\nتقصد مين فيهم؟' };
   const warnings = [], changes = [];
-  Object.entries(o.fields || {}).forEach(([k, v]) => {
+  Object.entries(act.fields || {}).forEach(([k, v]) => {
     const fd = ASST_FIELDS.find((f) => f.key === k);
     if (!fd || v === null || v === undefined || String(v).trim() === '') return;
     if (fd.type === 'time') {
@@ -5102,31 +5112,47 @@ async function llmParse(text) {
     } else v = String(v).trim();
     changes.push({ fd, val: v });
   });
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(o.date || '') ? o.date : asstLds(new Date());
-  return { st: found.st, date, changes, warnings, hasHits: changes.length > 0 || warnings.length > 0 };
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(act.date || '') ? act.date : asstLds(new Date());
+  return { st: found.st, date, changes, warnings };
+}
+
+/* من بيانات مفهومة (من الـ AI أو من الفهم المحلي) إلى خطة تتعرض للتأكيد */
+async function planFrom(p, pend) {
+  const wk = getCurrentWeekRange();
+  if (p.date < wk.min || p.date > wk.max) return { text: 'التاريخ ' + p.date + ' برة أسبوع الديلي سبلاي (السبت-الخميس: ' + wk.min + ' → ' + wk.max + '). قول اليوم تاني.', error: true };
+  if (!p.changes.length) return { text: 'عايزني أسجّل إيه لـ «' + p.st.trainee + '»؟' + (p.warnings.length ? '\n' + p.warnings.map((w) => '⚠ ' + w).join('\n') : '') };
+  const r = await buildPlan(p);
+  if (r.error) return { text: r.error, error: true };
+  if (pend) pend.plan.status = 'superseded';
+  return { text: planText(r.plan), plan: r.plan };
 }
 
 async function handle(text) {
   const folded = asstFold(text).trim().replace(/\s+/g, ' ');
   const last = [...A.msgs].reverse().find((m) => m.role === 'ai');
   const pend = last && last.plan && last.plan.status === 'pending' ? last : null;
-  if (pend && ASST_OK.test(folded)) return await runPlan(pend);
+  if (pend && ASST_OK.test(folded)) return await runPlan(pend);          // مسار سريع من غير AI
   if (pend && ASST_NO.test(folded)) { pend.plan.status = 'cancelled'; return { text: 'تمام، ألغيت.' }; }
 
   if (!A.students) await loadStudents();
-  let p;
-  try { p = await llmParse(text); }                       // الفهم بالـ AI (Gemma على Cloudflare)
-  catch (e) { p = asstParse(text, A.students); status('الـ AI مش متاح (' + e.message + ')، فهمت بالطريقة المحلية'); }   // لو وقع بنرجع للفهم المحلي
-  if (!p) return { text: 'مالقيتش اسم طالب من الطلاب في كلامك. قول الاسم وبعده اللي عايز تسجله، مثلاً: «محمود بدأ 3 وخلص 5 والحضور 9».' };
-  if (p.ambiguous) return { text: 'لقيت أكتر من طالب بنفس الاسم:\n' + p.ambiguous.map((n, i) => (i + 1) + '. ' + n).join('\n') + '\nقولي الاسم أطول شوية.' };
-  if (!p.hasHits) return { text: 'فهمت إنك بتتكلم عن «' + p.st.trainee + '» بس مفيش حقل من الديلي سبلاي في كلامك (بداية، نهاية، ملاحظات، حضور...).' };
-  const wk = getCurrentWeekRange();
-  if (p.date < wk.min || p.date > wk.max) return { text: 'التاريخ ' + p.date + ' برة أسبوع الديلي سبلاي (السبت-الخميس: ' + wk.min + ' → ' + wk.max + '). قول اليوم تاني.', error: true };
-  if (!p.changes.length) return { text: 'فهمت إنك بتتكلم عن «' + p.st.trainee + '» بس مفهمتش أعمل إيه:\n' + p.warnings.map((w) => '⚠ ' + w).join('\n'), error: true };
-  const r = await buildPlan(p);
-  if (r.error) return { text: r.error, error: true };
-  if (pend) pend.plan.status = 'superseded';
-  return { text: planText(r.plan), plan: r.plan };
+  let o;
+  try { o = await llmChat(pend); }
+  catch (e) {
+    // الـ AI مش متاح: نجرب الفهم المحلي، ولو مفيش نقول السبب صراحة في الشات
+    const p = asstParse(text, A.students);
+    if (p && !p.ambiguous && p.hasHits) { status('الـ AI مش متاح (' + e.message + ')، فهمت بالطريقة المحلية'); return await planFrom(p, pend); }
+    return { text: 'الـ AI مش متصل دلوقتي، فمقدرش أرد عليك كشات.\nالسبب: ' + e.message + '\n(الفهم المحلي لسه شغال لو قلت اسم طالب وبياناته.)', error: true };
+  }
+  const act = o.action;
+  if (!act || !act.type) return { text: o.reply || 'مفهمتش، قولي تاني؟' };
+  if (act.type === 'confirm') return pend ? await runPlan(pend) : { text: o.reply || 'مفيش حاجة مستنية تأكيد.' };
+  if (act.type === 'cancel') { if (pend) pend.plan.status = 'cancelled'; return { text: o.reply || 'تمام، ألغيت.' }; }
+  if (act.type === 'daily_supply') {
+    const p = actionToParsed(act);
+    if (p.text) return { text: p.text };
+    return await planFrom(p, pend);
+  }
+  return { text: o.reply || 'مفهمتش، قولي تاني؟' };
 }
 
 /* ---------- الإملاء الصوتي ---------- */
