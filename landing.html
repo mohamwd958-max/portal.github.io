@@ -400,7 +400,9 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
 .wrap{overflow-x:hidden}
 
 /* reviews: same glass as the cards above, text white (night) / black (day), moved by the script */
-.rev{-webkit-mask-image:none;mask-image:none;margin-block:34px auto}
+.rev{-webkit-mask-image:none;mask-image:none;margin-block:10px auto;padding-block:26px}   /* padding: room for the comment that grows */
+.rc{position:relative}
+.rc.rvf,.rc.rvf:hover,.rc.rvf:active{scale:1.12;z-index:3;transition:scale .6s var(--ease),box-shadow .6s ease;box-shadow:0 18px 50px rgba(0,0,0,.28)}
 .mtrack{animation:none;position:relative}
 .rc{background:var(--gbg);-webkit-backdrop-filter:var(--gblur);backdrop-filter:var(--gblur);border:1px solid var(--gbd);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.18)}
 .rav{background:var(--gfield);color:var(--ink2)}
@@ -632,7 +634,14 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   }
   function rvStop() { rvOn = false; cancelAnimationFrame(rvRaf); }
   addEventListener('resize', () => { if (!rvOn) return; const o = rvX1; rvLayout(); if (rvPhase >= 2) rvPlace(Math.min(rvX2, rvX + (rvX1 - o))); });
-  $('rev').addEventListener('pointerdown', e => { if (e.target.closest('.rc')) rvHold = performance.now() + RV_HOLD; });   /* a tap on a comment holds it still so it can be read */
+  let rvFocusT = 0;
+  function rvUnfocus() { clearTimeout(rvFocusT); document.querySelectorAll('#mtrack .rc.rvf').forEach(c => c.classList.remove('rvf')); }
+  $('rev').addEventListener('pointerdown', e => {   /* a tap: the comment stops and grows for 10 s, then goes back and moves on; tapping another one moves the focus to it */
+    const c = e.target.closest('.rc'); if (!c) return;
+    rvHold = performance.now() + RV_HOLD;
+    if (!c.classList.contains('rvf')) { rvUnfocus(); c.classList.add('rvf'); }
+    clearTimeout(rvFocusT); rvFocusT = setTimeout(rvUnfocus, RV_HOLD);
+  });
   if (rvCanHover) { $('rev').addEventListener('mouseenter', () => { rvHover = true; }); $('rev').addEventListener('mouseleave', () => { rvHover = false; rvHold = Math.max(rvHold, performance.now() + 1500); }); }
   let rlOpen = false;
   function openRv() { if (rlOpen) return; rlOpen = true; pushLayer(closeRv); $('rl').classList.add('on'); body.classList.add('lock'); }
