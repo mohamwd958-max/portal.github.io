@@ -960,10 +960,16 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Library', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { sh: 'EN', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Dashboard', i_home: 'Home', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Media Library', i_support: 'Support', i_ydict: 'Your Dictionary', i_passist: 'Pronunciation Assistant',
+      supportMsg: 'All the information and all the policies will be shown here, and you will find the answers to every question that may come to mind about the program and the services we offer. Coming soon.',
+      ydictMsg: 'All your important words that you can practise and improve your pronunciation of over time will be collected here, so that, with time, you have a dictionary built especially for you.',
+      passistMsg: 'Your Pronunciation Assistant will be here soon.', i_messenger: 'Messenger', i_feed: 'Feed', i_calendar: 'Calendar', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'المكتبة', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { sh: 'ع', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'لوحة التحكم', i_home: 'الرئيسية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'مكتبة الوسائط', i_support: 'الدعم', i_ydict: 'قاموسك', i_passist: 'مساعد النطق',
+      supportMsg: 'ستُعرض هنا جميع البيانات وجميع السياسات، وستجد هنا إجابات جميع الأسئلة التي قد تخطر في بالك عن البرنامج والخدمات التي نقدمها، قريبًا.',
+      ydictMsg: 'ستجد هنا جميع كلماتك المهمة التي يمكنك التدرّب عليها وتحسين نطقها مع الوقت، وستُطلب منك هنا، بحيث يتكوّن لديك مع الوقت قاموس مبنيّ خصيصًا لك أنت.',
+      passistMsg: 'مساعد النطق سيكون هنا قريبًا.', i_messenger: 'المرسال', i_feed: 'التطورات', i_calendar: 'التقويم', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
       soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -983,20 +989,24 @@ function THApp(cfg) {
     voice: '<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
     digital: '<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
     consult: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
+    support: '<path d="M4 14v-2.5a8 8 0 0 1 16 0V14"/><rect x="2.8" y="13" width="3.6" height="5.6" rx="1.4"/><rect x="17.6" y="13" width="3.6" height="5.6" rx="1.4"/><path d="M19.4 18.6c0 1.9-1.7 3-4.2 3H13"/>',
+    ydict: '<path d="M12 6.5C10.4 5.2 8.2 4.6 4.5 4.8v13.2c3.7-.2 5.9.4 7.5 1.7 1.6-1.3 3.8-1.9 7.5-1.7V4.8c-3.7-.2-5.9.4-7.5 1.7z"/><path d="M12 6.5v13.2"/><path d="M15.9 8.2l.55 1.15 1.25.18-.9.88.22 1.25-1.12-.6-1.12.6.22-1.25-.9-.88 1.25-.18z" fill="currentColor" stroke="none"/>',
+    passist: '<path d="M5 21v-4.2C3.9 15.5 3.3 13.7 3.3 11.8 3.3 7.3 6.6 3.5 10.9 3.5c2.9 0 5.1 1.5 6 3.8l1.3 3.2-1.7.9.3 1.5-.7.6.7.8-.4 1.3c-.2.9-1 1.5-1.9 1.5h-1.8V21"/><path d="M20 11.4l2.1-1M20.4 13.6h2.4M20 15.8l2.1 1"/>',
     library: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H11v17H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 4.5A1.5 1.5 0 0 0 18.5 3H13v17h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
     store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
   /* Sidebar: Home (+ small store icon) | Linguistic Services [Training Program, General Linguistic Services] | Production | Smart Services | Personal Services */
-  const SEC = [['sec_train', ['dash', 'dict', 'mirror', 'space', 'library']], ['sec_gen', ['translate']]];
+  const SEC = [['sec_train', ['dash', 'ydict', 'dict', 'mirror', 'space', 'library', 'passist']], ['sec_gen', ['translate']]];
   const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
   const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
   const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
   const feedBtn = '<button type="button" class="sdi st" data-k="feed" data-title="i_feed"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.feed + '</svg><i class="bdg" id="feedBdg"></i></button>';
   const calBtn = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.calendar + '</svg></button>';
+  const supBtn = '<button type="button" class="sdi st sup" data-k="support" data-title="i_support"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.support + '</svg></button>';
   const LINE = '<div class="sdl sp"></div>';
-  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + storeBtn + feedBtn + msgBtn + calBtn + '</div>' + LINE +
+  $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + supBtn + '<i class="sdbr"></i>' + storeBtn + feedBtn + msgBtn + calBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
     SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
     EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
@@ -1095,6 +1105,7 @@ function THApp(cfg) {
     else if (k === 'space') renderSpace(b);
     else if (k === 'calendar') renderCal(b);
     else if (k === 'store') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L].storeMsg; }
+    else if (k === 'support' || k === 'ydict' || k === 'passist') { b.innerHTML = '<div class="pcard"></div>'; b.firstChild.textContent = STR[L][k + 'Msg']; }
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
   function openLayer(k, nopush) {
@@ -1600,7 +1611,7 @@ function THApp(cfg) {
   const HKW = {   /* words that lead the search to a page */
     dash: 'لوحة تحكم تقدم متابعة dashboard progress', translate: 'ترجم ترجمة لغات ملف translat language file', voice: 'صوت تعليق voice',
     digital: 'رقمي رقمية حلول موقع تطبيق digital website app', consult: 'استشار حجز موعد consult book', store: 'متجر سعر أسعار اسعار store price shop',
-    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة library', train: 'تدريب دورة مبتدئ train course'
+    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة وسائط media library', support: 'دعم مساعدة سياسات support help policy', ydict: 'قاموس كلماتي your dictionary', passist: 'نطق مساعد pronunciation assistant', train: 'تدريب دورة مبتدئ train course'
   };
   const HT = {
     ar: { hi: 'مرحبًا بك', hiG: 'مرحبًا بك ضيفنا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
@@ -1688,7 +1699,19 @@ function THApp(cfg) {
   function renderHome(b) {
     homeStop(); homeCss();
     const T = HT[L], ar = L === 'ar', sleep = ms => new Promise(r => setTimeout(r, ms));
-    const full = ((cfg.getUser && cfg.getUser()) || {}).name || '', first = String(full).trim().split(/\s+/)[0] || '';
+    /* greeting: by the time of day, a different line on every visit; the first name comes from the member's name / username (omar.elsayed -> Omar). "guest" only for a real guest. */
+    const U0 = (cfg.getUser && cfg.getUser()) || {}, isGuest = !!cfg.guard;
+    const first = (() => { const w = String(U0.name || U0.username || '').trim().split(/[\s._\-@]+/)[0] || ''; return /^[a-z]/i.test(w) ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w; })();
+    const GR = (() => {
+      const h = new Date().getHours(), per = h >= 5 && h < 12 ? 'm' : h >= 12 && h < 17 ? 'a' : 'e';
+      const P = {
+        en: { m: 'Good morning', a: 'Good afternoon', e: 'Good evening', any: ['Hey', 'Hello', 'Welcome back', "What's up", 'Nice to see you', 'Great to have you back', 'Hi there', 'Good to see you again'], guest: ['Welcome, guest', 'Hello, guest', 'Hi, guest'] },
+        ar: { m: 'صباح الخير', a: 'نهارك سعيد', e: 'مساء الخير', any: ['أهلًا', 'مرحبًا', 'أهلًا بعودتك', 'نورتنا', 'سعيد برؤيتك', 'يا هلا', 'أهلًا وسهلًا', 'حياك الله'], guest: ['مرحبًا بك ضيفنا', 'أهلًا بك ضيفنا', 'أهلًا وسهلًا بضيفنا'] }
+      }[ar ? 'ar' : 'en'];
+      const pool = isGuest ? P.guest : [P[per]].concat(P.any), kk = 'thGrt:' + (isGuest ? 'g' : per);
+      let i = 0; try { i = (parseInt(localStorage.getItem(kk) || '-1', 10) + 1) % pool.length; localStorage.setItem(kk, String(i)); } catch (e) { i = Math.floor(Math.random() * pool.length); }
+      return isGuest ? pool[i] : pool[i] + (first ? (ar ? ' ' : ', ') + first : '');
+    })();
     const SV = {
       plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
       mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
@@ -1701,7 +1724,7 @@ function THApp(cfg) {
     };
     b.innerHTML = '<div class="hm-w" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
       '<div class="hm-hero">' +
-        '<div class="hm-hi">' + (first ? esc(T.hi) + ' ' + esc(first) : esc(T.hiG)) + (ar ? '،' : ',') + '<small>' + esc(T.how) + '</small></div>' +
+        '<div class="hm-hi">' + esc(GR) + (isGuest ? '' : (ar ? '،' : ',')) + '<small>' + esc(T.how) + '</small></div>' +
         '<div class="hm-bar" id="hmBar">' +
           '<button type="button" class="hm-ib2" id="hmPlus" aria-label="' + esc(T.plus) + '">' + SV.plus + '</button>' +
           '<div class="hm-ib"><textarea class="hm-ta" id="hmTa" rows="1" dir="auto" aria-label="' + esc(T.ask) + '"></textarea><div class="hm-ph" id="hmPh"><span></span></div></div>' +
@@ -1897,7 +1920,7 @@ function THApp(cfg) {
       .sdl{margin:10px 16px}
       .sdl.sp{margin:20px 16px}
       .sdr + .sdl.sp{margin-top:22px!important}
-      .sdr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px 10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}.sdr .sdi.hm{width:100%!important;flex:0 0 100%;height:40px!important;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdr .sdi.st{flex:1 1 0!important;width:auto!important;min-width:0}
+      .sdr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px 10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}.sdr .sdi.hm{width:auto!important;flex:3 1 0;min-width:0;padding-inline:10px;height:40px!important;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdr .sdi.st{flex:1 1 0!important;width:auto!important;min-width:0}.sdr .sdbr{flex:0 0 100%;height:0;margin-top:-8px}.sdr .sdi.sup{height:40px;font-size:0}.sdr .sdi.sup svg{width:20px;height:20px}
       .sps{height:14px}
       .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
       .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
@@ -2617,8 +2640,8 @@ function THApp(cfg) {
     css.textContent = '#side .sdi{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#side .sdi.scr{background:var(--chip);scale:1.05;box-shadow:inset 0 0 0 1px var(--gbd)}';
     R.appendChild(css);
     const grp = el => {
-      if (el.classList.contains('hm')) return null;
-      if (el.parentElement.classList.contains('sdr')) return { items: [...el.parentElement.querySelectorAll('.sdi.st')], axis: 'x' };
+      if (el.classList.contains('hm') || el.classList.contains('sup')) return null;
+      if (el.parentElement.classList.contains('sdr')) return { items: [...el.parentElement.querySelectorAll('.sdi.st:not(.sup)')], axis: 'x' };
       const items = [el]; let p = el.previousElementSibling, n = el.nextElementSibling;
       while (p && p.classList.contains('sdi')) { items.unshift(p); p = p.previousElementSibling; }
       while (n && n.classList.contains('sdi')) { items.push(n); n = n.nextElementSibling; }
