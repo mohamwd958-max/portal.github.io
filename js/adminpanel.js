@@ -108,7 +108,6 @@ function toggleAdminPanel() {
 }
 
 function showAdminView(v) {
-    try { asstStopDict(); if (v === 'dashboardMain') asstEnsureButton(); } catch (e) { }
     const panelBox = document.getElementById('adminPanel');
     if (panelBox) panelBox.style.maxWidth = '680px';
     const homeEl = document.getElementById('adminHome');
@@ -971,7 +970,6 @@ async function openDashboardSubView(actionType) {
     if (actionType === 'dailySupply') return renderDailySupply(backBtnHtml);
     if (actionType === 'masterProfiles') return renderMasterProfiles(backBtnHtml);
     if (actionType === 'archive') return renderArchive(backBtnHtml);
-    if (actionType === 'assistant') return renderAssistant(backBtnHtml);
 
     subContainer.innerHTML = `${backBtnHtml}<div class="tha-note text-center py-6">الصفحة دي لسه مش متوصلة بكود (${esc(actionType)}).</div>`;
 }
@@ -5165,7 +5163,7 @@ async function send() {
   if (document.getElementById('asstCss')) return;
   const s = document.createElement('style'); s.id = 'asstCss';
   s.textContent = `
-.asst-wrap{display:flex;flex-direction:column;gap:10px;height:70vh;min-height:380px;direction:rtl}
+.asst-wrap{display:flex;flex-direction:column;gap:10px;height:62vh;min-height:360px;direction:rtl}
 .asst-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #334155;border-radius:12px;background:#020617}
 .asst-m{max-width:88%;white-space:pre-wrap;overflow-wrap:anywhere;padding:9px 14px;border-radius:14px;font-size:14px;line-height:1.75;color:#e2e8f0}
 .asst-m.user{align-self:flex-start;background:#1e293b}
@@ -5189,12 +5187,9 @@ async function send() {
   document.head.appendChild(s);
 })();
 
-window.renderAssistant = async function (backBtnHtml) {
-  const sub = document.getElementById('adminDynamicSubContainer');
+async function mount(body) {
   stopDict();
-  sub.innerHTML = backBtnHtml + `<div class="flex flex-col gap-2">
-    <h4 class="text-amber-400 font-bold text-base"><i class="fa-solid fa-robot"></i> Assistant — سجّل الديلي سبلاي بصوتك</h4>
-    <div class="asst-wrap">
+  body.innerHTML = `<div class="asst-wrap">
       <div class="asst-msgs" id="asstMsgs"></div>
       <div class="asst-comp">
         <button type="button" class="asst-ic send" id="asstSend" aria-label="إرسال">➤</button>
@@ -5203,7 +5198,7 @@ window.renderAssistant = async function (backBtnHtml) {
         <button type="button" class="asst-ic" id="asstMic" aria-label="إملاء صوتي">🎤</button>
       </div>
       <div class="asst-st" id="asstStatus"></div>
-    </div></div>`;
+    </div>`;
   const ta = $a('asstIn');
   ta.addEventListener('input', autosize);
   ta.addEventListener('keydown', (e) => {
@@ -5220,30 +5215,39 @@ window.renderAssistant = async function (backBtnHtml) {
   };
   paint();
   ta.focus();
-  try { await loadStudents(); }                      // بنحدّث قايمة الطلاب كل مرة تفتح فيها الصفحة
+  try { await loadStudents(); }                      // قايمة الطلاب بتتحدّث كل مرة النافذة تتحمّل
   catch (e) { status('تعذر تحميل الطلاب: ' + e.message); }
-};
+}
 
-/* زرار Assistant في شاشة الداشبورد: بيتحط هنا من الكود (من غير ما نلمس الـ HTML) بنفس شكل زرار DailySupply */
-window.asstEnsureButton = function () {
-  const main = document.getElementById('adminViewDashboardMain');
-  if (!main || document.getElementById('asstOpenBtn')) return;
-  const ref = [...main.querySelectorAll('[onclick]')].find((b) => /openDashboardSubView\(\s*['"]dailySupply['"]\s*\)/.test(b.getAttribute('onclick')));
-  let btn;
-  if (ref) {
-    btn = ref.cloneNode(true);
-    const w = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
-    let first = true, n;
-    while ((n = w.nextNode())) { if (!n.nodeValue.trim()) continue; n.nodeValue = first ? 'Assistant' : ''; first = false; }
-    const ic = btn.querySelector('i'); if (ic) ic.className = 'fa-solid fa-robot';
-    if (first) btn.textContent = 'Assistant';
-  } else {
-    btn = document.createElement('button'); btn.type = 'button'; btn.className = 'tha-b blue';
-    btn.innerHTML = '<i class="fa-solid fa-robot"></i> Assistant';
-  }
-  btn.id = 'asstOpenBtn';
-  btn.setAttribute('onclick', "openDashboardSubView('assistant')");
-  if (ref) ref.after(btn); else main.appendChild(btn);
-};
-window.addEventListener('DOMContentLoaded', () => { try { asstEnsureButton(); } catch (e) { } });
+/* ---------- تسجيل الأسيستنت كنافذة في نظام النوافذ (زي Space) + زرار في الصف الخارجي ---------- */
+WSD.assistant = { t: 'Assistant · المساعد', i: 'fa-robot', w: 2 };
+WS_REFRESH.assistant = 1;                              // أول فتح بيحمّل المحتوى، وزرار التحديث بيعيد تحميله
+{
+  const prevLoad = wsLoad;
+  wsLoad = function (k) {
+    if (k === 'assistant') { const w = WSE.assistant; return w && mount(w.body); }
+    return prevLoad.apply(this, arguments);
+  };
+  const prevClose = closeWin;
+  closeWin = function (k) { if (k === 'assistant') stopDict(); return prevClose.apply(this, arguments); };
+  window.closeWin = closeWin;
+}
+function installBtn() {
+  if (document.querySelector('.ws-lb[data-ws="assistant"]')) return true;
+  const all = document.querySelectorAll('.ws-lb');
+  if (!all.length) return false;
+  const anchor = all[all.length - 1];                  // بعد آخر زرار خارجي (Dashboard / Space / ...)
+  const b = anchor.cloneNode(false); b.removeAttribute('id'); b.removeAttribute('onclick');
+  b.setAttribute('data-ws', 'assistant'); b.classList.remove('on'); b.type = 'button';
+  b.innerHTML = '<i class="fa-solid fa-robot"></i> Assistant';
+  b.onclick = () => toggleWin('assistant');
+  anchor.insertAdjacentElement('afterend', b);
+  return true;
+}
+{
+  let tries = 0;
+  const iv = setInterval(() => { if (installBtn() || ++tries > 120) clearInterval(iv); }, 500);
+  const prevOpen = openAdminMainPanel;
+  openAdminMainPanel = function () { const r = prevOpen.apply(this, arguments); installBtn(); return r; };
+}
 })();
