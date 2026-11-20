@@ -2589,7 +2589,11 @@ function THApp(cfg) {
       #W.light .plbtn span.on{color:#b45309;background:rgba(217,119,6,.12);box-shadow:0 0 14px rgba(217,119,6,.28),inset 0 0 0 1px rgba(180,83,9,.45)}
       #plov{z-index:80}#plov .pop{max-height:calc(100dvh - 40px);overflow-y:auto;scrollbar-width:none}#plov .pop::-webkit-scrollbar{display:none}
       #plov .pn{margin:0 0 8px;font:500 11.5px/1.6 Cairo,Inter,sans-serif;color:var(--ink2);text-align:start}
-      .plc{margin-top:10px;padding:12px 14px;border-radius:16px;border:1px solid var(--gbd);background:var(--chip);text-align:start}
+      .plrow{display:flex;gap:12px;margin:12px -24px 0;padding:4px 11% 8px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:11%;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .plrow::-webkit-scrollbar{display:none}
+      .plc{flex:0 0 78%;scroll-snap-align:center;box-sizing:border-box}
+      @media(min-width:876px){#plov .pop{width:min(100%,960px)}.plrow{margin:12px 0 0;padding:4px 0 8px;overflow:visible;scroll-snap-type:none}.plc{flex:1 1 0;min-width:0}}
+      .plc{padding:12px 14px;border-radius:16px;border:1px solid var(--gbd);background:var(--chip);text-align:start}
       .plch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
       .plch b{font:800 14px Cairo,Inter,sans-serif}.plch span{font:700 12.5px Cairo,Inter,sans-serif;color:#fbbf24}
       #W.light .plch span{color:#b45309}
@@ -2680,9 +2684,9 @@ function THApp(cfg) {
       [['plAny', 1], ['plUnl', 1], ['plUnl', 1], ['plUnl', 1]]
     ];
     const plov = document.createElement('div'); plov.className = 'ov'; plov.id = 'plov';
-    plov.innerHTML = '<div class="pop" role="dialog" aria-modal="true"><h3 data-t="plT"></h3><p class="pn" data-t="plN1"></p><p class="pn" data-t="plN2"></p>' +
+    plov.innerHTML = '<div class="pop" role="dialog" aria-modal="true"><h3 data-t="plT"></h3><p class="pn" data-t="plN1"></p><p class="pn" data-t="plN2"></p><div class="plrow">' +
       PLANS.map((rows, i) => '<div class="plc"><div class="plch"><b data-t="pl' + (i + 1) + '"></b><span data-t="plP' + (i + 1) + '"></span></div>' +
-        rows.map((r, k) => '<div class="plf"><span data-t="plF' + (k + 1) + '"></span><em class="' + (r[1] ? 'y' : 'n') + '">' + (r[1] ? CK : XX) + '<span data-t="' + r[0] + '"></span></em></div>').join('') + '</div>').join('') + '</div>';
+        rows.map((r, k) => '<div class="plf"><span data-t="plF' + (k + 1) + '"></span><em class="' + (r[1] ? 'y' : 'n') + '">' + (r[1] ? CK : XX) + '<span data-t="' + r[0] + '"></span></em></div>').join('') + '</div>').join('') + '</div></div>';
     W.appendChild(plov);
     plov.querySelectorAll('[data-t]').forEach(e => { e.textContent = STR[L][e.dataset.t]; });
     const setPl = on => { plov.classList.toggle('on', on); document.documentElement.style.overflow = on ? 'hidden' : ''; document.body.style.overflow = on ? 'hidden' : (isDk() ? '' : (W.classList.contains('lay') ? 'hidden' : '')); };
