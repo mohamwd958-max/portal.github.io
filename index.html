@@ -1059,7 +1059,7 @@ function THApp(cfg) {
   (function () {
     ['store', 'calendar', 'finance', 'support', 'view', 'space', 'library', 'passist', 'res'].forEach(k => {
       const it = R.querySelector('#side .sdi[data-k="' + k + '"]'); if (!it) return;
-      const t = document.createElement('i'); t.className = 'uct'; t.innerHTML = '<em data-t="uc"></em>'; it.appendChild(t);
+      const t = document.createElement('i'); t.className = 'uct'; t.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l9.2-9.2"/><path d="M10.5 6.2l3-3 7.3 7.3-3 3z"/></svg>'; it.appendChild(t);
     });
     const pf = $('prof'); if (pf && pf.parentNode.className !== 'pw') {
       const w = document.createElement('span'); w.className = 'pw'; pf.parentNode.insertBefore(w, pf); w.appendChild(pf);
@@ -1067,14 +1067,11 @@ function THApp(cfg) {
     }
     const st = document.createElement('style'); st.id = 'thUcCss'; st.textContent = `
       #side .sdi{position:relative}
-      .uct{display:inline-flex;align-items:center;flex:none;font-style:normal;pointer-events:none;white-space:nowrap;
-        height:17px;padding:0 7px;border-radius:999px;font:800 9.5px/17px Cairo,Inter,sans-serif;letter-spacing:0;
-        color:#92400e;background:#fde68a;border:1px solid rgba(180,83,9,.35);box-shadow:0 1px 4px rgba(245,158,11,.35);margin-inline-start:auto}
-      .uct em{font-style:normal}.uct::before{content:"🚧";font-size:9px;margin-inline-end:3px;line-height:1}
-      #W:not(.light) .uct{color:#fde68a;background:rgba(245,158,11,.22);border-color:rgba(251,191,36,.45)}
-      .sdi.st .uct,.sdi.sup .uct{position:absolute;top:-7px;inset-inline-end:-5px;margin:0;padding:0 5px;height:15px;font-size:0;line-height:15px;z-index:2}
-      .sdi.st .uct em,.sdi.sup .uct em{display:none}.sdi.st .uct::before,.sdi.sup .uct::before{margin:0;font-size:9px}
-      .sdi.st:hover .uct em,.sdi.sup:hover .uct em{display:none}
+      .uct{position:absolute;top:-7px;inset-inline-end:-5px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:17px;border-radius:999px;pointer-events:none;
+        color:#ea7a0c;background:#ffe3c2;border:1px solid rgba(234,122,12,.4);box-shadow:0 2px 6px rgba(234,122,12,.35)}
+      .uct svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+      #W:not(.light) .uct{color:#ffb15c;background:rgba(234,122,12,.26);border-color:rgba(255,177,92,.5)}
+      #side .sdi:not(.st) .uct{inset-inline-end:10px}
       .pw{position:relative;display:inline-flex}
       .newt{position:absolute;top:-8px;inset-inline-end:-10px;font-style:normal;pointer-events:none;height:15px;padding:0 6px;border-radius:999px;font:800 9px/15px Cairo,Inter,sans-serif;color:#fff;background:#16a34a;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(22,163,74,.55);animation:thNewP 2.4s ease-in-out infinite}
       @keyframes thNewP{50%{transform:scale(1.08)}}
@@ -1084,6 +1081,8 @@ function THApp(cfg) {
       .ucp .ucb{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font:800 .78rem/1.5 Cairo,Inter,sans-serif;color:#b45309;background:rgba(245,158,11,.14);border:1px solid rgba(180,83,9,.3)}
       #W:not(.light) .ucp .ucb{color:#fbbf24;background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.3)}
       .ucp .ucm{max-width:340px;font:600 .92rem/1.7 Cairo,Inter,sans-serif;color:var(--ink)}
+      .ucov{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--appbg,#14130f) 82%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+      .ucov .ucp{min-height:0;padding:20px}
       .ucg{width:100%;max-width:640px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
       .ucc{min-height:150px;padding:16px;border-radius:18px;background:var(--gbg);border:1px solid var(--gbd);text-align:start;display:flex;flex-direction:column;gap:6px}
       .ucc h3{margin:0;font:800 1rem/1.4 Cairo,Inter,sans-serif;color:var(--ink)}
@@ -1176,7 +1175,14 @@ function THApp(cfg) {
     };
     [500, 1400, 2800].forEach(t => setTimeout(go, t));
   }
-  function fillLayer(k) {
+  function fillLayer(k) { fillLayer0(k); ucOverlay(k); }
+  function ucOverlay(k) {
+    if (!(k === 'calendar' || k === 'finance' || k === 'library' || (k === 'space' && !SPACE_SOON))) return;
+    const L0 = $('layer'), o = document.createElement('div'); o.className = 'ucov'; o.style.top = $('layer').querySelector('.ltop').offsetHeight + 'px';
+    const t = STR[L]; o.innerHTML = '<div class="ucp"><img alt="" src="' + BP + '"><span class="ucb">🚧 ' + t.uc + '</span></div>'; L0.appendChild(o);
+  }
+  function fillLayer0(k) {
+    R.querySelectorAll('.ucov').forEach(e => e.remove());
     const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute, pg = PAGES[k];
     if (k !== 'home') homeStop();
     if (k !== 'mirror') mirStop();
