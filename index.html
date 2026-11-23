@@ -931,7 +931,27 @@ html body.th-member:not(#zz):not(#zy):not(#zq):not(#zp)>*:not(#thApp):not(#thld)
 </style>
 <style id="thNoBar">#mobileFloatingBar{display:none!important;visibility:hidden!important;pointer-events:none!important}</style>
 <div id="thApp"></div>
-<script src="btn-calendar.js"></script>
+<script src="js/btn-calendar.js"></script>
+<script src="js/btn-compass.js"></script>
+<script src="js/btn-store.js"></script>
+<script src="js/btn-support.js"></script>
+<script src="js/btn-ydict.js"></script>
+<script src="js/btn-passist.js"></script>
+<script src="js/btn-view.js"></script>
+<script src="js/btn-res.js"></script>
+<script src="js/btn-finance.js"></script>
+<script src="js/btn-consult.js"></script>
+<script src="js/btn-digital.js"></script>
+<script src="js/btn-voice.js"></script>
+<script src="js/btn-dash.js"></script>
+<script src="js/btn-feed.js"></script>
+<script src="js/btn-messenger.js"></script>
+<script src="js/btn-translate.js"></script>
+<script src="js/btn-home.js"></script>
+<script src="js/btn-mirror.js"></script>
+<script src="js/btn-dict.js"></script>
+<script src="js/btn-library.js"></script>
+<script src="js/btn-space.js"></script>
 <script>
 const THAPP_CSS="\n#W{--hh:60px;--ink:#ece8df;--ink2:rgba(236,232,223,.72);--gbg:rgba(255,255,255,.08);--gbd:rgba(255,255,255,.14);--gfield:rgba(255,255,255,.1);--btn:#ece8df;--onbtn:#15130f;--ease:cubic-bezier(.22,1,.36,1)}\n#W.light{--ink:#1c1a16;--ink2:rgba(28,26,22,.7);--gbg:rgba(255,255,255,.42);--gbd:rgba(28,26,22,.1);--gfield:rgba(255,255,255,.55);--btn:#1c1a16;--onbtn:#f4f1ea}\n#W,#W *{box-sizing:border-box;margin:0}\n#W{min-height:100vh;font-family:Inter,Cairo,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:clip}\n#W.ar{font-family:Cairo,Inter,system-ui,sans-serif}\n@keyframes fadeIn{to{opacity:1}}\n#W.th-fade,#W.th-fade *,#W.th-fade *::before,#W.th-fade *::after{transition:background-color 1.4s ease,color 1.4s ease,border-color 1.4s ease,box-shadow 1.4s ease,fill 1.4s ease,stroke 1.4s ease,opacity 1.4s ease!important}\n.cb{position:relative;height:36px;min-width:36px;padding:0 14px;border-radius:20px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;font:700 11.52px Inter,Cairo,sans-serif;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease)}\n.cb:hover{scale:1.05}.cb:active{scale:.94}\n.cb.ic{width:36px;padding:0}\n.cb svg{position:absolute;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:opacity 1.2s ease,rotate 1.2s var(--ease)}\n.cb .sun{opacity:0;rotate:-70deg}.cb .moon{opacity:1;rotate:0deg}\n#W.light .cb .sun{opacity:1;rotate:0deg}#W.light .cb .moon{opacity:0;rotate:70deg}\n.btn{width:100%;height:42px;border:0;border-radius:14px;background:var(--btn);color:var(--onbtn);font:800 13.25px Inter,Cairo,sans-serif;cursor:pointer;transition:opacity .25s,scale .9s var(--ease)}\n@media(hover:hover){.btn:hover{opacity:.93;scale:1.02}}\n.btn:active{scale:.975;transition:scale .45s ease-out}\n.btn.ghost{background:var(--gfield);color:var(--ink);border:1px solid var(--gbd)}\n.ov{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}\n.ov.on{display:flex;animation:fadeIn .35s ease forwards;opacity:0}\n.pop{position:relative;width:min(100%,380px);padding:28px 24px 22px;border-radius:24px;border:1px solid var(--gbd);color:var(--ink);text-align:center;-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);animation:pop .5s cubic-bezier(.16,1,.3,1)}\n#W.light .pop{background:rgba(250,248,243,.88)}#W:not(.light) .pop{background:rgba(18,22,34,.78)}\n@keyframes pop{from{opacity:0;scale:.94;translate:0 14px}to{opacity:1;scale:1;translate:0 0}}\n.pop h3{font:700 17.28px/1.35 Inter,Cairo,sans-serif;margin:6px 0}\n.pop p{font:500 12.67px/1.6 Inter,Cairo,sans-serif;color:var(--ink2);margin-bottom:18px}\n\n\n\n#W{min-height:100vh;--appbg:linear-gradient(160deg,#4d5262 0%,#383c49 45%,#2a2d38 100%);background:var(--appbg);--sb:rgba(255,255,255,.1);--sbd:rgba(255,255,255,.13);--chip:rgba(255,255,255,.14);--pcard:rgba(255,255,255,.12);--pn:rgba(30,33,44,.58)}\n#W.light{--appbg:linear-gradient(160deg,#eef0f4 0%,#dfe1e7 60%,#d0d3db 100%);--sb:rgba(255,255,255,.6);--sbd:rgba(28,26,22,.1);--chip:rgba(28,26,22,.08);--pcard:rgba(255,255,255,.65);--pn:rgba(250,248,243,.62)}\n\n/* ---------- header: logo (left) ... lang, theme, profile (right). The glass bar fades in only when content slides under it ---------- */\n#hdr{position:fixed;top:0;left:0;right:0;height:calc(var(--hh) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 14px 0;z-index:25;display:flex;align-items:center;justify-content:space-between;direction:ltr}\n#hbar{position:absolute;inset:0;z-index:-1;opacity:0;pointer-events:none;background:var(--sb);border-bottom:1px solid var(--sbd);-webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5)}\n.sdlogo{display:block;width:34px;height:30px;background:var(--ink);-webkit-mask:var(--thlogo) center/contain no-repeat;mask:var(--thlogo) center/contain no-repeat}\n#hctl{display:flex;gap:8px;align-items:center}\n#hdr .cb,#sbtn,.bk{opacity:1}\n#sbtn{position:fixed;z-index:29;left:14px;top:calc(var(--hh) + env(safe-area-inset-top,0px) + 8px)}\n#sbtn .g3,#sbtn .gx{transition:opacity .3s ease}\n#sbtn .gx{opacity:0}\n#W.sbo #sbtn .g3{opacity:0}#W.sbo #sbtn .gx{opacity:1}\n\n/* ---------- sidebar: glass panel on the left ---------- */\n#sbs{position:fixed;inset:0;z-index:27;display:none;background:rgba(0,0,0,.18)}\n#W.sbo #sbs{display:block;animation:fadeIn .35s ease both}\n#side{position:fixed;z-index:28;left:12px;top:calc(var(--hh) + env(safe-area-inset-top,0px) + 54px);width:clamp(244px,56vw,330px);max-height:calc(100dvh - var(--hh) - 76px - env(safe-area-inset-top,0px));overflow-y:auto;scrollbar-width:none;padding:16px 10px 12px;border-radius:26px;color:var(--ink);\n  background:var(--pn);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(34px) saturate(1.6);backdrop-filter:blur(34px) saturate(1.6);box-shadow:0 18px 50px rgba(0,0,0,.28);\n  transform-origin:top left;opacity:0;visibility:hidden;translate:-26px 0;scale:.96;transition:opacity .35s ease,translate .5s var(--ease),scale .5s var(--ease),visibility 0s .5s}\n#side::-webkit-scrollbar{display:none}\n#W.sbo #side{opacity:1;visibility:visible;translate:0 0;scale:1;transition-delay:0s}\n.sdh{font:800 14.69px Cairo,Inter,sans-serif;color:var(--ink);margin:2px 14px 8px;letter-spacing:.01em}\n.sdl{height:1px;margin:8px 16px;background:var(--sbd)}\n.sdi{display:flex;align-items:center;gap:14px;width:100%;height:46px;padding:0 14px;margin:0;border:0;border-radius:14px;background:transparent;color:var(--ink);font:600 13.68px Cairo,Inter,sans-serif;text-align:start;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .8s var(--ease)}\n.sdi svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85}\n.sdi span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n@media(hover:hover){.sdi:hover{background:var(--chip)}}\n.sdi:active{scale:.975;transition:scale .3s ease-out}\n.sdi.on{background:var(--chip)}\n\n/* ---------- main page ---------- */\n#pg{padding:calc(var(--hh) + 66px + env(safe-area-inset-top,0px)) 16px 48px}\n#ptitle{font:800 19.44px Cairo,Inter,sans-serif;text-align:center;color:var(--ink);margin-bottom:26px}\n.pcard{max-width:1250px;margin:0 auto;min-height:180px;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:28px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);font:500 14.4px Cairo,Inter,sans-serif;color:var(--ink2);text-align:center}\n#pg .pcard{min-height:125vh;align-items:flex-start;padding-top:48px}\n\n/* ---------- a chosen option opens as a full layer; Back returns to the main page ---------- */\n#layer{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;color:var(--ink);background:var(--appbg);opacity:0;visibility:hidden;translate:0 22px;transition:opacity .4s ease,translate .5s var(--ease),visibility 0s .5s}\n#W.lay #layer{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}\n.ltop{flex:none;display:flex;align-items:center;gap:12px;height:calc(var(--hh) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 14px 0;border-bottom:1px solid var(--sbd);background:var(--sb);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px)}\n.bk svg{transition:none}\n[dir=rtl] .bk svg{scale:-1 1}\n#ltitle{font:800 16.56px Cairo,Inter,sans-serif}\n#lbody{flex:1;overflow:auto;padding:22px 16px 40px}\n\n/* ---------- profile pop-up ---------- */\n#pov{z-index:80}\n.pav{width:62px;height:62px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--chip);border:1px solid var(--gbd)}\n.pav svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}\n.prow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 2px;border-bottom:1px solid var(--gbd);font:600 12.67px Cairo,Inter,sans-serif;text-align:start}\n.prow b{font-weight:700;color:var(--ink2);flex:none}\n.prow span{direction:ltr;unicode-bidi:plaintext;text-align:end;overflow-wrap:anywhere}\n#gov{z-index:90}#gov .btn+.btn{margin-top:10px}\n\n#W.hid{visibility:hidden}\n#W.shown{animation:appIn .7s ease both}\n@keyframes appIn{from{opacity:0}to{opacity:1}}\n#logo{cursor:pointer}\n.dframe{display:block;width:100%;height:100%;border:0;background:transparent}\n#lbody.full{padding:0;overflow:hidden}\n#lout{display:none}#W.canout #lout{display:block}\n/* ---- desktop: the sidebar stays open on the left, the chosen page is shown in the display area ---- */\n@media(min-width:876px){\n  #sbtn,#sbs{display:none!important}\n  #hdr{padding-left:20px;padding-right:20px}\n  #side{left:8px;top:calc(var(--hh) + env(safe-area-inset-top,0px) + 6px);bottom:10px;width:236px;max-height:none;opacity:1;visibility:visible;translate:0 0;scale:1;transition:none}\n  #pg{padding:calc(var(--hh) + 34px + env(safe-area-inset-top,0px)) 32px 48px 262px}\n  #layer{left:252px;top:calc(var(--hh) + env(safe-area-inset-top,0px));background:transparent;translate:0 12px;z-index:20}\n  #W.lay #layer{translate:0 0}\n  #W.lay #pg{visibility:hidden}\n  .ltop{height:56px;padding:0 32px 0 14px;border:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none}\n  .bk{display:none}\n  #lbody{padding:6px 32px 40px 14px}\n  #lbody.full{padding:0 20px 20px 14px}\n  .dframe{border-radius:20px;background:var(--pcard)}\n}\n\n@media(min-width:876px){#layer{right:10px;bottom:10px;left:252px}#lbody{padding:0}#lbody.full{padding:0}#lbody>.pcard{min-height:100%;max-width:none;height:100%}.dframe{width:100%;height:100%;border-radius:24px}.ltop{display:none}#hdr{padding-left:12px}}\n#W.lay #pg{display:none}\n#lbody{scrollbar-width:none}#lbody::-webkit-scrollbar{display:none}\n#prof{overflow:hidden;padding:0}#prof .pi{font:800 15px Inter,Cairo,sans-serif;color:var(--ink);line-height:1}\n#prof img,.pav img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}\n.pav{overflow:hidden}.pav .pi{font:800 26px Inter,Cairo,sans-serif}\n\n/* ---- v6: no main page; the dashboard is home. Header + menu button stay visible on phones too ---- */\n#pg{display:none!important}\n#layer{left:0;right:0;bottom:10px;top:calc(var(--hh) + env(safe-area-inset-top,0px) + 52px);background:transparent;z-index:20;translate:0 12px}\n#W.lay #layer{translate:0 0}\n.ltop{display:none}\n#lbody,#lbody.full{padding:0 10px}\n.dframe{width:100%;height:100%;border-radius:20px;background:var(--pcard)}\n#lbody>.pcard{min-height:100%;max-width:none;height:100%}\n.sdg{font:700 12.2px Cairo,Inter,sans-serif;color:var(--ink2);margin:8px 14px 4px;letter-spacing:.02em}\n@media(min-width:876px){#layer{left:252px;right:10px;top:calc(var(--hh) + env(safe-area-inset-top,0px));bottom:10px}#lbody,#lbody.full{padding:0}}";
 const THAPP_HTML="<div id=\"W\" class=\"hid\" dir=\"ltr\">\n<header id=\"hdr\"><div id=\"hbar\"></div>\n    <span class=\"sdlogo\" id=\"logo\" role=\"button\" tabindex=\"0\" aria-label=\"Thabit\"></span>\n    <div id=\"hctl\">\n      <button class=\"stdot\" id=\"stDot\" type=\"button\" data-title=\"stOn\" aria-label=\"Online\"><i></i></button>\n      <button class=\"cb ic\" id=\"prof\" type=\"button\" aria-label=\"Profile\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2\"/></svg></button>\n    </div>\n  </header>\n  <button class=\"cb ic\" id=\"sbtn\" type=\"button\" aria-label=\"Menu\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><g class=\"g3\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></g><g class=\"gx\"><path d=\"M6 6l12 12M18 6L6 18\"/></g></svg></button>\n  <div id=\"sbs\"></div>\n  <aside id=\"side\" aria-label=\"Menu\"></aside>\n  <section id=\"layer\" aria-hidden=\"true\">\n    <div class=\"ltop\"><button class=\"cb ic bk\" id=\"back\" type=\"button\" aria-label=\"Back\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M15 5l-7 7 7 7\"/></svg></button><h2 id=\"ltitle\"></h2></div>\n    <div id=\"lbody\"><div class=\"pcard\" data-t=\"soonc\"></div></div>\n  </section>\n\n<div class=\"ov\" id=\"pov\"><div class=\"pop\" id=\"ppop\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"pav\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2\"/></svg></div>\n  <div class=\"ptools\"><button class=\"cb js-lg\" type=\"button\" aria-label=\"Language\"></button><button class=\"cb ic js-tg\" type=\"button\" aria-label=\"Theme\">\n        <svg class=\"sm\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"ry\" style=\"--i:0\" pathLength=\"1\" d=\"M12.00 3.80L12.00 1.40\"/><path class=\"ry\" style=\"--i:1\" pathLength=\"1\" d=\"M17.80 6.20L19.50 4.50\"/><path class=\"ry\" style=\"--i:2\" pathLength=\"1\" d=\"M20.20 12.00L22.60 12.00\"/><path class=\"ry\" style=\"--i:3\" pathLength=\"1\" d=\"M17.80 17.80L19.50 19.50\"/><path class=\"ry\" style=\"--i:4\" pathLength=\"1\" d=\"M12.00 20.20L12.00 22.60\"/><path class=\"ry\" style=\"--i:5\" pathLength=\"1\" d=\"M6.20 17.80L4.50 19.50\"/><path class=\"ry\" style=\"--i:6\" pathLength=\"1\" d=\"M3.80 12.00L1.40 12.00\"/><path class=\"ry\" style=\"--i:7\" pathLength=\"1\" d=\"M6.20 6.20L4.50 4.50\"/><path class=\"o\" pathLength=\"100\" d=\"M12 6.8A5.2 5.2 0 0 0 12 17.2A5.2 5.2 0 0 0 12 6.8\"/><path class=\"i\" pathLength=\"100\" d=\"M12 17.2A2.6 5.2 0 0 1 12 6.8\"/></svg>\n      </button></div>\n  <div class=\"prow\" id=\"rN\"><b data-t=\"pName\"></b><span id=\"pn\"></span></div>\n  <div class=\"prow\" id=\"rU\"><b data-t=\"pUser\"></b><span id=\"pus\"></span></div>\n  <div class=\"plan\"><b data-t=\"plT\"></b><button class=\"plbtn\" id=\"planBtn\" type=\"button\"><span data-t=\"pl1s\"></span><span data-t=\"pl2s\"></span><span data-t=\"pl3s\"></span></button></div>\n  <div class=\"prow\" id=\"rP\"><b data-t=\"pPhone\"></b><span id=\"pph\"></span></div>\n  <div class=\"prow\" id=\"rE\" style=\"border-bottom:0\"><b data-t=\"pEmail\"></b><span id=\"pem\"></span></div>\n  <button class=\"btn ghost\" id=\"lout\" type=\"button\" data-t=\"logout\"></button>\n</div></div>\n\n<div class=\"ov\" id=\"gov\" role=\"dialog\" aria-modal=\"true\"><div class=\"pop\">\n  <h3 data-t=\"gT\"></h3><p data-t=\"gP\"></p>\n  <button class=\"btn\" id=\"gStay\" type=\"button\" data-t=\"gStay\"></button>\n  <button class=\"btn ghost\" id=\"gLeave\" type=\"button\" data-t=\"gLeave\"></button>\n</div></div>\n</div>";
@@ -999,16 +1019,16 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Personal Skills', skT: 'Personal Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Online', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_dash: 'Vital Signs', i_home: 'Home', i_finance: 'Finance', i_train: 'Language Training', i_translate: 'Translation', i_dict: 'Dictation Assistant', i_mirror: 'Mirroring Room', i_space: 'Free Space', i_voice: 'Voice Over', i_digital: 'Digital Solutions', i_consult: 'Personal Consultation', i_store: 'Our Store', i_library: 'Media Library', i_support: 'Support', i_ydict: 'Your Dictionary', i_passist: 'Pronunciation Assistant',
-      supportMsg: 'All the information and all the policies will be shown here, and you will find the answers to every question that may come to mind about the program and the services we offer. Coming soon.',
-      ydictMsg: 'All your important words that you can practise and improve your pronunciation of over time will be collected here, so that, with time, you have a dictionary built especially for you.',
-      i_compass: 'Compass', compassMsg: 'Your road map will be shown here: where you are now and where you should go next.', i_view: 'Your Viewpoint', i_res: 'Resources', uc: 'Under construction', ucAsk: 'You can continue as it is, but it is not complete and not every feature will work. We recommend waiting until we finish, but if you want to try it now, you can.', ucGo: 'Try it now', intUc: 'Under development', newT: 'New', intT: 'Before you start', intA: 'This section is still under development, and not every feature is ready yet.', intB: 'A section that was recently opened or added.', intOk: 'Got it', rat: 'Ratings', sug: 'Suggestions', sugD: 'Suggestions to improve the site', tefl: 'TEFL', notes: 'Notes', scrib: 'Scribbles', passistMsg: 'Your Pronunciation Assistant will be here soon.', i_messenger: 'Messenger', i_feed: 'Feed', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services', storeMsg: 'We will showcase our products here when they become available.',
+    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Personal Skills', skT: 'Personal Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Online', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_train: 'Language Training', 
+      
+      
+      uc: 'Under construction', ucAsk: 'You can continue as it is, but it is not complete and not every feature will work. We recommend waiting until we finish, but if you want to try it now, you can.', ucGo: 'Try it now', intUc: 'Under development', newT: 'New', intT: 'Before you start', intA: 'This section is still under development, and not every feature is ready yet.', intB: 'A section that was recently opened or added.', intOk: 'Got it', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات الشخصية', skT: 'المهارات الشخصية', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'أونلاين', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_dash: 'العلامات الحيوية', i_home: 'الرئيسية', i_finance: 'المالية', i_train: 'التدريب اللغوي', i_translate: 'الترجمة', i_dict: 'مساعد الإملاء', i_mirror: 'غرفة المماراة', i_space: 'المساحة الحرة', i_voice: 'التعليق الصوتي', i_digital: 'الحلول الرقمية', i_consult: 'الاستشارة الشخصية', i_store: 'متجرنا', i_library: 'مكتبة الوسائط', i_support: 'الدعم', i_ydict: 'قاموسك', i_passist: 'مساعد النطق',
-      supportMsg: 'ستُعرض هنا جميع البيانات وجميع السياسات، وستجد هنا إجابات جميع الأسئلة التي قد تخطر في بالك عن البرنامج والخدمات التي نقدمها، قريبًا.',
-      ydictMsg: 'ستجد هنا جميع كلماتك المهمة التي يمكنك التدرّب عليها وتحسين نطقها مع الوقت، وستُطلب منك هنا، بحيث يتكوّن لديك مع الوقت قاموس مبنيّ خصيصًا لك أنت.',
-      i_compass: 'البوصلة', compassMsg: 'هنا هتظهر خريطة طريقك: إنت فين دلوقتي وإنت رايح فين.', i_view: 'وجهة نظرك', i_res: 'الموارد', uc: 'تحت الإنشاء', ucAsk: 'ممكن تكمّل على وضعها الحالي، بس هي مش كاملة ومش كل المميزات هتشتغل. بنرجّح تستنى لحد ما نخلّص، لكن لو عايز تجرّب دلوقتي تقدر.', ucGo: 'جرّب دلوقتي', intUc: 'تحت التطوير', newT: 'جديد', intT: 'قبل ما تبدأ', intA: 'القسم ده لسه تحت التطوير، ومش كل مميزاته جاهزة.', intB: 'قسم اتفتح أو اتضاف مؤخرًا.', intOk: 'فهمت', rat: 'التقييمات', sug: 'اقتراحات', sugD: 'اقتراحات لتحسين الموقع', tefl: 'TEFL', notes: 'نوتس', scrib: 'خربشات', passistMsg: 'مساعد النطق سيكون هنا قريبًا.', i_messenger: 'المرسال', i_feed: 'التطورات', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية', storeMsg: 'سنعرض منتجاتنا هنا حين تتوفر.',
+    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات الشخصية', skT: 'المهارات الشخصية', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'أونلاين', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_train: 'التدريب اللغوي', 
+      
+      
+      uc: 'تحت الإنشاء', ucAsk: 'ممكن تكمّل على وضعها الحالي، بس هي مش كاملة ومش كل المميزات هتشتغل. بنرجّح تستنى لحد ما نخلّص، لكن لو عايز تجرّب دلوقتي تقدر.', ucGo: 'جرّب دلوقتي', intUc: 'تحت التطوير', newT: 'جديد', intT: 'قبل ما تبدأ', intA: 'القسم ده لسه تحت التطوير، ومش كل مميزاته جاهزة.', intB: 'قسم اتفتح أو اتضاف مؤخرًا.', intOk: 'فهمت', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية',
       soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
@@ -1016,40 +1036,22 @@ function THApp(cfg) {
 
   /* ---------- sidebar ---------- */
   const IC = {
-    finance: '<path d="M4 7a2 2 0 0 1 2-2h11v3"/><path d="M4 7v10a2 2 0 0 0 2 2h12.5a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 8H6a2 2 0 0 1-2-1z"/><circle cx="16.2" cy="13.5" r="1.1" fill="currentColor"/>',
-    feed: '<path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
-    messenger: '<path d="M21.4 3.3 2.9 10.4c-.9.3-.9 1.5 0 1.8l4.6 1.6 1.8 5.5c.3.9 1.4 1 1.9.3l2.4-2.6 4.6 3.4c.7.5 1.6.1 1.8-.7L22.9 4.8c.2-1-.7-1.9-1.5-1.5z"/><path d="M7.6 13.8 17.4 7"/>',
-    home: '<path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5a.5.5 0 0 0 .5.5h4v-5.5h4V20h4a.5.5 0 0 0 .5-.5V10"/>',
-    dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
     train: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
-    translate: '<circle cx="10" cy="14" r="8"/><ellipse cx="10" cy="14" rx="3.3" ry="8"/><path d="M2 14h16M3.2 9.5h13.6M3.2 18.5h13.6"/><path d="M19 2.5a3 3 0 0 1 3 3c0 2.2-3 5-3 5s-3-2.8-3-5a3 3 0 0 1 3-3z"/><circle cx="19" cy="5.5" r=".9"/>',
-    dict: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 6.5h4M10 10h4M10 13.5h4"/>',
-    mirror: '<rect x="5.5" y="2.5" width="13" height="16" rx="6.5"/><path d="M9.5 7c.8-.8 1.7-1.2 2.7-1.2M12 18.5V21M8.5 21.5h7"/>',
-    space: '<path d="M4 20v-3.8L16.2 4a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L7.8 20z"/><path d="M13.6 6.7l3.7 3.7"/>',
-    voice: '<rect x="9" y="2.5" width="6" height="10" rx="3"/><path d="M6 10.5a6 6 0 0 0 12 0M12 16.5V20M8.5 21h7"/>',
-    digital: '<path d="M7 11a4 4 0 0 1 .6-7.9A5 5 0 0 1 17 5a3.5 3.5 0 0 1 0 6z"/><rect x="3.5" y="15" width="4" height="5" rx="1"/><rect x="10" y="15" width="4" height="5" rx="1"/><rect x="16.5" y="15" width="4" height="5" rx="1"/>',
-    consult: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4 4v-4H5.5A1.5 1.5 0 0 1 4 14.5z"/>',
-    support: '<path d="M4 14v-2.5a8 8 0 0 1 16 0V14"/><rect x="2.8" y="13" width="3.6" height="5.6" rx="1.4"/><rect x="17.6" y="13" width="3.6" height="5.6" rx="1.4"/><path d="M19.4 18.6c0 1.9-1.7 3-4.2 3H13"/>',
-    ydict: '<path d="M12 6.5C10.4 5.2 8.2 4.6 4.5 4.8v13.2c3.7-.2 5.9.4 7.5 1.7 1.6-1.3 3.8-1.9 7.5-1.7V4.8c-3.7-.2-5.9.4-7.5 1.7z"/><path d="M12 6.5v13.2"/><path d="M15.9 8.2l.55 1.15 1.25.18-.9.88.22 1.25-1.12-.6-1.12.6.22-1.25-.9-.88 1.25-.18z" fill="currentColor" stroke="none"/>',
-    passist: '<path d="M5 21v-4.2C3.9 15.5 3.3 13.7 3.3 11.8 3.3 7.3 6.6 3.5 10.9 3.5c2.9 0 5.1 1.5 6 3.8l1.3 3.2-1.7.9.3 1.5-.7.6.7.8-.4 1.3c-.2.9-1 1.5-1.9 1.5h-1.8V21"/><path d="M20 11.4l2.1-1M20.4 13.6h2.4M20 15.8l2.1 1"/>',
-    library: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H11v17H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 4.5A1.5 1.5 0 0 0 18.5 3H13v17h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
-    compass: '<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/>',
-    view: '<path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6-4.5-4.2 6.1-.8z"/>',
-    res: '<path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2.2h8A1.5 1.5 0 0 1 20.5 9.7V17.5A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
-    store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8M10 20v-4.5h4V20"/>'
   };
+  /* Sidebar buttons that live in their own files in the js/ folder (js/btn-<name>.js). index.html only links them: each file adds its own icon, names and screen. */
+  const MOD = {};
+  ['calendar', 'compass', 'store', 'support', 'ydict', 'passist', 'view', 'res', 'finance', 'consult', 'digital', 'voice', 'dash', 'feed', 'messenger', 'translate', 'home', 'mirror', 'dict', 'library', 'space'].forEach(k => { MOD[k] = ((window.ThabitBtn || {})[k] || (() => ({})))({ R, $, STR, IC, MOD, cfg, lang: () => L, ucPage, esc: x => esc(x), thName: (a, b) => thName(a, b), tidyFrame: f => tidyFrame(f), get W() { return W; }, get L() { return L; }, get cur() { return cur; }, get openLayer() { return openLayer; }, get sbDot() { return sbDot; }, get crumb() { return crumb; } }); });
   /* Sidebar: Home (+ small store icon) | Linguistic Services [Training Program, General Linguistic Services] | Production | Smart Services | Personal Services */
   const SEC = [['sec_train', ['compass', 'dash', 'ydict', 'res', 'dict', 'mirror', 'space', 'library', 'passist']], ['sec_gen', ['translate']]];
   const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
-  const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
-  const storeBtn = '<button type="button" class="sdi st" data-k="store" data-title="storeMsg"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.store + '</svg></button>';
-  const msgBtn = '<button type="button" class="sdi st" data-k="messenger" data-title="i_messenger"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.messenger + '</svg><i class="bdg" id="msgBdg"></i></button>';
-  const feedBtn = '<button type="button" class="sdi st" data-k="feed" data-title="i_feed"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.feed + '</svg><i class="bdg" id="feedBdg"></i></button>';
-  /* Calendar button: all of its code is in btn-calendar.js (next to index.html) */
-  const CALM = ((window.ThabitBtn || {}).calendar || (() => ({ button: '', render() { }, stop() { }, CAL_TZ: { eg: 'Africa/Cairo' } })))({ R, lang: () => L, STR }), calBtn = CALM.button;
-  const supBtn = '<button type="button" class="sdi st sup lbl" data-k="support"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.support + '</svg><span data-t="i_support"></span></button>';
-  const viewBtn = '<button type="button" class="sdi st" data-k="view" data-title="i_view"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.view + '</svg></button>';
-  const finBtn = '<button type="button" class="sdi st sup lbl" data-k="finance"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC.finance + '</svg><span data-t="i_finance"></span></button>';
+  const sdi = k => !IC[k] ? '' : '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
+  const storeBtn = MOD.store.button || '';
+  const msgBtn = MOD.messenger.button || '';
+  const feedBtn = MOD.feed.button || '';
+  const calBtn = MOD.calendar.button || '';
+  const supBtn = MOD.support.button || '';
+  const viewBtn = MOD.view.button || '';
+  const finBtn = MOD.finance.button || '';
   const LINE = '<div class="sdl sp"></div>';
   $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<i class="sdbr"></i>' + storeBtn + feedBtn + msgBtn + calBtn + '<i class="sdbr"></i>' + supBtn + viewBtn + finBtn + '</div>' + LINE +
     '<div class="sdh" data-t="grp"></div>' +
@@ -1138,7 +1140,7 @@ function THApp(cfg) {
     const t = STR[L];
     b.innerHTML = '<div class="ucp">' + (cards ? '<div class="ucg">' + cards.map(c => '<div class="ucc"><h3>' + t[c[0]] + '</h3>' + (c[1] ? '<p>' + t[c[1]] + '</p>' : '') + '</div>').join('') + '</div>' : ucImg(false)) + '</div>';
   }
-  homeCss(); mirCss();
+  MOD.home.homeCss(); MOD.mirror.mirCss();
   (function () {   /* small "Level" button beside the logo */
     /* cards sit on a flat gradient, so their glass blur showed nothing except tiled, hard-edged light patches: blur is removed from cards (kept only on pop-ups / the phone menu that overlay real content) */
     if (!R.getElementById('thNoBlur')) { const nb = document.createElement('style'); nb.id = 'thNoBlur'; nb.textContent = '.pcard,.cal-c,.cal-low,.dframe,.mr-card,.hm-bar,.ltop,.lvl,.cal-act button{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}@media(min-width:876px){#side{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}'; R.appendChild(nb); }
@@ -1220,7 +1222,7 @@ function THApp(cfg) {
   }
   function fillLayer(k) { fillLayer0(k); ucOverlay(k); }
   function ucOverlay(k) {
-    if (!(k === 'calendar' || k === 'finance' || k === 'library' || k === 'view' || k === 'res' || (k === 'space' && !SPACE_SOON))) return;
+    if (!(k === 'calendar' || k === 'finance' || k === 'library' || k === 'view' || k === 'res' || (k === 'space' && !MOD.space.SPACE_SOON))) return;
     let ok = false; try { ok = localStorage.getItem('thUcOk_' + k) === '1'; } catch (e) { }
     if (ok) return;
     const L0 = $('layer'), o = document.createElement('div'); o.className = 'ucov'; o.style.top = L0.querySelector('.ltop').offsetHeight + 'px';
@@ -1229,26 +1231,12 @@ function THApp(cfg) {
   }
   function fillLayer0(k) {
     R.querySelectorAll('.ucov').forEach(e => e.remove());
-    const b = $('lbody'), dash = k === 'dash' && cfg.dashRoute, pg = PAGES[k];
-    if (k !== 'home') homeStop();
-    if (k !== 'mirror') mirStop();
-    if (k !== 'calendar') CALM.stop();
+    const b = $('lbody'), dash = !!(MOD[k] && MOD[k].full && MOD[k].full()), pg = PAGES[k];
+    Object.keys(MOD).forEach(m => { if (m !== k && MOD[m].stop) MOD[m].stop(); });
     if (!pg) persHide();
     b.classList.toggle('full', !!(dash || pg));
-    if (dash) { b.innerHTML = ''; const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Vital Signs'; f.src = cfg.dashRoute(); f.addEventListener('load', () => { tidyFrame(f); }); b.appendChild(f); }
-    else if (pg) { b.innerHTML = ''; persShow(k); }
-    else if (k === 'home') renderHome(b);
-    else if (k === 'dict') { b.innerHTML = ''; renderDict(b); }
-    else if (k === 'mirror') renderMirror(b);
-    else if (k === 'library') renderLib(b);
-    else if (k === 'space') { if (SPACE_SOON) ucPage(b, null); else renderSpace(b); }
-    else if (k === 'compass') ucPage(b, 'compassMsg');
-    else if (k === 'view') ucPage(b, null, [['rat', null], ['sug', 'sugD']]);
-    else if (k === 'res') ucPage(b, null, [['tefl', null], ['notes', null], ['scrib', null]]);
-    else if (k === 'calendar') CALM.render(b);
-    else if (k === 'finance') renderFin(b);
-    else if (k === 'store') ucPage(b, 'storeMsg');
-    else if (k === 'support' || k === 'ydict' || k === 'passist') ucPage(b, k + 'Msg');
+    if (pg) { b.innerHTML = ''; persShow(k); }
+    else if (MOD[k] && MOD[k].render) MOD[k].render(b);
     else { b.innerHTML = '<div class="pcard" data-t="soonc"></div>'; b.firstChild.textContent = STR[L].soonc; }
   }
   function openLayer(k, nopush) {
@@ -1260,7 +1248,7 @@ function THApp(cfg) {
   }
   /* ---------- Feed + Messenger: each is its own page (feed.html / messenger.html) shown in the display area.
                  Two hidden copies (?badge) only report the unread numbers; the pages talk to the portal with postMessage ---------- */
-  const PAGES = { feed: 'feed.html', messenger: 'messenger.html' };
+  const PAGES = {}; Object.keys(MOD).forEach(k => { if (MOD[k].page) PAGES[k] = MOD[k].page; });   /* each button file says which page it opens */
   const PG = { quote: null, bf: null, bm: null };
   /* Feed and Messenger are loaded in the background a moment after the portal opens and kept; opening one only shows it (no black screen).
      While one is hidden it is told so ('thabit-page-hide'), so it neither marks messages read nor reports you online. */
@@ -1351,7 +1339,7 @@ function THApp(cfg) {
   })();
   function badgeFrames() {
     if (PG.bf) return;
-    [['bf', 'feed.html?badge=1'], ['bm', 'messenger.html?badge=1']].forEach(a => { const f = document.createElement('iframe'); f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;visibility:hidden'; f.src = a[1]; R.appendChild(f); PG[a[0]] = f; });
+    [['bf', PAGES.feed + '?badge=1'], ['bm', PAGES.messenger + '?badge=1']].forEach(a => { const f = document.createElement('iframe'); f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;visibility:hidden'; f.src = a[1]; R.appendChild(f); PG[a[0]] = f; });
   }
   const pingBadges = () => [PG.bf, PG.bm].forEach(f => { try { f && f.contentWindow.postMessage({ type: 'thabit-badge-refresh' }, '*'); } catch (e) { } });
   window.addEventListener('message', e => {
@@ -1369,164 +1357,9 @@ function THApp(cfg) {
   setTimeout(badgeFrames, 600);
   setTimeout(() => { persFrame('feed'); persFrame('messenger'); }, 2500);
 
-  /* ---------- Free Space (the pen): same page as the old Space button in the dashboard ---------- */
-  const SPACE_SOON = true;   /* true = the "under development" page; false = the real board (board.html?student=1) */
-  const SPT = { en: { d: 'On this page you can pick up a pen and start drawing your own free space however you like.', s: 'This page is still being updated and is under development. It will be available very soon.' }, ar: { d: 'في هذه الصفحة تستطيع أن تلتقط قلمًا وتبدأ برسم مساحتك الحرة كيفما شئت.', s: 'لا زالت هذه الصفحة تحت التحديث أو قيد التطوير، وستكون متاحة في أقرب وقت.' } };
-  function gearD(cx, cy, R, r, n) { const p = 2 * Math.PI / n; let d = ''; for (let i = 0; i < n; i++) { const a = i * p, pt = (rad, k) => (cx + rad * Math.cos(a + k * p)).toFixed(2) + ' ' + (cy + rad * Math.sin(a + k * p)).toFixed(2); d += (i ? 'A' + r + ' ' + r + ' 0 0 1 ' + pt(r, -.26) + ' ' : 'M' + pt(r, -.26) + ' ') + 'L' + pt(R, -.15) + ' L' + pt(R, .15) + ' L' + pt(r, .26) + ' '; } return d + 'A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(-.26 * p)).toFixed(2) + ' ' + (cy + r * Math.sin(-.26 * p)).toFixed(2) + 'Z'; }
-  const spark = (x, y, s) => 'M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) + 'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'Z';
-
-  function renderSpace(b) {
-    if (!SPACE_SOON) { b.innerHTML = ''; b.classList.add('full'); const f = document.createElement('iframe'); f.className = 'dframe'; f.title = 'Space'; f.setAttribute('allow', 'clipboard-read; clipboard-write; display-capture; fullscreen'); f.src = 'board.html?student=1'; b.appendChild(f); return; }
-    if (!R.getElementById('thSpCss')) { const st = document.createElement('style'); st.id = 'thSpCss'; st.textContent = `
-      .tsoon{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 26px;text-align:center}
-      .tsoon svg{width:min(250px,70vw);height:auto;overflow:visible;flex:none}
-      .tsoon .gl{fill:url(#tsGlow)}.tsoon .g1{fill:none;stroke:#d97706;stroke-width:3.2;stroke-linejoin:round}.tsoon .g1r{fill:none;stroke:#d97706;stroke-width:3}.tsoon .g1c{fill:#d97706}
-      .tsoon .g2{fill:none;stroke:var(--ink2);stroke-width:2.2;stroke-linejoin:round}.tsoon .orb{fill:none;stroke:#fbbf24;stroke-width:1.4;stroke-dasharray:1 6;stroke-linecap:round;opacity:.4}
-      .tsoon .sp1{fill:var(--ink2)}.tsoon .sp2{fill:#fbbf24}.tsoon .dt{fill:#fbbf24;opacity:.7}
-      #W:not(.light) .tsoon .g1,#W:not(.light) .tsoon .g1r{stroke:#fbbf24;filter:drop-shadow(0 0 6px rgba(251,191,36,.7))}#W:not(.light) .tsoon .g1c{fill:#fbbf24}
-      .tsoon .td{max-width:340px;font:600 .98rem/1.7 Cairo,Inter,sans-serif;color:var(--ink)}
-      .tsoon .ts{max-width:340px;padding:8px 16px;border-radius:16px;font:700 .82rem/1.6 Cairo,Inter,sans-serif;color:#b45309;background:rgba(245,158,11,.12);border:1px solid rgba(180,83,9,.3)}
-      #W:not(.light) .tsoon .ts{color:#fbbf24;background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.3)}`; R.appendChild(st); }
-    const T = SPT[L === 'ar' ? 'ar' : 'en'];
-    b.innerHTML = '<div class="tsoon" dir="' + (L === 'ar' ? 'rtl' : 'ltr') + '"><svg viewBox="0 0 240 190" aria-hidden="true"><defs><radialGradient id="tsGlow"><stop offset="0" stop-color="#fbbf24" stop-opacity=".38"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>'
-      + '<circle class="gl" cx="100" cy="108" r="92"/><circle class="orb" cx="100" cy="108" r="76"/>'
-      + '<path class="g1" d="' + gearD(100, 108, 50, 41, 12) + '"/><circle class="g1r" cx="100" cy="108" r="20"/><circle class="g1c" cx="100" cy="108" r="6.5"/>'
-      + '<path class="g2" d="' + gearD(168, 58, 28, 23, 10) + '"/><circle class="g2" cx="168" cy="58" r="8"/>'
-      + '<path class="sp1" d="' + spark(34, 70, 7) + '"/><path class="sp2" d="' + spark(216, 128, 10) + '"/>'
-      + '<circle class="dt" cx="58" cy="34" r="1.6"/><circle class="dt" cx="196" cy="22" r="1.4"/><circle class="dt" cx="22" cy="140" r="1.4"/><circle class="dt" cx="150" cy="172" r="1.6"/></svg>'
-      + '<p class="td"></p><p class="ts"></p></div>';
-    b.querySelector('.td').textContent = T.d; b.querySelector('.ts').textContent = T.s;
-  }
-  function closeLayer() { if (cur !== 'home') openLayer('home', true); }   /* there is no main page any more: "back" lands on the dashboard */
-  /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
-  const HQ = window.THHomeQuestions || [
-    ['ما الذي تقدمونه؟', 'What do you offer?'],
-    ['كيف أبدأ معكم؟', 'How do I get started?'],
-    ['ما هي خدمات الترجمة المتاحة؟', 'Which translation services are available?'],
-    ['هل تقدمون تعليقًا صوتيًا؟', 'Do you provide voice over?'],
-    ['ما اللغات التي تترجمون منها وإليها؟', 'Which languages do you translate?'],
-    ['كم تستغرق الترجمة؟', 'How long does a translation take?'],
-    ['ما هي الحلول الرقمية؟', 'What are your digital solutions?'],
-    ['كيف أحجز استشارة شخصية؟', 'How do I book a personal consultation?'],
-    ['ماذا تعرض لوحة التحكم؟', 'What does the dashboard show?'],
-    ['كيف أتابع تقدمي؟', 'How can I track my progress?'],
-    ['ما هو رفيق الإملاء؟', 'What is Dictation Pal?'],
-    ['كيف تعمل غرفة المماراة؟', 'How does the Mirroring Room work?'],
-    ['ما أسعار خدماتكم؟', 'What are your prices?'],
-    ['هل يمكنني رفع ملف للترجمة؟', 'Can I upload a file for translation?'],
-    ['ماذا يوجد في متجركم؟', 'What is in your store?'],
-    ['كيف أتواصل مع فريق الدعم؟', 'How do I contact support?'],
-    ['هل توجد دورات للمبتدئين؟', 'Are there courses for beginners?'],
-    ['كيف أختار الخدمة المناسبة لي؟', 'How do I choose the right service?']
-  ];
-
-  /* Drawn picture of the dashboard (numbers, charts) used as the background of the Digital Solutions card */
-  const DASH_ART = (() => {
-    const bars = [38, 62, 48, 80, 66, 92, 74].map((h, i) => '<rect x="' + (324 + i * 34) + '" y="' + (388 - h * 1.5) + '" width="20" height="' + (h * 1.5) + '" rx="5" fill="' + (i === 5 ? '#34d399' : '#2b8f6e') + '"/>').join('');
-    const card = (x, v, l, c) => '<rect x="' + x + '" y="92" width="150" height="82" rx="14" fill="#18202a" stroke="#263241"/><text x="' + (x + 16) + '" y="126" font-size="13" fill="#8a97a8">' + l + '</text><text x="' + (x + 16) + '" y="158" font-size="30" font-weight="800" fill="' + c + '">' + v + '</text>';
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Inter,Arial,sans-serif">' +
-      '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".45"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>' +
-      '<rect width="800" height="500" fill="#0e1319"/>' +
-      '<rect x="0" y="0" width="86" height="500" fill="#121920"/><rect x="22" y="26" width="42" height="42" rx="12" fill="#34d399"/>' +
-      [0, 1, 2, 3, 4].map(i => '<rect x="26" y="' + (100 + i * 52) + '" width="34" height="34" rx="10" fill="' + (i === 0 ? '#1f2c38' : '#161e27') + '"/>').join('') +
-      '<text x="114" y="56" font-size="22" font-weight="800" fill="#e8eef5">Dashboard</text><rect x="620" y="34" width="150" height="30" rx="15" fill="#18202a"/><circle cx="748" cy="49" r="9" fill="#34d399"/>' +
-      card(114, '87%', 'Progress', '#34d399') + card(280, '1,284', 'Words', '#e8eef5') + card(446, '36 h', 'Practice', '#60a5fa') + card(612, '12', 'Tasks', '#fbbf24') +
-      '<rect x="114" y="196" width="190" height="196" rx="16" fill="#18202a" stroke="#263241"/><circle cx="209" cy="294" r="52" fill="none" stroke="#263241" stroke-width="16"/><circle cx="209" cy="294" r="52" fill="none" stroke="#34d399" stroke-width="16" stroke-linecap="round" stroke-dasharray="285 327" transform="rotate(-90 209 294)"/><text x="209" y="302" text-anchor="middle" font-size="24" font-weight="800" fill="#e8eef5">87%</text>' +
-      '<rect x="320" y="196" width="450" height="196" rx="16" fill="#18202a" stroke="#263241"/>' + bars +
-      '<path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216 L740 380 L334 380 Z" fill="url(#g)" opacity=".7"/><path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<rect x="114" y="408" width="656" height="60" rx="14" fill="#18202a" stroke="#263241"/>' + [0, 1, 2, 3].map(i => '<rect x="136" y="' + (424 + 0) + '" width="0" height="0"/>').join('') +
-      '<rect x="136" y="428" width="120" height="10" rx="5" fill="#2b3949"/><rect x="136" y="446" width="80" height="8" rx="4" fill="#223040"/><rect x="560" y="428" width="190" height="14" rx="7" fill="#263241"/><rect x="560" y="428" width="150" height="14" rx="7" fill="#34d399"/>' +
-      '</svg>';
-    return 'data:image/svg+xml,' + encodeURIComponent(svg);
-  })();
-  const HS = [   /* slides: key = the page it opens; picture = assets/home/<key>.jpg (put the real screenshot there) */
-    ['dash', 'لوحة التحكم', 'Dashboard', 'تابع تقدمك ومهامك ونتائجك في مكان واحد', 'Track your progress, tasks and results in one place'],
-    ['translate', 'الترجمة', 'Translation', 'ترجمة دقيقة وسريعة بين اللغات التي تحتاجها', 'Accurate, fast translation between the languages you need'],
-    ['voice', 'التعليق الصوتي', 'Voice Over', 'أصوات احترافية تمنح مشروعك حضورًا حقيقيًا', 'Professional voices that give your project real presence'],
-    ['digital', 'الحلول الرقمية', 'Digital Solutions', 'أدوات وحلول رقمية مصممة حول احتياجك', 'Digital tools and solutions built around your needs'],
-    ['consult', 'الاستشارة الشخصية', 'Personal Consultation', 'جلسة مباشرة لتحديد الخطوة التالية المناسبة لك', 'A one-to-one session to find your right next step'],
-    ['store', 'متجرنا', 'Our Store', 'منتجات وموارد جاهزة لدعم رحلتك', 'Ready-made products and resources to support your journey']
-  ];
-  const HKW = {   /* words that lead the search to a page */
-    dash: 'لوحة تحكم تقدم متابعة dashboard progress', translate: 'ترجم ترجمة لغات ملف translat language file', voice: 'صوت تعليق voice',
-    digital: 'رقمي رقمية حلول موقع تطبيق digital website app', consult: 'استشار حجز موعد consult book', store: 'متجر سعر أسعار اسعار store price shop',
-    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة وسائط media library', support: 'دعم مساعدة سياسات support help policy', ydict: 'قاموس كلماتي your dictionary', passist: 'نطق مساعد pronunciation assistant', train: 'تدريب دورة مبتدئ train course'
-  };
-  const HT = {
-    ar: { hi: 'مرحبًا بك', hiG: 'مرحبًا بك ضيفنا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
-      send: 'بحث', add: 'إضافة', linkPh: 'الصق الرابط هنا', codePh: 'الصق النص أو الكود هنا', b1: 'استعرض خدماتنا', b2: 'افتح لوحة التحكم', b3: 'احجز استشارة',
-      noMic: 'التسجيل الصوتي غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge أو Safari.', noAudio: 'لم أجد ميكروفونًا يعمل. تأكد من توصيله ومن اختياره في إعدادات الجهاز.', netErr: 'تعذّر الاتصال بخدمة التعرف على الصوت. تحقق من الإنترنت وحاول مرة أخرى.', srErr: 'تعذّر التعرف على الكلام', noSpeech: 'لم أسمع شيئًا. اضغط الميكروفون وتحدّث.', micDenied: 'لم يُسمح باستخدام الميكروفون.', noShot: 'التقاط الشاشة غير مدعوم هنا، اختر صورة بدلًا منها.',
-      found: 'قد يساعدك هذا:', none: 'لم أجد خدمة مطابقة. جرّب كلمات أخرى أو تصفّح الخدمات بالأسفل.', att: 'مرفق', rm: 'إزالة', listening: 'جارٍ الاستماع…' },
-    en: { hi: 'Welcome', hiG: 'Hello guest', how: 'How can I help you today?', ask: 'Ask or search…', plus: 'Add', img: 'Image', shot: 'Screenshot', link: 'Link', code: 'Text or code', mic: 'Record voice', stop: 'Stop',
-      send: 'Search', add: 'Add', linkPh: 'Paste the link here', codePh: 'Paste text or code here', b1: 'Explore our services', b2: 'Open the dashboard', b3: 'Book a consultation',
-      noMic: 'Voice recording is not supported in this browser. Try Chrome, Edge or Safari.', noAudio: 'No working microphone found. Check it is connected and selected in your device settings.', netErr: 'Could not reach the speech service. Check your internet and try again.', srErr: 'Speech recognition problem', noSpeech: 'I did not hear anything. Press the microphone and speak.', micDenied: 'Microphone access was not allowed.', noShot: 'Screen capture is not supported here, choose an image instead.',
-      found: 'This may help:', none: 'No matching service found. Try other words or browse the services below.', att: 'Attachment', rm: 'Remove', listening: 'Listening…' }
-  };
-  let homeStop = () => { };   /* stops the typing loop, the slide timer and the microphone of the page that is leaving */
-  function homeCss() {
-    if (R.getElementById('thHomeCss')) return;
-    const st = document.createElement('style'); st.id = 'thHomeCss';
-    st.textContent = `
-      .sdi.hm{width:auto;display:inline-flex;height:38px;margin:0 4px 12px;padding:0 18px 0 14px;border-radius:999px;background:var(--chip);border:1px solid var(--sbd);gap:10px;font-weight:800}.sdi.hm span{flex:none}.sdi.hm svg{width:19px;height:19px}.sdi.hm.on{background:var(--btn);color:var(--onbtn)}
-      .hm-w{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 40px}
-      .hm-hero{width:100%;max-width:760px;min-height:min(62vh,560px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:48px 14px 30px;text-align:center}
-      .hm-hi{font:800 clamp(26px,4.6vw,40px)/1.3 Cairo,Inter,sans-serif;color:var(--ink);letter-spacing:.005em}
-      .hm-hi small{display:block;margin-top:6px;font:600 clamp(15px,2.3vw,20px) Cairo,Inter,sans-serif;color:var(--ink2)}
-      .hm-bar{position:relative;width:100%;direction:ltr;display:flex;align-items:flex-end;gap:6px;padding:8px;border-radius:30px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);box-shadow:0 10px 34px rgba(0,0,0,.14);transition:box-shadow .5s var(--ease),border-color .4s ease}
-      .hm-bar:focus-within{border-color:var(--gbd);box-shadow:0 14px 44px rgba(0,0,0,.24)}
-      .hm-ib{position:relative;flex:1;min-width:0;min-height:44px;display:flex;align-items:center}
-      .hm-ta{width:100%;max-height:150px;min-height:44px;padding:11px 4px;border:0;outline:0;resize:none;background:transparent;color:var(--ink);font:600 15.5px/1.5 Cairo,Inter,sans-serif;text-align:start;unicode-bidi:plaintext}
-      .hm-ph{position:absolute;inset:0 4px;display:flex;align-items:center;pointer-events:none;color:var(--ink2);font:600 15.5px Cairo,Inter,sans-serif;white-space:nowrap;overflow:hidden;opacity:0;transition:opacity .3s ease}
-      .hm-ph span{overflow:hidden;text-overflow:ellipsis;max-width:100%}
-      .hm-bar.has .hm-ph,.hm-bar:focus-within .hm-ph,.hm-bar.rec .hm-ph{display:none}
-      .hm-ib2{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .7s var(--ease)}
-      @media(hover:hover){.hm-ib2:hover{background:var(--chip)}}
-      .hm-ib2:active{scale:.9;transition:scale .3s ease-out}
-      .hm-ib2 svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-      .hm-bar.rec .hm-mic{background:#ef4444;color:#fff;animation:hmPulse 1.4s ease-in-out infinite}
-      @keyframes hmPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.45)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
-      .hm-go{background:var(--btn);color:var(--onbtn)}
-      .hm-bar:not(.has):not(.rec) .hm-go{display:none}
-      .hm-att{width:100%;direction:ltr;display:flex;flex-wrap:wrap;gap:8px;margin-top:-6px}
-      .hm-att:empty{display:none}
-      .hm-chipa{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 6px 5px 5px;border-radius:14px;background:var(--chip);border:1px solid var(--sbd);font:600 12.5px Cairo,Inter,sans-serif;color:var(--ink)}
-      .hm-chipa img{width:34px;height:34px;border-radius:9px;object-fit:cover}
-      .hm-chipa i{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--gbg);font-style:normal;font-weight:800;font-size:11px}
-      .hm-chipa span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:plaintext}
-      .hm-chipa button{border:0;background:transparent;color:var(--ink2);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px}
-      .hm-menu,.hm-pop{position:absolute;left:8px;top:calc(100% + 8px);z-index:6;border-radius:20px;background:var(--pn);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(34px) saturate(1.6);backdrop-filter:blur(34px) saturate(1.6);box-shadow:0 18px 44px rgba(0,0,0,.3);color:var(--ink);opacity:0;visibility:hidden;translate:0 -6px;transition:opacity .3s ease,translate .4s var(--ease),visibility 0s .4s}
-      .hm-menu.on,.hm-pop.on{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
-      .hm-menu{padding:6px;min-width:190px;direction:inherit}
-      .hm-menu button{display:flex;align-items:center;gap:12px;width:100%;height:42px;padding:0 12px;border:0;border-radius:13px;background:transparent;color:var(--ink);font:600 13.5px Cairo,Inter,sans-serif;text-align:start;cursor:pointer}
-      @media(hover:hover){.hm-menu button:hover{background:var(--chip)}}
-      .hm-menu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
-      .hm-pop{width:min(360px,calc(100% - 16px));padding:12px;display:flex;flex-direction:column;gap:10px;direction:inherit}
-      .hm-pop input,.hm-pop textarea{width:100%;padding:11px 12px;border-radius:13px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:600 14px Cairo,Inter,sans-serif;outline:0;resize:vertical;direction:ltr;text-align:start;unicode-bidi:plaintext}
-      .hm-pop textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
-      .hm-pop .btn{height:38px;border-radius:12px;font-size:12.5px}
-      .hm-note{min-height:20px;font:600 13px Cairo,Inter,sans-serif;color:var(--ink2);text-align:center}
-      .hm-qb{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
-      .hm-qb button{height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--sbd);background:var(--chip);color:var(--ink);font:700 13px Cairo,Inter,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .8s var(--ease)}
-      @media(hover:hover){.hm-qb button:hover{background:var(--gbg);scale:1.04}}
-      .hm-qb button:active{scale:.95;transition:scale .3s ease-out}
-      .hm-res{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-      .hm-res button{height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--btn);color:var(--onbtn);font:800 12.5px Cairo,Inter,sans-serif;cursor:pointer}
-      .hm-sl{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:14px;align-items:center}
-      .hm-row{width:100%;direction:ltr;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 6px}
-      .hm-row::-webkit-scrollbar{display:none}
-      .hm-s{position:relative;flex:0 0 min(88%,560px);aspect-ratio:16/10;scroll-snap-align:center;border-radius:26px;overflow:hidden;border:1px solid var(--sbd);cursor:pointer;text-align:start;color:#fff;display:flex;align-items:flex-end;padding:0;-webkit-tap-highlight-color:transparent;background-color:#2a2d38;background-size:cover;background-position:center;transition:scale .9s var(--ease)}
-      @media(hover:hover){.hm-s:hover{scale:1.015}}
-      .hm-s:active{scale:.985;transition:scale .4s ease-out}
-      .hm-s div{width:100%;padding:44px 22px 20px;background:linear-gradient(0deg,rgba(8,10,16,.88) 0%,rgba(8,10,16,.55) 55%,rgba(8,10,16,0) 100%)}
-      .hm-s b{display:block;font:800 clamp(19px,3vw,26px) Cairo,Inter,sans-serif;margin-bottom:4px}
-      .hm-s span{display:block;font:600 clamp(13px,1.9vw,15.5px)/1.55 Cairo,Inter,sans-serif;color:rgba(255,255,255,.86)}
-      .hm-dots{display:flex;gap:8px}
-      .hm-dots i{width:7px;height:7px;border-radius:50%;background:var(--ink2);opacity:.35;transition:opacity .4s ease,width .5s var(--ease),border-radius .5s var(--ease)}
-      .hm-dots i.on{opacity:.95;width:22px;border-radius:6px}
-    `;
-    R.appendChild(st);
-  }
-  (function () {   /* the page card is flat: no blur, so the light of the side bar no longer bleeds into it */
+      
+    function closeLayer() { if (cur !== 'home') openLayer('home', true); }   
+            (function () {   /* the page card is flat: no blur, so the light of the side bar no longer bleeds into it */
     const st = document.createElement('style'); st.id = 'thFlat';
     st.textContent = `
       .pcard,.hm-bar,.dframe,.mr-card,.ltop{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
@@ -1535,776 +1368,18 @@ function THApp(cfg) {
       .hm-bar{box-shadow:0 6px 18px rgba(0,0,0,.12)!important}.hm-bar:focus-within{box-shadow:0 8px 22px rgba(0,0,0,.16)!important}`;
     R.appendChild(st);
   })();
-  function renderHome(b) {
-    homeStop(); homeCss();
-    const T = HT[L], ar = L === 'ar', sleep = ms => new Promise(r => setTimeout(r, ms));
-    /* greeting: by the time of day, a different line on every visit; the first name comes from the member's name / username (omar.elsayed -> Omar). "guest" only for a real guest. */
-    const U0 = (cfg.getUser && cfg.getUser()) || {}, isGuest = !!cfg.guard;
-    const nm0 = thName(U0.name || U0.username || '', ar), first = nm0.n;
-    const GR = (() => {
-      const h = new Date().getHours(), per = h >= 5 && h < 12 ? 'm' : h >= 12 && h < 17 ? 'a' : 'e', g = nm0.g, f = g === 'f';
-      let pool;
-      if (isGuest) pool = ar ? ['مرحبًا بك ضيفنا', 'أهلًا بك ضيفنا', 'أهلًا وسهلًا بضيفنا'] : ['Welcome, guest', 'Hello, guest', 'Hi, guest'];
-      else if (ar) {
-        const y = first ? ' ' + first : '', ya = first ? ' يا ' + first : '', on = g ? (f ? ' عليكِ' : ' عليك') : '';
-        const P = { m: 'صباح الخير' + on + ya, a: 'نهارك سعيد' + ya, e: 'مساء الخير' + on + ya };
-        pool = [P[per], 'أهلًا' + y, (g ? (f ? 'مرحبًا بكِ' : 'مرحبًا بك') : 'مرحبًا') + y, (f ? 'أهلًا بعودتكِ' : 'أهلًا بعودتك') + y, (f ? 'نورتينا' : 'نورتنا') + ya, (f ? 'سعيد برؤيتكِ' : 'سعيد برؤيتك') + ya, 'يا هلا' + y, 'أهلًا وسهلًا' + y, (f ? 'حياكِ الله' : 'حياك الله') + y];
-      } else {
-        const E = { m: 'Good morning', a: 'Good afternoon', e: 'Good evening' }, any = ['Hey', 'Hello', 'Welcome back', "What's up", 'Nice to see you', 'Great to have you back', 'Hi there', 'Good to see you again'];
-        pool = [E[per]].concat(any).map(s => s + (first ? ', ' + first : ''));
-      }
-      const kk = 'thGrt:' + L + (isGuest ? 'g' : per);
-      let i = 0; try { i = (parseInt(localStorage.getItem(kk) || '-1', 10) + 1) % pool.length; localStorage.setItem(kk, String(i)); } catch (e) { i = Math.floor(Math.random() * pool.length); }
-      return pool[i];
-    })();
-    const SV = {
-      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
-      mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
-      stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
-      go: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
-      img: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="M21 16l-5-5-8 9"/></svg>',
-      shot: '<svg viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><rect x="8" y="9" width="8" height="6" rx="1.5"/></svg>',
-      link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg>',
-      code: '<svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>'
-    };
-    b.innerHTML = '<div class="hm-w" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
-      '<div class="hm-hero">' +
-        '<div class="hm-hi">' + esc(GR) + (isGuest || ar ? '' : ',') + '<small>' + esc(T.how) + '</small></div>' +
-        '<div class="hm-bar" id="hmBar">' +
-          '<button type="button" class="hm-ib2" id="hmPlus" aria-label="' + esc(T.plus) + '">' + SV.plus + '</button>' +
-          '<div class="hm-ib"><textarea class="hm-ta" id="hmTa" rows="1" dir="auto" aria-label="' + esc(T.ask) + '"></textarea><div class="hm-ph" id="hmPh"><span></span></div></div>' +
-          '<button type="button" class="hm-ib2 hm-go" id="hmGo" aria-label="' + esc(T.send) + '">' + SV.go + '</button>' +
-          '<button type="button" class="hm-ib2 hm-mic" id="hmMic" aria-label="' + esc(T.mic) + '">' + SV.mic + '</button>' +
-          '<div class="hm-menu" id="hmMenu" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
-            '<button type="button" data-a="img">' + SV.img + '<span>' + esc(T.img) + '</span></button>' +
-            '<button type="button" data-a="shot">' + SV.shot + '<span>' + esc(T.shot) + '</span></button>' +
-            '<button type="button" data-a="link">' + SV.link + '<span>' + esc(T.link) + '</span></button>' +
-            '<button type="button" data-a="code">' + SV.code + '<span>' + esc(T.code) + '</span></button>' +
-          '</div>' +
-          '<div class="hm-pop" id="hmPop" dir="' + (ar ? 'rtl' : 'ltr') + '"></div>' +
-          '<input type="file" id="hmFile" accept="image/*" hidden>' +
-        '</div>' +
-        '<div class="hm-att" id="hmAtt"></div>' +
-        '<div class="hm-note" id="hmNote"></div>' +
-        '<div class="hm-res" id="hmRes"></div>' +
-        '<div class="hm-qb"><button type="button" data-q="svc">' + esc(T.b1) + '</button><button type="button" data-q="dash">' + esc(T.b2) + '</button><button type="button" data-q="consult">' + esc(T.b3) + '</button></div>' +
-      '</div>' +
-      '<div class="hm-sl" id="hmSl"><div class="hm-row" id="hmRow">' +
-        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(' + (s[0] === 'digital' ? '"' + DASH_ART + '"' : 'assets/home/' + s[0] + '.jpg') + '),linear-gradient(150deg,#5a6070,#2a2d38)"><div><b>' + esc(ar ? s[1] : s[2]) + '</b><span>' + esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
-      '</div><div class="hm-dots" id="hmDots">' + HS.map(() => '<i></i>').join('') + '</div></div></div>';
-
-    const q = id => b.querySelector('#' + id), bar = q('hmBar'), ta = q('hmTa'), ph = q('hmPh').firstChild, note = q('hmNote'), res = q('hmRes'), att = q('hmAtt'),
-      menu = q('hmMenu'), pop = q('hmPop'), file = q('hmFile'), mic = q('hmMic'), row = q('hmRow'), dots = [...q('hmDots').children];
-    let alive = true, rec = null, base = '', files = [], timer = 0;
-    const say = m => { note.textContent = m || ''; };
-    const sync = () => { bar.classList.toggle('has', !!ta.value.trim() || files.length > 0); };
-    const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'; };
-    ta.addEventListener('input', () => { grow(); sync(); });
-
-    /* ----- placeholder questions: typed fast, held two seconds, then gone; Arabic then its English twin ----- */
-    (async () => {
-      const list = HQ.map(p => ar ? p[0] : p[1]);   /* only the language that is selected */
-      let i = 0; const box = q('hmPh');
-      while (alive && b.isConnected) {
-        if (document.hidden) { await sleep(500); continue; }
-        const s = list[i++ % list.length]; box.dir = /[\u0600-\u06FF]/.test(s) ? 'rtl' : 'ltr';
-        box.style.opacity = 1;
-        for (let c = 1; c <= s.length && alive; c++) { ph.textContent = s.slice(0, c); await sleep(24); }
-        await sleep(2000); box.style.opacity = 0; await sleep(350); ph.textContent = ''; await sleep(120);
-      }
-    })();
-
-    /* ----- voice: written live while speaking (the browser's free speech recognition), then it stays editable ----- */
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let wantRec = false, recFail = 0, fatal = false;
-    function micStop() { wantRec = false; if (rec) { try { rec.stop(); } catch (e) { } } }
-    const recUi = on => { bar.classList.toggle('rec', on); mic.innerHTML = on ? SV.stop : SV.mic; mic.setAttribute('aria-label', on ? T.stop : T.mic); };
-    const recMsg = c => c === 'not-allowed' || c === 'service-not-allowed' ? T.micDenied : c === 'audio-capture' ? T.noAudio : c === 'network' ? T.netErr : T.srErr + ' (' + c + ')';
-    function recStart() {
-      const my = new SR(), t0 = Date.now(); rec = my; my.lang = ar ? 'ar-EG' : 'en-US'; my.interimResults = true; my.continuous = true;
-      base = ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '';
-      my.onresult = e => {
-        let fin = '', tmp = '';
-        for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript; else tmp += r[0].transcript; }
-        recFail = 0; say(''); ta.value = base + fin + tmp; grow(); sync();
-      };
-      my.onerror = e => { if (e.error === 'no-speech' || e.error === 'aborted') return; fatal = true; wantRec = false; say(recMsg(e.error)); };
-      my.onend = () => {
-        if (rec === my) rec = null;
-        if (wantRec && alive && b.isConnected) {   /* the browser ended it by itself (a pause on a computer): keep listening */
-          recFail = Date.now() - t0 < 1500 ? recFail + 1 : 0;
-          if (recFail <= 3) { setTimeout(() => { if (wantRec && alive && !rec) recStart(); }, 250); return; }
-          wantRec = false; say(T.noSpeech);
-        }
-        recUi(false); if (alive && !fatal) { if (!note.textContent || note.textContent === T.listening) say(''); ta.focus(); }
-      };
-      try { my.start(); recUi(true); say(T.listening); } catch (e) { rec = null; wantRec = false; recUi(false); say(T.srErr); }
-    }
-    mic.onclick = () => {
-      if (rec || wantRec) { micStop(); return; }
-      if (!SR) { say(T.noMic); return; }
-      fatal = false; recFail = 0; wantRec = true; say(''); recStart();
-    };
-
-    /* ----- the + menu: image, screenshot, link, text or code ----- */
-    const closeAll = () => { menu.classList.remove('on'); pop.classList.remove('on'); };
-    const addAtt = a => { files.push(a); drawAtt(); sync(); };
-    function drawAtt() {
-      att.innerHTML = files.map((f, i) => '<span class="hm-chipa">' + (f.img ? '<img alt="" src="' + f.img + '">' : '<i>' + esc(f.tag) + '</i>') + '<span>' + esc(f.name) + '</span><button type="button" data-rm="' + i + '" aria-label="' + esc(T.rm) + '">×</button></span>').join('');
-    }
-    att.addEventListener('click', e => { const x = e.target.closest('[data-rm]'); if (x) { files.splice(+x.dataset.rm, 1); drawAtt(); sync(); } });
-    q('hmPlus').onclick = e => { e.stopPropagation(); pop.classList.remove('on'); menu.classList.toggle('on'); };
-    b.firstChild.addEventListener('click', e => { if (!e.target.closest('#hmMenu,#hmPop,#hmPlus')) closeAll(); });
-    file.onchange = () => { const f = file.files && file.files[0]; if (f) addAtt({ kind: 'image', name: f.name, img: URL.createObjectURL(f), file: f }); file.value = ''; };
-    function textPop(kind) {
-      const code = kind === 'code';
-      pop.innerHTML = (code ? '<textarea id="hmPv" placeholder="' + esc(T.codePh) + '"></textarea>' : '<input id="hmPv" type="url" placeholder="' + esc(T.linkPh) + '">') + '<button type="button" class="btn" id="hmPa">' + esc(T.add) + '</button>';
-      menu.classList.remove('on'); pop.classList.add('on');
-      const v = pop.querySelector('#hmPv'); setTimeout(() => v.focus(), 60);
-      const done = () => { const val = v.value.trim(); if (!val) return; addAtt(code ? { kind: 'code', name: val.slice(0, 40), tag: '</>', text: val } : { kind: 'link', name: val, tag: '↗', url: val }); pop.classList.remove('on'); };
-      pop.querySelector('#hmPa').onclick = done;
-      if (!code) v.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); done(); } });
-    }
-    menu.addEventListener('click', async e => {
-      const a = e.target.closest('[data-a]'); if (!a) return; const k = a.dataset.a;
-      if (k === 'img') { menu.classList.remove('on'); file.click(); }
-      else if (k === 'link' || k === 'code') textPop(k);
-      else if (k === 'shot') {
-        menu.classList.remove('on');
-        if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { say(T.noShot); file.click(); return; }
-        try {
-          const st = await navigator.mediaDevices.getDisplayMedia({ video: true }), v = document.createElement('video'); v.srcObject = st; v.muted = true; await v.play();
-          await sleep(250); const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
-          st.getTracks().forEach(t => t.stop());
-          c.toBlob(bl => { if (bl) addAtt({ kind: 'screenshot', name: T.shot + '.png', img: URL.createObjectURL(bl), file: bl }); }, 'image/png');
-        } catch (err) { /* cancelled */ }
-      }
-    });
-
-    /* ----- search: finds the page that fits what was typed / said ----- */
-    const norm = s => String(s).toLowerCase().replace(/[\u064B-\u065F\u0670]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-    function search() {
-      micStop(); closeAll();
-      const t = norm(ta.value.trim()); res.innerHTML = ''; say('');
-      if (!t) return;
-      const hits = Object.keys(HKW).filter(k => {
-        const names = norm((STR.ar['i_' + k] || '') + ' ' + (STR.en['i_' + k] || '') + ' ' + HKW[k]);
-        return names.split(/\s+/).some(w => w.length > 1 && (t.indexOf(w) >= 0 || (t.length > 2 && w.indexOf(t) >= 0)));
-      });
-      if (!hits.length) { say(T.none); return; }
-      say(T.found); res.innerHTML = hits.slice(0, 4).map(k => '<button type="button" data-k="' + k + '">' + esc(STR[L]['i_' + k]) + '</button>').join('');
-    }
-    res.addEventListener('click', e => { const x = e.target.closest('[data-k]'); if (x) openLayer(x.dataset.k); });
-    q('hmGo').onclick = search;
-    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); search(); } });
-
-    /* ----- three quick buttons ----- */
-    b.querySelector('.hm-qb').addEventListener('click', e => {
-      const x = e.target.closest('[data-q]'); if (!x) return;
-      if (x.dataset.q === 'svc') q('hmSl').scrollIntoView({ behavior: 'smooth', block: 'start' }); else openLayer(x.dataset.q);
-    });
-
-    /* ----- service slides ----- */
-    row.addEventListener('click', e => { const s = e.target.closest('.hm-s'); if (s) openLayer(s.dataset.k); });
-    const slides = [...row.children];
-    const cur2 = () => { const mid = row.scrollLeft + row.clientWidth / 2; let bi = 0, bd = 1e9; slides.forEach((s, i) => { const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid); if (d < bd) { bd = d; bi = i; } }); return bi; };
-    const mark = () => { const c = cur2(); dots.forEach((d, i) => d.classList.toggle('on', i === c)); };
-    const go2 = i => { const s = slides[i]; if (s) row.scrollTo({ left: s.offsetLeft - (row.clientWidth - s.offsetWidth) / 2, behavior: 'smooth' }); };
-    row.addEventListener('scroll', mark, { passive: true }); mark();
-    let held = false; ['pointerenter', 'pointerdown', 'touchstart'].forEach(ev => row.addEventListener(ev, () => { held = true; }, { passive: true }));
-    ['pointerleave', 'touchend'].forEach(ev => row.addEventListener(ev, () => { held = false; }, { passive: true }));
-    timer = setInterval(() => { if (!alive || !b.isConnected) { clearInterval(timer); return; } if (held || document.hidden) return; go2((cur2() + 1) % slides.length); }, 5200);
-
-    homeStop = () => { alive = false; clearInterval(timer); micStop(); files.forEach(f => { if (f.img) { try { URL.revokeObjectURL(f.img); } catch (e) { } } }); homeStop = () => { }; };
-  }
-
-  /* ================= Mirror Room (غرفة المماراة) ================= */
-  let mirStop = () => { };
-  let mirWarned = false;   /* kept in memory only: a refresh or a log out brings the warning back */
-  const MT = {
-    ar: { wT: 'تنبيه هام', wP: 'ارتدِ سماعة الرأس قبل استخدام غرفة المماراة. لا تستخدم هذه الأداة من غير سماعة، وتأكد أنك لابس السماعة فعلًا وأنك جالس في مكان هادئ.', wTap: 'اضغط في أي مكان للمتابعة',
-      start: 'لنبدأ', stop: 'لنتوقف هنا', armed: 'اضغط «لنبدأ» للبدء', listen: 'تحدّث… سأعيد كلامك بعد أن تصمت', hear: 'أسمعك…', echo: 'صدى صوتك', pending: 'جلسة معلقة رقم {n} — اضغط «لنبدأ» لإكمالها',
-      tr: 'النص المكتوب', ph: 'اكتب هنا، أو فعّل «النص المكتوب» ليُكتب كلامك هنا…', sess: 'جلسة مماراة رقم', saved: 'تم حفظ الجلسة', dl: 'تحميل', dlt: 'تحميل النص', prev: 'الجلسات السابقة',
-      noSr: 'النص المكتوب غير مدعوم في هذا المتصفح، يمكنك الكتابة يدويًا.', micDenied: 'لم يُسمح باستخدام الميكروفون.', srErr: 'تعذّر التعرف على الكلام', lang: 'لغة النص', copy: 'نسخ', share: 'مشاركة', dltx: 'تحميل', copied: 'تم النسخ', save: 'حفظ الجلسة', trial: 'جلسة تجريبية — لم تُحفظ' },
-    en: { wT: 'Important notice', wP: 'Put on your headphones before using the Mirror Room. Do not use this tool without headphones, make sure you are really wearing them, and that you are sitting somewhere quiet.', wTap: 'Tap anywhere to continue',
-      start: 'Let\'s start', stop: 'Let\'s stop here', armed: 'Press "Let\'s start" to begin', listen: 'Speak... I will repeat you when you pause', hear: 'Listening...', echo: 'Your voice echo', pending: 'Unfinished session #{n} - press "Let\'s start" to continue it',
-      tr: 'Transcript', ph: 'Write here, or turn on Transcript to have your speech written here...', sess: 'Mirror session #', saved: 'Session saved', dl: 'Download', dlt: 'Download text', prev: 'Previous sessions',
-      noSr: 'The transcript is not supported in this browser, you can type it by hand.', micDenied: 'Microphone access was not allowed.', srErr: 'Speech recognition problem', lang: 'Text language', copy: 'Copy', share: 'Share', dltx: 'Download', copied: 'Copied', save: 'Save session', trial: 'Practice session - not saved' }
-  };
-  function uKey() { const u = (cfg.getUser && cfg.getUser()) || {}; return u.username || u.email || u.name || 'guest'; }
-  function mirFlag() { return 'thMirOpen:' + uKey(); }
-  function mirIsOpen() { try { return !!localStorage.getItem(mirFlag()); } catch (e) { return false; } }
-  const mirDb = {
-    db: null,
-    open() { return new Promise((res, rej) => { if (this.db) return res(this.db); try { const r = indexedDB.open('thMirror', 1); r.onupgradeneeded = () => { r.result.createObjectStore('s', { keyPath: 'id' }); }; r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); },
-    all(user) { return this.open().then(db => new Promise((res, rej) => { const q = db.transaction('s').objectStore('s').getAll(); q.onsuccess = () => res((q.result || []).filter(x => x.user === user)); q.onerror = () => rej(q.error); })).catch(() => []); },
-    del(id) { return this.open().then(db => new Promise(res => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').delete(id); tx.oncomplete = () => res(true); tx.onerror = () => res(false); })).catch(() => false); },
-    put(rec) { return this.open().then(db => new Promise((res, rej) => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').put(rec); tx.oncomplete = () => res(true); tx.onerror = () => rej(tx.error); })).catch(() => false); }
-  };
-  function mirCss() {
-    if (R.getElementById('thMirCss')) return;
-    const st = document.createElement('style'); st.id = 'thMirCss';
-    st.textContent = `
-      .sdi.hm{margin:0 6px 6px}
-      .sdi[data-k="messenger"]{display:none}
-      @media(min-width:1180px){.sdi[data-k="messenger"]{display:flex}}
-      .sdh{margin:3px 14px 6px;font-size:15px}
-      .sdg{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:16px 14px 6px}
-      #W{--sbh:rgba(255,255,255,.07)}#W.light{--sbh:rgba(28,26,22,.06)}
-      .sdi{width:calc(100% - 12px);height:44px;margin:0 6px 6px;font-size:14.6px;transition:background .35s,scale .9s var(--ease),translate .9s var(--ease)}
-      .sdi:hover,.sdi.on,.sdi.hm.on{background:var(--sbh);color:var(--ink)}
-      @media(hover:hover){.sdi:hover{scale:1.012;translate:0 -1px}}
-      .sdi:active{scale:.965;translate:0 1px;transition:scale .22s ease-out,translate .22s ease-out,background .35s}
-      .lpa>*{margin-block:0}       .lpp>*,.lpl>*{margin-block:0}       .lpb{flex:1;display:flex;flex-direction:column;gap:6px}.lpb .dmsg{margin:auto 0}       .lday{font:700 12.5px Cairo,Inter,sans-serif;color:var(--ink2);margin:12px 4px 4px;text-align:start}.lday:first-child{margin-top:0}       .ltile{position:relative;width:100%}.ltile img{width:100%;cursor:zoom-in}       .ltx{position:absolute;top:4px;inset-inline-end:4px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font:700 12px Inter,sans-serif;line-height:24px;padding:0;cursor:pointer}       .lk{position:relative;padding-inline-end:42px!important;text-align:start!important}.lk a{display:block;direction:ltr;text-align:start;word-break:break-all;color:#60a5fa;font:500 14px/1.6 Inter,sans-serif;text-decoration:none}.lk .ltx{top:50%;transform:translateY(-50%);background:var(--gbd);color:var(--ink)}
-      .lsw{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:2px 0 14px}
-      .lsw button{height:34px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer;transition:background .3s,scale .6s var(--ease)}
-      .lsw button.on{background:var(--btn);color:var(--onbtn);border-color:var(--btn)}
-      .lsw button:active{scale:.95;transition:scale .2s ease-out}
-      .lab{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
-      .lpc audio{width:100%;height:36px;margin-top:8px}
-      .sdl{margin:10px 16px}
-      .sdl.sp{margin:20px 16px}
-      .sdr + .sdl.sp{margin-top:22px!important}
-      .sdr{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px 10px;margin:8px 12px 0}.sdr .sdi{margin:0!important;flex:none}.sdr .sdi.hm{width:auto!important;flex:3 1 0;min-width:0;padding-inline:10px;height:40px!important;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdr .sdi.st{flex:1 1 0!important;width:auto!important;min-width:0}.sdr .sdbr{flex:0 0 100%;height:0;margin-top:-8px}.sdr .sdi.sup{height:40px;font-size:0}.sdr .sdi.sup svg{width:20px;height:20px}
-      .sps{height:14px}
-      .sdi.st[data-k="messenger"]{display:inline-flex}.sdi.st{position:relative;margin-inline-start:6px}.sdi .bdg{position:absolute;top:-4px;inset-inline-end:-4px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#ef4444;color:#fff;font:800 9px/16px Inter,Cairo,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--pn,#181c20),0 2px 6px rgba(239,68,68,.55);pointer-events:none;display:none}.sdi .bdg.on{display:block}
-      .sdi.st{width:38px;height:38px;padding:0;margin:0 0 6px;display:inline-flex;justify-content:center;border-radius:999px;background:var(--chip);border:1px solid var(--sbd)}.sdi.st svg{width:18px;height:18px}.sdi.st.on{background:var(--btn);color:var(--onbtn)}
-      .mrwrap{position:relative;height:100%;min-height:100%}
-      .pcard.dpc.mr-card{height:100%;max-width:none;align-items:center!important;justify-content:flex-start!important;padding:22px 16px!important}
-      .mr-w{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:14px}
-      .mr-orb{position:relative;width:min(300px,76vw);aspect-ratio:1;flex:none}
-      .mr-orb canvas{width:100%;height:100%;display:block}
-      .mr-ctr{position:absolute;left:50%;top:50%;translate:-50% -50%;width:15%;aspect-ratio:1;min-width:44px;border-radius:50%;border:0;background:#fff;color:#0c0c0c;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.35);transition:scale .7s var(--ease);-webkit-tap-highlight-color:transparent}
-      .mr-ctr:hover{scale:1.06}.mr-ctr:active{scale:.93;transition:scale .3s ease-out}.mr-ctr svg{width:46%;height:46%}
-      .mr-st{min-height:22px;text-align:center;font:700 13.5px Cairo,Inter,sans-serif;color:var(--ink2)}
-      .mr-btns{display:flex;gap:10px}.mr-btns .btn{width:auto;min-width:120px;padding:0 22px}.mr-btns .btn:disabled{opacity:.4;cursor:default}
-      .mr-tr{display:flex;gap:10px;align-items:center;justify-content:center}
-      .mr-sw{display:inline-flex;align-items:center;gap:10px;height:34px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:700 12.5px Cairo,Inter,sans-serif;cursor:pointer}
-      .mr-sw i{width:30px;height:18px;border-radius:999px;background:var(--chip);position:relative;transition:background .4s}
-      .mr-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:translate .4s var(--ease)}
-      .mr-sw.on i{background:#34d399}.mr-sw.on i::after{translate:12px 0;background:#fff}
-      .mr-lg{height:34px;min-width:66px;padding:0 12px;border-radius:999px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:800 12px Inter,sans-serif;cursor:pointer}
-      .mr-ta{unicode-bidi:plaintext;text-align:start;min-height:120px}
-      .mr-int{min-height:18px;width:100%;text-align:center;font:500 12.5px Cairo,Inter,sans-serif;color:var(--ink2);unicode-bidi:plaintext}
-      .mr-rc,.mr-row{width:100%;border:1px solid var(--gbd);border-radius:16px;padding:12px 14px;background:var(--gfield);text-align:center}
-      .mr-rc b{display:block;color:#34d399;font:800 14px Cairo,Inter,sans-serif}.mr-rc small{display:block;margin:2px 0 8px;color:var(--ink2);font:600 12px Cairo,Inter,sans-serif}
-      .mr-pt{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0}
-      .mr-pt audio{height:36px;max-width:100%}
-      .mr-dl{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--gbd);background:var(--chip);color:var(--ink);font:700 11.5px Cairo,Inter,sans-serif;text-decoration:none}
-      .mr-dl svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-      .mr-prev{width:100%;display:flex;flex-direction:column;gap:8px}
-      .mr-prev h4{font:800 13px Cairo,Inter,sans-serif;color:var(--ink2);text-align:center;margin:6px 0}
-      .mr-row summary{cursor:pointer;font:700 13px Cairo,Inter,sans-serif;list-style:none}.mr-row summary::-webkit-details-marker{display:none}
-      .mr-row small{color:var(--ink2);font-weight:600;margin-inline-start:8px}
-      .mr-tx{margin-top:8px;text-align:start;unicode-bidi:plaintext;font:500 13px/1.7 Inter,Cairo,sans-serif;color:var(--ink2);white-space:pre-wrap}
-      .mr-warn{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:20px;text-align:center;cursor:pointer;background:#0b0d13;transition:opacity .45s ease}
-      #W.light .mr-warn{background:#e4e6ec}
-      button.mr-dl{cursor:pointer}
-      .mr-warn.off{opacity:0;pointer-events:none}
-      .mr-wb{max-width:380px;padding:26px 22px;border-radius:24px;border:1px solid var(--gbd);background:var(--pn);color:var(--ink)}
-      .mr-wb svg{width:48px;height:48px;stroke:#ef4444;fill:rgba(239,68,68,.12);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px;animation:mrTri 2.6s ease-in-out infinite}
-      @keyframes mrTri{0%,100%{filter:drop-shadow(0 0 2px rgba(239,68,68,.25));scale:1}50%{filter:drop-shadow(0 0 13px rgba(239,68,68,.9));scale:1.07}}
-      .mr-wb h3{font:800 19px Cairo,Inter,sans-serif;margin-bottom:8px}
-      .mr-wb p{font:600 14px/1.8 Cairo,Inter,sans-serif;color:var(--ink2);margin-bottom:14px}
-      .mr-wb em{font:700 12px Cairo,Inter,sans-serif;font-style:normal;opacity:.7}
-      @media(min-width:876px){.mr-warn{border-radius:24px}}
-    `;
-    R.appendChild(st);
-  }
-  function renderMirror(b) {
-    mirStop(); mirCss();
-    const T = MT[L], ar = L === 'ar', user = uKey();
-    const SV = {
-      play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
-      stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>',
-      dl: '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
-      tri: '<svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path d="M12 10v5M12 17.6v.1"/></svg>',
-      cp: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
-      sh: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>'
-    };
-    b.classList.remove('full');
-    b.innerHTML = '<div class="mrwrap" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="pcard dpc mr-card"><div class="mr-w">' +
-      '<div class="mr-orb"><canvas id="mrC" width="420" height="420"></canvas><button type="button" class="mr-ctr" id="mrCtr" aria-label="' + T.start + '">' + SV.play + '</button></div>' +
-      '<div class="mr-st" id="mrSt"></div>' +
-      '<div class="mr-btns"><button type="button" class="btn" id="mrStart">' + T.start + '</button><button type="button" class="btn ghost" id="mrStop" disabled>' + T.stop + '</button></div>' +
-      '<div class="mr-tr"><button type="button" class="mr-sw on" id="mrTr" aria-pressed="true"><i></i><span>' + T.tr + '</span></button><button type="button" class="mr-lg" id="mrLg" aria-label="' + T.lang + '" title="' + T.lang + '">' + (ar ? 'العربية' : 'English') + '</button></div>' +
-      '<textarea class="dta mr-ta" id="mrTa" dir="auto" rows="5" placeholder="' + T.ph + '" spellcheck="false"></textarea>' +
-      '<div class="mr-tr"><button type="button" class="mr-dl" id="mrCp">' + SV.cp + '<span>' + T.copy + '</span></button><button type="button" class="mr-dl" id="mrSh">' + SV.sh + '<span>' + T.share + '</span></button><button type="button" class="mr-dl" id="mrDx">' + SV.dl + '<span>' + T.dltx + '</span></button></div>' +
-      '<div class="mr-int" id="mrInt"></div><div id="mrRes" style="width:100%"></div><div class="mr-prev" id="mrPrev"></div>' +
-      '</div></div>' +
-      '<div class="mr-warn' + (mirWarned ? ' off' : '') + '" id="mrWarn"><div class="mr-wb">' + SV.tri + '<h3>' + T.wT + '</h3><p>' + T.wP + '</p><em>' + T.wTap + '</em></div></div></div>';
-
-    const q = id => b.querySelector('#' + id);
-    const cv = q('mrC'), g = cv.getContext('2d'), S = cv.width, cx = S / 2, cy = S / 2, Ro = S * 0.38;
-    const st = q('mrSt'), ta = q('mrTa'), intr = q('mrInt'), res = q('mrRes'), prev = q('mrPrev'), warn = q('mrWarn'), ctr = q('mrCtr');
-    const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let alive = true, running = false, state = 'idle', ctx = null, stream = null, src = null, proc = null, dest = null, playGain = null, playAn = null, bufSrc = null, rec = null, recChunks = [], mime = '';
-    let sess = null, sessions = [], urls = [], purls = [], trOn = true, srLang = ar ? 'ar-EG' : 'en-US', sr = null, starting = false, fails = 0, srT0 = 0, ivTxt = '';
-    let lvl = 0, hue = 214, tm = 0, curRms = 0, floor = 0.006, quietUntil = 0, ring = [], chunks = [], spk = false, hot = 0, voiced = 0, lastVoice = 0, raf = 0, last = performance.now(), saveT = 0, frameMs = 43, maxFrames = 40000;
-    const abuf = new Float32Array(1024);
-
-    /* ----- the orb ----- */
-    const nz = document.createElement('canvas'); nz.width = nz.height = 96;
-    { const n = nz.getContext('2d'), id = n.createImageData(96, 96); for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() < .5 ? 255 : 0; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = Math.random() * 90; } n.putImageData(id, 0, 0); }
-    const pat = g.createPattern(nz, 'repeat');
-    const BL = Array.from({ length: 8 }, (_, i) => ({ a: Math.random() * 6.28, sp: .35 + Math.random() * .7, rx: .25 + Math.random() * .35, ry: .25 + Math.random() * .35, r: .45 + Math.random() * .3, dark: i % 3 === 2, hs: (Math.random() - .5) * 26 }));
-    function draw(now) {
-      if (!alive || !b.isConnected) return;
-      raf = requestAnimationFrame(draw);
-      if (document.hidden) { last = now; return; }
-      const dt = Math.min(.05, (now - last) / 1000); last = now;
-      let target = 0;
-      if (running) {
-        let r = curRms;
-        if (state === 'playing' && playAn) { playAn.getFloatTimeDomainData(abuf); let s = 0; for (let i = 0; i < abuf.length; i++) s += abuf[i] * abuf[i]; r = Math.sqrt(s / abuf.length); }
-        else if (r < Math.max(floor * 2, .009)) r = 0;
-        if (state !== 'idle' && r > .006) target = Math.min(1, Math.pow(r * 6, .7));
-      }
-      lvl += (target - lvl) * (target > lvl ? .35 : .09);
-      hue += ((state === 'playing' ? 268 : 214) - hue) * .06;
-      tm += dt * (.15 + 2.1 * lvl);
-      g.clearRect(0, 0, S, S);
-      g.save(); g.beginPath(); g.arc(cx, cy, Ro, 0, 6.2832); g.clip();
-      const bg = g.createRadialGradient(cx - Ro * .2, cy - Ro * .25, Ro * .1, cx, cy, Ro);
-      bg.addColorStop(0, 'hsl(' + hue + ',70%,18%)'); bg.addColorStop(1, 'hsl(' + (hue + 6) + ',75%,6%)');
-      g.fillStyle = bg; g.fillRect(0, 0, S, S);
-      BL.forEach(o => {
-        const x = cx + Math.cos(tm * o.sp + o.a) * Ro * o.rx * (1 + lvl * .9), y = cy + Math.sin(tm * o.sp * 1.13 + o.a * 1.7) * Ro * o.ry * (1 + lvl * .9),
-          r = Ro * (o.r + .25 * lvl + .08 * Math.sin(tm * o.sp * 2 + o.a)), gr = g.createRadialGradient(x, y, 0, x, y, r);
-        if (o.dark) { gr.addColorStop(0, 'hsla(' + (hue + 8) + ',80%,4%,.75)'); gr.addColorStop(1, 'hsla(' + (hue + 8) + ',80%,4%,0)'); }
-        else { gr.addColorStop(0, 'hsla(' + (hue + o.hs) + ',92%,' + (48 + 14 * lvl) + '%,' + (.45 + .4 * lvl) + ')'); gr.addColorStop(1, 'hsla(' + (hue + o.hs) + ',92%,50%,0)'); }
-        g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
-      });
-      g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .9; g.fillStyle = pat; g.fillRect(0, 0, S, S); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-      const ed = g.createRadialGradient(cx, cy, Ro * .62, cx, cy, Ro); ed.addColorStop(0, 'rgba(0,0,0,0)'); ed.addColorStop(1, 'rgba(0,0,0,.5)'); g.fillStyle = ed; g.fillRect(0, 0, S, S);
-      g.restore();
-    }
-    raf = requestAnimationFrame(draw);
-
-    /* ----- status ----- */
-    function ui() {
-      let m = !running ? (sess ? T.pending.replace('{n}', sess.n) : T.armed) : state === 'playing' ? T.echo : state === 'speaking' ? T.hear : T.listen;
-      if (!running && !SRC) m += ' — ' + T.noSr;
-      st.textContent = m; ctr.innerHTML = running ? SV.stop : SV.play;
-      q('mrStart').disabled = running; q('mrStop').disabled = !running;
-    }
-
-    /* ----- sound ----- */
-    function ensureCtx() { if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; ctx = new AC(); } if (ctx.state === 'suspended') ctx.resume(); return ctx; }
-    function chime(up) {
-      try {
-        ensureCtx(); const t0 = ctx.currentTime, f = up ? [740, 988] : [988, 740];
-        f.forEach((fr, i) => { const o = ctx.createOscillator(), gn = ctx.createGain(), t = t0 + i * .15; o.type = 'sine'; o.frequency.value = fr; gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(.2, t + .02); gn.gain.exponentialRampToValueAtTime(.0001, t + .13); o.connect(gn); gn.connect(ctx.destination); o.start(t); o.stop(t + .15); });
-      } catch (e) { }
-      quietUntil = performance.now() + 450;
-    }
-    function pickMime() { const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']; for (const m of c) { try { if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; } catch (e) { } } return ''; }
-
-    function finishUtt() {
-      const now = performance.now(), cut = Math.max(0, Math.round((now - lastVoice) / frameMs) - 6);
-      let arr = chunks; chunks = []; spk = false; hot = 0;
-      const enough = voiced >= 4; voiced = 0;
-      if (cut) arr = arr.slice(0, Math.max(1, arr.length - cut));
-      state = 'listening';
-      if (!enough) { ui(); return; }
-      playUtt(arr);
-    }
-    function playUtt(arr) {
-      let n = 0; arr.forEach(a => n += a.length);
-      const buf = ctx.createBuffer(1, n, ctx.sampleRate), ch = buf.getChannelData(0); let o = 0;
-      arr.forEach(a => { for (let i = 0; i < a.length; i++) ch[o + i] = a[i] / 32768; o += a.length; });
-      const mine = ctx.createBufferSource(); mine.buffer = buf; mine.connect(playGain); bufSrc = mine;
-      state = 'playing'; ui();
-      mine.onended = () => { if (bufSrc !== mine) return; bufSrc = null; if (!running) return; ring = []; quietUntil = performance.now() + 300; state = 'listening'; ui(); };
-      mine.start();
-    }
-    function frame(d) {
-      if (!running) return;
-      let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
-      const rms = Math.sqrt(s / d.length); curRms = rms;
-      const now = performance.now();
-      if (state === 'playing' || now < quietUntil) return;
-      const i16 = new Int16Array(d.length);
-      for (let i = 0; i < d.length; i++) { const v = d[i] < -1 ? -1 : d[i] > 1 ? 1 : d[i]; i16[i] = v < 0 ? v * 32768 : v * 32767; }
-      const thr = Math.max(floor * 3.2, .014), lo = Math.max(floor * 2, .009);
-      if (!spk) {
-        ring.push(i16); if (ring.length > 8) ring.shift();
-        floor = Math.min(.03, Math.max(.002, floor * .97 + rms * .03));
-        if (rms > thr) { if (++hot >= 2) { spk = true; chunks = ring; ring = []; lastVoice = now; voiced = 0; state = 'speaking'; ui(); } } else hot = 0;
-      } else {
-        chunks.push(i16);
-        if (rms > lo) { lastVoice = now; voiced++; }
-        if (now - lastVoice >= 1000 || chunks.length > maxFrames) finishUtt();
-      }
-    }
-
-    /* ----- sessions ----- */
-    const fmt = s => { try { return new Date(s.end || s.at).toLocaleString(ar ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } };
-    function partsHtml(s, arr) {
-      return s.parts.map((p, i) => { const u = URL.createObjectURL(p); arr.push(u); const ext = /mp4/.test(p.type) ? 'm4a' : /ogg/.test(p.type) ? 'ogg' : 'webm';
-        return '<div class="mr-pt"><audio controls preload="metadata" src="' + u + '"></audio><a class="mr-dl" download="mirror-room-' + s.n + (s.parts.length > 1 ? '-' + (i + 1) : '') + '.' + ext + '" href="' + u + '">' + SV.dl + '<span>' + T.dl + '</span></a></div>'; }).join('');
-    }
-    function textDl(s, arr) {
-      if (!(s.text || '').trim()) return '';
-      const u = URL.createObjectURL(new Blob([s.text], { type: 'text/plain;charset=utf-8' })); arr.push(u);
-      return '<div class="mr-pt"><a class="mr-dl" download="mirror-room-' + s.n + '.txt" href="' + u + '">' + SV.dl + '<span>' + T.dlt + '</span></a></div>';
-    }
-    function drawPrev() {
-      purls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); purls = [];
-      const done = sessions.filter(s => s.state === 'done').sort((x, y) => y.n - x.n);
-      prev.innerHTML = done.length ? '<h4>' + T.prev + '</h4>' + done.map(s => '<details class="mr-row"><summary>' + T.sess + ' #' + s.n + '<small>' + esc(fmt(s)) + '</small></summary>' + partsHtml(s, purls) + textDl(s, purls) + (s.text ? '<div class="mr-tx">' + esc(s.text) + '</div>' : '') + '</details>').join('') : '';
-    }
-    function showRes(s, trial) {
-      res.innerHTML = '<div class="mr-rc"><b>' + T.sess + ' #' + s.n + '</b><small>' + (trial ? T.trial : T.saved) + '</small>' + partsHtml(s, urls) + textDl(s, urls) + (trial ? '<div class="mr-pt"><button type="button" class="mr-dl" id="mrSave"><span>' + T.save + '</span></button></div>' : '') + '</div>';
-      const sv = res.querySelector('#mrSave');
-      if (sv) sv.onclick = async () => {
-        if (sessions.some(x => x.id === s.id)) s.n = sessions.reduce((m, x) => Math.max(m, x.n || 0), 0) + 1;
-        s.id = user + ':' + s.n; s.state = 'done'; sessions.push(s); await mirDb.put(s); sv.remove(); res.querySelector('small').textContent = T.saved; drawPrev();
-      };
-      try { res.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { }
-    }
-    function saveText() { if (!sess) return; sess.text = ta.value; clearTimeout(saveT); saveT = setTimeout(() => mirDb.put(sess), 400); }
-    ta.addEventListener('input', saveText);
-    const ready = mirDb.all(user).then(a => {
-      if (!alive) return; sessions = a;
-      const o = a.filter(s => s.state === 'open').sort((x, y) => y.n - x.n)[0];
-      if (o) { if (o.live) { o.parts.push(o.live); o.live = null; mirDb.put(o); } sess = o; if (!ta.value) ta.value = o.text || ''; try { localStorage.setItem(mirFlag(), String(o.n)); } catch (e) { } }
-      else { try { localStorage.removeItem(mirFlag()); } catch (e) { } }
-      updBadge(); drawPrev(); ui();
-    });
-    async function newSess() {
-      const n = sessions.reduce((m, s) => Math.max(m, s.n || 0), 0) + 1;
-      sess = { id: user + ':' + n, user, n, state: 'open', text: ta.value || '', parts: [], live: null, mime: '', at: Date.now() };
-      sessions.push(sess); await mirDb.put(sess);
-      try { localStorage.setItem(mirFlag(), String(n)); } catch (e) { } updBadge();
-    }
-    async function startSession() {
-      if (running || starting) return;
-      starting = true; fails = 0; if (trOn) srStart();
-      await ready; ensureCtx();
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); }
-      catch (e) { starting = false; try { sr && sr.abort(); } catch (x) { } st.textContent = T.micDenied; return; }
-      if (!alive) { starting = false; stream.getTracks().forEach(t => t.stop()); return; }
-      if (running) { stream.getTracks().forEach(t => t.stop()); return; }
-      if (!sess) await newSess();
-      src = ctx.createMediaStreamSource(stream); dest = ctx.createMediaStreamDestination(); proc = ctx.createScriptProcessor(2048, 1, 1);
-      const zero = ctx.createGain(); zero.gain.value = 0;
-      src.connect(proc); proc.connect(zero); zero.connect(ctx.destination); src.connect(dest);
-      playGain = ctx.createGain(); playAn = ctx.createAnalyser(); playAn.fftSize = 1024;
-      playGain.connect(playAn); playAn.connect(ctx.destination); playGain.connect(dest);
-      frameMs = 2048 / ctx.sampleRate * 1000; maxFrames = Math.floor(ctx.sampleRate * 1800 / 2048);
-      ring = []; chunks = []; spk = false; hot = 0; voiced = 0; floor = .006; curRms = 0;
-      mime = pickMime(); recChunks = [];
-      try { rec = new MediaRecorder(dest.stream, mime ? { mimeType: mime } : undefined); } catch (e) { rec = null; }
-      if (rec) {
-        const s0 = sess;
-        rec.ondataavailable = ev => { if (ev.data && ev.data.size) { recChunks.push(ev.data); s0.mime = mime || rec.mimeType; s0.live = new Blob(recChunks, { type: s0.mime }); mirDb.put(s0); } };
-        rec.start(5000);
-      }
-      proc.onaudioprocess = ev => frame(ev.inputBuffer.getChannelData(0));
-      running = true; starting = false; state = 'listening'; chime(true); ui(); if (trOn) srStart(); intr.textContent = trOn && !SRC ? T.noSr : '';
-    }
-    function endAudio(done) {
-      if (!running) return Promise.resolve();
-      running = false; state = 'idle'; spk = false; chunks = []; ring = [];
-      setIv(''); try { sr && sr.abort(); } catch (e) { }
-      try { proc.onaudioprocess = null; src.disconnect(); proc.disconnect(); } catch (e) { }
-      if (bufSrc) { try { bufSrc.onended = null; bufSrc.stop(); } catch (e) { } bufSrc = null; }
-      try { playGain.disconnect(); } catch (e) { }
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      const s = sess, txt = ta.value, r = rec, mm = mime;
-      return new Promise(resolve => {
-        const fin = () => {
-          const blob = recChunks.length ? new Blob(recChunks, { type: mm || (r && r.mimeType) || 'audio/webm' }) : null;
-          if (blob && blob.size) s.parts.push(blob);
-          s.live = null; s.text = txt; if (done) { s.state = 'done'; s.end = Date.now(); }
-          recChunks = []; mirDb.put(s).then(resolve);
-        };
-        if (r && r.state !== 'inactive') { r.onstop = fin; try { r.stop(); } catch (e) { fin(); } } else fin();
-      });
-    }
-    async function stopSession() {
-      if (!running) return;
-      chime(false);
-      const s = sess; await endAudio(true);
-      try { localStorage.removeItem(mirFlag()); } catch (e) { } updBadge();
-      const task = !!(window.thMirrorTask || (cfg.mirrorTask && cfg.mirrorTask()));   /* only a task given by the trainer is saved by itself; a practice run is saved only if the trainee asks */
-      if (!task) { sessions = sessions.filter(x => x !== s); await mirDb.del(s.id); }
-      sess = null; ui(); showRes(s, !task); drawPrev();
-    }
-
-    /* ----- transcript: the words appear live in the text box (the grey tail is still being recognised) ----- */
-    function setIv(t) {
-      if (ivTxt && ta.value.endsWith(ivTxt)) ta.value = ta.value.slice(0, ta.value.length - ivTxt.length);
-      ivTxt = '';
-      if (t) { ivTxt = (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + t; ta.value += ivTxt; ta.scrollTop = ta.scrollHeight; }
-    }
-    function onSr(e) {
-      if (!(running || starting) || !trOn) return;
-      let finals = '', interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i], t = r[0].transcript; if (r.isFinal) finals += ' ' + t; else interim += ' ' + t; }
-      if (intr.textContent.indexOf(T.srErr) === 0) intr.textContent = '';
-      fails = 0; setIv('');
-      if (finals.trim()) { ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + finals.trim(); saveText(); }
-      if (interim.trim()) setIv(interim.trim());
-    }
-    const wantSr = () => running || starting;
-    const srMsg = c => c === 'audio-capture' ? T.srErr + ' — لا يوجد ميكروفون يعمل / no working microphone' : c === 'network' ? T.srErr + ' — network' : T.srErr + ' (' + c + ')';
-    function srStart() {
-      if (!SRC || !alive || !wantSr() || sr) return;
-      try {
-        const my = new SRC(); sr = my; srT0 = Date.now(); my.lang = srLang; my.continuous = true; my.interimResults = true; my.onresult = onSr;
-        my.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { fails = 99; intr.textContent = T.micDenied; } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') intr.textContent = srMsg(ev.error); };
-        my.onend = () => { if (sr === my) sr = null; setIv(''); if (!alive || !wantSr() || fails > 8) return; fails = Date.now() - srT0 < 2500 ? fails + 1 : 0; setTimeout(srStart, Math.min(8000, 400 * Math.pow(2, fails))); };
-        my.start();
-      } catch (e) { sr = null; }
-    }
-
-    /* ----- buttons ----- */
-    q('mrStart').onclick = startSession; q('mrStop').onclick = stopSession;
-    ctr.onclick = () => running ? stopSession() : startSession();
-    q('mrTr').onclick = e => { trOn = !trOn; e.currentTarget.classList.toggle('on', trOn); e.currentTarget.setAttribute('aria-pressed', trOn ? 'true' : 'false'); intr.textContent = trOn && !SRC ? T.noSr : ''; if (trOn && running) { fails = 0; srStart(); } };
-    const flash = m => { st.textContent = m; setTimeout(ui, 1400); };
-    q('mrCp').onclick = async () => { const t = ta.value; if (!t.trim()) return; try { await navigator.clipboard.writeText(t); } catch (e) { ta.select(); try { document.execCommand('copy'); } catch (x) { } } flash(T.copied); };
-    q('mrSh').onclick = async () => { const t = ta.value; if (!t.trim()) return; if (navigator.share) { try { await navigator.share({ text: t }); } catch (e) { } } else { try { await navigator.clipboard.writeText(t); flash(T.copied); } catch (e) { } } };
-    q('mrDx').onclick = () => { const t = ta.value; if (!t.trim()) return; const u = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8' })), a = document.createElement('a'); a.href = u; a.download = 'mirror-room-transcript.txt'; b.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); };
-    q('mrLg').onclick = e => { srLang = srLang.indexOf('ar') === 0 ? 'en-US' : 'ar-EG'; e.currentTarget.textContent = srLang.indexOf('ar') === 0 ? 'العربية' : 'English'; try { sr && sr.abort(); } catch (x) { } };
-    warn.onclick = () => { mirWarned = true; warn.classList.add('off'); ensureCtx(); };
-    ui();
-
-    mirStop = () => {
-      alive = false; starting = false; try { sr && sr.abort(); } catch (e) { } cancelAnimationFrame(raf); clearTimeout(saveT);
-      if (sess) sess.text = ta.value;
-      const fin = () => { urls.concat(purls).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); try { ctx && ctx.close(); } catch (e) { } };
-      if (running) endAudio(false).then(fin); else { if (sess) mirDb.put(sess); fin(); }
-      mirStop = () => { };
-    };
-  }
-
-  /* ================= Dictation Pal + Library ================= */
-  const DICT = { bucket: 'words-and-passages', prefix: '', count: 10, key: 'thDictTask', photos: 'thDictPhotos' };   /* <- bucket / folder of the word recordings */
-  const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
-  const DT = {
-    en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
-      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.', tabPhTask: 'Task photos', tabPhMsg: 'Messenger photos', tabLater: 'Later', laterMsg: 'Available here later.', phMsgEmpty: 'No messenger photos yet.', libDel: 'Remove' },
-    ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
-      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.', tabPhTask: 'صور المهام', tabPhMsg: 'صور المرسال', tabLater: 'لاحقًا', laterMsg: 'هيتوفر هنا لاحقًا.', phMsgEmpty: 'لا توجد صور من المرسال بعد.', libDel: 'إزالة' }
-  };
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
-  function setBd(k, on) { const it = R.querySelector('.sdi[data-k="' + k + '"]'); if (!it) return; let bd = it.querySelector('.sdbd'); if (on && !bd) { bd = document.createElement('b'); bd.className = 'sdbd'; bd.textContent = '1'; it.appendChild(bd); } else if (!on && bd) bd.remove(); }
-  function updBadge() { const t = dictLoad(), a = !!(t && !t.done), m = mirIsOpen(); setBd('dict', a); setBd('mirror', m); sbDot.base = a || m; sbDot(); }
-  function dictSave(t) { try { t ? localStorage.setItem(DICT.key, JSON.stringify(t)) : localStorage.removeItem(DICT.key); } catch (e) { } updBadge(); }
-
-  /* audio: every word is preloaded when the text is made, so a tap plays at once (a spoken-voice fallback is used if a recording is missing) */
-  const aud = {};
-  const prep = ts => ts.forEach(x => { if (x.url && !aud[x.url]) { const a = new Audio(x.url); a.preload = 'auto'; aud[x.url] = a; } });
-  function tts(w) { try { const u = new SpeechSynthesisUtterance(w); u.lang = 'en-US'; u.rate = .9; speechSynthesis.speak(u); } catch (e) { } }
-  function say(x) {
-    try { speechSynthesis.cancel(); } catch (e) { }
-    Object.values(aud).forEach(a => { try { a.pause(); } catch (e) { } });
-    const a = x.url && aud[x.url];
-    if (!a) return tts(x.w);
-    try { a.currentTime = 0; } catch (e) { }
-    const p = a.play(); if (p && p.catch) p.catch(() => tts(x.w));
-  }
-  async function dictWords() {
-    try {
-      const r = await fetch(REPORT_SUPABASE_URL + '/storage/v1/object/list/' + DICT.bucket, { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ prefix: DICT.prefix, limit: 1000, offset: 0 }) });
-      if (r.ok) {
-        const j = await r.json();
-        const out = (j || []).filter(f => f && f.name && /\.(mp3|wav|ogg|m4a|aac)$/i.test(f.name)).map(f => ({
-          w: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(),
-          url: REPORT_SUPABASE_URL + '/storage/v1/object/public/' + DICT.bucket + '/' + (DICT.prefix ? DICT.prefix + '/' : '') + encodeURIComponent(f.name) })).filter(x => x.w && x.w.indexOf(' ') < 0);
-        if (out.length >= DICT.count) return out;
-      }
-    } catch (e) { }
-    return DFALL.map(w => ({ w, url: '' }));
-  }
-  async function startTask(more) {
-    const all = await dictWords(), pick = [];
-    while (pick.length < DICT.count && all.length) pick.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
-    pick.forEach((x, n) => { x.p = n === pick.length - 1 ? '.' : ((n === 2 || n === 5) ? ',' : ''); });
-    prep(pick);
-    dictSave({ n: passNext(), tokens: pick, mode: 'passage', i: 0, stage: 'work', more: !!more, text: '', done: false });
-  }
-  async function renderDict(b) {
-    const T = DT[L]; let t = dictLoad();
-    if (!t || t.done) { b.innerHTML = '<div class="pcard dpc"><div class="dmsg">' + T.loading + '</div></div>'; await startTask(false); t = dictLoad(); if (cur !== 'dict' || !b.isConnected) return; }
-    else prep(t.tokens);
-    drawDict(b, t);
-  }
-  function drawDict(b, t) {
-    const T = DT[L], card = el => { b.innerHTML = '<div class="pcard dpc">' + el + '</div>'; return b.firstChild; };
-    if (t.stage === 'photo') {
-      const c = card('<div class="dmsg big">' + T.photoT + '</div><label class="btn dup">' + T.photoB + '<input type="file" accept="image/*" hidden></label>');
-      c.querySelector('input').onchange = e => {
-        const f = e.target.files && e.target.files[0]; if (!f) return;
-        t.done = true; t.stage = 'thanks'; passSave(t, true); dictSave(t); drawDict(b, t);   /* thanks at once, the saving happens quietly */
-        savePhoto(f).then(ok => { if (!ok) toast(T.bad); });
-      }; return;
-    }
-    if (t.stage === 'thanks') {
-      const c = card('<div class="dmsg big">' + T.thanks + '</div><div class="dmsg">' + T.thanks2 + '</div><button class="btn dmore" type="button">' + T.more + '</button>');
-      c.querySelector('.dmore').onclick = async () => { await startTask(true); if (cur === 'dict' && b.isConnected) drawDict(b, dictLoad()); }; return;
-    }
-    if (t.stage === 'nomind') { card('<div class="dmsg big">' + T.nomind + '</div>'); return; }
-    const m = t.mode, tk = t.tokens;
-    let stage;
-    if (m === 'passage') stage = '<div class="dpas">' + tk.map((x, n) => '<span class="dw" data-n="' + n + '"><i>' + esc(x.w) + '</i></span>' + (x.p ? '<span class="dpn">' + x.p + '</span>' : '')).join(' ') + '</div>';
-    else { const x = tk[t.i]; stage = '<div class="dsw"><button class="dar" id="dPrev" type="button"' + (t.i ? '' : ' disabled') + '>&#8249;</button><div class="dwb"><span class="dw big" data-n="' + t.i + '"><i>' + esc(x.w) + '</i></span>' + (x.p ? '<span class="dpn big">' + x.p + '</span>' : '') + '</div><button class="dar" id="dNext" type="button"' + (t.i < tk.length - 1 ? '' : ' disabled') + '>&#8250;</button></div><div class="dcnt">' + (t.i + 1) + ' / ' + tk.length + '</div>'; }
-    const c = card('<div class="dnum">' + T.passage + (t.n ? ' #' + t.n : '') + '</div><div class="dtabs"><button type="button" data-m="passage" class="' + (m === 'passage' ? 'on' : '') + '">' + T.passage + '</button><button type="button" data-m="word" class="' + (m === 'word' ? 'on' : '') + '">' + T.word + '</button></div><div class="dhint">' + T.hint + '</div><div class="dmid">' + stage + '</div>' +
-      '<textarea class="dta" rows="3" placeholder="' + T.ph + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" enterkeyhint="done"></textarea><div class="dact">' + (t.more ? '<button type="button" class="dmis">' + T.mistake + '</button>' : '') + '<button class="btn dfin" type="button">' + T.done + '</button></div>');
-    const ta = c.querySelector('.dta'); c.classList.add('ddict'); ta.value = t.text || ''; let pv0 = ta.value;
-    /* typing only: no paste, no drop, no suggestion/auto-correct inserts (more than one character at once is undone) */
-    const BLK = /^(insertFromPaste|insertFromDrop|insertFromYank|insertFromPasteAsQuotation|insertReplacementText|insertTranspose|historyUndo|historyRedo)$/;
-    ta.addEventListener('beforeinput', e => { const k = e.inputType || ''; if (BLK.test(k) || (k === 'insertText' && e.data && e.data.length > 1)) e.preventDefault(); });
-    ['paste', 'drop', 'dragover'].forEach(ev => ta.addEventListener(ev, e => e.preventDefault()));
-    ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && /^[vyz]$/i.test(e.key)) e.preventDefault(); });
-    ta.oninput = () => { if (ta.value.length - pv0.length > 1) ta.value = pv0; pv0 = ta.value; t.text = ta.value; dictSave(t); };
-    c.querySelectorAll('.dtabs button').forEach(bt => bt.onclick = () => { t.mode = bt.dataset.m; dictSave(t); drawDict(b, t); });
-    const go = d => { const n = t.i + d; if (n < 0 || n >= tk.length) return; t.i = n; dictSave(t); drawDict(b, t); say(tk[n]); };
-    c.addEventListener('click', e => { const w = e.target.closest('.dw'); if (w && !c._drag) say(tk[+w.dataset.n]); });
-    const pv = c.querySelector('#dPrev'), nx = c.querySelector('#dNext'); if (pv) pv.onclick = () => go(-1); if (nx) nx.onclick = () => go(1);
-    const wb = c.querySelector('.dwb');
-    if (wb) { let x0 = null; wb.addEventListener('pointerdown', e => { x0 = e.clientX; c._drag = false; }); wb.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) { c._drag = true; go(dx < 0 ? 1 : -1); } }); wb.addEventListener('pointercancel', () => { x0 = null; }); }   /* swipe right-to-left = next */
-    c.querySelector('.dfin').onclick = () => {
-      if ((t.text || '').trim()) { t.done = true; t.stage = 'thanks'; passSave(t, false); }   /* wrote it: no photo needed */
-      else t.stage = 'photo';                                                                   /* wrote nothing: a photo is a must */
-      dictSave(t); drawDict(b, t);
-    };
-    const ms = c.querySelector('.dmis'); if (ms) ms.onclick = () => { dictSave(null); drawDict(b, { stage: 'nomind' }); };
-  }
-  function savePhoto(file) {
-    return new Promise(res => {
-      const fr = new FileReader();
-      fr.onload = () => { const im = new Image(); im.onload = () => {
-        const s = Math.min(1, 1000 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
-        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
-        const d = cv.toDataURL('image/jpeg', .7);
-        try { const a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); a.unshift({ d, at: Date.now() }); a.length = Math.min(a.length, 12); for (;;) { try { localStorage.setItem(DICT.photos, JSON.stringify(a)); break; } catch (e) { if (!a.length) break; a.pop(); } } } catch (e) { }
-        res(true); }; im.onerror = () => res(false); im.src = fr.result; };
-      fr.onerror = () => res(false); fr.readAsDataURL(file);
-    });
-  }
-  function toast(m) { const d = document.createElement('div'); d.className = 'dtoast'; d.textContent = m; W.appendChild(d); setTimeout(() => d.remove(), 3500); }
-  /* ---- numbered passages (kept in the library) ---- */
-  const PASS_KEY = 'thDictPass';
-  const passList = () => { try { return JSON.parse(localStorage.getItem(PASS_KEY) || '[]') || []; } catch (e) { return []; } };
-  const passNext = () => passList().reduce((m, p) => Math.max(m, p.n || 0), 0) + 1;
-  function passSave(t, photo) {
-    if (!t || !t.tokens) return;
-    const a = passList().filter(p => p.n !== t.n);
-    a.push({ n: t.n || (a.length + 1), text: t.tokens.map(x => x.w + (x.p || '')).join(' '), answer: t.text || '', photo: !!photo, at: Date.now() });
-    a.sort((x, y) => x.n - y.n);
-    try { localStorage.setItem(PASS_KEY, JSON.stringify(a)); } catch (e) { }
-  }
-  /* ---- library: 4 side-by-side pages (swipe left/right); the section names live in the top row next to the menu button ---- */
-  const LIB = ['sPhotos', 'sAudio', 'sPass', 'sLinks'];
-  let libI = 0, libCols = 3;
-  const libPages = () => R.querySelector('.lpages');
-  function libGo(i) { const p = libPages(); if (p) p.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * i * p.clientWidth, behavior: 'smooth' }); }
-  let libUrls = [];
-  function libAud(s) { return (s.parts || []).map(p => { const u = URL.createObjectURL(p); libUrls.push(u); return '<audio controls preload="none" src="' + u + '"></audio>'; }).join(''); }
-  /* ---- messenger photos / links are read straight from the messages: nothing extra is stored. "Remove" only hides one from the library, on this device ---- */
-  const LHK = () => 'thLibHide:' + String(localStorage.getItem('thabit_trainee_token') || 'x').slice(0, 16);
-  const libHidden = () => { try { return JSON.parse(localStorage.getItem(LHK()) || '[]') || []; } catch (e) { return []; } };
-  const libHide = id => { const h = libHidden(); if (!h.includes(String(id))) h.push(String(id)); try { localStorage.setItem(LHK(), JSON.stringify(h.slice(-2000))); } catch (e) { } };
-  let LM = null;
-  async function libMsgLoad() {
-    if (LM && LM.ok && Date.now() - LM.t < 15000) return LM;
-    const out = { photos: [], links: [], t: Date.now(), ok: false }, tk = localStorage.getItem('thabit_trainee_token');
-    if (!tk) return out;
-    const call = (fn, body) => fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(body) }).then(r => r.json()).catch(() => null);
-    const [r, mk] = await Promise.all([call('trainee_msg_list', { p_token: tk, p_after: 0 }), call('trainee_msg_marks_list', { p_token: tk })]);
-    if (!(r && r.ok && Array.isArray(r.messages))) return out;
-    const gone = new Set(((mk && mk.marks) || []).filter(x => x.kind === 'del_all').map(x => String(x.message_id)));
-    r.messages.forEach(m => {
-      if (gone.has(String(m.id))) return;
-      const at = Date.parse(m.created_at) || 0;
-      if (m.kind === 'image' && m.url) out.photos.push({ id: String(m.id), url: m.url, at });
-      else if (m.kind === 'link' && /^https?:\/\//i.test(m.body || '')) out.links.push({ id: m.id + '#0', url: m.body, at });
-      else if ((!m.kind || m.kind === 'text') && m.body) (m.body.match(/https?:\/\/[^\s<>"']+/gi) || []).forEach((u, i) => out.links.push({ id: m.id + '#' + (i + 1), url: u.replace(/[.,;:!?)\]]+$/, ''), at }));
-    });
-    out.photos.sort((x, y) => y.at - x.at); out.links.sort((x, y) => y.at - x.at); out.ok = true;
-    return (LM = out);
-  }
-  const libDay = at => new Date(at).toLocaleDateString(L === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const libByDay = items => { const g = []; items.forEach(x => { const d = libDay(x.at), l = g[g.length - 1]; if (l && l.d === d) l.a.push(x); else g.push({ d, a: [x] }); }); return g; };
-  function renderLib(b) {
-    libUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); libUrls = [];
-    const T = DT[L]; let a = []; try { a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); } catch (e) { }
-    const ps = passList(), empty = m => '<div class="dmsg">' + m + '</div>';
-    const sw = (items, on) => '<div class="lsw">' + items.map(x => '<button type="button"' + (x[0] === on ? ' class="on"' : '') + ' data-a="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
-    b.innerHTML = '<div class="pcard dpc dlib"><div class="lpages">' +
-      '<section class="lpg lpp lph">' + sw([['task', T.tabPhTask], ['msg', T.tabPhMsg]], 'task') + '<div class="lpb"></div></section>' +
-      '<section class="lpg lpa">' + sw([['task', T.tabTask], ['later', T.tabLater]], 'task') + '<div class="lab"></div></section>' +
-      '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + T.passage + ' #' + p.n + '</b><p>' + esc(p.text) + '</p>' + (p.answer ? '<p class="la">' + esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
-      '<section class="lpg lpl"><div class="lpb"></div></section></div></div>';
-    const pg = libPages();
-    pg.scrollTo({ left: (W.dir === 'rtl' ? -1 : 1) * libI * pg.clientWidth, behavior: 'instant' });
-    pg.addEventListener('scroll', () => { const i = Math.round(Math.abs(pg.scrollLeft) / (pg.clientWidth || 1)); if (i !== libI && i >= 0 && i < LIB.length) { libI = i; crumb(); } }, { passive: true });
-    /* photos: task photos (kept on this device) | messenger photos (sent or received, newest day first) */
-    const ph = b.querySelector('.lph'), phB = ph.querySelector('.lpb'), lkB = b.querySelector('.lpl .lpb');
-    let phK = 'task';
-    const drawMsgPh = () => {
-      if (phK !== 'msg' || !phB.isConnected) return;
-      const hid = libHidden(), items = ((LM && LM.photos) || []).filter(p => !hid.includes(p.id));
-      phB.innerHTML = items.length ? libByDay(items).map(g => '<div class="lday">' + esc(g.d) + '</div><div class="dgrid" style="--cols:' + libCols + '">' + g.a.map(p => '<div class="ltile" data-id="' + esc(p.id) + '"><img alt="" draggable="false" loading="lazy" src="' + esc(p.url) + '"><button type="button" class="ltx" aria-label="' + T.libDel + '">✕</button></div>').join('') + '</div>').join('') : empty(T.phMsgEmpty);
-    };
-    const drawLinks = () => {
-      if (!lkB.isConnected) return;
-      const hid = libHidden(), items = ((LM && LM.links) || []).filter(x => !hid.includes(x.id));
-      lkB.innerHTML = items.length ? '<div class="lcol">' + libByDay(items).map(g => '<div class="lday">' + esc(g.d) + '</div>' + g.a.map(x => '<div class="lpc lk" data-id="' + esc(x.id) + '"><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.url) + '</a><button type="button" class="ltx" aria-label="' + T.libDel + '">✕</button></div>').join('')).join('') + '</div>' : empty(T.linkEmpty);
-    };
-    const showPh = async k => {
-      phK = k; ph.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
-      if (k === 'task') { phB.innerHTML = a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty); return; }
-      if (LM) drawMsgPh(); else phB.innerHTML = '';
-      await libMsgLoad(); drawMsgPh();
-    };
-    ph.querySelector('.lsw').addEventListener('click', e => { const x = e.target.closest('button'); if (x) showPh(x.dataset.a); });
-    b.querySelector('.dlib').addEventListener('click', e => {
-      const x = e.target.closest('.ltx');
-      if (x) { const t = x.closest('[data-id]'); if (t) { libHide(t.dataset.id); drawMsgPh(); drawLinks(); } return; }
-      const im = e.target.closest('.ltile img'); if (im) window.open(im.src, '_blank', 'noopener');
-    });
-    showPh('task'); drawLinks();
-    libMsgLoad().then(() => { drawLinks(); drawMsgPh(); });
-    /* audio: task recordings (the mirror room) | a second part that comes later. Voice messages stay in the messenger only. */
-    const pa = b.querySelector('.lpa');
-    if (pa) {
-      const lab = pa.querySelector('.lab');
-      const show = async k => {
-        pa.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
-        if (k === 'later') { lab.innerHTML = empty(T.laterMsg); return; }
-        lab.innerHTML = '';
-        const all = (await mirDb.all(uKey())).filter(x => x.state === 'done').sort((x, y) => y.n - x.n);
-        if (!lab.isConnected || !pa.querySelector('.lsw button.on[data-a="task"]')) return;
-        lab.innerHTML = all.length ? '<div class="lcol">' + all.map(x => '<div class="lpc"><b>' + T.sessN + ' #' + x.n + '</b>' + libAud(x) + (x.text ? '<p class="la">' + esc(x.text) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.taskEmpty);
-      };
-      pa.querySelector('.lsw').addEventListener('click', e => { const x = e.target.closest('button'); if (x) show(x.dataset.a); });
-      show('task');
-    }
-    /* photos: spread two fingers = bigger pictures (fewer per row), pinch = smaller pictures, more side by side (Ctrl + wheel on a computer) */
-    {
-      const pts = new Map(); let d0 = 0, c0 = libCols;
-      const dist = () => { const v = [...pts.values()]; return Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1; };
-      const setC = n => { n = Math.max(1, Math.min(7, n)); if (n === libCols) return; libCols = n; ph.querySelectorAll('.dgrid').forEach(g => g.style.setProperty('--cols', n)); };
-      ph.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { d0 = dist(); c0 = libCols; } });
-      ph.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) setC(Math.round(c0 / (dist() / d0))); });
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => ph.addEventListener(ev, e => pts.delete(e.pointerId)));
-      ph.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); setC(libCols + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
-    }
-  }
-  /* ---- the top row beside the menu button: the open page (and, inside the library, its sections) ---- */
+  
+                
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        
+                                                          /* ---- the top row beside the menu button: the open page (and, inside the library, its sections) ---- */
   const cr = document.createElement('div'); cr.id = 'crumb'; W.appendChild(cr);
-  cr.addEventListener('click', e => { const p = e.target.closest('.cp'); if (p) { libI = +p.dataset.i; crumb(); libGo(libI); } });
+  cr.addEventListener('click', e => { const p = e.target.closest('.cp'); if (p) { MOD.library.libI = +p.dataset.i; crumb(); MOD.library.libGo(MOD.library.libI); } });
   function crumb() {
-    const T = DT[L]; let h = '<div class="cw"><div class="ci">';
+    const T = MOD.dict.DT[L]; let h = '<div class="cw"><div class="ci">';
     try { $('ltitle').style.visibility = cur === 'home' ? 'hidden' : ''; } catch (e) { }
     if (cur && cur !== 'home') h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
-    if (cur === 'library') h += '<span class="sl"></span>' + LIB.map((k, i) => '<button type="button" class="cp' + (i === libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
+    if (cur === 'library') h += '<span class="sl"></span>' + MOD.library.LIB.map((k, i) => '<button type="button" class="cp' + (i === MOD.library.libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
     cr.innerHTML = h + '</div></div>';
     const on = cr.querySelector('.cp.on'); if (on) { try { on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (e) { } }
   }
@@ -2427,13 +1502,6 @@ function THApp(cfg) {
       .plf em.y svg{color:#34d399}.plf em.n svg{color:#f87171}
       .plf em span{grid-column:2;grid-row:2;font:600 12px Cairo,Inter,sans-serif;color:var(--ink2)}
       .plf:has(em.n)>span:first-child{opacity:.55}
-      .fin-w{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 30px}
-      .fin-c{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:20px;background:var(--pcard);border:1px solid var(--sbd);color:var(--ink)}
-      .fin-l{font:700 12px Cairo,Inter,sans-serif;color:var(--ink2)}
-      .fin-t{font:800 22px Cairo,Inter,sans-serif}
-      .fin-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:10px;border-top:1px solid var(--sbd);font:600 13.5px Cairo,Inter,sans-serif}
-      .fin-r span{color:var(--ink2)}
-      .fin-e{font:600 13.5px Cairo,Inter,sans-serif;color:var(--ink2);padding:6px 0}
     `;
     R.appendChild(st);
     /* Platform View: three options, under the Subscription row in the profile pop-up */
@@ -2444,19 +1512,7 @@ function THApp(cfg) {
     const sp = [...d.querySelectorAll('.plbtn span')]; sp[0].classList.add('on');
     sp.forEach(s => s.addEventListener('click', e => { e.stopPropagation(); sp.forEach(x => x.classList.toggle('on', x === s)); }));
   })();
-  const TX = {
-    en: { cur: 'EGP', finCur: 'Current month', due: 'Amount due', status: 'Status', none: 'No dues', prev: 'My previous bills', noPrev: 'No previous bills yet.' },
-    ar: { cur: 'جنيه مصري', finCur: 'الشهر الحالي', due: 'المستحق', status: 'الحالة', none: 'لا توجد مستحقات', prev: 'فواتيري السابقة', noPrev: 'لا توجد فواتير سابقة بعد.' }
-  };
-  function renderFin(b) {
-    const T = TX[L], ar = L === 'ar';
-    let mon = ''; try { mon = new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: CALM.CAL_TZ.eg, month: 'long', year: 'numeric' }).format(new Date()); } catch (e) { }
-    b.classList.remove('full');
-    b.innerHTML = '<div class="fin-w" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="fin-c"><div class="fin-l">' + esc(T.finCur) + '</div><div class="fin-t">' + esc(mon) + '</div>' +
-      '<div class="fin-r"><span>' + esc(T.due) + '</span><b>0 ' + esc(T.cur) + '</b></div><div class="fin-r"><span>' + esc(T.status) + '</span><b>' + esc(T.none) + '</b></div></div>' +
-      '<div class="fin-c"><div class="fin-l">' + esc(T.prev) + '</div><div class="fin-e">' + esc(T.noPrev) + '</div></div></div>';
-  }
-  updBadge();
+  MOD.dict.updBadge();
   /* ---- v8: round EN / ع language button, round empty Level medal, menu button that draws itself in, more room under the header on phones ---- */
   (function () {
     R.querySelectorAll('.js-lg').forEach(b => { b.classList.add('ic'); const t = STR[L]; b.textContent = t.sh; b.title = t.name; });
