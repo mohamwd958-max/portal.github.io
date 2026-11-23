@@ -1073,7 +1073,7 @@ body.ar .dkx{font-family:Cairo,Inter,sans-serif}
   function openJoin() { if (jlOpen) return; jlOpen = true; pushLayer(closeJoin); jl.classList.add('on'); body.classList.add('lock'); }
   function closeJoin() { if (!jlOpen) return; jlOpen = false; jl.classList.remove('on'); body.classList.remove('lock'); }
   $('jBack').onclick = () => history.back();
-  $('joinBtn').onclick = openJoin;
+$('joinBtn').onclick = () => go('placement.html');
   $('soonBack').onclick = () => ov.classList.remove('on');
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.classList.remove('on'); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { ov.classList.remove('on'); $('rov').classList.remove('on'); } });
