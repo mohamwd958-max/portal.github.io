@@ -19,9 +19,6 @@
     const ICON = '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>';
     const TITLE = { en: 'Calendar', ar: 'التقويم' };
     STR.en.i_calendar = TITLE.en; STR.ar.i_calendar = TITLE.ar;
-    /* ---- تحت الإنشاء: المطرقة والشاشة بييجوا من ui-kit.js (maint:true تحت). هنا بس حجم المطرقة على الزرار ده ---- */
-    const HAMMER = 24;   /* عرض المطرقة على زرار التقويم (px). غيّره من هنا لو عايزها أكبر أو أصغر */
-    if (!R.getElementById('thCalHm')) { const hs = document.createElement('style'); hs.id = 'thCalHm'; hs.textContent = '[data-k="calendar"] .uc{--w:' + HAMMER + 'px!important}'; R.appendChild(hs); }
     const button = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON + '</svg></button>';
 
     /* ---- the screen ---- */
@@ -330,6 +327,31 @@
     calStop = () => { clearInterval(tm); calStop = () => { }; calSt = null; };
   }
 
-    return { id: 'calendar', maint: true, button: button, render: renderCal, stop: function () { calStop(); }, CAL_TZ: CAL_TZ };
+    /* =================================================================
+       تحت الإنشاء: صفحة فاضية (من غير لون ولا صورة، بتاخد لون خلفية التطبيق في اللايت والدارك)
+       والمطرقة في نصها، كبيرة، بنفس حركة ui-kit.js. الكود بتاع المطرقة هناك، هنا بس بنناديه:
+         - أي عنصر عليه data-maint بتظهر فوقه المطرقة وبتدق على حافته العلوية
+         - UnderConstruction.play(b) بيشغّلها (أول مرة في الجلسة = دقتين، وبعد الريلود/فتح الزرار تاني = دقة واحدة)
+       maint:false تحت عشان الزرار نفسه مايبقاش عليه مطرقة ومايفتحش صفحة تحت الإنشاء بتاعة index.html.
+       لما التقويم يجهز: UNDER_CONSTRUCTION = false
+       ================================================================= */
+    const UNDER_CONSTRUCTION = true;
+    const HAMMER_PAGE = 'min(160px,42vw)';   /* حجم المطرقة في الصفحة: 4 أضعاف الأصلية (40px) وبتصغر لوحدها على الشاشات الضيقة */
+    let ucRoot = null;
+    function renderUc(b) {
+      if (!R.getElementById('thCalUc')) {
+        const st = document.createElement('style'); st.id = 'thCalUc';
+        st.textContent = '.cal-uc{min-height:68vh;display:flex;align-items:center;justify-content:center;padding-top:90px;box-sizing:border-box}'
+          + '.cal-uc-p{width:min(280px,80%);height:56px;border:2px solid var(--sbd);border-radius:14px;background:var(--chip);color:var(--ink2)}'
+          + '.cal-uc .uc{--w:' + HAMMER_PAGE + '!important}';
+        R.appendChild(st);
+      }
+      ucRoot = b; b.classList.remove('full');
+      b.innerHTML = '<div class="cal-uc"><div class="cal-uc-p" data-maint></div></div>';
+      requestAnimationFrame(function () { if (typeof UnderConstruction !== 'undefined') UnderConstruction.play(b); });
+    }
+    function stopAll() { calStop(); if (ucRoot && typeof UnderConstruction !== 'undefined') { try { UnderConstruction.clear(ucRoot); } catch (e) { } } ucRoot = null; }
+
+    return { id: 'calendar', maint: false, button: button, render: UNDER_CONSTRUCTION ? renderUc : renderCal, stop: stopAll, CAL_TZ: CAL_TZ };
   };
 })();
