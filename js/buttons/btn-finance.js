@@ -3,7 +3,7 @@
    الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + زرار الشريط العلوي + شاشة الفواتير + الشاشة بتاعته.
    لو عايز تعدّل في الزرار ده، ابعت الملف ده بس.
 
-   لازم يتحط في فولدر js/ (جنب index.html)، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/btn-finance.js"></script>
+   لازم يتحط في فولدر js/buttons/، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/buttons/btn-finance.js"></script>
    و index.html بينده عليه بـ ctx = { R, $, lang, STR, IC, ucPage, esc, MOD }
    ===================================================================== */
 (function () {
@@ -15,30 +15,29 @@
     ctx.STR.en.i_finance = 'Finance'; ctx.STR.ar.i_finance = 'المالية';
     const button = '<button type="button" class="sdi st sup lbl" data-k="finance"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON + '</svg><span data-t="i_finance"></span></button>';
 
-    /* ---- the screen ---- */
+    /* ---- the screen: two places only: the current bill, and the previous bills ---- */
     const TX = {
-      en: { cur: 'EGP', finCur: 'Current month', due: 'Amount due', status: 'Status', none: 'No dues', prev: 'My previous bills', noPrev: 'No previous bills yet.' },
-      ar: { cur: 'جنيه مصري', finCur: 'الشهر الحالي', due: 'المستحق', status: 'الحالة', none: 'لا توجد مستحقات', prev: 'فواتيري السابقة', noPrev: 'لا توجد فواتير سابقة بعد.' }
+      en: { cur: 'Current bill', curEmpty: 'No bill yet. Your bill is issued on the 25th of each month.', prev: 'Previous bills', noPrev: 'No previous bills yet.' },
+      ar: { cur: 'الفاتورة الحالية', curEmpty: 'لا توجد فاتورة بعد. تصدر فاتورتك يوم 25 من كل شهر.', prev: 'فواتيري السابقة', noPrev: 'لا توجد فواتير سابقة بعد.' }
     };
+    /* The bills. Nothing has been issued yet, so both are empty.
+       Later: current = the bill raised on the 25th of the month (stays empty until then), previous = the older bills. The bill's design goes in renderBill (not built yet). */
+    const BILLS = { current: null, previous: [] };
     const CSS = `
       .fin-w{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 30px}
       .fin-c{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:20px;background:var(--pcard);border:1px solid var(--sbd);color:var(--ink)}
-      .fin-l{font:700 12px Cairo,Inter,sans-serif;color:var(--ink2)}
-      .fin-t{font:800 22px Cairo,Inter,sans-serif}
-      .fin-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:10px;border-top:1px solid var(--sbd);font:600 13.5px Cairo,Inter,sans-serif}
-      .fin-r span{color:var(--ink2)}
-      .fin-e{font:600 13.5px Cairo,Inter,sans-serif;color:var(--ink2);padding:6px 0}
+      .fin-l{font:800 14px Cairo,Inter,sans-serif;color:var(--ink)}
+      .fin-e{font:600 13.5px Cairo,Inter,sans-serif;color:var(--ink2);padding:2px 0}
     `;
     function render(b) {
-      const L = ctx.lang(), T = TX[L], ar = L === 'ar', esc = ctx.esc;
+      const L = ctx.lang(), T = TX[L] || TX.ar, ar = L !== 'en', esc = ctx.esc;
       if (!ctx.R.getElementById('thFinCss')) { const st = document.createElement('style'); st.id = 'thFinCss'; st.textContent = CSS; ctx.R.appendChild(st); }
-      let mon = ''; try { mon = new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: (ctx.MOD.calendar.CAL_TZ || { eg: 'Africa/Cairo' }).eg, month: 'long', year: 'numeric' }).format(new Date()); } catch (e) { }
       b.classList.remove('full');
-      b.innerHTML = '<div class="fin-w" dir="' + (ar ? 'rtl' : 'ltr') + '"><div class="fin-c"><div class="fin-l">' + esc(T.finCur) + '</div><div class="fin-t">' + esc(mon) + '</div>' +
-        '<div class="fin-r"><span>' + esc(T.due) + '</span><b>0 ' + esc(T.cur) + '</b></div><div class="fin-r"><span>' + esc(T.status) + '</span><b>' + esc(T.none) + '</b></div></div>' +
+      b.innerHTML = '<div class="fin-w" dir="' + (ar ? 'rtl' : 'ltr') + '">' +
+        '<div class="fin-c"><div class="fin-l">' + esc(T.cur) + '</div><div class="fin-e">' + esc(T.curEmpty) + '</div></div>' +
         '<div class="fin-c"><div class="fin-l">' + esc(T.prev) + '</div><div class="fin-e">' + esc(T.noPrev) + '</div></div></div>';
     }
 
-    return { id: 'finance', button: button, render: render };
+    return { id: 'finance', maint: true, button: button, render: render };
   };
 })();
