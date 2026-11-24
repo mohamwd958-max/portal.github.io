@@ -1239,7 +1239,7 @@ function THApp(cfg) {
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
   }
-  /* ---------- Feed + Messenger: each is its own page (feed.html / messenger.html) shown in the display area.
+  /* ---------- Feed + Messenger: each is its own page shown in the display area (feed.html; the Messenger is built from js/buttons/btn-messenger.js, no separate file).
                  Two hidden copies (?badge) only report the unread numbers; the pages talk to the portal with postMessage ---------- */
   const PAGES = {}; Object.keys(MOD).forEach(k => { if (MOD[k].page) PAGES[k] = MOD[k].page; });   /* each button file says which page it opens */
   const PG = { quote: null, bf: null, bm: null };
@@ -1269,7 +1269,7 @@ function THApp(cfg) {
       pushTheme(W.classList.contains('light'));
       if (PERS.cur === k) { persPost(k, { type: 'thabit-page-show' }); if (k === 'messenger' && PG.quote) { persPost(k, { type: 'thabit-messenger-quote', quote: PG.quote }); PG.quote = null; } }
     });
-    f.src = PAGES[k] + '?pre=1'; persBox().appendChild(f); PERS.f[k] = f; return f;
+    if (MOD[k] && MOD[k].srcdoc) f.srcdoc = MOD[k].srcdoc({ hash: location.hash }); else f.src = PAGES[k] + '?pre=1'; persBox().appendChild(f); PERS.f[k] = f; return f;
   }
   function persHide(keepBox) {
     if (PERS.cur) persPost(PERS.cur, { type: 'thabit-page-hide' });
@@ -1332,7 +1332,7 @@ function THApp(cfg) {
   })();
   function badgeFrames() {
     if (PG.bf) return;
-    [['bf', PAGES.feed + '?badge=1'], ['bm', PAGES.messenger + '?badge=1']].forEach(a => { const f = document.createElement('iframe'); f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;visibility:hidden'; f.src = a[1]; R.appendChild(f); PG[a[0]] = f; });
+    [['bf', PAGES.feed + '?badge=1'], ['bm', PAGES.messenger + '?badge=1']].forEach(a => { const f = document.createElement('iframe'); f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;visibility:hidden'; if (a[0] === 'bm' && MOD.messenger && MOD.messenger.srcdoc) f.srcdoc = MOD.messenger.srcdoc({ badge: true, hash: location.hash }); else f.src = a[1]; R.appendChild(f); PG[a[0]] = f; });
   }
   const pingBadges = () => [PG.bf, PG.bm].forEach(f => { try { f && f.contentWindow.postMessage({ type: 'thabit-badge-refresh' }, '*'); } catch (e) { } });
   window.addEventListener('message', e => {
