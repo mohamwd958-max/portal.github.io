@@ -459,7 +459,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   </div>
 </div>
 
-<script src="js/animations/comments.js"></script>
+<script src="js/films/reviews.js"></script>
 <script src="js/nav.js" data-page="landing"></script>
 <script src="js/portal.js"></script>
 <script>
@@ -501,7 +501,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   }
   new MutationObserver(setDir).observe(root, { attributes: true, attributeFilter: ['dir', 'lang'] });
   /* ============ comments deck: all its code lives in js/films/reviews.js ============ */
-  const COMMENTS = window.ThabitComments || (console.warn('js/animations/comments.js did not load: the comments deck is off'), { init() { }, start() { }, stop() { }, refresh() { } });
+  const COMMENTS = window.ThabitComments || (console.warn('js/films/reviews.js did not load: the comments deck is off'), { init() { }, start() { }, stop() { }, refresh() { } });
   COMMENTS.init(() => LANG);
   function applyLang() {
     const t = T(); setDir(); body.classList.toggle('ar', LANG === 'ar');
