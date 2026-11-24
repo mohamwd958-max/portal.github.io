@@ -754,7 +754,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   }
 
   /* ============ guest session key (the guest page reads it; leaving guest mode is handled there) ============ */
-  const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'index.html';
+  const GUEST_KEY = 'thabitGuest', GUEST_HOME = 'home.html';
   window.addEventListener('pageshow', () => { document.body.getAnimations().forEach(a => a.cancel()); });
 
   /* ============ the buttons of card 2 ============ */
