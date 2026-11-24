@@ -521,23 +521,20 @@ const THN = (() => {
   const en = new Map(), en2 = new Map(), ar = new Map();
   const nz = s => s.replace(/[ً-ٰٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
   const dd = s => s.replace(/(.)\1+/g, '$1'), cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
-  TH_NAMES.forEach(r => {
-    const x = r.split('|'), p = x[0].split(':'), vs = p[1].split(' ');
-    vs.forEach(v => { if (!en.has(v)) en.set(v, e); const d = dd(v); if (!en2.has(d)) en2.set(d, e); });
-    ar.set(nz(x[1]), e);
+  
+    
+    TH_NAMES.forEach(r => {
+  const x = r.split('|'), p = x[0].split(':'), vs = p[1].split(' ');
+  const e = { g: p[0], a: x[1], c: cap(vs[0]) };   // <-- السطر الناقص
+  vs.forEach(v => {
+    if (!en.has(v)) en.set(v, e);
+    const d = dd(v);
+    if (!en2.has(d)) en2.set(d, e);
   });
-  return function (raw, wantAr) {
-    let t = String(raw || '').trim().split(/[\s._\-@]+/)[0] || '';
-    t = t.replace(/[0-9]+/g, '');
-    if (!t) return { n: '', g: '' };
-    if (/[؀-ۿ]/.test(t)) {
-      const e = ar.get(nz(t));
-      return { n: wantAr ? t : (e ? e.c : t), g: e ? e.g : (/ة$/.test(t) ? 'f' : '') };
-    }
-    const key = t.toLowerCase().replace(/[^a-z]/g, '');
-    let e = en.get(key) || en2.get(dd(key));
-    return { n: wantAr && e ? e.a : cap(t), g: e ? e.g : '' };
-  };
+  ar.set(nz(x[1]), e);
+});
+
+    
 })();
 
 function THApp(cfg) {
