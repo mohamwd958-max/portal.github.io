@@ -1,12 +1,10 @@
 /* =====================================================================
-   SIDEBAR BUTTON: feed (المستجدات)   (الملف ده فيه كل حاجة بتاعة الصفحة، ومفيش js/feed.js)
-   1) الزرار: الأيقونة + الاسم (EN/AR) + الـbadge + اسم الصفحة اللي بيفتحها  -> بيتحمّل من index.html.
-   2) الشاشة: الإشعارات + تذكير الدفع + الفلتر  -> بتشتغل جوه feed.html بس (الكود كله متخزن في runFeedPage).
-
-   الاستخدام:
-     index.html  :  <script src="js/buttons/btn-feed.js"></script>
-     feed.html   :  <script src="js/buttons/btn-feed.js" data-feed-page></script>   (بدل js/feed.js)
+   SIDEBAR BUTTON: feed (المستجدات)   (الملف ده فيه كل حاجة بتاعة الصفحة، ومفيش feed.html ولا js/feed.js)
+   1) الزرار: الأيقونة + الاسم (EN/AR) + الـbadge.
+   2) الشاشة: الإشعارات + تذكير الدفع + الفلتر، كودها كله جوه runFeedPage().
+      index.html بيعمل iframe من srcdoc() وبيشغّل الصفحة جواه (معزولة عن باقي البوابة).
    لو عايز تعدّل في الصفحة ابعت الملف ده بس.
+   بيتحمّل من index.html:  <script src="js/buttons/btn-feed.js"></script>
    ===================================================================== */
 (function () {
   window.ThabitBtn = window.ThabitBtn || {};
@@ -22,25 +20,42 @@
     function render(b) { /* الصفحة بتتفتح كـ iframe دائم من index.html (page) */ }
 
     /* page: الملف اللي بيتفتح في منطقة العرض (iframe دائم بيديره index.html) */
-    return { id: 'feed', button: button, page: 'feed.html', render: render };
+    /* the page that used to be feed.html: built here and handed to index.html as an iframe srcdoc.
+       opts.badge = hidden helper copy that only reports the unread number; opts.hash = the portal's #vt=... (trainer view) */
+    function srcdoc(opts) {
+      opts = opts || {};
+      const flags = 'window.__thBadge=' + (opts.badge ? 'true' : 'false') + ';window.__thHash=' + JSON.stringify(String(opts.hash || '')) + ';';
+      const code = '(' + runFeedPage.toString().replace(/<\/script/gi, '<\\/script') + ')();';
+      return '<!DOCTYPE html><html lang="en" dir="ltr" id="htmlRoot"><head><meta charset="UTF-8">' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Thabit - Updates</title>' +
+        '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">' +
+        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">' +
+        '<link rel="stylesheet" href="Css/overall.css"><link rel="stylesheet" href="Css/richtext.css">' +
+        '<style>.rich>.rp,.rich>.rl{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1)}.rich>.rl{padding-inline-start:30px}\n' +
+        '.pc{position:relative;width:100%;border-radius:20px;padding:18px;background:#0f172a;color:#f1f5f9;border:1px solid rgba(255,255,255,.15);box-sizing:border-box;overflow-wrap:anywhere}body.light-theme .pc{background:#fff;color:#0f172a}\n' +
+        '.pcs{display:flex;flex-direction:column;gap:12px}.pc{flex:none}.pc h3{margin:0 0 8px;font-size:.8rem;font-weight:700}\n' +
+        '.pc.bill{border-color:rgba(251,191,36,.6)}</style>' +
+        '</head><body id="bodyRoot"><script>' + flags + '<\/script><script>' + code + '<\/script></body></html>';
+    }
+
+    /* page: just a marker that this button opens a persistent page (iframe); srcdoc builds its content */
+    return { id: 'feed', button: button, page: 'inline', srcdoc: srcdoc, render: render };
   };
 
-  /* ================= (2) THE FEED SCREEN (feed.html only) ================= */
-  const cs = document.currentScript;
-  const IS_PAGE = !!(cs && cs.hasAttribute('data-feed-page')) || /\/feed(\.html)?$/i.test(location.pathname);
-  if (!IS_PAGE) return;
-
-  /* ---- the old js/feed.js, moved here (wrapped so it never clashes with other scripts) ---- */
+  /* ================= (2) THE FEED SCREEN =================
+     The old js/feed.js, moved here (only the lines that read ?badge and #vt now also accept window.__thBadge / window.__thHash,
+     because an srcdoc iframe has no URL of its own). It is a plain function so index.html can copy its code into the iframe.
+     Do NOT use variables from outside it. */
   function runFeedPage() {
 const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
 const TOKEN_KEY = 'thabit_trainee_token';
-const BADGE_ONLY = new URLSearchParams(location.search).has('badge');   /* hidden helper copy used by the portal only to show the unread number */
+const BADGE_ONLY = !!window.__thBadge || new URLSearchParams(location.search).has('badge');   /* hidden helper copy used by the portal only to show the unread number */
 let lang = 'en'; try { lang = localStorage.getItem('thabit_lang') || 'en'; } catch (e) { }
 const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
-const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
+const VT = ((window.__thHash || location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
 const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_msg_mark', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -212,7 +227,7 @@ function optBar() {
 }
 async function optAct(id, pc) {
   const text = [txt(pc.querySelector('.nfc')), txt(pc.querySelector('.nfb .rich'))].filter(Boolean).join('\n');
-  if (id === 'reply') { if (!toParent({ type: 'thabit-open-page', page: 'messenger', quote: text })) location.href = 'messenger.html'; return; }
+  if (id === 'reply') { toParent({ type: 'thabit-open-page', page: 'messenger', quote: text }); return; }
   if (id === 'copy') { if (await copyText(text)) toast(FX().copied); return; }
   if (navigator.share) { try { await navigator.share({ text }); } catch (e) { } return; }
   if (await copyText(text)) toast(FX().copied);
@@ -349,5 +364,4 @@ body.light-theme .fmenu{background:rgba(255,255,255,.98);border-color:rgba(15,23
 }
 refresh(true);
   }
-  runFeedPage();
 })();
