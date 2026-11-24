@@ -327,31 +327,6 @@
     calStop = () => { clearInterval(tm); calStop = () => { }; calSt = null; };
   }
 
-    /* =================================================================
-       تحت الإنشاء: صفحة فاضية (من غير لون ولا صورة، بتاخد لون خلفية التطبيق في اللايت والدارك)
-       والمطرقة في نصها، كبيرة، بنفس حركة ui-kit.js. الكود بتاع المطرقة هناك، هنا بس بنناديه:
-         - أي عنصر عليه data-maint بتظهر فوقه المطرقة وبتدق على حافته العلوية
-         - UnderConstruction.play(b) بيشغّلها (أول مرة في الجلسة = دقتين، وبعد الريلود/فتح الزرار تاني = دقة واحدة)
-       maint:false تحت عشان الزرار نفسه مايبقاش عليه مطرقة ومايفتحش صفحة تحت الإنشاء بتاعة index.html.
-       لما التقويم يجهز: UNDER_CONSTRUCTION = false
-       ================================================================= */
-    const UNDER_CONSTRUCTION = true;
-    const HAMMER_PAGE = 'min(160px,42vw)';   /* حجم المطرقة في الصفحة: 4 أضعاف الأصلية (40px) وبتصغر لوحدها على الشاشات الضيقة */
-    let ucRoot = null;
-    function renderUc(b) {
-      if (!R.getElementById('thCalUc')) {
-        const st = document.createElement('style'); st.id = 'thCalUc';
-        st.textContent = '.cal-uc{min-height:68vh;display:flex;align-items:center;justify-content:center;padding-top:90px;box-sizing:border-box}'
-          + '.cal-uc-p{width:min(280px,80%);height:56px;border:2px solid var(--sbd);border-radius:14px;background:var(--chip);color:var(--ink2)}'
-          + '.cal-uc .uc{--w:' + HAMMER_PAGE + '!important}';
-        R.appendChild(st);
-      }
-      ucRoot = b; b.classList.remove('full');
-      b.innerHTML = '<div class="cal-uc"><div class="cal-uc-p" data-maint></div></div>';
-      requestAnimationFrame(function () { if (typeof UnderConstruction !== 'undefined') UnderConstruction.play(b); });
-    }
-    function stopAll() { calStop(); if (ucRoot && typeof UnderConstruction !== 'undefined') { try { UnderConstruction.clear(ucRoot); } catch (e) { } } ucRoot = null; }
-
-    return { id: 'calendar', maint: false, button: button, render: UNDER_CONSTRUCTION ? renderUc : renderCal, stop: stopAll, CAL_TZ: CAL_TZ };
+    return { id: 'calendar', maint: true, button: button, render: renderCal, stop: function () { calStop(); }, CAL_TZ: CAL_TZ };
   };
 })();
