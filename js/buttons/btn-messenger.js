@@ -106,8 +106,6 @@ if (BADGE_ONLY) {
     eg: { reply: 'ريبلاي', copy: 'كوبي', share: 'شير', copied: 'اتنسخ ✓', msgr: 'ميسنجر', ph: 'اكتب رسالة', rto: 'رد على', photo: 'صورة', link: 'لينك', shot: 'سكرين شوت', video: 'فيديو', min: 'تصغير', close: 'قفل' }
   };
   const T = () => L[(typeof lang === 'string' && lang) || 'en'] || L.en;
-  const LIBL = () => ({ en: 'Library', ar: 'المكتبة', eg: 'المكتبة' }[(typeof lang === 'string' && lang) || 'en'] || 'Library');
-  const LIBSVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>';
   const css = document.createElement('style'); css.id = 'mgrCss';
   css.textContent = `
 .mgr-pop{position:fixed;inset:0;z-index:2147483001;width:100%;height:100vh;height:100dvh;display:none;flex-direction:column;color:inherit;overflow:hidden;direction:ltr}
@@ -145,14 +143,14 @@ if (BADGE_ONLY) {
   function build() {
     if (M.built) return; M.built = true; const t = T();
     el.pop = document.createElement('div'); el.pop.className = 'mgr-pop'; el.pop.dataset.view = 'list';
-    el.pop.innerHTML = `<div class="mgr-h"><button type="button" class="mgr-hb mgr-lib" data-lib aria-label="${LIBL()}" title="${LIBL()}">${LIBSVG}</button><b data-title dir="auto"></b>
+    el.pop.innerHTML = `<div class="mgr-h"><b data-title dir="auto"></b>
         <button type="button" class="mgr-hb" data-x aria-label="${t.close}" title="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-body">
       <div class="mgr-cells" data-cells></div>
       <div class="mgr-chat">
       <div class="mgr-empty" data-empty dir="auto"></div>
       <div class="mgr-conv">
-      <div class="mgr-ch"><span class="mgr-hav mgr-logo"></span><b data-cname dir="auto"></b></div>
+      <div class="mgr-ch"><button type="button" class="mgr-hb mgr-back" data-back aria-label="back"><i class="fa-solid fa-arrow-left"></i></button><span class="mgr-hav mgr-logo"></span><b data-cname dir="auto"></b></div>
       <div class="mgr-lw"><div class="mgr-list" data-list></div><button type="button" class="mgr-new" data-new hidden dir="auto"></button></div>
       <div class="mgr-quote" data-quote hidden><i class="fa-solid fa-reply"></i><span dir="auto"></span><button type="button" class="mgr-hb" data-qx aria-label="${t.close}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="mgr-att" data-att hidden>
@@ -173,7 +171,7 @@ if (BADGE_ONLY) {
     el.list.addEventListener('scroll', mSeen, { passive: true });   /* reaching the bottom = you saw the newest message = only then it counts as read */
     el.pill.onclick = () => { el.list.scrollTo({ top: el.list.scrollHeight, behavior: 'smooth' }); };
     q('[data-x]').onclick = () => askClose();
-    q('[data-lib]').onclick = () => { toParent({ type: 'thabit-open-page', page: 'library' }); };
+    q('[data-back]').onclick = () => { M.nested = false; setView('list'); };   /* phone: chat -> the list */
     q('[data-clip]').onclick = () => { el.att.hidden = !el.att.hidden; };
     el.att.querySelectorAll('.mgr-ab').forEach(b => b.onclick = () => { el.att.hidden = true; });   /* look only */
     q('[data-mic]').onclick = () => { };                                                           /* look only */
@@ -285,6 +283,28 @@ if (BADGE_ONLY) {
 #mgrNum.bump{animation:mgrBump .4s cubic-bezier(.3,1.7,.5,1)}
 @keyframes mgrBump{0%{transform:scale(.4)}100%{transform:scale(1)}}
 body.light-theme #mgrNum{box-shadow:0 0 0 2px #f4f6f9,0 2px 6px rgba(239,68,68,.55)}`;
+    document.head.appendChild(s);
+  })();
+  /* ---------- phone layout: no side-by-side panes. The list fills the whole show room; tapping a cell opens the chat full screen ---------- */
+  (function () {
+    const s = document.createElement('style'); s.id = 'mgrCss3'; s.textContent = `
+.mgr-back{display:none}
+.mgr-ca.mgr-logo,.mgr-hav.mgr-logo{background-size:60%}
+@media (max-width:820px) and (pointer:coarse),(max-width:560px){
+.mgr-pop[data-view=list] .mgr-chat{display:none}
+.mgr-pop[data-view=chat] .mgr-cells{display:none}
+.mgr-cells{flex:1 1 auto;width:100%;min-width:0;border-right:0;padding:0}
+.mgr-chat{flex:1 1 auto;width:100%}
+.mgr-back{display:flex;align-items:center;justify-content:center;flex:none}
+.mgr-cell{position:relative;direction:ltr;gap:12px;padding:9px 14px;min-height:58px;border-bottom:1px solid rgba(255,255,255,.06)}
+.mgr-ca{width:40px;height:40px}
+.mgr-cb,.mgr-c1,.mgr-c2{display:contents}
+.mgr-c1 b{flex:0 1 auto;max-width:42%;font-size:14px}
+.mgr-cell .mgr-c1 em{display:block;position:absolute;top:7px;right:14px;font-size:11px}
+.mgr-cp{flex:1 1 0;min-width:0;font-size:13px;text-align:left}
+.mgr-cell .mgr-cn{position:absolute;right:14px;bottom:8px}
+.mgr-cell.unr .mgr-cp{margin-right:32px}
+}`;
     document.head.appendChild(s);
   })();
 
