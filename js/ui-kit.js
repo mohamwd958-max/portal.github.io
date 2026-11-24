@@ -20,14 +20,14 @@
    ------------------------------------------------------------
    [1] real-click
        أسماء تانية : ريل كليك، press، tap، button-press، ضغط الزرار
-       الأسطر      : 85 → 218         (علامة: [FX: real-click])
+       الأسطر      : 86 → 219         (علامة: [FX: real-click])
        الاستدعاء   : RealClick.init()
        بيعمل إيه   : الزرار ينزل لما تدوس ويرجع لما تسيبه، والسحب أو الخروج من حدوده بيلغي الفعل
 
    [2] slide-select
        أسماء تانية : سلايد سيلكت، سكرول كليك، scrub-select، drag-to-select، press-slide،
                      slide-to-select، touch-scrub، fisheye، dock، تمرير الاختيار
-       الأسطر      : 221 → 337         (علامة: [FX: slide-select])
+       الأسطر      : 222 → 338         (علامة: [FX: slide-select])
        الاستدعاء   : SlideSelect.init()  + data-slide-select على الحاوية
        بيعمل إيه   : تدوس وتسحب على مجموعة زراير، اللي تحت صباعك يكبر (من غير بوردر) واللي حواليه يتبعدوا عنه
                      بنسبة بتقل مع البعد، والفعل بيحصل على اللي ترفع عليه بس، وبيفضل محدد بخلفية أفتح
@@ -35,21 +35,21 @@
    [3] mono-horizontal-swipe
        أسماء تانية : مونو هورايزون سوايب، mono-swipe، mono-h-swipe، page-swipe، blur-swipe،
                      single-page-swipe، سوايب الصفحات، سوايب أفقي، الديسكريبشن والبلور
-       الأسطر      : 340 → 472         (علامة: [FX: mono-horizontal-swipe])
+       الأسطر      : 341 → 473         (علامة: [FX: mono-horizontal-swipe])
        الاستدعاء   : MonoSwipe.init()  + data-mono-swipe على الحاوية، data-page على كل صفحة، data-desc على الديسكريبشن
        بيعمل إيه   : صفحة واحدة ظاهرة، تسحب أفقياً فالجديدة تغطي القديمة. الديسكريبشن القديم يرجع عكس دخوله
                      بفيد وبلور، الصفحة القديمة تتغبّش لحد ما تختفي، والجديد يظهر. بيتبع اتجاه dir (RTL/LTR)
    [4] mono-vertical-swipe
        أسماء تانية : مونو فيرتيكال سوايب، mono-v-swipe، vertical-swipe، page-swipe-v، blur-swipe-v،
                      سوايب رأسي، سوايب عمودي، الديسكريبشن والبلور (رأسي)
-       الأسطر      : 475 → 606         (علامة: [FX: mono-vertical-swipe])
+       الأسطر      : 476 → 607         (علامة: [FX: mono-vertical-swipe])
        الاستدعاء   : MonoVSwipe.init()  + data-mono-vswipe على الحاوية، data-page على كل صفحة، data-desc على الديسكريبشن
        بيعمل إيه   : نفس رقم 3 بالظبط بس رأسي: تسحب لفوق فالصفحة الجديدة تطلع من تحت وتغطي القديمة،
                      نفس توقيتات الفيد والبلور. السحب لتحت بيرجّع للصفحة اللي قبلها
    [5] in-order-show
        أسماء تانية : إن أوردر شو، order-show، ordered-reveal، staggered-reveal، stagger-in، cells-reveal،
                      generator-reveal، wave-in، ظهور بالترتيب، ظهور السيلز
-       الأسطر      : 609 → 708         (علامة: [FX: in-order-show])
+       الأسطر      : 610 → 709         (علامة: [FX: in-order-show])
        الاستدعاء   : OrderShow.init()  + data-order-show على الحاوية، data-order-trigger="#idالحاوية" على الزرار
        بيعمل إيه   : عناصر الحاوية (سيلز/زراير/صور) تطلع ورا بعض من ورا الزرار اللي اتداس عليه بحسب مكانه
                      (شمال/يمين/فوق/تحت)، كل واحد يبدأ بلور وشفاف ثم يبوب كأنه بيعدي مطب ويكمل ويقف. بيظبط نفسه على مقاس كل عنصر تلقائي
@@ -57,7 +57,7 @@
    [6] skeleton
        أسماء تانية : سكيلتون، skeleton-loader، loading-placeholder، placeholder، loading، لودينج،
                      data-loading، sticky-note، typewriter، chart-draw، notification-badge، badge-counter، عداد النوتيفيكيشن
-       الأسطر      : 711 → 964         (علامة: [FX: skeleton])
+       الأسطر      : 712 → 965         (علامة: [FX: skeleton])
        الاستدعاء   : Skeleton.init()  ثم  Skeleton.show(el) / Skeleton.hide(el) / Skeleton.wrap(el, promise)  + data-skel="image|chart|text"
                      وللعداد: Skeleton.badge.show(btn) / .set(btn, n) / .clear(btn)
        بيعمل إيه   : أي مكان بيستنى داتا بيتفرّغ ويتحط مكانه حركة لحد ما الداتا توصل: صورة = ستيكي نوت بلوجو بتاعنا (ركنها مثني)،
@@ -67,14 +67,15 @@
 
    [7] under-construction
        أسماء تانية : أندر كونستركشن، under-maintenance، maintenance، hammer، hammer-strike، مطرقة، شاكوش، صيانة، تحت الصيانة، تحت الإنشاء
-       الأسطر      : 967 → 1111         (علامة: [FX: under-construction])
+       الأسطر      : 968 → 1118         (علامة: [FX: under-construction])
        الاستدعاء   : UnderConstruction.init()  ثم  UnderConstruction.play(root, { first })  + data-maint على الزرار/الاختيار تحت الصيانة
+                     (جوه shadow root: UnderConstruction.init({ styleHost, themeNodes, darkFn }) — شوف السطر shadow-root في البلوك)
        بيعمل إيه   : مطرقة صغيرة 2D (خطوط فاضية) فوق أول حافة الزرار، بتترفع بالراحة وتدق بقوة على جزء الحافة اللي تحتها فينوّر ويطلع شرار.
                      زرار واحد: دقتين أول مرة ودقة بعد الريفرش. أكتر من زرار: الأول بس بيتدق دقة، والباقي مطارق مايلة بتظهر بفيد
    [8] typography-thabit-1  (الخط: ثابت 1)
        أسماء تانية : ثابت 1، thabit 1، thabit-1، typography، تايبوجرافي، الخط، الخطوط، font، حجم الخط،
                      Inter، Cairo، Playfair Display، خطوط صفحة landing
-       الأسطر      : 1114 → 1218         (علامة: [FX: typography-thabit-1])
+       الأسطر      : 1121 → 1225         (علامة: [FX: typography-thabit-1])
        الاستدعاء   : Typography.init()  + class="t-brand | t-title | t-body | t-btn ..." (20 role)
        بيعمل إيه   : خط ثابت 1: Inter للإنجليزي، Cairo للعربي، Playfair للعناوين الكبيرة، html 90%. نسخة العربي بتتفعّل من lang="ar"
 
@@ -978,6 +979,7 @@ const Skeleton = (() => {
           UnderConstruction.play(root)                      ← شغّل على كل data-maint جوه root (الويدجت اللي اتفتحت). أول مرة في الجلسة = أول مرة، وبعدها = ريفرش
           UnderConstruction.play(root, { first: true })     ← فرض "أول مرة" (true) أو "ريفرش" (false)
           UnderConstruction.clear(root)                     ← شيل المطارق (بيتناده لوحده قبل كل play)
+   shadow-root: UnderConstruction.init({ styleHost: shadowRoot, themeNodes: [عنصر الثيم], darkFn: () => true/false })  ← بس لو الصفحة جوه shadow root
    needs: متصفح حديث (Web Animations و rotate المستقلة). المطرقة بتتحط جوه الزرار نفسه فمتبقاش overflow:hidden عليه، وبيبقى position:relative لو كان static.
           "أول مرة" متخزنة في sessionStorage (مفتاح uc-seen).
    ============================================================ */
@@ -999,7 +1001,11 @@ const UnderConstruction = (() => {
     onLight: '#52555d',         // لون المطرقة على خلفية فاتحة
     themeMs: 350,
     storeKey: 'uc-seen',
-    respectReducedMotion: true
+    respectReducedMotion: true,
+    /* ---- للـshadow root: لو الصفحة جوه shadow root. الافتراضي null = السلوك الأصلي (document) ---- */
+    styleHost: null,            // فين يتحط الـstyle (الافتراضي document.head)
+    themeNodes: null,           // العناصر اللي بنراقب تغيّر الثيم عليها (الافتراضي html + body)
+    darkFn: null                // دالة (el) => true لو الخلفية غامقة (الافتراضي: بيحسبها من الألوان)
   };
 
   const live = new Map();       // el → { el, box, seg, hm, svg, pos, dead }
@@ -1012,6 +1018,7 @@ const UnderConstruction = (() => {
   const rgba = (c) => { px.clearRect(0, 0, 1, 1); px.fillStyle = '#000'; px.fillStyle = c; px.fillRect(0, 0, 1, 1); return px.getImageData(0, 0, 1, 1).data; };
   const lum = (d) => 0.299 * d[0] + 0.587 * d[1] + 0.114 * d[2];
   const dark = (el) => {
+    if (CFG.darkFn) return CFG.darkFn(el);
     for (let n = el; n; n = n.parentElement) { const d = rgba(getComputedStyle(n).backgroundColor); if (d[3] > 128) return lum(d) < 140; }
     return lum(rgba(getComputedStyle(document.body).color)) > 140;
   };
@@ -1099,11 +1106,11 @@ const UnderConstruction = (() => {
       + `.uc-h svg{display:block;width:100%;height:100%;overflow:visible;transform-origin:6.25% 50%}.uc svg *{vector-effect:non-scaling-stroke}`
       + `.uc-seg{position:absolute;top:-1px;inset-inline-start:58%;width:46%;height:2px;border-radius:2px;opacity:0;background:currentColor}`
       + `.uc-sp{position:absolute;top:0;inset-inline-start:81%;width:7px;height:1.5px;border-radius:1px;opacity:0;transform-origin:0 50%;background:currentColor}`;
-    document.head.append(st);
+    (CFG.styleHost || document.head).append(st);
     const later = () => { setTimeout(() => live.forEach(tint), 60); setTimeout(() => live.forEach(tint), CFG.themeMs + 150); };
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', later);
     const mo = new MutationObserver(later);
-    [document.documentElement, document.body].forEach((n) => mo.observe(n, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-bs-theme', 'style'] }));
+    (CFG.themeNodes || [document.documentElement, document.body]).forEach((n) => mo.observe(n, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-bs-theme', 'style'] }));
   }
 
   return { init, play, clear, CFG };
