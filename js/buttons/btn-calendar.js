@@ -3,7 +3,7 @@
    الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + شاشة الـCalendar بالكامل (أسبوع / يوم / شهر / سنة + Events).
    لو عايز تعدّل في الزرار ده، ابعت الملف ده بس.
 
-   لازم يتحط في فولدر js/ (جنب index.html)، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/btn-calendar.js"></script>
+   لازم يتحط في فولدر js/buttons/، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/buttons/btn-calendar.js"></script>
    والـindex.html بينده عليه كده:  ThabitBtn.calendar({ R, lang, STR })
      R    = الـshadow root بتاع التطبيق
      lang = دالة بترجّع اللغة الحالية ('en' أو 'ar')
@@ -19,6 +19,9 @@
     const ICON = '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>';
     const TITLE = { en: 'Calendar', ar: 'التقويم' };
     STR.en.i_calendar = TITLE.en; STR.ar.i_calendar = TITLE.ar;
+    /* ---- تحت الإنشاء: المطرقة والشاشة بييجوا من ui-kit.js (maint:true تحت). هنا بس حجم المطرقة على الزرار ده ---- */
+    const HAMMER = 24;   /* عرض المطرقة على زرار التقويم (px). غيّره من هنا لو عايزها أكبر أو أصغر */
+    if (!R.getElementById('thCalHm')) { const hs = document.createElement('style'); hs.id = 'thCalHm'; hs.textContent = '[data-k="calendar"] .uc{--w:' + HAMMER + 'px!important}'; R.appendChild(hs); }
     const button = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON + '</svg></button>';
 
     /* ---- the screen ---- */
@@ -327,6 +330,6 @@
     calStop = () => { clearInterval(tm); calStop = () => { }; calSt = null; };
   }
 
-    return { id: 'calendar', button: button, render: renderCal, stop: function () { calStop(); }, CAL_TZ: CAL_TZ };
+    return { id: 'calendar', maint: true, button: button, render: renderCal, stop: function () { calStop(); }, CAL_TZ: CAL_TZ };
   };
 })();
