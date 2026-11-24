@@ -500,7 +500,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
     if (root.getAttribute('lang') !== LANG) root.setAttribute('lang', LANG);
   }
   new MutationObserver(setDir).observe(root, { attributes: true, attributeFilter: ['dir', 'lang'] });
-  /* ============ comments deck: all its code lives in js/animations/comments.js ============ */
+  /* ============ comments deck: all its code lives in js/films/reviews.js ============ */
   const COMMENTS = window.ThabitComments || (console.warn('js/animations/comments.js did not load: the comments deck is off'), { init() { }, start() { }, stop() { }, refresh() { } });
   COMMENTS.init(() => LANG);
   function applyLang() {
