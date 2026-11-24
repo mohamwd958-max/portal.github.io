@@ -35,7 +35,7 @@
 
 <div id="thApp"></div>
 
-<!-- ملفات الخدمات والنظام -->
+<!-- ملفات النظام والخدمات -->
 <script src="js/brand.js"></script>
 <script src="js/portal.js"></script>
 <script src="js/ui-kit.js"></script>
@@ -64,7 +64,7 @@
 <script src="js/buttons/btn-space.js"></script>
 
 <script>
-const THAPP_CSS=`
+const THAPP_CSS = `
 #W {
   --hh: 60px;
   --bg: #0c0d12;
@@ -161,7 +161,7 @@ const THAPP_CSS=`
   background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
 }
 
-/* السايد بار */
+/* السايد بار بالكونتراست والتوسيط */
 #side {
   position: fixed;
   z-index: 28;
@@ -212,7 +212,6 @@ const THAPP_CSS=`
   gap: 6px;
   padding: 0 2px;
 }
-/* الرئيسية في المنتصف تماماً */
 .sdr .sdi.hm {
   grid-column: span 12;
   height: 44px;
@@ -222,7 +221,6 @@ const THAPP_CSS=`
   background: var(--field);
   border: 1px solid var(--line);
 }
-/* الصف الأول (4 أزرار متساوية ومسنترة) */
 .sdr .sdi.sub4 {
   grid-column: span 3;
   height: 40px;
@@ -231,7 +229,6 @@ const THAPP_CSS=`
   background: var(--field);
   border: 1px solid var(--line);
 }
-/* الصف الثاني (3 أزرار متساوية ومسنترة) */
 .sdr .sdi.sub3 {
   grid-column: span 4;
   height: 40px;
@@ -242,7 +239,7 @@ const THAPP_CSS=`
 }
 .sdr .sdi.sub4 span, .sdr .sdi.sub3 span { display: none!important; }
 
-/* دائرة النوتيفيكيشن مع الـ Countdown */
+/* عداد النوتيفيكيشن التنازلي */
 .badge-count {
   position: absolute;
   top: -4px;
@@ -261,7 +258,7 @@ const THAPP_CSS=`
   transition: transform 0.2s ease;
 }
 
-/* منطقة العرض الرئيسية */
+/* مساحة العرض الرئيسية */
 #layer {
   position: fixed;
   inset: 0;
@@ -279,7 +276,7 @@ const THAPP_CSS=`
 }
 #lbody::-webkit-scrollbar { display: none; }
 
-/* شريط العنوان التفاعلي (يختفي في الرئيسية) */
+/* شريط العنوان التفاعلي فوق */
 #crumb {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 16px);
@@ -459,12 +456,11 @@ const THAPP_CSS=`
 }
 `;
 
-const THAPP_HTML=`
+const THAPP_HTML = `
 <div id="W" dir="rtl">
   <header id="hdr">
     <div id="hlg">
       <div class="sdlogo" id="logo" role="button" tabindex="0" title="ثابت">
-        <!-- يتم تحميل اللوجو من assets مباشرة -->
         <img id="mainLogoImg" src="assets/thabit-logo.png" alt="ثابت">
       </div>
     </div>
@@ -518,7 +514,7 @@ const THAPP_HTML=`
 const TH_NAMES = [
 'f:fatma fatima fatema fatmah|فاطمة','f:mariam maryam mariem meryem|مريم','f:sara sarah|سارة','f:salma selma|سلمى','f:yasmin yasmine yasmeen jasmine|ياسمين','f:aya|آية','f:esraa israa|إسراء','f:mona|منى','f:hana hanaa|هنا','f:heba hiba|هبة','f:hagar hajar|هاجر','f:asmaa asma|أسماء','f:aisha aesha aysha|عائشة','f:amira ameera|أميرة','f:rana|رنا','f:reem rim|ريم','f:rawan rowan|روان','f:razan|رزان','f:dina|دينا','f:doaa dua duaa|دعاء','f:eman iman|إيمان','f:ghada|غادة','f:huda hoda|هدى','f:hanan|حنان','f:mai may|مي','f:menna mennah|منة','f:mervat|مرفت','f:nada|ندى','f:nadia nadya|نادية','f:nagwa|نجوى','f:noha|نهى','f:nermeen nirmeen|نرمين','f:rasha|رشا','f:radwa|رضوى','f:rehab|رحاب','f:safaa|صفاء','f:samar|سمر','f:sondos sondus|سندس','f:shaimaa shaymaa|شيماء','f:sherine shereen|شيرين','f:soha|سها','f:tasneem|تسنيم','f:walaa|ولاء','f:yara|يارا','f:zeinab zainab zaynab|زينب','f:zahra|زهراء','f:lamis|لميس','f:layla laila leila|ليلى','f:lina leena|لينا','f:marwa|مروة','f:maha|مها','f:nourhan norhan|نورهان','f:rahma|رحمة','f:samira|سميرة','f:sawsan|سوسن','f:sahar|سحر','f:shahd|شهد','f:shorouk shorok|شروق','f:hadeer|هدير','f:habiba|حبيبة','f:farida fareeda|فريدة','f:farah|فرح','f:jana|جنى','f:malak|ملك','f:mirna|ميرنا','f:nancy|نانسي','f:aliaa alia|علياء','f:amal|أمل','f:azza|عزة','f:basma|بسمة','f:dalia dalya|داليا','f:ola|علا','f:rania ranya|رانيا','f:suha|سهى','f:hend|هند','f:inas|إيناس','f:kholoud|خلود','f:mayar|ميار','f:nouran|نوران','f:sama|سما','f:somaya sumaya|سمية',
 'u:nour noor|نور',
-'m:ahmed ahmad|أحمد','m:mohamed mohammed muhammad mohammad mohamad|محمد','m:mahmoud mahmood|محمود','m:mostafa mustafa moustafa|مصطفى','m:ali|علي','m:omar omer|عمر','m:hassan hasan|حسن','m:hussein hussain husain|حسين','m:ibrahim ebrahim|إبراهيم','m:ismail ismael|إسماعيل','m:youssef yousef yusuf yossef|يوسف','m:khaled khalid|خالد','m:karim kareem|كريم','m:tarek tariq|طارق','m:amr amro|عمرو','m:ayman|أيمن','m:ashraf|أشرف','m:adel|عادل','m:hany hani|هاني','m:hesham hisham|هشام','m:walid waleed|وليد','m:sherif sherief shereef|شريف','m:tamer|تامر','m:sami samy|سامي','m:saeed said|سعيد','m:salah|صلاح','m:sayed|السيد','m:samir sameer|سمير','m:ramy rami|رامي','m:mazen|مازن','m:mina|مينا','m:marwan|مروان','m:magdy|مجدي','m:nabil|نبيل','m:nader nadir|نادر','m:osama usama|أسامة','m:othman osman|عثمان','m:ramadan|رمضان','m:reda ridha|رضا','m:sameh|سامح','m:shady|شادي','m:wael|وائل','m:yahya|يحيى','m:yassin yassine|ياسين','m:zakaria|زكريا','m:ziad ziyad|زياد','m:abdullah abdallah|عبدالله','m:abdelrahman abdulrahman|عبدالرحمن','m:hamza|حمزة','m:bilal|بلال','m:anas|أنس','m:eyad iyad|إياد','m:fady|فادي','m:fares|فارس','m:hazem|حازم','m:hossam hosam|حسام','m:islam|إسلام','m:kamal|كمال','m:mohab|مهاب','m:moaz mouaz|معاذ','m:nasser|ناصر','m:ehab ihab|إيهاب','m:essam issam|عصام','m:gamal|جمال','m:hatem|حاتم','m:abdelaziz|عبدالعزيز','m:khalil|خليل','m:bassem basem|باسم','m:ayoub|أيوب','m:adam|آدم','m:hamdy|حمدي','m:medhat|مدحت','m:mohsen|محسن','m:fathy|فتحي'
+'m:ahmed ahmad|أحمد','m:mohamed mohammed muhammad mohammad mohamad|محمد','m:mahmoud mahmood|محمود','m:mostafa mustafa moustafa|مصطفى','m:ali|علي','m:omar omer|عمر','m:hassan hasan|حسن','m:hussein hussain husain|حسين','m:ibrahim ebrahim|إbrahim','m:ismail ismael|إسماعيل','m:youssef yousef yusuf yossef|يوسف','m:khaled khalid|خالد','m:karim kareem|كريم','m:tarek tariq|طارق','m:amr amro|عمرو','m:ayman|أيمن','m:ashraf|أشرف','m:adel|عادل','m:hany hani|هاني','m:hesham hisham|هشام','m:walid waleed|وليد','m:sherif sherief shereef|شريف','m:tamer|تامر','m:sami samy|سامي','m:saeed said|سعيد','m:salah|صلاح','m:sayed|السيد','m:samir sameer|سمير','m:ramy rami|رامي','m:mazen|مازن','m:mina|مينا','m:marwan|مروان','m:magdy|مجدي','m:nabil|نبيل','m:nader nadir|نادر','m:osama usama|أسامة','m:othman osman|عثمان','m:ramadan|رمضان','m:reda ridha|رضا','m:sameh|سامح','m:shady|شادي','m:wael|وائل','m:yahya|يحيى','m:yassin yassine|ياسين','m:zakaria|زكريا','m:ziad ziyad|زياد','m:abdullah abdallah|عبدالله','m:abdelrahman abdulrahman|عبدالرحمن','m:hamza|حمزة','m:bilal|بلال','m:anas|أنس','m:eyad iyad|إياد','m:fady|فادي','m:fares|فارس','m:hazem|حازم','m:hossam hosam|حسام','m:islam|إسلام','m:kamal|كمال','m:mohab|مهاب','m:moaz mouaz|معاذ','m:nasser|ناصر','m:ehab ihab|إيهاب','m:essam issam|عصام','m:gamal|جمال','m:hatem|حاتم','m:abdelaziz|عبدالعزيز','m:khalil|خليل','m:bassem basem|باسم','m:ayoub|أيوب','m:adam|آدم','m:hamdy|حمدي','m:medhat|مدحت','m:mohsen|محسن','m:fathy|فتحي'
 ];
 
 const THN = (() => {
@@ -580,6 +576,7 @@ function THApp(cfg) {
   const IC = { train: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>' };
   const MOD = {};
 
+  // مفاتيح أقسام الصيانة
   const maintKeys = ['compass', 'support', 'calendar', 'res'];
   const maintTitles = { compass: 'البوصلة', support: 'الدعم', calendar: 'التقويم', res: 'الموارد' };
 
@@ -604,11 +601,10 @@ function THApp(cfg) {
       </div>
     `;
 
-    // أنيميشن دقات المطرقة بإيقاع تن... تن تن... تن مع الشرار الذهبي
     const hBox = b.querySelector('#maintH');
     const svg = hBox.querySelector('svg');
     
-    function strikeHit(angle, delay, hasSparks) {
+    function strikeHit(delay, hasSparks) {
       setTimeout(() => {
         svg.animate([
           { transform: 'rotate(-45deg)' },
@@ -633,11 +629,11 @@ function THApp(cfg) {
       }, delay);
     }
 
-    // تسلسل الدقات المنتظم
-    strikeHit(0, 300, true);
-    strikeHit(0, 520, false);
-    strikeHit(0, 680, true);
-    strikeHit(0, 950, true);
+    // إيقاع الدقات: تن... تن تن... تن
+    strikeHit(300, true);
+    strikeHit(520, false);
+    strikeHit(680, true);
+    strikeHit(950, true);
   }
 
   function ucPage(b, msgKey, cards) {
@@ -665,7 +661,6 @@ function THApp(cfg) {
   const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
   const sdi = k => '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + (IC[k] || '') + '</svg><span data-t="i_' + k + '"></span></button>';
 
-  // تجهيز الزراير وتوسيطها في شبكة السايد بار
   const storeBtn = (MOD.store && MOD.store.button ? MOD.store.button.replace('class="sdi"', 'class="sdi sub4"') : '<button type="button" class="sdi sub4" data-k="store"><svg viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5M3 9v11a1 1 0 001 1h16a1 1 0 001-1V9"/></svg></button>');
   const feedBtn = (MOD.feed && MOD.feed.button ? MOD.feed.button.replace('class="sdi"', 'class="sdi sub4"') : '<button type="button" class="sdi sub4" data-k="feed"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></button>');
   const msgBtn = (MOD.messenger && MOD.messenger.button ? MOD.messenger.button.replace('class="sdi"', 'class="sdi sub4"') : '<button type="button" class="sdi sub4" data-k="messenger"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>');
@@ -698,7 +693,7 @@ function THApp(cfg) {
     ${EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('')}
   `;
 
-  // عداد النوتيفيكيشن مع تأثير الـ Countdown على الماسنجر والفيد
+  // عداد النوتيفيكيشن مع الـ Countdown التنازلي
   function applyBadgeCountdown(selector, targetCount) {
     const btn = R.querySelector(selector);
     if (!btn) return;
@@ -708,7 +703,7 @@ function THApp(cfg) {
       b.className = 'badge-count';
       btn.appendChild(b);
     }
-    let current = 25; // يبدأ العد التنازلي من 25
+    let current = 25;
     b.textContent = current;
     const interval = setInterval(() => {
       current--;
@@ -893,6 +888,9 @@ function THApp(cfg) {
   $('lout').onclick = () => cfg.logout();
 
   function start() {
+    if (MOD.home && MOD.home.homeCss) MOD.home.homeCss();
+    if (MOD.mirror && MOD.mirror.mirCss) MOD.mirror.mirCss();
+    
     const isLight = W.classList.contains('light');
     fillUser();
     updateThemeIcon(isLight);
@@ -900,7 +898,7 @@ function THApp(cfg) {
     apply();
     openLayer('home');
     
-    // تشغيل عداد النوتيفيكيشن
+    // تشغيل عداد النوتيفيكيشن التنازلي
     setTimeout(() => {
       applyBadgeCountdown('.sdr .sdi[data-k="messenger"]', 2);
       applyBadgeCountdown('.sdr .sdi[data-k="feed"]', 5);
