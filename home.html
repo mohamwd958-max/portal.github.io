@@ -68,13 +68,13 @@ const THAPP_CSS = `
 #W {
   --hh: 60px;
   --bg: #0c0d12;
-  --card: #171922;
-  --field: #1f222e;
-  --line: rgba(255, 255, 255, 0.08);
-  --line2: rgba(255, 255, 255, 0.12);
+  --card: #1d2130;
+  --field: #282d3f;
+  --line: rgba(255, 255, 255, 0.14);
+  --line2: rgba(255, 255, 255, 0.24);
   --ink: #f4f4f6;
-  --ink2: rgba(244, 244, 246, 0.7);
-  --btn: #252936;
+  --ink2: rgba(244, 244, 246, 0.78);
+  --btn: #323850;
   --accent: #34d399;
 }
 #W.light {
@@ -173,8 +173,8 @@ const THAPP_CSS = `
   border-radius: 24px;
   color: var(--ink);
   background: var(--card);
-  border: 1px solid var(--line);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.25);
+  border: 1px solid var(--line2);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -203,6 +203,9 @@ const THAPP_CSS = `
 }
 .sdi svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; opacity: 0.85; flex: none; }
 .sdi:hover { background: var(--btn); border-color: var(--line2); }
+.sdr .sdi.hm, .sdr .sdi.sub4, .sdr .sdi.sub3 { border-color: var(--line2); }
+.sdr .sdi.hm:hover, .sdr .sdi.sub4:hover, .sdr .sdi.sub3:hover { background: var(--btn); }
+.sdr .sdi.hm.on { border-color: var(--accent); }
 .sdi.on { background: var(--btn); border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
 /* شبكة الزراير ومحاذاة السنتر الدقيقة */
@@ -227,7 +230,7 @@ const THAPP_CSS = `
   padding: 0;
   justify-content: center;
   background: var(--field);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line2);
 }
 .sdr .sdi.sub3 {
   grid-column: span 4;
@@ -235,7 +238,7 @@ const THAPP_CSS = `
   padding: 0;
   justify-content: center;
   background: var(--field);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line2);
 }
 .sdr .sdi.sub4 span, .sdr .sdi.sub3 span { display: none!important; }
 
@@ -315,7 +318,7 @@ const THAPP_CSS = `
   border-radius: 24px;
   background: var(--card);
   border: 1px solid var(--line2);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
   min-width: 220px;
 }
 .maint-target .maint-title {
@@ -521,20 +524,23 @@ const THN = (() => {
   const en = new Map(), en2 = new Map(), ar = new Map();
   const nz = s => s.replace(/[ً-ٰٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
   const dd = s => s.replace(/(.)\1+/g, '$1'), cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
-  
-    
-    TH_NAMES.forEach(r => {
-  const x = r.split('|'), p = x[0].split(':'), vs = p[1].split(' ');
-  const e = { g: p[0], a: x[1], c: cap(vs[0]) };   // <-- السطر الناقص
-  vs.forEach(v => {
-    if (!en.has(v)) en.set(v, e);
-    const d = dd(v);
-    if (!en2.has(d)) en2.set(d, e);
+  TH_NAMES.forEach(r => {
+    const x = r.split('|'), p = x[0].split(':'), vs = p[1].split(' ');
+    vs.forEach(v => { if (!en.has(v)) en.set(v, e); const d = dd(v); if (!en2.has(d)) en2.set(d, e); });
+    ar.set(nz(x[1]), e);
   });
-  ar.set(nz(x[1]), e);
-});
-
-    
+  return function (raw, wantAr) {
+    let t = String(raw || '').trim().split(/[\s._\-@]+/)[0] || '';
+    t = t.replace(/[0-9]+/g, '');
+    if (!t) return { n: '', g: '' };
+    if (/[؀-ۿ]/.test(t)) {
+      const e = ar.get(nz(t));
+      return { n: wantAr ? t : (e ? e.c : t), g: e ? e.g : (/ة$/.test(t) ? 'f' : '') };
+    }
+    const key = t.toLowerCase().replace(/[^a-z]/g, '');
+    let e = en.get(key) || en2.get(dd(key));
+    return { n: wantAr && e ? e.a : cap(t), g: e ? e.g : '' };
+  };
 })();
 
 function THApp(cfg) {
