@@ -277,10 +277,8 @@ html,body{height:100%;overflow:hidden}
 .ov::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 
 /* =========================================================
-   v4: brand in the top-left, saved-passwords pop-up, green autofill
+   v4: brand in the top-left
    ========================================================= */
-:root{--sugbg:rgba(20,24,36,.9)}
-body.light{--sugbg:rgba(250,248,243,.94)}
 
 /* the logo alone fades in at the top-left (left -> right) once "Ready" is pressed; a little smaller than the theme circle */
 .hb{position:fixed;z-index:5;left:15px;top:calc(max(9px,env(safe-area-inset-top,0px)) + 4.5px);width:25px;height:25px;pointer-events:none;opacity:0;translate:-10px 0;clip-path:inset(-8px 100% -8px -8px)}
@@ -300,40 +298,6 @@ body.light{--sugbg:rgba(250,248,243,.94)}
 .ov.on::before{opacity:1}
 .ov .pop{animation:none;opacity:0;scale:.94;translate:0 14px;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);transition:opacity .3s ease,scale .45s var(--ease),translate .45s var(--ease)}
 .ov.on .pop{opacity:1;scale:1;translate:0 0;transition-delay:.05s}
-
-/* saved passwords on touch screens: small cells right above the keyboard */
-.kbs{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;gap:8px;padding:8px 10px;overflow-x:auto;overscroll-behavior:contain;scrollbar-width:none;direction:ltr;
-  background:var(--sugbg);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);border-top:1px solid var(--gbd);
-  opacity:0;visibility:hidden;translate:0 10px;pointer-events:none;transition:opacity .2s ease,translate .3s var(--ease),visibility 0s .2s}
-.kbs.on{opacity:1;visibility:visible;translate:0 0;pointer-events:auto;transition:opacity .2s ease,translate .3s var(--ease),visibility 0s}
-.kbs::-webkit-scrollbar{display:none}
-.kc{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:46px;max-width:78vw;padding:0 14px;border-radius:12px;border:1px solid var(--gbd);background:var(--gfield);color:var(--ink);font:600 .85rem Inter,Cairo,sans-serif;cursor:pointer;text-align:left;transition:scale .9s var(--ease)}
-.kc:active{scale:.95;transition:scale .12s ease-out}
-.kc .sn{max-width:100%}
-.kc .sd{font-size:.62rem}
-
-/* login card: lets the saved-passwords pop-up sit above the next card */
-#c0{overflow:visible;z-index:3}
-#flU{z-index:4}
-
-/* saved passwords pop-up: same width as the username field, a small gap under it, height = its content */
-.sug{position:absolute;left:0;right:0;top:66px;z-index:6;direction:ltr;padding:6px;border-radius:16px;border:1px solid var(--gbd);background:var(--sugbg);
-  -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);box-shadow:0 14px 36px rgba(0,0,0,.28);
-  opacity:0;visibility:hidden;translate:0 -6px;pointer-events:none;transition:opacity .22s ease,translate .3s var(--ease),visibility 0s .22s}
-.sug.on{opacity:1;visibility:visible;translate:0 0;pointer-events:auto;transition:opacity .22s ease,translate .3s var(--ease),visibility 0s}
-.sugt{padding:4px 8px 6px;font:700 .66rem Inter,Cairo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);text-align:left}
-body.ar .sugt{direction:rtl;text-align:right;letter-spacing:0;text-transform:none;font-size:.74rem}
-.si{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:38px;padding:0 10px;border:0;border-radius:11px;background:none;color:var(--ink);
-  font:600 .86rem Inter,Cairo,sans-serif;cursor:pointer;text-align:left;transition:background .2s,scale .9s var(--ease)}
-.sug.on .si{animation:fadeUp .3s ease backwards;animation-delay:calc(var(--n)*.05s + .04s)}
-@media(hover:hover){.si:hover{background:var(--gfield)}}
-.si:active{background:var(--gfield);scale:.97;transition:background .2s,scale .12s ease-out}
-.sn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sd{flex:none;font-size:.7rem;letter-spacing:.12em;opacity:.45}
-
-/* fields filled from a saved password: green, until the person edits them */
-.fl.af:not(.bad) input{border-color:var(--ok);background:rgba(52,211,153,.16);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
-.fl.af:not(.bad) label{color:var(--ok);opacity:1}
 
 /* =========================================================
    v5: real daytime for the light theme + twinkling stars at night
@@ -418,13 +382,12 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
           <h3 class="q q1" data-t="q1"></h3>
           <div class="lalert" id="lgAlert" role="alert"></div>
           <div class="fl" id="flU">
-            <input type="text" id="lgU" name="th_user_field" dir="ltr" placeholder=" " autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" autocapitalize="off" spellcheck="false">
+            <input type="text" id="lgU" name="username" dir="ltr" placeholder=" " autocomplete="username" autocapitalize="off" spellcheck="false">
             <label for="lgU" data-t="user"></label>
             <div class="fmsg" id="msgU"></div>
-            <div class="sug" id="sug" role="listbox"><div class="sugt" data-t="sugT"></div><div id="sugL"></div></div>
           </div>
           <div class="fl pw" id="flP">
-            <input type="password" id="lgP" name="th_pass_field" dir="ltr" placeholder=" " autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other">
+            <input type="password" id="lgP" name="password" dir="ltr" placeholder=" " autocomplete="current-password">
             <label for="lgP" data-t="pass"></label>
             <button type="button" class="eye" id="lgEye" aria-label="Show password" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12S5.8 5.5 12 5.5 21.8 12 21.8 12 18.2 18.5 12 18.5 2.2 12 2.2 12z"/><circle class="pup" cx="12" cy="12" r="3"/></svg>
@@ -496,8 +459,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   </div>
 </div>
 
-<div class="kbs" id="kbs" role="listbox" aria-label="Saved passwords"></div>
-<script src="js/films/reviews.js"></script>
+<script src="js/animations/comments.js"></script>
 <script src="js/nav.js" data-page="landing"></script>
 <script src="js/portal.js"></script>
 <script>
@@ -512,12 +474,12 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { sugT: 'Saved passwords', gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
+    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
       dkHint: 'Drag any card anywhere you like, or tap the card you want to see what is written on it.', notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { sugT: 'كلمات المرور المحفوظة', gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
+    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
       dkHint: 'اسحب أي بطاقة إلى أي مكان تريده، أو اضغط على البطاقة التي تريدها لنعرض لك ما كُتب فيها.', notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
@@ -824,8 +786,8 @@ $('joinBtn').onclick = () => go('placement.html');
     let i = 0;
     S.hintT = setInterval(() => { i++; s.textContent = HINT.slice(0, i); if (i >= HINT.length) { clearInterval(S.hintT); S.hintX = setTimeout(() => { s.style.opacity = 0; setTimeout(() => s.remove(), 350); }, 800); } }, 38);
   }
-  $('c0').addEventListener('focusin', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.add('act'); if (t === uIn) { showSug(); setTimeout(hint, 250); } });
-  $('c0').addEventListener('focusout', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.remove('act'); cancelHint(); if (t === uIn) { hideSug(); onUserBlur(); } });
+  $('c0').addEventListener('focusin', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.add('act'); if (t === uIn) { setTimeout(hint, 250); } });
+  $('c0').addEventListener('focusout', e => { const t = e.target; if (t !== uIn && t !== pIn) return; t.parentNode.classList.remove('act'); cancelHint(); if (t === uIn) { onUserBlur(); } });
 
   /* shown password: blurred letters that clear one by one, no copy */
   const pwv = document.createElement('div'); pwv.className = 'pwv'; pwv.setAttribute('aria-hidden', 'true'); pwv.innerHTML = '<div class="pwi"></div>';
@@ -854,12 +816,12 @@ $('joinBtn').onclick = () => go('placement.html');
   const hideMsg = fl => fl.querySelector('.fmsg').classList.remove('show');
   function markOk(fl) { fl.classList.remove('bad'); fl.classList.add('ok'); hideMsg(fl); bob(fl); }
   function markBad(fl, key, txt) {
-    fl.classList.remove('ok', 'af'); fl.classList.add('bad'); shake(fl);
+    fl.classList.remove('ok'); fl.classList.add('bad'); shake(fl);
     const n = key === 'U' ? ++S.failU : ++S.failP, m = fl.querySelector('.fmsg');
     if (n >= 2) { m.textContent = txt; m.classList.add('show'); }   /* first time: only the red shake, no words */
   }
   uIn.addEventListener('input', e => {
-    cancelHint(); hideSug(); uFl.classList.remove('ok', 'bad', 'af'); hideMsg(uFl); S.uShown = '';
+    cancelHint(); uFl.classList.remove('ok', 'bad'); hideMsg(uFl); S.uShown = '';
     /* typing "@" completes the domain at once (selected, so typing another domain simply replaces it) */
     const v = uIn.value;
     if (!/^delete/.test(e.inputType || '') && v.length > 1 && v.indexOf('@') === v.length - 1) {
@@ -868,49 +830,19 @@ $('joinBtn').onclick = () => go('placement.html');
       sel(); requestAnimationFrame(sel);
     }
   });
-  uIn.addEventListener('keydown', e => { cancelHint(); hideSug(); if (e.key === 'Enter') { e.preventDefault(); pIn.focus(); } });
-  uIn.addEventListener('pointerdown', () => { if (document.activeElement === uIn) hideSug(); });   /* tapping the field again = "I will type myself" */
-  pIn.addEventListener('input', () => { pFl.classList.remove('ok', 'bad', 'af'); hideMsg(pFl); });
+  uIn.addEventListener('keydown', e => { cancelHint(); if (e.key === 'Enter') { e.preventDefault(); pIn.focus(); } });
+  pIn.addEventListener('input', () => { pFl.classList.remove('ok', 'bad'); hideMsg(pFl); });
 
-  /* a tap anywhere outside the two fields (and the pop-up) closes the keyboard and puts everything back */
+  /* a tap anywhere outside the two fields closes the keyboard and puts everything back */
   let pdn = null;
-  document.addEventListener('pointerdown', e => { const t = e.target; pdn = { x: e.clientX, y: e.clientY, inside: !!(t.closest && t.closest('#flU,#flP,#sug,#kbs')) }; }, true);
+  document.addEventListener('pointerdown', e => { const t = e.target; pdn = { x: e.clientX, y: e.clientY, inside: !!(t.closest && t.closest('#flU,#flP')) }; }, true);
   document.addEventListener('pointerup', e => {
     const a = document.activeElement; if (!pdn || (a !== uIn && a !== pIn)) return;
     if (!pdn.inside && Math.hypot(e.clientX - pdn.x, e.clientY - pdn.y) < 10) a.blur();
   }, true);
 
-  /* ============ saved passwords: our own small pop-up under the username field ============ */
-  const SAVED_KEY = 'thSavedLogins', sug = $('sug'), sugL = $('sugL'), kbs = $('kbs'), coarse = matchMedia('(pointer:coarse)').matches; S.sugTok = 0;
-  function placeKbs() { const vv = window.visualViewport; kbs.style.bottom = vv ? Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height)) + 'px' : '0px'; }   /* sits exactly on top of the keyboard */
-  if (window.visualViewport) ['resize', 'scroll'].forEach(ev => visualViewport.addEventListener(ev, () => { if (kbs.classList.contains('on')) placeKbs(); }));
-  const getSaved = () => { try { const a = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.u && x.p) : []; } catch (e) { return []; } };
-  function saveLogin(u, p) { try { const a = getSaved().filter(x => x.u.toLowerCase() !== u.toLowerCase()); a.unshift({ u, p }); localStorage.setItem(SAVED_KEY, JSON.stringify(a.slice(0, 4))); } catch (e) { } }
-  function hideSug() { S.sugTok++; sug.classList.remove('on'); kbs.classList.remove('on'); }
-  function showSug() {
-    const all = getSaved(), q = uIn.value.trim().toLowerCase();
-    const list = (!q || all.some(x => x.u.toLowerCase() === q)) ? all : all.filter(x => x.u.toLowerCase().startsWith(q));
-    if (!list.length) { hideSug(); return; }
-    const tok = ++S.sugTok, host = coarse ? kbs : sugL; host.textContent = '';
-    list.forEach((x, n) => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = coarse ? 'kc' : 'si'; b.setAttribute('role', 'option'); b.style.setProperty('--n', n);
-      const a = document.createElement('span'); a.className = 'sn'; a.textContent = x.u;
-      const d = document.createElement('span'); d.className = 'sd'; d.setAttribute('aria-hidden', 'true'); d.textContent = '••••••••';
-      b.append(a, d);
-      b.addEventListener('mousedown', e => e.preventDefault());   /* the field keeps focus until the choice is made */
-      b.addEventListener('click', () => pickSaved(x));
-      host.appendChild(b);
-    });
-    if (!coarse) { sug.classList.add('on'); return; }
-    kbs.scrollLeft = 0; placeKbs();   /* touch: the cells appear when the keyboard has come up */
-    setTimeout(() => { if (tok === S.sugTok && document.activeElement === uIn) { placeKbs(); kbs.classList.add('on'); } }, 260);
-  }
-  function pickSaved(x) {   /* fills both fields in green; it never logs in by itself */
-    cancelHint(); uIn.value = x.u; pIn.value = x.p; S.uShown = '';
-    [uFl, pFl].forEach(f => { f.classList.remove('bad'); f.classList.add('af'); }); hideMsg(uFl); hideMsg(pFl);
-    if (shown) buildPw(false);
-    hideSug(); uIn.blur();
-  }
+  /* saving / suggesting logins is left to the browser. This wipes the old copy this page used to keep (it held passwords as plain text) */
+  try { localStorage.removeItem('thSavedLogins'); } catch (e) { }
   pIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); login(); } });
 
   /* username check (server function portal_username_exists; without it everything else still works) */
@@ -960,7 +892,6 @@ $('joinBtn').onclick = () => go('placement.html');
     } catch (err) { return { ok: false, kind: 'net', msg: T().conn }; }
   }
   async function win(route, u, p, staff) {
-    saveLogin(u, p);
     uFl.classList.remove('bad'); hideMsg(uFl); hideMsg(pFl); uFl.classList.add('ok'); markOk(pFl);
     await sleep(800); btnState('done'); await sleep(650);
     anim(btn, [{ translate: '0 0' }, { translate: '0 -8px', offset: .45 }, { translate: '0 0' }], 750);
