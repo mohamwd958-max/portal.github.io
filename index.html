@@ -1093,9 +1093,11 @@ function THApp(cfg) {
       #lbody{position:relative}
       .ucp{position:absolute;inset:0;overflow:auto;box-sizing:border-box;padding:16px 18px;text-align:center}
       .ucov .ucp{overflow:visible;padding:0}
-      .ucim{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(210px,55vw);z-index:0}
-      .ucim img{display:block;width:100%}
-      .ucim .cap{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(310px,86vw)}
+      .ucim{position:absolute;inset:0;z-index:0;overflow:hidden}
+      .ucim img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0!important;border-radius:0!important;box-shadow:none!important;opacity:1!important;transition:opacity .35s}
+      .ucim .cap{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 20px 22px;background:linear-gradient(to top,rgba(6,10,20,.88),rgba(6,10,20,.55) 60%,transparent);transition:opacity .35s}
+      .ucim .cap .ucask{max-width:420px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+      .ucov.ld .ucim img,.ucov.ld .ucim .cap{opacity:0!important}
       .ucask{text-align:center}
       .ucgo{pointer-events:auto;cursor:pointer;padding:7px 16px;border-radius:999px;border:1px solid rgba(234,122,12,.45);background:#ffe3c2;color:#b45309;font:800 .8rem/1.4 Cairo,Inter,sans-serif}
       #W:not(.light) .ucgo{background:rgba(234,122,12,.25);color:#ffb15c;border-color:rgba(255,177,92,.5)}
@@ -1106,7 +1108,7 @@ function THApp(cfg) {
       .ucp .ucb{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font:800 .78rem/1.5 Cairo,Inter,sans-serif;color:#b45309;background:rgba(245,158,11,.14);border:1px solid rgba(180,83,9,.3)}
       #W:not(.light) .ucp .ucb{color:#fbbf24;background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.3)}
       .ucp .ucm{max-width:340px;font:600 .92rem/1.7 Cairo,Inter,sans-serif;color:var(--ink)}
-      .ucov{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--appbg,#14130f) 55%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+      .ucov{position:absolute;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;justify-content:center;background:var(--appbg,#14130f)}
       .ucg{width:100%;max-width:640px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
       .ucc{min-height:150px;padding:16px;border-radius:18px;background:var(--gbg);border:1px solid var(--gbd);text-align:start;display:flex;flex-direction:column;gap:6px}
       .ucc h3{margin:0;font:800 1rem/1.4 Cairo,Inter,sans-serif;color:var(--ink)}
@@ -1202,17 +1204,26 @@ function THApp(cfg) {
     };
     [500, 1400, 2800].forEach(t => setTimeout(go, t));
   }
-  function fillLayer(k) { fillLayer0(k); ucOverlay(k); }
-  function ucOverlay(k) {
-    if (!(k === 'calendar' || k === 'finance' || k === 'library' || k === 'view' || k === 'res' || (k === 'space' && !MOD.space.SPACE_SOON))) return;
-    let ok = false; try { ok = localStorage.getItem('thUcOk_' + k) === '1'; } catch (e) { }
-    if (ok) return;
-    const L0 = $('layer'), o = document.createElement('div'); o.className = 'ucov'; o.style.top = L0.querySelector('.ltop').offsetHeight + 'px';
+  /* Under-construction picture: a full cover layer on top of the display area (layer no. 1).
+     The page behind it is NOT loaded until the picture itself is ready; pressing "Try it now" is only possible once the picture is shown,
+     it makes sure the page is loaded, removes the cover, and the cover is never shown again for that page. */
+  const ucNeeded = k => {
+    if (!(k === 'calendar' || k === 'finance' || k === 'library' || k === 'view' || k === 'res' || (k === 'space' && !MOD.space.SPACE_SOON))) return false;
+    try { return localStorage.getItem('thUcOk_' + k) !== '1'; } catch (e) { return true; }
+  };
+  function fillLayer(k) {
+    R.querySelectorAll('.ucov').forEach(e => e.remove());
+    if (!ucNeeded(k)) { fillLayer0(k); return; }
+    const L0 = $('layer'), o = document.createElement('div'); o.className = 'ucov ld'; o.style.top = L0.querySelector('.ltop').offsetHeight + 'px';
     o.innerHTML = '<div class="ucp">' + ucImg(true) + '</div>'; L0.appendChild(o);
-    o.querySelector('.ucgo').onclick = () => { try { localStorage.setItem('thUcOk_' + k, '1'); } catch (e) { } o.remove(); };
+    let filled = false;
+    const fill = () => { if (filled) return; filled = true; if (cur === k) fillLayer0(k); };
+    const ready = () => { o.classList.remove('ld'); fill(); };
+    const im = o.querySelector('img');
+    if (im.decode) im.decode().then(ready, ready); else if (im.complete) ready(); else { im.onload = ready; im.onerror = ready; }
+    o.querySelector('.ucgo').onclick = () => { if (o.classList.contains('ld')) return; try { localStorage.setItem('thUcOk_' + k, '1'); } catch (e) { } fill(); o.remove(); };
   }
   function fillLayer0(k) {
-    R.querySelectorAll('.ucov').forEach(e => e.remove());
     const b = $('lbody'), dash = !!(MOD[k] && MOD[k].full && MOD[k].full()), pg = PAGES[k];
     Object.keys(MOD).forEach(m => { if (m !== k && MOD[m].stop) MOD[m].stop(); });
     if (!pg) persHide();
