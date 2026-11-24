@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thabit - Home</title>
+    <title>ثابت - الرئيسية</title>
     <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #121419; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #121419; font-family: Cairo, Inter, sans-serif; }
       body.light-theme { background: #e4e6ec; }
       #thApp { display: block; width: 100%; height: 100%; }
     </style>
@@ -19,8 +19,11 @@
 
     <div id="thApp"></div>
 
-    <!-- ملفات الـ UI والأزرار الـ 21 مكانها هنا فقط -->
-    <script src="js/ui-kit.js"></script>
+    <!-- ملفات الربط بالهوية وقاعدة البيانات -->
+    <script src="js/brand.js"></script>
+    <script src="js/portal.js"></script>
+
+    <!-- ملفات أزرار لوحة التحكم -->
     <script src="js/buttons/btn-calendar.js"></script>
     <script src="js/buttons/btn-compass.js"></script>
     <script src="js/buttons/btn-store.js"></script>
@@ -44,7 +47,7 @@
     <script src="js/buttons/btn-space.js"></script>
 
     <script>
-    // حماية الصفحة: لو مش مسجل يرجع للـ index
+    // التأكد من تسجيل الدخول
     if (!localStorage.getItem('thabit_trainee_token')) {
         window.location.replace('index.html');
     }
@@ -118,25 +121,31 @@
 
       const IC = { train: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>' };
       const MOD = {};
-      ['calendar', 'compass', 'store', 'support', 'ydict', 'passist', 'view', 'res', 'finance', 'consult', 'digital', 'voice', 'dash', 'feed', 'messenger', 'translate', 'home', 'mirror', 'dict', 'library', 'space'].forEach(k => { MOD[k] = ((window.ThabitBtn || {})[k] || (() => ({})))({ R, $, STR, IC, MOD, cfg, lang: () => L, ucPage, esc: x => esc(x), thName: (a, b) => thName(a, b), tidyFrame: f => tidyFrame(f), get W() { return W; }, get L() { return L; }, get cur() { return cur; }, get openLayer() { return openLayer; }, get sbDot() { return sbDot; }, get crumb() { return crumb; } }); });
+      ['calendar', 'compass', 'store', 'support', 'ydict', 'passist', 'view', 'res', 'finance', 'consult', 'digital', 'voice', 'dash', 'feed', 'messenger', 'translate', 'home', 'mirror', 'dict', 'library', 'space'].forEach(k => {
+        if (window.ThabitBtn && window.ThabitBtn[k]) {
+          MOD[k] = window.ThabitBtn[k]({ R, $, STR, IC, MOD, cfg, lang: () => L, ucPage, esc: x => esc(x), thName: (a, b) => thName(a, b), tidyFrame: f => tidyFrame(f), get W() { return W; }, get L() { return L; }, get cur() { return cur; }, get openLayer() { return openLayer; }, get sbDot() { return sbDot; }, get crumb() { return crumb; } });
+        }
+      });
       
       const SEC = [['sec_train', ['compass', 'dash', 'ydict', 'res', 'dict', 'mirror', 'space', 'library', 'passist']], ['sec_gen', ['translate']]];
       const EXTRA = [['sec_prod', 'voice'], ['sec_smart', 'digital'], ['sec_pers', 'consult']];
       const sdi = k => !IC[k] ? '' : '<button type="button" class="sdi" data-k="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg><span data-t="i_' + k + '"></span></button>';
       const LINE = '<div class="sdl sp"></div>';
       
-      $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<i class="sdbr"></i>' + (MOD.store.button || '') + (MOD.feed.button || '') + (MOD.messenger.button || '') + (MOD.calendar.button || '') + '<i class="sdbr"></i>' + (MOD.support.button || '') + (MOD.view.button || '') + (MOD.finance.button || '') + '</div>' + LINE +
+      $('side').innerHTML = '<div class="sdr">' + sdi('home').replace('class="sdi"', 'class="sdi hm"') + '<i class="sdbr"></i>' + ((MOD.store && MOD.store.button) || '') + ((MOD.feed && MOD.feed.button) || '') + ((MOD.messenger && MOD.messenger.button) || '') + ((MOD.calendar && MOD.calendar.button) || '') + '<i class="sdbr"></i>' + ((MOD.support && MOD.support.button) || '') + ((MOD.view && MOD.view.button) || '') + ((MOD.finance && MOD.finance.button) || '') + '</div>' + LINE +
         '<div class="sdh" data-t="grp"></div>' +
         SEC.map((sc, n) => (n ? '<div class="sps"></div>' : '') + '<div class="sdg" data-t="' + sc[0] + '"></div>' + sc[1].map(sdi).join('')).join('') +
         EXTRA.map(x => LINE + '<div class="sdh" data-t="' + x[0] + '"></div>' + sdi(x[1])).join('');
 
       function ucPage(b, msgKey, cards) {
         const t = STR[L];
-        b.innerHTML = '<div class="ucp"><div class="ucg">' + (cards || []).map(c => '<div class="ucc"><h3>' + t[c[0]] + '</h3>' + (c[1] ? '<p>' + t[c[1]] + '</p>' : '') + '</div>').join('') + '</div></div>';
+        b.innerHTML = '<div class="ucp"><div class="ucg">' + (cards || []).map(c => '<div class="ucc"><h3>' + (t[c[0]] || c[0]) + '</h3>' + (c[1] ? '<p>' + (t[c[1]] || c[1]) + '</p>' : '') + '</div>').join('') + '</div></div>';
       }
 
-      MOD.home.homeCss(); MOD.mirror.mirCss();
-      const playUC = () => { try { typeof UnderConstruction !== 'undefined' && UnderConstruction.play($('side')); } catch (e) { } };
+      if (MOD.home && MOD.home.homeCss) MOD.home.homeCss();
+      if (MOD.mirror && MOD.mirror.mirCss) MOD.mirror.mirCss();
+      
+      const playUC = () => { try { if (typeof UnderConstruction !== 'undefined') UnderConstruction.play($('side')); } catch (e) { } };
       const setSide = on => { if (!isDk()) W.classList.toggle('sbo', on); if (on) setTimeout(playUC, 350); };
       $('sbtn').onclick = e => { e.stopPropagation(); setSide(!W.classList.contains('sbo')); };
       $('sbs').onclick = () => setSide(false);
@@ -144,10 +153,10 @@
       function hb() { $('hbar').style.opacity = 0; }
       function apply() {
         const t = STR[L]; W.dir = L === 'ar' ? 'rtl' : 'ltr'; W.classList.toggle('ar', L === 'ar');
-        R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
+        R.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t] || e.dataset.t; });
         R.querySelectorAll('.js-lg').forEach(b => { b.textContent = t.sh; b.title = t.name; });
-        R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title]; e.setAttribute('aria-label', t[e.dataset.title]); });
-        if (cur) $('ltitle').textContent = t['i_' + cur];
+        R.querySelectorAll('[data-title]').forEach(e => { e.title = t[e.dataset.title] || ''; e.setAttribute('aria-label', t[e.dataset.title] || ''); });
+        if (cur) $('ltitle').textContent = t['i_' + cur] || cur;
         try { crumb(); } catch (e) { }
         hb();
       }
@@ -159,7 +168,7 @@
       });
 
       function openLayer(k, nopush) {
-        cur = k; $('ltitle').textContent = STR[L]['i_' + k];
+        cur = k; $('ltitle').textContent = STR[L]['i_' + k] || k;
         const b = $('lbody');
         if (MOD[k] && MOD[k].render) MOD[k].render(b);
         R.querySelectorAll('.sdi').forEach(btn => btn.classList.toggle('on', btn.dataset.k === k));
@@ -171,8 +180,8 @@
       const cr = document.createElement('div'); cr.id = 'crumb'; W.appendChild(cr);
       function crumb() {
         if (!MOD.dict || !MOD.dict.DT) return;
-        const T = MOD.dict.DT[L]; let h = '<div class="cw"><div class="ci">';
-        if (cur && cur !== 'home') h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
+        const T = MOD.dict.DT[L] || {}; let h = '<div class="cw"><div class="ci">';
+        if (cur && cur !== 'home') h += '<span class="cn">' + esc(STR[L]['i_' + cur] || cur) + '</span>';
         cr.innerHTML = h + '</div></div>';
       }
 
@@ -187,6 +196,7 @@
 
       function start() {
         W.classList.remove('hid'); W.classList.add('shown');
+        apply();
         openLayer('home', true);
         return Promise.resolve();
       }
@@ -203,10 +213,10 @@
         Object.keys(localStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|sb-)/i.test(k)) localStorage.removeItem(k); });
         Object.keys(sessionStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$)/i.test(k)) sessionStorage.removeItem(k); });
       } catch (e) { }
-      location.replace('index.html');
+      location.replace('landing.html');
     }
 
-    // تشغيل التطبيق
+    // تشغيل المنصة
     const app = THApp({
       host: document.getElementById('thApp'),
       lang: localStorage.getItem('thLandLang') || 'ar',
