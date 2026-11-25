@@ -720,9 +720,11 @@ function THApp(cfg) {
       .hmov{color:#b9bcc4;transition:color .35s}
       #W.light .hmov{color:#52555d}
       .hmov{flex-direction:column}
-      .hmov .hmst{position:relative;flex:none;box-sizing:border-box;border:1.5px solid currentColor;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center}
+      .hmov .hmsky{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+      .hmov .hmsky i{position:absolute;border-radius:50%;background:currentColor;opacity:0}
+      .hmov .hmst{position:relative;z-index:1;flex:none;box-sizing:border-box;border:1.5px solid currentColor;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center}
       .hmov .hmst h2{margin:0;white-space:nowrap;font-weight:600;line-height:1.3;font-family:Cairo,Inter,sans-serif;color:var(--ink)}
-      .hmov > p{margin:48px 0 0;max-width:min(86%,340px);text-align:center;font:700 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .hmov > p{position:relative;z-index:1;margin:48px 0 0;max-width:min(86%,340px);text-align:center;font:700 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
     `; R.appendChild(st);
   })();
   function ucPage(b, msgKey, cards) {   /* cards = page has content; no cards = empty page */
@@ -869,6 +871,27 @@ function THApp(cfg) {
       impact(HM.sparks, false);
     })();
   }
+  /* Background stars: waves of 3 tiny glowing dots, shown one after another (1, 2, 3) at random places; 3-4 s after they fade, a new wave comes in other random places. Change the numbers here. */
+  const STAR = { n: 3, stepMs: 450, lifeMs: 2400, gapMin: 3000, gapMax: 4000, minPx: 2.5, maxPx: 5 };
+  function hmStars(o) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const sky = document.createElement('div'); sky.className = 'hmsky'; o.prepend(sky);
+    const dead = () => o._dead || !o.isConnected, sleep = ms => new Promise(r => setTimeout(r, ms));
+    (async () => {
+      while (!dead()) {
+        const fin = [];
+        for (let i = 0; i < STAR.n && !dead(); i++) {
+          const st = document.createElement('i'), d = STAR.minPx + Math.random() * (STAR.maxPx - STAR.minPx);
+          st.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (4 + Math.random() * 92) + '%;top:' + (4 + Math.random() * 92) + '%;box-shadow:0 0 ' + (d * 2.2) + 'px ' + (d * 0.5) + 'px currentColor';
+          sky.appendChild(st);
+          fin.push(st.animate([{ opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, offset: 0.35 }, { opacity: 0.85, scale: 0.9, offset: 0.65 }, { opacity: 0, scale: 0.4 }], { duration: STAR.lifeMs, easing: 'ease-in-out' }).finished.then(() => st.remove(), () => st.remove()));
+          await sleep(STAR.stepMs);
+        }
+        await Promise.all(fin); if (dead()) break;
+        await sleep(STAR.gapMin + Math.random() * (STAR.gapMax - STAR.gapMin));
+      }
+    })();
+  }
   function fillLayer(k) {
     clearHm();
     if (!isMaint(k)) { fillLayer0(k); return; }
@@ -878,7 +901,7 @@ function THApp(cfg) {
     const o = document.createElement('div'); o.className = 'hmov'; o.style.top = b.offsetTop + 'px';
     o.innerHTML = '<div class="hmst"><h2 data-t="i_' + k + '"></h2></div><p data-t="ucDev"></p>';
     o.querySelector('h2').textContent = t['i_' + k] || k; o.querySelector('p').textContent = t.ucDev;
-    $('layer').appendChild(o);
+    $('layer').appendChild(o); hmStars(o);
     requestAnimationFrame(() => { if (cur === k && o.isConnected) { try { hmPlay(o, o.firstChild); } catch (e) { } } });
   }
   function fillLayer0(k) {
