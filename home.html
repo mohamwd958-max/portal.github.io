@@ -724,7 +724,7 @@ function THApp(cfg) {
       .hmov .hmsky i{position:absolute;border-radius:50%;background:currentColor;opacity:0}
       .hmov .hmst{position:relative;z-index:1;flex:none;box-sizing:border-box;border:1.5px solid currentColor;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center}
       .hmov .hmst h2{margin:0;white-space:nowrap;font-weight:600;line-height:1.3;font-family:Cairo,Inter,sans-serif;color:var(--ink)}
-      .hmov > p{position:relative;z-index:1;margin:48px 0 0;max-width:min(86%,340px);text-align:center;font:700 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .hmov > p{position:relative;z-index:1;margin:68px 0 0;max-width:min(86%,340px);text-align:center;font:700 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
     `; R.appendChild(st);
   })();
   function ucPage(b, msgKey, cards) {   /* cards = page has content; no cards = empty page */
@@ -819,16 +819,16 @@ function THApp(cfg) {
   const isMaint = k => !!k && (MAINT.indexOf(k) > -1 || !!R.querySelector('#side .sdi[data-k="' + k + '"][data-maint]'));
   function clearHm() { R.querySelectorAll('.hmov').forEach(e => { e._dead = true; e.remove(); }); }
   /* Hammer rhythm: 1 heavy strike (more sparks) -> 2 normal strikes back to back -> 1 last strike that stays down on the rectangle. Change the numbers here. */
-  const HM = { fadeMs: 320, tilt: -32, raise: -68, heavyRaise: -96, heavyRiseMs: 640, riseMs: 260, downMs: 110, heavyDownMs: 80, gapMs: 150, holdMs: 280, heavySparks: 22, sparks: 8, minW: 90, maxW: 150 };
+  const HM = { fadeMs: 320, tilt: -32, raise: -68, heavyRaise: -96, heavyRiseMs: 640, riseMs: 260, downMs: 110, heavyDownMs: 80, gapMs: 150, holdMs: 280, heavySparks: 22, sparks: 8, minW: 90, maxW: 150, ham: 0.5, minHam: 44 };   /* ham: hammer size relative to the button base (0.5 = half) */
   function hmPlay(o, st) {
     const rtl = getComputedStyle(st).direction === 'rtl', ow = o.getBoundingClientRect().width;
-    const w = Math.round(Math.min(HM.maxW, Math.max(HM.minW, ow * 0.3))), f = w / 40;
+    const bw = Math.round(Math.min(HM.maxW, Math.max(HM.minW, ow * 0.3))), w = Math.max(HM.minHam, Math.round(bw * HM.ham)), f = w / 40;   /* bw = button base size, w = hammer width */
     /* fixed size, whatever the word: the button is only 2x the hammer, and the name shrinks to fit inside it */
-    st.style.width = Math.round(w * 1.6) + 'px'; st.style.height = Math.round(w * 0.62) + 'px'; st.style.marginTop = Math.round(w * 0.8) + 'px';
-    const h2 = st.querySelector('h2'); let fs = Math.round(w * 0.15); h2.style.fontSize = fs + 'px';
+    st.style.width = Math.round(bw * 1.6) + 'px'; st.style.height = Math.round(bw * 0.62) + 'px'; st.style.marginTop = Math.round(w * 0.8) + 'px';
+    const h2 = st.querySelector('h2'); let fs = Math.round(bw * 0.15); h2.style.fontSize = fs + 'px';
     while (h2.scrollWidth > st.clientWidth - 26 && fs > 11) { fs--; h2.style.fontSize = fs + 'px'; }
     const box = document.createElement('div'); box.className = 'uc'; box.setAttribute('aria-hidden', 'true');
-    box.style.cssText = '--w:' + w + 'px;inset-inline-start:' + Math.round(w * 0.25) + 'px';
+    box.style.cssText = '--w:' + w + 'px;inset-inline-start:' + Math.round(bw * 0.14) + 'px';
     box.innerHTML = '<i class="uc-seg"></i><span class="uc-h" style="transform:scaleX(' + (rtl ? -1 : 1) + ')">'
       + '<svg viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">'
       + '<rect x="3" y="10.5" width="31" height="3" rx="1.5"/><rect x="31" y="8" width="3.5" height="8" rx="1"/><rect x="34" y="1.5" width="12" height="21" rx="2.5"/></svg></span>';
