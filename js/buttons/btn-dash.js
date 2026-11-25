@@ -283,17 +283,17 @@
 .vsw{position:relative;height:100%;color:var(--ink)}
 .vs{position:relative;height:100%;overflow:auto;padding:12px 12px 40px;scrollbar-width:none;-webkit-overflow-scrolling:touch;font-family:Cairo,Inter,system-ui,sans-serif}
 .vs::-webkit-scrollbar{display:none}
-.vs .card{max-width:1100px;margin:0 auto 12px;padding:16px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.vs .card{max-width:1100px;margin:0 auto 20px;padding:16px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
 .vs .card.msg{text-align:center;color:var(--ink2);padding:36px 16px}
 .vs h4{margin:0 0 6px;font:800 13.5px Cairo,Inter,sans-serif;color:var(--ink)}
 .vs .big{font:800 26px/1.15 Inter,Cairo,sans-serif}.vs .sm{font:500 12px/1.5 Cairo,Inter,sans-serif;color:var(--ink2)}.vs .big .sm{font-size:13px}
 .vs .note{max-width:1100px;margin:-4px auto 10px;padding:0 6px}
 .vs .up{color:#22c55e;font:700 12px Inter,sans-serif}.vs .down{color:#ef4444;font:700 12px Inter,sans-serif}.vs .flat{color:var(--ink2);font:700 12px Inter,sans-serif}
-.vs .rbar{max-width:1100px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap}
+.vs .rbar{max-width:1100px;margin:0 auto 20px;display:flex;gap:8px;flex-wrap:wrap}
 .vs .rb{height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);font:700 12px Cairo,Inter,sans-serif;cursor:pointer;transition:background .25s,color .25s}
 .vs .rb.on{background:var(--btn);color:var(--onbtn);border-color:var(--btn)}.vs .rb.lm{color:#fb923c;border-color:#fb923c}.vs .rb.lm.on{background:#fb923c;color:#1a0f00}
 .vs .two{display:flex;gap:14px}.vs .two>div{flex:1}.vs .sep{border-inline-start:1px solid var(--sbd);padding-inline-start:14px}
-.vs .grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.vs .grid .card{margin:0}
+.vs .grid{max-width:1100px;margin:0 auto 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px 10px}.vs .grid .card{margin:0}
 .vs svg.c2{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}
 .vs svg.c2 .tx{fill:var(--ink2);pointer-events:none}.vs svg.c2 .xh{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
 .vs svg.c2 .ln{stroke-linecap:round;stroke-linejoin:round}.vs svg.c2 .dot{stroke:none;cursor:pointer}.vs svg.c2 .dot.hit{fill:transparent}
