@@ -1318,8 +1318,8 @@ function THApp(cfg) {
         e.stopPropagation();
         if (W.querySelector('.intro.stp')) return;
         const o = document.createElement('div'); o.className = 'intro stp';
-        o.innerHTML = '<div class="ib"><div class="ir" style="margin:0 0 6px"><div class="ico"><span class="stdot" style="width:auto;height:auto;cursor:default"><i></i></span></div><div><span class="d" style="color:var(--ink);font-size:.88rem">' + STR[L].stMsg + '</span></div></div>' +
-          '<button type="button" class="ok"><span class="lb">' + STR[L].intOk + '</span></button></div>';
+        o.innerHTML = '<div class="ib"><div class="ir" style="margin:0 0 6px"><div class="ico"><span class="' + sd.className.replace(/\s*\bon\b/,'') + '" style="width:auto;height:auto;cursor:default"><i></i></span></div><div><span class="d" style="color:var(--ink);font-size:.88rem">' + STR[L].stMsg + '</span></div></div>' +
+          '<button type="button" class="ok" style="margin:30px auto 0"><span class="lb">' + STR[L].intOk + '</span></button></div>';
         const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 350); };
         o.querySelector('.ok').onclick = close;
         o.addEventListener('click', ev => { if (ev.target === o) close(); });
