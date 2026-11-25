@@ -15,7 +15,37 @@
   const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
   const TOKEN_KEY = 'thabit_trainee_token';
 
-  /* ---- voice notes of THIS trainee (table words_table) ----
+  /* the same cleaning the table's word_key uses; shared by the pronouncer and by the words_table index */
+  const wpClean = v => !v ? '' : String(v).toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"“”‘’]/g, '').replace(/\s+/g, ' ').trim();
+  const wpCache = {};
+
+  /* ---- words_table: single words / phrases typed by hand, each with a recording (looked up by their text) ----
+     We load them once (cached 30 s) so the text can be scanned: only the words that exist here get tapped. */
+  const WI = { ix: null, at: 0, p: null };
+  function wiLoad() {
+    if (WI.p) return WI.p;
+    return (WI.p = (async () => {
+      const map = new Map(), first = new Set(); let max = 1, off = 0;
+      for (let pg = 0; pg < 80; pg++) {
+        const r = await fetch(SB + '/rest/v1/words_table?select=word,audio_url&audio_url=not.is.null&order=word.asc&limit=1000&offset=' + off, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const rows = await r.json(); if (!Array.isArray(rows) || !rows.length) break;
+        rows.forEach(x => {
+          const k = wpClean(x.word); if (!k || !x.audio_url || map.has(k)) return;
+          map.set(k, { word: String(x.word), url: x.audio_url }); wpCache[k] = x.audio_url;
+          const p = k.split(' '); first.add(p[0]); if (p.length > max) max = p.length;
+        });
+        off += rows.length;
+      }
+      WI.ix = { map: map, first: first, max: max }; WI.at = Date.now(); return WI.ix;
+    })().finally(() => { WI.p = null; }));
+  }
+  function wiGet() {
+    if (WI.ix && Date.now() - WI.at > 30000 && !WI.p) wiLoad().catch(() => { });
+    return WI.ix ? Promise.resolve(WI.ix) : wiLoad();
+  }
+
+  /* ---- voice notes of THIS trainee (table voice_notes) ----
      one row = one picked area of text with a recording:  trainee_id | scope ('<date>|<key>', e.g. '2026-11-23|tefl') | word (the picked text) | occ | start_idx | audio_url
      The container opens an entry of scope '<date>|<key>' -> we take that trainee's rows for that scope and mark exactly those areas (a word, a sentence or the whole passage). */
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,7 +61,7 @@
     return (REC.p = (async () => {
       const by = new Map(); let off = 0;
       for (let pg = 0; pg < 60; pg++) {
-        const r = await fetch(SB + '/rest/v1/words_table?select=scope,word,occ,start_idx,audio_url,duration&trainee_id=eq.' + encodeURIComponent(tid) + '&status=eq.active&lost_from=is.null&audio_url=not.is.null&order=scope.asc,start_idx.asc&limit=1000&offset=' + off, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+        const r = await fetch(SB + '/rest/v1/voice_notes?select=scope,word,occ,start_idx,audio_url,duration&trainee_id=eq.' + encodeURIComponent(tid) + '&status=eq.active&lost_from=is.null&audio_url=not.is.null&order=scope.asc,start_idx.asc&limit=1000&offset=' + off, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const rows = await r.json(); if (!Array.isArray(rows) || !rows.length) break;
         rows.forEach(x => { const k = String(x.scope || ''); if (!by.has(k)) by.set(k, []); by.get(k).push(x); }); off += rows.length;
@@ -125,7 +155,33 @@
       });
       return out + (op ? '</span>' : '');
     }
-    const preloadRec = () => { try { if (window.ThabitRich || !keys.some(k => REG[k] && !REG[k].noear && !REG[k].body && earOn(k))) return; const tid = recTid(D && D.profile); if (tid) recGet(tid).catch(() => { }); } catch (e) { } };
+    const preloadRec = () => { try { if (window.ThabitRich || !keys.some(k => REG[k] && !REG[k].noear && !REG[k].body && earOn(k))) return; const tid = recTid(D && D.profile); if (tid) recGet(tid).catch(() => { }); wiGet().catch(() => { }); } catch (e) { } };
+    /* single words (table words_table): every token of the text that exists there (alone, or as a phrase) becomes tappable. Areas already marked as voice notes, links and tags are left alone. */
+    const unesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+    function markWords(h, ix) {
+      const re = /(<span class="vx"[\s\S]*?<\/span>)|(<a\b[^>]*>[\s\S]*?<\/a>)|(<[^>]+>)|([^<\s]+)/g, T = []; let m, gap = false;
+      while ((m = re.exec(h))) {
+        if (m[4] === undefined) { gap = true; continue; }
+        const k = wpClean(unesc(m[4])); if (!k) continue;
+        T.push({ s: m.index, e: m.index + m[4].length, k: k, g: gap }); gap = false;
+      }
+      const spans = []; let i = 0;
+      while (i < T.length) {
+        if (!ix.first.has(T[i].k)) { i++; continue; }
+        let hit = null;
+        for (let L = Math.min(ix.max, T.length - i); L >= 1 && !hit; L--) {
+          let broken = false; for (let j = i + 1; j < i + L; j++) if (T[j].g) { broken = true; break; }
+          if (broken) continue;   /* a phrase never crosses a tag / link / voice-note area */
+          const ent = ix.map.get(T.slice(i, i + L).map(t => t.k).join(' ')); if (ent) hit = { L: L, ent: ent };
+        }
+        if (!hit) { i++; continue; }
+        spans.push({ s: T[i].s, e: T[i + hit.L - 1].e, ent: hit.ent }); i += hit.L;
+      }
+      if (!spans.length) return h;
+      let out = '', last = 0;
+      spans.forEach(x => { out += h.slice(last, x.s) + '<span class="vx" role="button" tabindex="0" data-word="' + esc(x.ent.word) + '" data-url="' + esc(x.ent.url) + '">' + h.slice(x.s, x.e) + '</span>'; last = x.e; });
+      return out + h.slice(last);
+    }
     const EARSVG = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9a4 4 0 1 1 8 0c0 2.2-1.4 3.1-2.5 4.2-.9.9-1.5 1.7-1.5 3a3.2 3.2 0 0 1-3.2 3.2"/><path d="M13.5 9a.5.5 0 1 1 1 0c0 .8-.6 1.1-1 1.5"/><path d="M4.6 9.2a5.6 5.6 0 0 0 0 5.6M2 7.4a8.8 8.8 0 0 0 0 9.2"/></svg>';
     /* ---- the cards ---- */
     const entries = d => d.col ? D.rows.slice().reverse().filter(r => r[d.col]).map(r => ({ date: r.supply_date, text: String(r[d.col]) })) : (EXTRA[d.key] || []);
@@ -156,27 +212,36 @@
     function closeCm() { cmTk++; const e = wrap && wrap.querySelector('.cm'); if (e) e.remove(); }
     function openCm(key, n) {
       closeCm(); const t = tt(), d = REG[key]; if (!d) return; const on = !d.noear && earOn(key), list = LISTS[key] || [], my = cmTk;
-      /* the voice notes of this trainee, grouped by scope ('<date>|<key>'); if they are not loaded yet the entry opens plain and gets its blue areas a moment later */
-      const tid = on && !d.body && !window.ThabitRich ? recTid(D && D.profile) : null;
-      if (on && !d.body && !window.ThabitRich && !tid) { try { console.warn('[lists-core] trainee id not found (profile.id / trainee_id): voice notes cannot be marked'); } catch (e) { } }
-      const had = tid && REC.tid === tid ? REC.by : null;
-      const ce = by => list.map((x, i) => {
+      /* two sources of recordings, voice notes WIN over single words:
+         1) table voice_notes  = areas you picked inside a text (a word, a sentence, the whole passage), per trainee + scope '<date>|<key>'
+         2) table words_table  = single words / phrases you typed and recorded (looked up by their text)
+         If they are not loaded yet the entry opens plain and gets its blue parts a moment later. */
+      const act = on && !d.body && !window.ThabitRich;
+      const tid = act ? recTid(D && D.profile) : null;
+      if (act && !tid) { try { console.warn('[lists-core] trainee id not found (profile.id / trainee_id): voice notes cannot be marked'); } catch (e) { } }
+      const hadV = tid && REC.tid === tid ? REC.by : null, hadW = act ? WI.ix : null;
+      const ce = (by, wx) => list.map((x, i) => {
         let h; const raw = String(x.text == null ? '' : x.text);
         if (d.body) h = d.body(x, esc);
         else {
           const rows = tid && by ? by.get(String(x.date || '').slice(0, 10) + '|' + key) : null;
           if (rows && rows.length) { const p = place(raw, rows); h = mark(rich(p.text, on), p.recs); } else h = rich(raw, on);
+          if (act && wx) h = markWords(h, wx);   /* single words: only in the text that no voice note already covers */
         }
         return '<div class="ce" data-n="' + i + '"><div class="dt">' + esc(x.date) + '</div>' + h + '</div>';
       }).join('') || '<div class="sm">' + t.none + '</div>';
       const el = document.createElement('div'); el.className = 'ov2 cm';
-      el.innerHTML = '<div class="cmb"><button type="button" class="tdx cmx" aria-label="Close">×</button><h4 class="cmh">' + esc(ttl(d)) + '</h4><div class="cml">' + ce(had) + '</div></div>';
+      el.innerHTML = '<div class="cmb"><button type="button" class="tdx cmx" aria-label="Close">×</button><h4 class="cmh">' + esc(ttl(d)) + '</h4><div class="cml">' + ce(hadV, hadW) + '</div></div>';
       wrap.appendChild(el);
       const l = el.querySelector('.cml'), c = l.querySelector('.ce[data-n="' + n + '"]'); if (c) l.scrollTop = c.offsetTop - 4;
-      if (tid) recGet(tid).then(by => {
-        if (by === had || my !== cmTk || !el.isConnected) return;
-        const cl = el.querySelector('.cml'), top = cl.scrollTop; cl.innerHTML = ce(by); cl.scrollTop = top;
-      }).catch(e => { try { console.warn('[lists-core] could not load voice notes', e); } catch (x) { } });
+      if (act) {
+        const bad = what => e => { try { console.warn('[lists-core] could not load ' + what, e); } catch (x) { } return null; };
+        Promise.all([tid ? recGet(tid).catch(bad('voice_notes')) : null, wiGet().catch(bad('words_table'))]).then(r => {
+          const by = r[0] || hadV, wx = r[1] || hadW;
+          if ((by === hadV && wx === hadW) || my !== cmTk || !el.isConnected) return;
+          const cl = el.querySelector('.cml'), top = cl.scrollTop; cl.innerHTML = ce(by, wx); cl.scrollTop = top;
+        });
+      }
     }
     function say(msg) { if (root) root.innerHTML = '<div class="card msg">' + esc(msg) + '</div>'; }
     async function load(silent) {
@@ -214,9 +279,8 @@
       sk.onchange = () => { drag = false; };
       sk.value = 0; sync(); icon(); if (auto) a.play().catch(() => { });
     }
-    const wpClean = v => !v ? '' : String(v).toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"\u201C\u201D\u2018\u2019]/g, '').replace(/\s+/g, ' ').trim();
     const wpParts = v => String(v || '').split(/[,\u060C\n]+/).map(x => x.trim()).filter(Boolean);
-    const wpCache = {}; let wpKeyOK = true;
+    let wpKeyOK = true;
     async function wpQuery(qs) {
       const r = await fetch(SB + '/rest/v1/words_table?select=audio_url&audio_url=not.is.null&limit=1&' + qs, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
       if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
