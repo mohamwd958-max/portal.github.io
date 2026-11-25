@@ -132,7 +132,7 @@ let homeStop = () => { };   /* stops the typing loop, the slide timer and the mi
       .hm-sl{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:14px;align-items:center}
       .hm-row{width:100%;direction:ltr;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 6px}
       .hm-row::-webkit-scrollbar{display:none}
-      .hm-s{position:relative;flex:0 0 min(88%,560px);aspect-ratio:16/10;scroll-snap-align:center;border-radius:26px;overflow:hidden;border:1px solid var(--sbd);cursor:pointer;text-align:start;color:#fff;display:flex;align-items:flex-end;padding:0;-webkit-tap-highlight-color:transparent;background-color:#2a2d38;background-size:cover;background-position:center;transition:scale .9s var(--ease)}
+      .hm-s{position:relative;flex:0 0 min(88%,560px);aspect-ratio:16/10;scroll-snap-align:center;border-radius:26px;overflow:hidden;border:1px solid var(--sbd);cursor:pointer;text-align:start;color:#fff;display:flex;align-items:flex-end;padding:0;-webkit-tap-highlight-color:transparent;background-color:#1f1f24;background-size:cover;background-position:center;transition:scale .9s var(--ease)}
       @media(hover:hover){.hm-s:hover{scale:1.015}}
       .hm-s:active{scale:.985;transition:scale .4s ease-out}
       .hm-s div{width:100%;padding:44px 22px 20px;background:linear-gradient(0deg,rgba(8,10,16,.88) 0%,rgba(8,10,16,.55) 55%,rgba(8,10,16,0) 100%)}
@@ -199,7 +199,7 @@ function renderHome(b) {
         '<div class="hm-qb"><button type="button" data-q="svc">' + thx.esc(T.b1) + '</button><button type="button" data-q="dash">' + thx.esc(T.b2) + '</button><button type="button" data-q="consult">' + thx.esc(T.b3) + '</button></div>' +
       '</div>' +
       '<div class="hm-sl" id="hmSl"><div class="hm-row" id="hmRow">' +
-        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(' + (s[0] === 'digital' ? '"' + DASH_ART + '"' : 'assets/home/' + s[0] + '.jpg') + '),linear-gradient(150deg,#5a6070,#2a2d38)"><div><b>' + thx.esc(ar ? s[1] : s[2]) + '</b><span>' + thx.esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
+        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(' + (s[0] === 'digital' ? '"' + DASH_ART + '"' : 'assets/home/' + s[0] + '.jpg') + '),linear-gradient(150deg,#2a2a31,#17171b)"><div><b>' + thx.esc(ar ? s[1] : s[2]) + '</b><span>' + thx.esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
       '</div><div class="hm-dots" id="hmDots">' + HS.map(() => '<i></i>').join('') + '</div></div></div>';
 
     const q = id => b.querySelector('#' + id), bar = q('hmBar'), ta = q('hmTa'), ph = q('hmPh').firstChild, note = q('hmNote'), res = q('hmRes'), att = q('hmAtt'),
