@@ -1463,10 +1463,20 @@ function THApp(cfg) {
       /* layer 3: on the surface */
       #W:not(.light) :is(.mr-card,.cal-c,.cal-low,.ucc,.lpc,.plc,.hm-bar){background:${L3}!important;background-image:none!important}
       /* stars: the very bottom, behind every layer, only seen where the page itself shows */
+      /* layer 1 itself: a real black sheet under everything, so the page is black whatever else paints behind it */
+      #W:not(.light)::before{content:'';position:fixed;inset:0;z-index:0;background:${L1};pointer-events:none}
       #stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
       #W.light #stars{display:none}
       #stars i{position:absolute;border-radius:50%;background:#fff;opacity:0;will-change:opacity,scale}`;
     R.appendChild(st);
+    /* outside the shadow root: no old page overlay may paint over the app, the app sits above it, and the canvas behind is black too */
+    if (!document.getElementById('thBlackGlobal')) {
+      const gs = document.createElement('style'); gs.id = 'thBlackGlobal';
+      gs.textContent = 'html:has(body.th-member:not(.light-theme)){background:#000!important}' +
+        'html body.th-member:not(.light-theme)::before,html body.th-member:not(.light-theme)::after{display:none!important;content:none!important}' +
+        'html body.th-member #thApp{position:relative;z-index:2147482000}';
+      document.head.appendChild(gs);
+    }
     const sky = document.createElement('div'); sky.id = 'stars'; sky.setAttribute('aria-hidden', 'true'); W.appendChild(sky);
 
     const STAR3 = { n: 3, stepMs: 600, lifeMs: 1800, cycleMs: 5000, minPx: 2, maxPx: 4.5 };
