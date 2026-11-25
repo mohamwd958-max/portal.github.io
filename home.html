@@ -1547,6 +1547,32 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
     });
     return app.start();
   }
+  /* ---- timer type (Full / Part) beside the profile picture: read from basic_info.attendance_type, the same column adminlayout.html writes ---- */
+  (function () {
+    var SBU = 'https://vkfexceitwjmxncwceqb.supabase.co', SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI';
+    var TY = { full: ['Full', '#22c55e', 'Full-timer'], part: ['Part', '#f97316', 'Part-timer'] };
+    function kind(v) { var s = String(v || '').toLowerCase(); return /^full|كامل/.test(s) ? 'full' : /^part|جزئ/.test(s) ? 'part' : ''; }
+    function sel() {
+      var R = document.getElementById('thApp') && document.getElementById('thApp').shadowRoot; if (!R) return null;
+      var hc = R.getElementById('hctl'), pf = R.getElementById('prof'); if (!hc || !pf) return null;
+      var b = R.getElementById('atDot');
+      if (!b) {
+        var st = document.createElement('style'); st.textContent = '#atDot{height:26px;min-width:26px;padding:0 10px;border-radius:999px;border:1.5px solid var(--c,#22c55e);background:transparent;color:var(--c,#22c55e);font:800 10.5px Inter,Cairo,sans-serif;letter-spacing:.02em;cursor:default;display:none;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}#atDot.on{display:flex}';
+        R.appendChild(st);
+        b = document.createElement('button'); b.type = 'button'; b.id = 'atDot'; hc.insertBefore(b, pf);
+      }
+      return b;
+    }
+    function paint(k) { var b = sel(); if (!b) return; if (!k) { b.classList.remove('on'); return; } b.textContent = TY[k][0]; b.title = TY[k][2]; b.setAttribute('aria-label', TY[k][2]); b.style.setProperty('--c', TY[k][1]); b.classList.add('on'); }
+    async function load() {
+      var tok = localStorage.getItem('thabit_trainee_token') || ''; if (!tok) return;
+      try {
+        var r = await fetch(SBU + '/rest/v1/rpc/trainee_attendance_type', { method: 'POST', headers: { apikey: SBK, Authorization: 'Bearer ' + SBK, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: tok }) });
+        if (!r.ok) return; paint(kind(await r.json()));
+      } catch (e) { }
+    }
+    var n = 0, t = setInterval(function () { if (sel()) { clearInterval(t); load(); setInterval(load, 60000); document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); }); } else if (++n > 80) clearInterval(t); }, 250);
+  })();
   if (framed && M()) {   /* inside the member page: never show the shell again, open the dashboard once */
     document.documentElement.style.visibility = 'hidden';
     try { if (!sessionStorage.getItem('thFrameTry')) { sessionStorage.setItem('thFrameTry', '1'); location.replace((M().route) || 'dashboard.html'); } } catch (e) { }
