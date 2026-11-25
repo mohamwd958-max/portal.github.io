@@ -83,7 +83,7 @@
     function paint() {
       if (!root || !D) return;
       const keep = root.scrollTop, ds = defs();
-      root.innerHTML = '<div class="grid lists' + (ds.length === 1 ? ' one' : '') + '">' + ds.map(cap).join('') + '</div>';
+      root.innerHTML = '<div class="grid lists' + (ds.length === 1 ? ' one' : ' stack') + '">' + ds.map(cap).join('') + '</div>';
       root.scrollTop = keep; requestAnimationFrame(fitCaps); setTimeout(fitCaps, 350);
     }
     function closeCm() { const e = wrap && wrap.querySelector('.cm'); if (e) e.remove(); }
@@ -203,6 +203,9 @@
 .wpb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#34d399;color:#06281b;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .vsw .wp input[type=range]{flex:1;min-width:0;accent-color:#34d399}.wpt{flex:none;font-size:.68rem;opacity:.75;font-variant-numeric:tabular-nums}.wpn{flex:none;font-size:.68rem;opacity:.6}.wpm{font-size:.82rem;text-align:center;opacity:.85}
 .vsw .lists.one{max-width:560px}
+.vsw .lists.stack{display:flex;flex-direction:column;gap:20px;width:100%;max-width:560px;margin:auto}
+.vsw .lists.stack>.card{width:100%;margin:0}
+.vs:has(>.lists.stack){display:flex;flex-direction:column}
 .vsw .sm{font:500 12px/1.5 Cairo,Inter,system-ui,sans-serif;color:var(--ink2)}`;
 
     function render(b) {
