@@ -1,10 +1,11 @@
 /* =====================================================================
-   SIDEBAR BUTTON: ydict
-   الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + رسالة الصفحة + الشاشة بتاعته.
-   لو عايز تعدّل في الزرار ده، ابعت الملف ده بس.
+   SIDEBAR BUTTON: ydict  (قاموسك / Your Dictionary)
+   الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + الشاشة بتاعته.
+   الشاشة = كارت "الكلمات والأصوات" + جهاز النطق (دوس على كلمة تسمع نطقها).
+   (اتنقلوا هنا من العلامات الحيوية. الكود المشترك بتاعهم في js/buttons/lists-core.js)
 
-   لازم يتحط في فولدر js/ (جنب index.html)، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/btn-ydict.js"></script>
-   و index.html بينده عليه بـ ctx = { R, $, lang, STR, IC, ucPage }
+   لازم يتحط في فولدر js/buttons/، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/buttons/btn-ydict.js"></script>
+   ومعاه js/buttons/lists-core.js (لازم يكون موجود ومتحمّل في home.html).
    ===================================================================== */
 (function () {
   window.ThabitBtn = window.ThabitBtn || {};
@@ -16,8 +17,9 @@
     ctx.STR.en.ydictMsg = 'All your important words that you can practise and improve your pronunciation of over time will be collected here, so that, with time, you have a dictionary built especially for you.'; ctx.STR.ar.ydictMsg = 'ستجد هنا جميع كلماتك المهمة التي يمكنك التدرّب عليها وتحسين نطقها مع الوقت، وستُطلب منك هنا، بحيث يتكوّن لديك مع الوقت قاموس مبنيّ خصيصًا لك أنت.';
 
     /* ---- the screen ---- */
-    function render(b) { ctx.ucPage(b, 'ydictMsg'); }
+    const L = window.ThabitLists, S = L ? L.screen(ctx, ['qol']) : null;
+    function render(b) { if (S) S.render(b); else ctx.ucPage(b, 'ydictMsg'); }
 
-    return { id: 'ydict', render: render };
+    return { id: 'ydict', render: render, stop: S ? S.stop : undefined, full: function () { return !!S; } };
   };
 })();
