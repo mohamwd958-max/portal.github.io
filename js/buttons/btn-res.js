@@ -17,7 +17,7 @@
     ctx.IC.res = ICON;
     ctx.STR.en.i_res = 'Resources'; ctx.STR.ar.i_res = 'الموارد';
     ctx.STR.en.tefl = 'TEFL'; ctx.STR.ar.tefl = 'TEFL';
-    ctx.STR.en.notes = 'Notes'; ctx.STR.ar.notes = 'نوتس';
+    ctx.STR.en.notes = 'Notes'; ctx.STR.ar.notes = 'ملاحظات';
     ctx.STR.en.scrib = 'Scribbles'; ctx.STR.ar.scrib = 'خربشات';
 
     /* ---- the 3 cards (TEFL + Notes read their column from trainee_dashboard; Scribbles has its own source) ---- */
