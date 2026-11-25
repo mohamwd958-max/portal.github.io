@@ -721,8 +721,8 @@ function THApp(cfg) {
       #W.light .hmov{color:#52555d}
       .hmov{flex-direction:column}
       .hmov .hmst{position:relative;flex:none;box-sizing:border-box;border:1.5px solid currentColor;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center}
-      .hmov .hmst h2{margin:0;white-space:nowrap;font-weight:800;line-height:1.3;font-family:Cairo,Inter,sans-serif;color:var(--ink)}
-      .hmov > p{margin:18px 0 0;max-width:min(86%,340px);text-align:center;font:600 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .hmov .hmst h2{margin:0;white-space:nowrap;font-weight:600;line-height:1.3;font-family:Cairo,Inter,sans-serif;color:var(--ink)}
+      .hmov > p{margin:48px 0 0;max-width:min(86%,340px);text-align:center;font:700 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
     `; R.appendChild(st);
   })();
   function ucPage(b, msgKey, cards) {   /* cards = page has content; no cards = empty page */
@@ -822,8 +822,8 @@ function THApp(cfg) {
     const rtl = getComputedStyle(st).direction === 'rtl', ow = o.getBoundingClientRect().width;
     const w = Math.round(Math.min(HM.maxW, Math.max(HM.minW, ow * 0.3))), f = w / 40;
     /* fixed size, whatever the word: the button is only 2x the hammer, and the name shrinks to fit inside it */
-    st.style.width = (w * 2) + 'px'; st.style.height = Math.round(w * 0.8) + 'px'; st.style.marginTop = Math.round(w * 0.8) + 'px';
-    const h2 = st.querySelector('h2'); let fs = Math.round(w * 0.2); h2.style.fontSize = fs + 'px';
+    st.style.width = Math.round(w * 1.6) + 'px'; st.style.height = Math.round(w * 0.62) + 'px'; st.style.marginTop = Math.round(w * 0.8) + 'px';
+    const h2 = st.querySelector('h2'); let fs = Math.round(w * 0.15); h2.style.fontSize = fs + 'px';
     while (h2.scrollWidth > st.clientWidth - 26 && fs > 11) { fs--; h2.style.fontSize = fs + 'px'; }
     const box = document.createElement('div'); box.className = 'uc'; box.setAttribute('aria-hidden', 'true');
     box.style.cssText = '--w:' + w + 'px;inset-inline-start:' + Math.round(w * 0.25) + 'px';
@@ -1029,8 +1029,8 @@ function THApp(cfg) {
   function crumb() {
     const T = MOD.dict.DT[L]; let h = '<div class="cw"><div class="ci">';
     try { $('ltitle').style.visibility = cur === 'home' ? 'hidden' : ''; } catch (e) { }
-    if (cur && cur !== 'home') h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
-    if (cur === 'library') h += '<span class="sl"></span>' + MOD.library.LIB.map((k, i) => '<button type="button" class="cp' + (i === MOD.library.libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
+    if (cur && cur !== 'home' && !isMaint(cur)) h += '<span class="cn">' + esc(STR[L]['i_' + cur]) + '</span>';
+    if (cur === 'library' && !isMaint(cur)) h += '<span class="sl"></span>' + MOD.library.LIB.map((k, i) => '<button type="button" class="cp' + (i === MOD.library.libI ? ' on' : '') + '" data-i="' + i + '">' + T[k] + '</button>').join('');
     cr.innerHTML = h + '</div></div>';
     const on = cr.querySelector('.cp.on'); if (on) { try { on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (e) { } }
   }
