@@ -1,16 +1,17 @@
 /* =====================================================================
    SIDEBAR BUTTON: dash  (العلامات الحيوية / Vital Signs)
-   الملف ده هو الزرار كله دلوقتي: الأيقونة + الاسم (EN/AR) + الشاشة نفسها.
-   مفيش iframe ومفيش dashboard.js ولا dashboard.html: الزرار بيجيب الداتا بنفسه ويرسم جوه الـlayer مباشرة.
+   الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + الشاشة نفسها. مفيش iframe ولا dashboard.js.
 
-   اللي فضل من الداشبورد القديم (وأي حاجة تانية اتشالت):
-     1) الـchart (التقدم العام + كروت الدرجات الخمسة) + فلتر الفترة (النهارده / الأسبوع / الشهر / الشهر اللي فات)
-     2) الحاويات الصغيرة: الملاحظات + النصوص (TEFL) + الكلمات والأصوات (QOL)
-     3) جهاز النطق: دوس على كلمة تسمع نطقها (مشغّل صغير: play / seek)
+   الشاشة = الأرقام بس:
+     فلتر الفترة (دايرة: النهارده / الأسبوع / الشهر / الشهر الماضي) + التقدم العام + الجلسات والوقت + كروت الدرجات الخمسة
+     (دوس على أي نقطة في الـchart تشوف السبب).
 
-   لازم يتحط في js/buttons/ زي ما هو، وبيتحمّل قبل الـscript الرئيسي.
-   home.html بينده عليه بـ ctx = { R, $, lang, STR, IC, ucPage, esc, MOD, cfg, tidyFrame, W ... }
-   وبيقرا من الـlocalStorage نفس التوكن اللي home.html بيستخدمه: thabit_trainee_token
+   اتنقلوا لأماكنهم الجديدة (وما بقاش ليهم وجود هنا):
+     الملاحظات + النصوص (TEFL) + الخربشات  ->  الموارد   (js/buttons/btn-res-content.js + res-scratch.js)
+     الكلمات والأصوات + جهاز النطق          ->  قاموسك   (js/buttons/btn-ydict-content.js)
+     الكود المشترك بتاعهم                   ->  js/buttons/lists-core.js
+
+   بيقرا من نفس التوكن اللي home.html بيستخدمه: thabit_trainee_token
    ===================================================================== */
 (function () {
   window.ThabitBtn = window.ThabitBtn || {};
@@ -29,16 +30,14 @@
 
     /* ---- small texts ---- */
     const T = {
-      en: { today: 'Today', week: 'This week', month: 'This month', lmonth: 'Last month', all: 'Since start', sessions: 'Sessions', duration: 'Time in program',
+      en: { today: 'Today', week: 'This week', month: 'This month', lmonth: 'Last month', sessions: 'Sessions', duration: 'Time in program',
         performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', compliance: 'Compliance', attendance: 'Attendance',
-        overall: 'Overall progress', none: 'No data yet', tap: 'Tap a dot to see why', notes: 'Notes', tefl: 'Passages', qol: 'Words and sounds',
-        ear: 'Pronunciation', metrics: 'Scores & details', more: 'Progress details',  last: 'Last day counted: ', loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.',
-        wmiss: 'No recording for this word yet', wfail: 'Could not load the recording', h: 'h', m: 'min' },
-      ar: { today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', lmonth: 'الشهر الماضي', all: 'منذ البداية', sessions: 'الجلسات', duration: 'وقت البرنامج',
+        overall: 'Overall progress', none: 'No data yet', tap: 'Tap a dot to see why', last: 'Last day counted: ',
+        loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.', h: 'h', m: 'min' },
+      ar: { today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', lmonth: 'الشهر الماضي', sessions: 'الجلسات', duration: 'وقت البرنامج',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', compliance: 'الالتزام', attendance: 'الحضور',
-        overall: 'التقدم العام', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', notes: 'ملاحظات', tefl: 'النصوص', qol: 'الكلمات والأصوات',
-        ear: 'النطق', metrics: 'الأرقام والتفاصيل', more: 'تفاصيل التقدم',  last: 'آخر يوم محسوب: ', loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.',
-        wmiss: 'لا يوجد تسجيل لهذه الكلمة بعد', wfail: 'تعذر تحميل التسجيل', h: 'س', m: 'د' }
+        overall: 'التقدم العام', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
+        loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', h: 'س', m: 'د' }
     };
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
     const tt = () => T[lg()];
@@ -47,7 +46,6 @@
     /* ---- state ---- */
     let D = null, range = 'week', manual = false, CUR = [], SER = null, TZ = 'Africa/Cairo';
     let wrap = null, root = null, played = false, tick = null, mo = null, lastLang = null, loadId = 0;
-    const WP = { urls: [], i: 0, a: null, word: '', tk: 0 };
 
     const tok = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
     const rpc = (fn, body) => fetch(SB + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
@@ -152,50 +150,7 @@
       return '<h4>' + t.overall + '</h4><div class="big">' + cur + ' <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['avg'], { W: 700, H: 300, L: 40, f: 13, w: 3, r: 3.4, hit: 20, lab: 10, grad: true });
     }
 
-    /* ---- Notes / Passages / Words: small containers (text only) ---- */
-    const EAR_DEF = { qol: 1, tefl: 0, notes: 0 };
-    const earOn = k => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) { } return k in s ? !!s[k] : !!EAR_DEF[k]; };
-    const earSet = (k, v) => { let s = {}; try { s = JSON.parse(localStorage.getItem('thabit_ear') || '{}') || {}; } catch (e) { } s[k] = v ? 1 : 0; try { localStorage.setItem('thabit_ear', JSON.stringify(s)); } catch (e) { } };
-    const plain = s => window.ThabitRich && ThabitRich.strip ? ThabitRich.strip(s) : String(s == null ? '' : s);
-    const inl = s => window.ThabitRich && ThabitRich.inline ? ThabitRich.inline(esc(s)) : esc(s);
-    const LNK = /\[([^\]\n]{1,200})\]\((https?:\/\/[^\s)]{3,2000})\)/g;
-    /* ear on: every word (outside tags) becomes tappable -> the pronouncer. If ThabitRich is loaded it makes its own .vx words, so we don't double-wrap. */
-    const wordify = h => window.ThabitRich ? h : h.replace(/(<[^>]+>)|([^<\s]+)/g, (m, tag, w) => tag ? tag : '<span class="vx" role="button" tabindex="0" data-word="' + esc(w.replace(/&[a-z#0-9]+;/gi, '')) + '">' + w + '</span>');
-    function escv(s, ear) {
-      s = String(s == null ? '' : s); let out = '', last = 0, m; LNK.lastIndex = 0;
-      const f = x => { const h = inl(x).replace(/(<[^>]+>)|\s*\|\s*/g, (mm, tag) => tag ? tag : '<i class="vb"></i>'); return ear ? wordify(h) : h; };
-      while ((m = LNK.exec(s))) { out += f(s.slice(last, m.index)) + '<a class="alk" href="' + esc(m[2]) + '" target="_blank" rel="noopener noreferrer">' + esc(m[1]) + '</a>'; last = m.index + m[0].length; }
-      return out + f(s.slice(last));
-    }
-    function rich(txt, ear) {
-      return String(txt || '').trim().split(/\n\s*\n/).filter(b => b.trim()).map(b => {
-        const ls = b.split('\n').map(l => l.trimEnd()).filter(l => l.trim()), NUM = /^\s*(\d+|[a-zA-Z])[.)]\s+/, BUL = /^\s*[-•*]\s+/;
-        if (ls.every(l => NUM.test(l))) return '<ol class="rl" dir="auto"' + (/^\s*[a-zA-Z][.)]/.test(ls[0]) ? ' type="a"' : '') + '>' + ls.map(l => '<li>' + escv(l.replace(NUM, ''), ear) + '</li>').join('') + '</ol>';
-        if (ls.every(l => BUL.test(l))) return '<ul class="rl" dir="auto">' + ls.map(l => '<li>' + escv(l.replace(BUL, ''), ear) + '</li>').join('') + '</ul>';
-        return '<p class="rp" dir="auto">' + ls.map(l => escv(l, ear)).join('<br>') + '</p>';
-      }).join('');
-    }
-    const EARSVG = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9a4 4 0 1 1 8 0c0 2.2-1.4 3.1-2.5 4.2-.9.9-1.5 1.7-1.5 3a3.2 3.2 0 0 1-3.2 3.2"/><path d="M13.5 9a.5.5 0 1 1 1 0c0 .8-.6 1.1-1 1.5"/><path d="M4.6 9.2a5.6 5.6 0 0 0 0 5.6M2 7.4a8.8 8.8 0 0 0 0 9.2"/></svg>';
-    const LISTS = {};
-    function cap(rows, key, title) {
-      const t = tt(), on = earOn(key);
-      const list = LISTS[key] = rows.slice().reverse().filter(r => r[key]).map(r => ({ date: r.supply_date, text: String(r[key]) }));
-      const it = list.map((x, n) => '<div class="cap" data-n="' + n + '"><span class="dt">' + esc(x.date) + '</span><span class="ct" dir="auto">' + esc(plain(x.text).replace(/\s+/g, ' ').slice(0, 70)) + '</span></div>').join('');
-      return '<div class="card earc" data-key="' + key + '"><div class="earh"><h4>' + title + '</h4><div class="earbar"><button type="button" class="ear' + (on ? ' on' : '') + '" data-ear="' + key + '" aria-pressed="' + on + '" aria-label="' + t.ear + '" title="' + t.ear + '">' + EARSVG + '</button></div></div><div class="lst">' + (it || '<div class="sm">' + t.none + '</div>') + '</div></div>';
-    }
-    /* one cell and a quarter of the next one; nothing scrolls inside, a tap anywhere on the container opens all of it */
-    function fitCaps() {
-      if (!root) return;
-      root.querySelectorAll('.earc .lst').forEach(l => {
-        const c = [...l.children].filter(x => x.classList.contains('cap')); l.style.maxHeight = '';
-        if (!c.length || !c[0].offsetHeight) return;
-        if (c.length < 2) { l.style.maxHeight = 'none'; return; }
-        l.style.maxHeight = (c[0].offsetHeight + (parseFloat(getComputedStyle(c[0]).marginBottom) || 0) + c[1].offsetHeight * 0.25) + 'px';
-      });
-    }
-
     /* ---- the screen ---- */
-    const ARR = '<svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2" fill="currentColor"/><g class="pq"><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2" fill="none" stroke="#fbbf24" stroke-width="1.6"/><path d="M17.25 15.6v3.8M15.35 17.5h3.8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g></svg>';
     function paint() {
       if (!root || !D) return;
       const keep = root.scrollTop, t = tt();
@@ -203,10 +158,9 @@
       const all = D.rows, rows = CUR = all.filter(inRange), S = SER = series(rows), last = rows.length ? rows[rows.length - 1].supply_date : '';
       let h = '<div class="rrow"><div class="sm note">' + (range !== 'today' && last ? t.last + esc(last) : '') + '</div><div class="rng"><button type="button" class="thrb' + (range === 'lmonth' ? ' lm' : '') + '" aria-haspopup="true" aria-label="' + esc(t[range]) + '"><span>' + esc(t[range]) + '</span></button></div></div>';
       h += '<div class="card ov">' + overall(rows, S) + '</div>';
-      h += '<button type="button" class="tharr" aria-label="' + esc(t.more) + '">' + ARR + '</button>';
-      h += '<div class="grid lists">' + cap(all, 'notes', t.notes) + cap(all, 'tefl', t.tefl) + cap(all, 'qol', t.qol) + '</div>';
+      h += '<div class="card two"><div><h4>' + t.sessions + '</h4><div class="big">' + rows.length + '</div></div><div class="sep"><h4>' + t.duration + '</h4><div class="big">' + fmtDur(rows.reduce((a, r) => a + mins(r), 0)) + '</div></div></div>';
+      h += '<div class="grid">' + MET.map(k => kpi(k, rows, all, S)).join('') + '</div>';
       root.innerHTML = h; root.scrollTop = keep;
-      requestAnimationFrame(fitCaps); setTimeout(fitCaps, 350);
       if (!played) { played = true; setTimeout(() => { if (root) root.querySelectorAll('svg.c2.ci').forEach(e => e.classList.add('go')); }, 60); }
     }
     /* ---- time button: pressed -> the page blurs, the other options spiral out around it as round buttons ---- */
@@ -235,23 +189,6 @@
         if (b.animate) b.animate(pts, { duration: 520, delay: i * 70, easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'backwards' });
       });
     }
-    /* ---- details pop-up: the five score cards (only when the small button under the chart is pressed) ---- */
-    function closeDet() { const e = wrap && wrap.querySelector('.det'); if (e) e.remove(); }
-    function openDet() {
-      closeDet(); closeRov(true); if (!D) return;
-      const t = tt(), rows = CUR, all = D.rows, S = SER, el = document.createElement('div'); el.className = 'ov2 det';
-      el.innerHTML = '<div class="tdb"><button type="button" class="tdx" aria-label="Close">×</button><div class="tdh"><b>' + t.metrics + '</b><span>' + esc(t[range] + ' · ' + rows.length + ' ' + t.sessions + ' · ' + fmtDur(rows.reduce((a, r) => a + mins(r), 0))) + '</span></div><div class="grid">' + MET.map(k => kpi(k, rows, all, S)).join('') + '</div></div>';
-      wrap.appendChild(el);
-    }
-    /* ---- container pop-up: every entry of Notes / Passages / Words, the tapped one first in view ---- */
-    function closeCm() { const e = wrap && wrap.querySelector('.cm'); if (e) e.remove(); }
-    function openCm(key, n) {
-      closeCm(); const t = tt(), on = earOn(key), title = key === 'notes' ? t.notes : key === 'tefl' ? t.tefl : t.qol, list = LISTS[key] || [];
-      const el = document.createElement('div'); el.className = 'ov2 cm';
-      el.innerHTML = '<div class="cmb"><button type="button" class="tdx cmx" aria-label="Close">×</button><h4 class="cmh">' + esc(title) + '</h4><div class="cml">' + (list.map((x, i) => '<div class="ce" data-n="' + i + '"><div class="dt">' + esc(x.date) + '</div>' + rich(x.text, on) + '</div>').join('') || '<div class="sm">' + t.none + '</div>') + '</div></div>';
-      wrap.appendChild(el);
-      const l = el.querySelector('.cml'), c = l.querySelector('.ce[data-n="' + n + '"]'); if (c) l.scrollTop = c.offsetTop - 4;
-    }
     function say(msg) { if (root) root.innerHTML = '<div class="card msg">' + esc(msg) + '</div>'; }
     async function load(silent) {
       const id = ++loadId, t = tt();
@@ -264,73 +201,17 @@
       TZ = tzFromProfile(d.profile); D = d; if (!silent) manual = false; paint();
     }
 
-    /* ---- chart dot tap: crosshair + tooltip + the reason under the card ---- */
     function dotTap(d) {
       const t = tt(), sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
       if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
       const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
       const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
-      const host = d.closest('.tdb') || root; let tip = host.querySelector('.tip'); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip); }
+      const host = root; let tip = host.querySelector('.tip'); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip); }
       const rr = host.getBoundingClientRect(), bx = d.getBoundingClientRect();
       tip.textContent = b.label + ' · ' + t[k] + ' ' + v + ' (+' + sc + ')';
       tip.style.left = (bx.left + bx.width / 2 - rr.left + host.scrollLeft) + 'px'; tip.style.top = (bx.top - rr.top + host.scrollTop - 8) + 'px'; tip.hidden = false;
       const w = host.querySelector('[data-why="' + k + '"]'), why = k === 'performance' ? (r.why || r.performance_details) : k === 'attendance' ? (r.attendance_details || r.attendance_why) : r[k + '_details'];
       if (w) w.innerHTML = esc(b.label) + ' · +' + sc + ' → ' + v + (why ? '<br><span dir="auto">' + esc(why) + '</span>' : '');
-    }
-
-    /* ---- the pronouncer (tap a word -> its recording from words_table) ---- */
-    const fmtS = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-    const PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>', PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
-    function wpClose() { WP.tk++; if (WP.a) { try { WP.a.pause(); } catch (e) { } WP.a = null; } const el = wrap && wrap.querySelector('.wp'); if (el) el.remove(); }
-    function wpMsg(m) { const el = wrap && wrap.querySelector('.wp'); if (!el) return; el.querySelector('.wpr').style.display = 'none'; const x = el.querySelector('.wpm'); x.textContent = m; x.hidden = false; }
-    function wpLoad(auto) {
-      const el = wrap && wrap.querySelector('.wp'); if (!el) return;
-      if (WP.a) { try { WP.a.pause(); } catch (e) { } }
-      const a = WP.a = new Audio(WP.urls[WP.i]), my = WP.tk;
-      const pb = el.querySelector('.wpp'), sk = el.querySelector('input'), tm = el.querySelector('.wpt'), part = el.querySelector('.wpn');
-      let drag = false; const live = () => my === WP.tk && WP.a === a;
-      const sync = () => { if (!live()) return; const d = a.duration || 0; if (!drag) sk.value = d ? Math.round(a.currentTime / d * 1000) : 0; tm.textContent = fmtS(a.currentTime) + ' / ' + fmtS(d); };
-      const icon = () => { if (live()) pb.innerHTML = a.paused ? PLAY : PAUSE; };
-      part.textContent = WP.urls.length > 1 ? (WP.i + 1) + '/' + WP.urls.length : '';
-      a.ontimeupdate = sync; a.onloadedmetadata = sync; a.onplay = icon; a.onpause = icon;
-      a.onended = () => { if (!live()) return; if (WP.i < WP.urls.length - 1) { WP.i++; setTimeout(() => { if (my === WP.tk) wpLoad(true); }, 350); } else { a.currentTime = 0; sync(); icon(); } };
-      a.onerror = () => { if (live()) wpMsg(tt().wfail); };
-      pb.onclick = () => { if (a.paused) a.play().catch(() => { }); else a.pause(); };
-      sk.oninput = () => { drag = true; if (a.duration) { a.currentTime = sk.value / 1000 * a.duration; tm.textContent = fmtS(a.currentTime) + ' / ' + fmtS(a.duration); } };
-      sk.onchange = () => { drag = false; };
-      sk.value = 0; sync(); icon(); if (auto) a.play().catch(() => { });
-    }
-    const wpClean = v => !v ? '' : String(v).toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?'"\u201C\u201D\u2018\u2019]/g, '').replace(/\s+/g, ' ').trim();
-    const wpParts = v => String(v || '').split(/[,\u060C\n]+/).map(x => x.trim()).filter(Boolean);
-    const wpCache = {}; let wpKeyOK = true;
-    async function wpQuery(qs) {
-      const r = await fetch(SB + '/rest/v1/words_table?select=audio_url&audio_url=not.is.null&limit=1&' + qs, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
-      if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
-      const rows = await r.json(); return Array.isArray(rows) && rows[0] ? rows[0].audio_url : null;
-    }
-    async function wpLookup(word) {
-      const c = wpClean(word); if (!c) return null; if (wpCache[c]) return wpCache[c];
-      let u = null;
-      if (wpKeyOK) { try { u = await wpQuery('word_key=eq.' + encodeURIComponent(c)); } catch (e) { if (e.status === 400 || e.status === 404) wpKeyOK = false; else throw e; } }
-      if (!u) u = await wpQuery('word=ilike.' + encodeURIComponent(String(word).trim().replace(/[\\%_]/g, m => '\\' + m)));
-      if (u) wpCache[c] = u; return u;
-    }
-    async function wpResolve(text) {
-      const u = await wpLookup(text); if (u) return [u];
-      const parts = wpParts(text); if (parts.length < 2) return null;
-      const us = await Promise.all(parts.map(wpLookup)); return us.every(Boolean) ? us : null;
-    }
-    async function wpOpen(word) {
-      word = String(word == null ? '' : word).trim(); if (!word || !wrap) return;
-      wpClose();
-      const my = ++WP.tk; WP.word = word; WP.urls = []; WP.i = 0;
-      const el = document.createElement('div'); el.className = 'wp';
-      el.innerHTML = '<div class="wpw" dir="auto">' + esc(word) + '</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause">' + PLAY + '</button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span></div><div class="wpm" dir="auto" hidden></div>';
-      wrap.appendChild(el);
-      let urls; try { urls = await wpResolve(word); } catch (e) { urls = undefined; }
-      if (my !== WP.tk) return;
-      if (!urls) { wpMsg(urls === null ? tt().wmiss : tt().wfail); return; }
-      WP.urls = urls; wpLoad(true);
     }
 
     /* ---- look (scoped to this screen only; colours follow the shell's theme variables) ---- */
@@ -356,24 +237,8 @@
 .vsw .thro{position:absolute;z-index:31;box-sizing:border-box;width:54px;height:54px;padding:3px;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 10.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .vsw .thro:active{transform:scale(.92)}#W.light .vsw .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 @keyframes vsIn{from{opacity:0}to{opacity:1}}
-.vsw .tharr{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:14px auto 22px;padding:0;border-radius:50%;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .2s;-webkit-tap-highlight-color:transparent}
-.vsw .tharr:hover{background:rgba(251,191,36,.18)}.vsw .tharr:active{transform:scale(.92)}.vsw .tharr svg{display:block;overflow:visible}
-.vsw .tharr .pq{transform-box:fill-box;transform-origin:center;animation:vsPls 2s ease-in-out infinite}
-@keyframes vsPls{0%,60%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.22) rotate(90deg)}}
-.vsw .ov2{position:absolute;inset:0;z-index:25;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:vsIn .25s ease-out}
-#W.light .vsw .ov2{background:rgba(255,255,255,.4)}
-.vsw .tdb,.vsw .cmb{position:relative;box-sizing:border-box;width:min(1000px,100%);max-height:100%;overflow:auto;border-radius:24px;padding:18px 14px 14px;background:rgba(15,23,42,.94);color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);overscroll-behavior:contain;scrollbar-width:none;animation:vsPop .32s cubic-bezier(.2,.9,.3,1.15)}
-#W.light .vsw .tdb,#W.light .vsw .cmb{background:rgba(255,255,255,.97);color:#0f172a}
-.vsw .tdb h4,.vsw .cmb h4{color:inherit}.vsw .tdb .sm,.vsw .cmb .sm{color:inherit;opacity:.7}.vsw .tdb .card{background:rgba(148,163,184,.1)}
-@keyframes vsPop{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
-.vsw .tdh{display:flex;flex-direction:column;gap:2px;margin:0 36px 12px;text-align:center}.vsw .tdh span{font-size:.78rem;opacity:.7}
-.vsw .tdx{position:absolute;top:8px;inset-inline-end:10px;z-index:2;width:30px;height:30px;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;font-size:1.2rem;line-height:1;cursor:pointer}
-.vsw .tdb .grid{margin-bottom:0}.vsw .cmb{width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;padding-top:16px}.vsw .cmh{text-align:center;margin:0 36px 10px;font-size:15px}
-.vsw .cml{position:relative;overflow:auto;scrollbar-width:none}.vsw .cml::-webkit-scrollbar{display:none}
-.vsw .ce{margin:0 0 12px;padding:10px;border-radius:16px;background:rgba(148,163,184,.1)}.vsw .ce .dt{margin-bottom:4px;color:inherit;opacity:.65;font:700 11px Inter,sans-serif;direction:ltr;text-align:start}
+.vsw .two{display:flex;gap:14px}.vsw .two>div{flex:1}.vsw .sep{border-inline-start:1px solid var(--sbd);padding-inline-start:14px}
 .vsw .grid{max-width:1100px;margin:0 auto 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px 10px}.vsw .grid .card{margin:0}
-.vsw .lists{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-@media(max-width:600px){.vsw .lists{grid-template-columns:1fr 1fr}.vsw .lists>:first-child{grid-column:1/-1}}
 .vsw svg.c2{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}.vsw .ov svg.c2{max-height:min(40vh,380px)}
 .vsw svg.c2 .tx{fill:var(--ink2);pointer-events:none}.vsw svg.c2 .xh{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
 .vsw svg.c2 .ln{stroke-linecap:round;stroke-linejoin:round}.vsw svg.c2 .dot{stroke:none;cursor:pointer}.vsw svg.c2 .dot.hit{fill:transparent}
@@ -383,28 +248,10 @@
 .vsw svg.c2.ci.go .ln{animation:vsLn 1.6s cubic-bezier(.45,.05,.2,1) forwards;animation-delay:calc(var(--li,0)*.12s)}
 .vsw svg.c2.ci.go .dot:not(.hit){animation:vsDot .5s ease forwards;animation-delay:calc(var(--d,0)*1.4s + .2s)}
 @keyframes vsLn{to{stroke-dashoffset:0}}@keyframes vsDot{to{opacity:1}}
-@media(prefers-reduced-motion:reduce){.vsw svg.c2.ci .ln{stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}.vsw svg.c2.ci .dot:not(.hit){opacity:1;animation:none!important}.vsw .tharr .pq,.vsw .ear.shk,.vsw .ear.cls{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.vsw svg.c2.ci .ln{stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}.vsw svg.c2.ci .dot:not(.hit){opacity:1;animation:none!important}}
 .vsw .why{margin-top:6px;min-height:18px}
-.vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}
-.vsw .earc{min-height:190px;padding:16px 14px 14px;border-radius:28px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.18)}
-.vsw .earh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.vsw .earh h4{margin:0;font-size:14.5px}
-.vsw .ear{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid var(--gbd);background:var(--chip);color:var(--ink2);display:grid;place-items:center;padding:0;cursor:pointer;transition:background .35s,color .35s,border-color .35s}
-.vsw .ear.on{background:rgba(52,211,153,.18);border-color:#34d399;color:#34d399}
-.vsw .ear.shk{animation:vsShk .7s ease}.vsw .ear.cls{animation:vsCls .5s ease}
-@keyframes vsShk{0%,100%{transform:rotate(0) scale(1)}15%{transform:rotate(-16deg) scale(1.12)}35%{transform:rotate(13deg) scale(1.12)}55%{transform:rotate(-8deg) scale(1.05)}75%{transform:rotate(4deg)}}
-@keyframes vsCls{0%{transform:scale(1.1)}100%{transform:scale(1)}}
-.vsw .lst{overflow:hidden}
-.vsw .cap{display:block;box-sizing:border-box;width:100%;padding:9px 12px;margin:0 0 8px;border-radius:16px;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.22);text-align:center;font:600 13px Cairo,Inter,sans-serif;color:var(--ink)}
-.vsw .cap .dt{display:block;margin-bottom:2px;color:var(--ink2);font:700 12px Inter,sans-serif}.vsw .cap .ct{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vsw .rp,.vsw .rl{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(148,163,184,.1);font:500 13px/1.7 Cairo,Inter,sans-serif}.vsw .rl{padding-inline-start:30px}
-.vsw .vx{cursor:pointer;border-radius:4px;color:#38bdf8}.vsw .vx:hover{background:rgba(56,189,248,.15)}.vsw .alk{color:#38bdf8}.vsw .vb{display:inline-block;width:1px;height:.9em;margin:0 8px;background:currentColor;opacity:.5;vertical-align:middle}
-.vsw>.wp{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(92%,360px);z-index:40;box-sizing:border-box;padding:12px 14px;border-radius:16px;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);box-shadow:0 12px 36px rgba(0,0,0,.45)}
-#W.light .vsw>.wp{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
-.wpw{font-weight:700;margin-bottom:8px;text-align:center;overflow-wrap:anywhere}.wpr{display:flex;align-items:center;gap:8px}
-.wpb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#34d399;color:#06281b;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.vsw .wp input[type=range]{flex:1;min-width:0;accent-color:#34d399}.wpt{flex:none;font-size:.68rem;opacity:.75;font-variant-numeric:tabular-nums}.wpn{flex:none;font-size:.68rem;opacity:.6}.wpm{font-size:.82rem;text-align:center;opacity:.85}`;
+.vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}`;
 
-    let onResize = null;
     function render(b) {
       stop();
       b.innerHTML = '<style>' + CSS + '</style><div class="vsw"><div class="vs"></div></div>';
@@ -414,32 +261,17 @@
         wrap.querySelectorAll('.tip').forEach(x => { x.hidden = true; });
         wrap.querySelectorAll('svg .xh').forEach(l => { l.style.display = 'none'; });
         let x;
-        if ((x = q('.ear'))) {   /* turn the pronunciation on (green + a little shake) or off */
-          e.stopPropagation(); const k = x.dataset.ear, on = !earOn(k); earSet(k, on);
-          x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); x.classList.remove('shk', 'cls'); void x.offsetWidth; x.classList.add(on ? 'shk' : 'cls'); setTimeout(() => x.classList.remove('shk', 'cls'), 1100); return;
-        }
-        if ((x = q('.vx'))) { e.preventDefault(); wpOpen(x.dataset.word); return; }
         if (q('.rov')) { if ((x = q('.thro'))) { range = x.dataset.k; manual = true; closeRov(true); paint(); } else closeRov(); return; }
         if ((x = q('.thrb'))) { openRov(x); return; }
-        if (q('.tharr')) { openDet(); return; }
-        if (q('.det')) { if ((x = q('.dot'))) { dotTap(x); return; } if (q('.tdx') || !q('.tdb')) closeDet(); return; }
-        if (q('.cm')) { if (q('.cmx') || !q('.cmb')) closeCm(); else if (!q('.wp')) wpClose(); return; }
-        if ((x = q('.dot'))) { dotTap(x); return; }
-        if ((x = q('.earc'))) { const c = q('.cap'); openCm(x.dataset.key, c ? +c.dataset.n : 0); return; }
-        if (!q('.wp')) wpClose();
+        if ((x = q('.dot'))) dotTap(x);
       });
-      wrap.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { closeRov(); closeDet(); closeCm(); return; }
-        if (e.key !== 'Enter' && e.key !== ' ') return; const x = e.target.closest && e.target.closest('.vx'); if (x) { e.preventDefault(); wpOpen(x.dataset.word); }
-      });
-      onResize = () => fitCaps(); window.addEventListener('resize', onResize);
+      wrap.addEventListener('keydown', e => { if (e.key === 'Escape') closeRov(); });
       tick = setInterval(() => { if (D && root && ((!manual && range !== 'all') || (manual && !opts().includes(range)))) paint(); }, 30000);   /* a new day / month starts by itself */
       try { const W = ctx.W; if (W && window.MutationObserver) { mo = new MutationObserver(() => { if (lg() !== lastLang) { lastLang = lg(); paint(); } }); mo.observe(W, { attributes: true, attributeFilter: ['dir', 'class'] }); } } catch (e) { }
       if (D) { paint(); load(true); } else load();   /* cached data shows at once, fresh data replaces it quietly */
     }
     function stop() {
-      closeRov(true); closeDet(); closeCm(); wpClose();
-      if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
+      closeRov(true);
       if (tick) { clearInterval(tick); tick = null; } if (mo) { mo.disconnect(); mo = null; } wrap = null; root = null; loadId++;
     }
 
