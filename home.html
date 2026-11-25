@@ -782,7 +782,7 @@ function THApp(cfg) {
       try {
         const d = f.contentDocument; if (d && d.head) {
           let b = d.getElementById('thBlackFrame'); if (!b) { b = d.createElement('style'); b.id = 'thBlackFrame'; d.head.appendChild(b); }
-          b.textContent = on ? '' : 'html,body{background:#000!important;background-image:none!important}';
+          b.textContent = on ? '' : 'html,body{background:#121214!important;background-image:none!important}';
         }
       } catch (e) { }
     });
@@ -1447,17 +1447,23 @@ function THApp(cfg) {
      Every page / widget / button screen gets the same dead black. Change BLACK to tune it.
      Stars: every STAR3.cycleMs a wave of 3 tiny stars shows up one after another at random places. */
   (function () {
-    const BLACK = '#000';
+    /* three layers (dark theme only). Change the three colours to tune the contrast:
+       L1 = the page itself, dead black, stars live here (lowest)
+       L2 = containers sitting on it (display area, side menu, header, pop-ups) - slightly lighter black
+       L3 = things on the surface of the containers (buttons, widgets, cards, fields) - the lightest */
+    const L1 = '#000', L2 = '#121214', L3 = '#1f1f24', POP = '#17171a';
     const st = document.createElement('style'); st.id = 'thBlack';
     st.textContent = `
-      #W:not(.light){--appbg:${BLACK};--pcard:${BLACK};--pn:rgba(0,0,0,.94);--sb:rgba(0,0,0,.72);--sbd:rgba(255,255,255,.12);background:${BLACK}!important}
+      #W:not(.light){--appbg:${L1};--pcard:${L2};--pn:rgba(18,18,20,.96);--sb:rgba(18,18,20,.88);--sbd:rgba(255,255,255,.1);--gbg:${L3};--gfield:${L3};--chip:${L3};background:${L1}!important}
       #W:not(.light) #layer,#W:not(.light) #lbody,#W:not(.light) .ltop{background-color:transparent}
-      #W:not(.light) :is(.pcard,.dpc,.dframe,.hmov,.mr-card,.cal-c,.cal-low){background:${BLACK}!important;background-image:none!important}
-      #W:not(.light) :is(.pop,.intro .ib){background:rgba(0,0,0,.96)!important}
-      #W:not(.light) :is(.hm-menu,.hm-pop){background:#050505!important}
-      #W:not(.light) #side{background:rgba(0,0,0,.94)!important}
-      #W:not(.light).sbo #side{background:rgba(0,0,0,.96)!important}
-      #stars{position:fixed;inset:0;z-index:24;pointer-events:none;overflow:hidden}
+      /* layer 2: containers */
+      #W:not(.light) :is(.pcard,.dpc,.dframe,.hmov){background:${L2}!important;background-image:none!important}
+      #W:not(.light) :is(.pop,.intro .ib,.hm-menu,.hm-pop){background:${POP}!important}
+      #W:not(.light) #side,#W:not(.light).sbo #side{background:rgba(18,18,20,.96)!important}
+      /* layer 3: on the surface */
+      #W:not(.light) :is(.mr-card,.cal-c,.cal-low,.ucc,.lpc,.plc,.hm-bar){background:${L3}!important;background-image:none!important}
+      /* stars: the very bottom, behind every layer, only seen where the page itself shows */
+      #stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
       #W.light #stars{display:none}
       #stars i{position:absolute;border-radius:50%;background:#fff;opacity:0;will-change:opacity,scale}`;
     R.appendChild(st);
