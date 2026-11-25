@@ -26,6 +26,13 @@ function passSave(t, photo) {
     a.sort((x, y) => x.n - y.n);
     try { localStorage.setItem(PASS_KEY, JSON.stringify(a)); } catch (e) { }
   }
+/* a session made with the "+" button in the dictation page (photo or hand-written text), kept under its own number */
+function passAdd(n, answer, photo) {
+    const a = passList().filter(p => p.n !== n);
+    a.push({ n, text: '', answer: answer || '', photo: !!photo, manual: true, at: Date.now() });
+    a.sort((x, y) => x.n - y.n);
+    try { localStorage.setItem(PASS_KEY, JSON.stringify(a)); } catch (e) { }
+  }
 /* ---- library: 4 side-by-side pages (swipe left/right); the section names live in the top row next to the menu button ---- */
   const LIB = ['sPhotos', 'sAudio', 'sPass', 'sLinks'];
 let libI = 0, libCols = 3;
@@ -66,7 +73,7 @@ function renderLib(b) {
     b.innerHTML = '<div class="pcard dpc dlib"><div class="lpages">' +
       '<section class="lpg lpp lph">' + sw([['task', T.tabPhTask], ['msg', T.tabPhMsg]], 'task') + '<div class="lpb"></div></section>' +
       '<section class="lpg lpa">' + sw([['task', T.tabTask], ['later', T.tabLater]], 'task') + '<div class="lab"></div></section>' +
-      '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + T.passage + ' #' + p.n + '</b><p>' + thx.esc(p.text) + '</p>' + (p.answer ? '<p class="la">' + thx.esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
+      '<section class="lpg">' + (ps.length ? '<div class="lcol">' + ps.map(p => '<div class="lpc"><b>' + (p.manual ? thx.MOD.dict.sessName(p.n) : T.passage + ' #' + p.n) + '</b>' + (p.text ? '<p>' + thx.esc(p.text) + '</p>' : '') + (p.answer ? '<p class="la" dir="auto">' + thx.esc(p.answer) + '</p>' : '') + '</div>').join('') + '</div>' : empty(T.passEmpty)) + '</section>' +
       '<section class="lpg lpl"><div class="lpb"></div></section></div></div>';
     const pg = libPages();
     pg.scrollTo({ left: (thx.W.dir === 'rtl' ? -1 : 1) * libI * pg.clientWidth, behavior: 'instant' });
@@ -86,7 +93,7 @@ function renderLib(b) {
     };
     const showPh = async k => {
       phK = k; ph.querySelectorAll('.lsw button').forEach(x => x.classList.toggle('on', x.dataset.a === k));
-      if (k === 'task') { phB.innerHTML = a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty); return; }
+      if (k === 'task') { phB.innerHTML = a.length ? '<div class="dgrid" style="--cols:' + libCols + '">' + a.map(p => p.s ? '<figure class="lfig"><img alt="" draggable="false" src="' + p.d + '"><figcaption>' + thx.esc(thx.MOD.dict.sessName(p.n)) + '</figcaption></figure>' : '<img alt="" draggable="false" src="' + p.d + '">').join('') + '</div>' : empty(T.libEmpty); return; }
       if (LM) drawMsgPh(); else phB.innerHTML = '';
       await libMsgLoad(); drawMsgPh();
     };
@@ -125,11 +132,17 @@ function renderLib(b) {
     }
   }
 
+    {   /* name tag under a photo saved from a dictation session */
+      const st = document.createElement('style'); st.id = 'thLibNameCss';
+      st.textContent = '.lfig{position:relative;width:100%;margin:0}.lfig img{display:block;width:100%}.lfig figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 6px;border-radius:0 0 10px 10px;text-align:center;font:700 10.5px Cairo,Inter,sans-serif;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.72))}.lpc p[dir=auto]{unicode-bidi:plaintext}';
+      thx.R.appendChild(st);
+    }
     /* ---- اللي index.html والملفات التانية بتستخدمه من الزرار ده ---- */
     return {
       id: 'library', render: renderLib,
       get passNext() { return passNext; },
       get passSave() { return passSave; },
+      get passAdd() { return passAdd; },
       get LIB() { return LIB; },
       get libI() { return libI; },
       set libI(v) { libI = v; },
