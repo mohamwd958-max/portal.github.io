@@ -21,9 +21,9 @@
   const DFALL = 'time people water light house green music river paper garden window summer story friend market bridge cloud dream school morning'.split(' ');
 const DT = {
     en: { passage: 'Passage', word: 'Word by word', hint: 'Tap a word to hear it, then write exactly what you hear.', ph: 'Write what you hear here…', done: "I'm done", loading: 'Preparing your text…',
-      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.', tabPhTask: 'Task photos', tabPhMsg: 'Messenger photos', tabLater: 'Later', laterMsg: 'Available here later.', phMsgEmpty: 'No messenger photos yet.', libDel: 'Remove' },
+      photoT: 'Send a photo of your writing', photoB: 'Upload photo', thanks: 'Thank you!', thanks2: 'You can open anything else now.', more: 'I want more', mistake: 'I did this by mistake', nomind: 'No problem, thank you anyway.', libEmpty: 'No photos yet.', libNote: 'Photos stay here for this session.', bad: 'Could not read the photo. Please try again.', menu: 'Menu', sPhotos: 'Photos', sAudio: 'Audio', sPass: 'Passages', sLinks: 'Links', audEmpty: 'No audio clips yet.', tabMsg: 'Messenger recordings', tabTask: 'Task recordings', taskEmpty: 'No task recordings yet.', sessN: 'Mirror session #', passEmpty: 'No passages yet.', linkEmpty: 'No links yet.', tabPhTask: 'Task photos', tabPhMsg: 'Messenger photos', tabLater: 'Later', laterMsg: 'Available here later.', phMsgEmpty: 'No messenger photos yet.', libDel: 'Remove', dsT: 'Dictation session #', dsPlus: 'New dictation session', dsSub: 'Upload a photo or write your text, then save.', dsPhoto: 'Upload photo', dsWrite: 'Write it', dsPick: 'Tap to choose a photo', dsWph: 'Write your text here…', dsSave: 'Save', dsCancel: 'Cancel', dsSaved: 'Saved as' },
     ar: { passage: 'القطعة', word: 'كلمة بكلمة', hint: 'اضغط على أي كلمة لتسمعها، ثم اكتب ما تسمعه بالضبط.', ph: 'اكتب هنا ما تسمعه…', done: 'أنهيت', loading: 'نجهّز لك النص…',
-      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.', tabPhTask: 'صور المهام', tabPhMsg: 'صور المرسال', tabLater: 'لاحقًا', laterMsg: 'هيتوفر هنا لاحقًا.', phMsgEmpty: 'لا توجد صور من المرسال بعد.', libDel: 'إزالة' }
+      photoT: 'أرسل صورة لما كتبته', photoB: 'رفع صورة', thanks: 'شكرًا لك!', thanks2: 'يمكنك الآن فتح أي شيء آخر.', more: 'أريد المزيد', mistake: 'فتحتها بالخطأ', nomind: 'لا مشكلة، شكرًا لك على كل حال.', libEmpty: 'لا توجد صور بعد.', libNote: 'تبقى الصور هنا خلال هذه الجلسة.', bad: 'تعذّرت قراءة الصورة. حاول مرة أخرى.', menu: 'القائمة', sPhotos: 'الصور', sAudio: 'مقاطع صوتية', sPass: 'القطع', sLinks: 'الروابط', audEmpty: 'لا توجد مقاطع صوتية بعد.', tabMsg: 'تسجيلات المرسال', tabTask: 'تسجيلات المهام', taskEmpty: 'لا توجد تسجيلات مهام بعد.', sessN: 'جلسة مماراة رقم', passEmpty: 'لا توجد قطع بعد.', linkEmpty: 'لا توجد روابط بعد.', tabPhTask: 'صور المهام', tabPhMsg: 'صور المرسال', tabLater: 'لاحقًا', laterMsg: 'هيتوفر هنا لاحقًا.', phMsgEmpty: 'لا توجد صور من المرسال بعد.', libDel: 'إزالة', dsT: 'جلسة إملاء رقم ', dsPlus: 'جلسة إملاء جديدة', dsSub: 'ارفع صورة أو اكتب نصك، ثم اضغط حفظ.', dsPhoto: 'رفع صورة', dsWrite: 'كتابة', dsPick: 'اضغط لاختيار صورة', dsWph: 'اكتب نصك هنا…', dsSave: 'حفظ', dsCancel: 'إلغاء', dsSaved: 'تم الحفظ باسم' }
   };
 const dictLoad = () => { try { return JSON.parse(localStorage.getItem(DICT.key) || 'null'); } catch (e) { return null; } };
 function setBd(k, on) { const it = thx.R.querySelector('.sdi[data-k="' + k + '"]'); if (!it) return; let bd = it.querySelector('.sdbd'); if (on && !bd) { bd = document.createElement('b'); bd.className = 'sdbd'; bd.textContent = '1'; it.appendChild(bd); } else if (!on && bd) bd.remove(); }
@@ -68,7 +68,7 @@ async function renderDict(b) {
     drawDict(b, t);
   }
 function drawDict(b, t) {
-    const T = DT[thx.L], card = el => { b.innerHTML = '<div class="pcard dpc">' + el + '</div>'; return b.firstChild; };
+    const T = DT[thx.L], card = el => { b.innerHTML = '<div class="pcard dpc">' + el + '</div>'; addPlus(b); return b.firstChild; };
     if (t.stage === 'photo') {
       const c = card('<div class="dmsg big">' + T.photoT + '</div><label class="btn dup">' + T.photoB + '<input type="file" accept="image/*" hidden></label>');
       c.querySelector('input').onchange = e => {
@@ -108,26 +108,104 @@ function drawDict(b, t) {
     };
     const ms = c.querySelector('.dmis'); if (ms) ms.onclick = () => { dictSave(null); drawDict(b, { stage: 'nomind' }); };
   }
-function savePhoto(file) {
+function savePhoto(file, meta) {
     return new Promise(res => {
       const fr = new FileReader();
       fr.onload = () => { const im = new Image(); im.onload = () => {
         const s = Math.min(1, 1000 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
         cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
         const d = cv.toDataURL('image/jpeg', .7);
-        try { const a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); a.unshift({ d, at: Date.now() }); a.length = Math.min(a.length, 12); for (;;) { try { localStorage.setItem(DICT.photos, JSON.stringify(a)); break; } catch (e) { if (!a.length) break; a.pop(); } } } catch (e) { }
+        try { const a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); a.unshift(Object.assign({ d, at: Date.now() }, meta || {})); a.length = Math.min(a.length, 12); for (;;) { try { localStorage.setItem(DICT.photos, JSON.stringify(a)); break; } catch (e) { if (!a.length) break; a.pop(); } } } catch (e) { }
         res(true); }; im.onerror = () => res(false); im.src = fr.result; };
       fr.onerror = () => res(false); fr.readAsDataURL(file);
     });
   }
 function toast(m) { const d = document.createElement('div'); d.className = 'dtoast'; d.textContent = m; thx.W.appendChild(d); setTimeout(() => d.remove(), 3500); }
 
+
+    /* ---- "+" : a new dictation session. The person uploads a photo OR writes the text by hand, then saves.
+       The name ("Dictation session #N") is made automatically from the last saved number + 1, and the saved item keeps that same name. ---- */
+    (function () {
+      const st = document.createElement('style'); st.id = 'thDictPlusCss';
+      st.textContent = `
+        #lbody>.dplus{position:absolute;top:14px;right:14px;z-index:3;width:34px;height:34px;padding:0;border-radius:50%;border:1px solid var(--gbd);background:var(--chip);color:var(--ink2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease),color .3s,border-color .3s,box-shadow .3s}
+        #lbody>.dplus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;transition:rotate .6s var(--ease)}
+        @media(hover:hover){#lbody>.dplus:hover{scale:1.1;color:#34d399;border-color:#34d399;box-shadow:0 0 14px rgba(52,211,153,.35)}#lbody>.dplus:hover svg{rotate:90deg}}
+        #lbody>.dplus:active{scale:.92;transition:scale .3s ease-out}
+        .dsov{z-index:90}
+        .dsp{max-height:calc(100dvh - 40px);overflow-y:auto;scrollbar-width:none}.dsp::-webkit-scrollbar{display:none}
+        .dsp h3{font:800 18px Cairo,Inter,sans-serif;margin:0 0 4px;color:#34d399}
+        .dsp .dtabs{margin:0 0 14px}
+        .dsdrop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:150px;padding:18px;border:1.5px dashed var(--gbd);border-radius:18px;background:var(--gfield);color:var(--ink2);font:700 13px Cairo,Inter,sans-serif;cursor:pointer;overflow:hidden;transition:border-color .3s,color .3s}
+        .dsdrop:hover{border-color:#34d399;color:var(--ink)}
+        .dsdrop svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+        .dsdrop img{display:none;max-width:100%;max-height:190px;border-radius:12px;object-fit:contain}
+        .dsdrop.has{border-style:solid;padding:10px}.dsdrop.has img{display:block}.dsdrop.has svg,.dsdrop.has span{display:none}
+        .dsp .dta{min-height:150px;direction:inherit;unicode-bidi:plaintext;text-align:start}
+        .dsp .dsact{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+        .dsp .btn:disabled{opacity:.35;cursor:default;scale:1}`;
+      thx.R.appendChild(st);
+    })();
+    function sessName(n) { return DT[thx.L].dsT + n; }
+    function sessNext() {
+      let m = thx.MOD.library.passNext() - 1;                                   /* last saved passage / session number */
+      try { JSON.parse(localStorage.getItem(DICT.photos) || '[]').forEach(x => { if (x.n > m) m = x.n; }); } catch (e) { }
+      const t = dictLoad(); if (t && !t.done && t.n > m) m = t.n;               /* a text still in progress keeps its number */
+      return m + 1;
+    }
+    function addPlus(b) {
+      const T = DT[thx.L], p = document.createElement('button'); p.type = 'button'; p.className = 'dplus'; p.title = T.dsPlus; p.setAttribute('aria-label', T.dsPlus);
+      p.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; p.onclick = openSess; b.appendChild(p);
+    }
+    function openSess() {
+      if (thx.W.querySelector('.dsov')) return;
+      const T = DT[thx.L], n = sessNext(), name = sessName(n), ov = document.createElement('div'); ov.className = 'ov dsov on';
+      ov.innerHTML = '<div class="pop dsp" role="dialog" aria-modal="true"><h3>' + thx.esc(name) + '</h3><p>' + T.dsSub + '</p>' +
+        '<div class="dtabs"><button type="button" data-m="photo" class="on">' + T.dsPhoto + '</button><button type="button" data-m="write">' + T.dsWrite + '</button></div>' +
+        '<label class="dsdrop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5"/><path d="M5 15v3.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg><span>' + T.dsPick + '</span><img alt=""><input type="file" accept="image/*" hidden></label>' +
+        '<textarea class="dta" rows="6" placeholder="' + T.dsWph + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"></textarea>' +
+        '<div class="dsact"><button class="btn dsave" type="button" disabled>' + T.dsSave + '</button><button class="btn ghost dscan" type="button">' + T.dsCancel + '</button></div></div>';
+      thx.W.appendChild(ov);
+      const q = s => ov.querySelector(s), drop = q('.dsdrop'), im = q('.dsdrop img'), inp = q('input'), ta = q('.dta'), sv = q('.dsave');
+      let mode = 'photo', file = null, url = null;
+      const ready = () => { sv.disabled = !(mode === 'photo' ? file : ta.value.trim()); };
+      const show = () => {
+        drop.style.display = mode === 'photo' ? '' : 'none'; ta.style.display = mode === 'write' ? '' : 'none';
+        ov.querySelectorAll('.dtabs button').forEach(x => x.classList.toggle('on', x.dataset.m === mode)); ready();
+      };
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      function close() { document.removeEventListener('keydown', onKey); if (url) { try { URL.revokeObjectURL(url); } catch (e) { } } ov.remove(); }
+      document.addEventListener('keydown', onKey);
+      ov.addEventListener('click', e => { if (e.target === ov) close(); });
+      q('.dscan').onclick = close;
+      ov.querySelectorAll('.dtabs button').forEach(x => x.onclick = () => { mode = x.dataset.m; show(); if (mode === 'write') ta.focus(); });
+      inp.onchange = e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        if (url) { try { URL.revokeObjectURL(url); } catch (x) { } }
+        file = f; url = URL.createObjectURL(f); im.src = url; drop.classList.add('has'); ready();
+      };
+      /* typing only, same rule as the dictation text box: no paste / drop / auto-inserted suggestions */
+      const BLK = /^(insertFromPaste|insertFromDrop|insertFromYank|insertFromPasteAsQuotation|insertReplacementText|insertTranspose|historyUndo|historyRedo)$/;
+      ta.addEventListener('beforeinput', e => { const k = e.inputType || ''; if (BLK.test(k) || (k === 'insertText' && e.data && e.data.length > 1)) e.preventDefault(); });
+      ['paste', 'drop', 'dragover'].forEach(ev => ta.addEventListener(ev, e => e.preventDefault()));
+      ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && /^[vyz]$/i.test(e.key)) e.preventDefault(); });
+      ta.addEventListener('input', ready);
+      sv.onclick = async () => {
+        sv.disabled = true;
+        if (mode === 'photo') { const ok = await savePhoto(file, { n, s: 1 }); if (!ok) { toast(T.bad); ready(); return; } }   /* photo -> Media Library > Photos (with its name) */
+        thx.MOD.library.passAdd(n, mode === 'write' ? ta.value.trim() : '', mode === 'photo');                               /* every session -> Media Library > Passages (with its name) */
+        close(); toast(T.dsSaved + ' ' + name);
+      };
+      show();
+    }
+
     /* ---- اللي index.html والملفات التانية بتستخدمه من الزرار ده ---- */
     return {
       id: 'dict', render: function (b) { b.innerHTML = ''; renderDict(b); },
       get DICT() { return DICT; },
       get DT() { return DT; },
-      get updBadge() { return updBadge; }
+      get updBadge() { return updBadge; },
+      get sessName() { return sessName; }
     };
   };
 })();
