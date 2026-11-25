@@ -719,9 +719,10 @@ function THApp(cfg) {
       @media(min-width:876px){.hmov{left:0;right:0;border-radius:24px}}
       .hmov{color:#b9bcc4;transition:color .35s}
       #W.light .hmov{color:#52555d}
-      .hmov .hmst{position:relative;width:min(86%,460px);min-height:clamp(150px,30vh,230px);box-sizing:border-box;border:1.5px solid currentColor;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 20px;text-align:center}
-      .hmov .hmst h2{margin:0;font:800 clamp(22px,5vw,32px)/1.3 Cairo,Inter,sans-serif;color:var(--ink)}
-      .hmov .hmst p{margin:0;max-width:340px;font:600 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
+      .hmov{flex-direction:column}
+      .hmov .hmst{position:relative;flex:none;box-sizing:border-box;border:1.5px solid currentColor;border-radius:14px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center}
+      .hmov .hmst h2{margin:0;white-space:nowrap;font-weight:800;line-height:1.3;font-family:Cairo,Inter,sans-serif;color:var(--ink)}
+      .hmov > p{margin:18px 0 0;max-width:min(86%,340px);text-align:center;font:600 clamp(12.5px,3.2vw,14.5px)/1.7 Cairo,Inter,sans-serif;color:var(--ink2)}
     `; R.appendChild(st);
   })();
   function ucPage(b, msgKey, cards) {   /* cards = page has content; no cards = empty page */
@@ -818,9 +819,12 @@ function THApp(cfg) {
   /* Hammer rhythm: 1 heavy strike (more sparks) -> 2 normal strikes back to back -> 1 last strike that stays down on the rectangle. Change the numbers here. */
   const HM = { fadeMs: 320, tilt: -32, raise: -68, heavyRaise: -96, heavyRiseMs: 640, riseMs: 260, downMs: 110, heavyDownMs: 80, gapMs: 150, holdMs: 280, heavySparks: 22, sparks: 8, minW: 90, maxW: 150 };
   function hmPlay(o, st) {
-    const rtl = getComputedStyle(st).direction === 'rtl', rw = st.getBoundingClientRect().width;
-    const w = Math.round(Math.min(HM.maxW, Math.max(HM.minW, rw * 0.3))), f = w / 40;
-    st.style.marginTop = Math.round(w * 0.8) + 'px';
+    const rtl = getComputedStyle(st).direction === 'rtl', ow = o.getBoundingClientRect().width;
+    const w = Math.round(Math.min(HM.maxW, Math.max(HM.minW, ow * 0.3))), f = w / 40;
+    /* fixed size, whatever the word: the button is only 2x the hammer, and the name shrinks to fit inside it */
+    st.style.width = (w * 2) + 'px'; st.style.height = Math.round(w * 0.8) + 'px'; st.style.marginTop = Math.round(w * 0.8) + 'px';
+    const h2 = st.querySelector('h2'); let fs = Math.round(w * 0.2); h2.style.fontSize = fs + 'px';
+    while (h2.scrollWidth > st.clientWidth - 26 && fs > 11) { fs--; h2.style.fontSize = fs + 'px'; }
     const box = document.createElement('div'); box.className = 'uc'; box.setAttribute('aria-hidden', 'true');
     box.style.cssText = '--w:' + w + 'px;inset-inline-start:' + Math.round(w * 0.25) + 'px';
     box.innerHTML = '<i class="uc-seg"></i><span class="uc-h" style="transform:scaleX(' + (rtl ? -1 : 1) + ')">'
@@ -872,7 +876,7 @@ function THApp(cfg) {
     Object.keys(MOD).forEach(m => { if (MOD[m].stop) MOD[m].stop(); });
     persHide(); b.classList.remove('full'); b.innerHTML = '';
     const o = document.createElement('div'); o.className = 'hmov'; o.style.top = b.offsetTop + 'px';
-    o.innerHTML = '<div class="hmst"><h2 data-t="i_' + k + '"></h2><p data-t="ucDev"></p></div>';
+    o.innerHTML = '<div class="hmst"><h2 data-t="i_' + k + '"></h2></div><p data-t="ucDev"></p>';
     o.querySelector('h2').textContent = t['i_' + k] || k; o.querySelector('p').textContent = t.ucDev;
     $('layer').appendChild(o);
     requestAnimationFrame(() => { if (cur === k && o.isConnected) { try { hmPlay(o, o.firstChild); } catch (e) { } } });
