@@ -14,6 +14,36 @@
   const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
   const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
   const TOKEN_KEY = 'thabit_trainee_token';
+
+  /* ---- voice notes of THIS trainee (table words_table) ----
+     one row = one picked area of text with a recording:  trainee_id | scope ('<date>|<key>', e.g. '2026-11-23|tefl') | word (the picked text) | occ | start_idx | audio_url
+     The container opens an entry of scope '<date>|<key>' -> we take that trainee's rows for that scope and mark exactly those areas (a word, a sentence or the whole passage). */
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const REC = { tid: null, by: null, at: 0, p: null };
+  function recTid(prof) {
+    let c = {}; try { c = JSON.parse(localStorage.getItem('currentTrainee') || '{}') || {}; } catch (e) { }
+    prof = prof || {};
+    return [prof.trainee_id, prof.id, c.trainee_id, c.id].map(x => String(x || '')).find(x => UUID.test(x)) || null;
+  }
+  function recLoad(tid) {
+    if (REC.p && REC.tid === tid) return REC.p;
+    REC.tid = tid;
+    return (REC.p = (async () => {
+      const by = new Map(); let off = 0;
+      for (let pg = 0; pg < 60; pg++) {
+        const r = await fetch(SB + '/rest/v1/words_table?select=scope,word,occ,start_idx,audio_url,duration&trainee_id=eq.' + encodeURIComponent(tid) + '&status=eq.active&lost_from=is.null&audio_url=not.is.null&order=scope.asc,start_idx.asc&limit=1000&offset=' + off, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const rows = await r.json(); if (!Array.isArray(rows) || !rows.length) break;
+        rows.forEach(x => { const k = String(x.scope || ''); if (!by.has(k)) by.set(k, []); by.get(k).push(x); }); off += rows.length;
+      }
+      REC.by = by; REC.at = Date.now(); return by;
+    })().finally(() => { REC.p = null; }));
+  }
+  /* cached; a newer copy is fetched quietly when the cached one is older than 30 s (it shows on the next open) */
+  function recGet(tid) {
+    if (REC.by && REC.tid === tid) { if (Date.now() - REC.at > 30000 && !REC.p) recLoad(tid).catch(() => { }); return Promise.resolve(REC.by); }
+    REC.by = null; return recLoad(tid);
+  }
   const T = {
     en: { none: 'No data yet', ear: 'Pronunciation', loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.', wmiss: 'No recording for this word yet', wfail: 'Could not load the recording', qPlus: 'Add words or sentences', qToday: 'Today:', qSess: 'Your session today should be number', qNoSess: "I couldn't determine today's session number. Add it by hand.", qLast: 'Your last session was number', qNum: 'Session number', qTip: 'It is best to put each sentence on its own, so reviewing and studying it is easier.', qAr: 'Arabic', qEn: 'English', qAdd: 'Add another', qRm: 'Remove', qSave: 'Save', qCancel: 'Cancel', qDone: 'Done', qSure: 'Are you sure this is everything for this session?', qYes: 'Yes, save it', qBack: 'Go back', qSaved: 'Saved', qFail: 'Could not save. Try again.' },
     ar: { none: 'لا توجد بيانات بعد', ear: 'النطق', loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', wmiss: 'لا يوجد تسجيل لهذه الكلمة بعد', wfail: 'تعذر تحميل التسجيل', qPlus: 'إضافة كلمات أو جمل', qToday: 'اليوم:', qSess: 'جلستك اليوم المفروض تكون جلسة رقم', qNoSess: 'لم أستطع تحديد رقم جلسة اليوم، أضفه يدويًا.', qLast: 'آخر جلسة لك كانت رقم', qNum: 'رقم الجلسة', qTip: 'يُفضَّل أن تضع كل جملة على حدة حتى تكون مراجعتك ومذاكرتك لها أسهل.', qAr: 'عربي', qEn: 'English', qAdd: 'إضافة أخرى', qRm: 'حذف', qSave: 'حفظ', qCancel: 'إلغاء', qDone: 'تم', qSure: 'هل أنت متأكد أن هذا كل شيء لهذه الجلسة؟', qYes: 'نعم، احفظها', qBack: 'رجوع', qSaved: 'تم الحفظ', qFail: 'تعذّر الحفظ، حاول مرة أخرى.' }
@@ -29,7 +59,7 @@
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
     const tt = () => T[lg()];
     const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    let D = null, wrap = null, root = null, mo = null, lastLang = null, loadId = 0, onResize = null;
+    let D = null, wrap = null, root = null, mo = null, lastLang = null, loadId = 0, onResize = null, cmTk = 0;
     const LISTS = {}, EXTRA = {};
     const WP = { urls: [], i: 0, a: null, word: '', tk: 0 };
     const tok = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
@@ -43,8 +73,8 @@
     const plain = s => window.ThabitRich && ThabitRich.strip ? ThabitRich.strip(s) : String(s == null ? '' : s);
     const inl = s => window.ThabitRich && ThabitRich.inline ? ThabitRich.inline(esc(s)) : esc(s);
     const LNK = /\[([^\]\n]{1,200})\]\((https?:\/\/[^\s)]{3,2000})\)/g;
-    /* ear on: every word (outside tags) becomes tappable -> the pronouncer. If ThabitRich is loaded it makes its own .vx words, so we don't double-wrap. */
-    const wordify = h => window.ThabitRich ? h : h.replace(/(<[^>]+>)|([^<\s]+)/g, (m, tag, w) => tag ? tag : '<span class="vx" role="button" tabindex="0" data-word="' + esc(w.replace(/&[a-z#0-9]+;/gi, '')) + '">' + w + '</span>');
+    /* ear on: ONLY the areas that have a voice note become tappable (see place() + mark() below). The old "every word is tappable" wrapping is gone: it made all the text blue. */
+    const wordify = h => h;
     function escv(s, ear) {
       s = String(s == null ? '' : s); let out = '', last = 0, m; LNK.lastIndex = 0;
       const f = x => { const h = inl(x).replace(/(<[^>]+>)|\s*\|\s*/g, (mm, tag) => tag ? tag : '<i class="vb"></i>'); return ear ? wordify(h) : h; };
@@ -59,6 +89,43 @@
         return '<p class="rp" dir="auto">' + ls.map(l => escv(l, ear)).join('<br>') + '</p>';
       }).join('');
     }
+    /* ---- find each recorded area inside an entry's text and wrap it (one area = ONE tappable piece, even if it spans lines or several words) ----
+       1) place(): the area is found where start_idx says (checked against the word); if the text no longer matches there, the occ-th occurrence of the word is used; if neither is found the row is skipped.
+          Private marker characters are put around each area in the raw text, so the normal rich() formatting (paragraphs, lists, links, bars) still runs.
+       2) mark(): the markers become <span class="vx" data-url=...>; when an area crosses a tag (new line, list item...) the span is closed and re-opened so the HTML stays valid. */
+    const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    function place(raw, rows) {
+      const hit = [];
+      rows.forEach(r => {
+        const w = String(r.word == null ? '' : r.word); if (!w.trim() || !r.audio_url) return;
+        const pat = w.trim().split(/\s+/).map(reEsc).join('\\s+'), lead = w.length - w.replace(/^\s+/, '').length;
+        const si = parseInt(r.start_idx, 10), occ = Math.max(0, parseInt(r.occ, 10) || 0);
+        let s = -1, e = -1, m;
+        [si, si + lead].forEach(p => { if (s < 0 && isFinite(p) && p >= 0 && p < raw.length && (m = new RegExp('^(?:' + pat + ')').exec(raw.slice(p)))) { s = p; e = p + m[0].length; } });
+        if (s < 0) { const g = new RegExp(pat, 'g'); let n = 0; while ((m = g.exec(raw))) { if (n++ === occ) { s = m.index; e = s + m[0].length; break; } if (!m[0].length) g.lastIndex++; } }
+        if (s >= 0) hit.push({ s: s, e: e, r: r });
+      });
+      hit.sort((a, b) => (b.e - b.s) - (a.e - a.s));   /* overlapping areas: the longer one wins */
+      const ok = []; hit.forEach(h => { if (!ok.some(o => h.s < o.e && o.s < h.e)) ok.push(h); });
+      ok.sort((a, b) => a.s - b.s);
+      let out = '', last = 0; const recs = [];
+      ok.forEach(h => { out += raw.slice(last, h.s) + '' + recs.length + '' + raw.slice(h.s, h.e) + ''; last = h.e; recs.push(h.r); });
+      return { text: out + raw.slice(last), recs: recs };
+    }
+    function mark(h, recs) {
+      let out = '', cur = null, op = false;
+      h.split(/(<[^>]+>|\d+|)/).forEach(p => {
+        if (!p) return;
+        let m;
+        if ((m = /^(\d+)$/.exec(p))) { cur = recs[+m[1]]; return; }
+        if (p === '') { if (op) { out += '</span>'; op = false; } cur = null; return; }
+        if (/^<[^>]+>$/.test(p)) { if (op) { out += '</span>'; op = false; } out += p; return; }
+        if (cur && !op) { out += '<span class="vx" role="button" tabindex="0" data-word="' + esc(cur.word) + '" data-url="' + esc(cur.audio_url) + '">'; op = true; }
+        out += p;
+      });
+      return out + (op ? '</span>' : '');
+    }
+    const preloadRec = () => { try { if (window.ThabitRich || !keys.some(k => REG[k] && !REG[k].noear && !REG[k].body && earOn(k))) return; const tid = recTid(D && D.profile); if (tid) recGet(tid).catch(() => { }); } catch (e) { } };
     const EARSVG = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9a4 4 0 1 1 8 0c0 2.2-1.4 3.1-2.5 4.2-.9.9-1.5 1.7-1.5 3a3.2 3.2 0 0 1-3.2 3.2"/><path d="M13.5 9a.5.5 0 1 1 1 0c0 .8-.6 1.1-1 1.5"/><path d="M4.6 9.2a5.6 5.6 0 0 0 0 5.6M2 7.4a8.8 8.8 0 0 0 0 9.2"/></svg>';
     /* ---- the cards ---- */
     const entries = d => d.col ? D.rows.slice().reverse().filter(r => r[d.col]).map(r => ({ date: r.supply_date, text: String(r[d.col]) })) : (EXTRA[d.key] || []);
@@ -86,13 +153,30 @@
       root.innerHTML = '<div class="grid lists' + (ds.length === 1 ? ' one' : ' stack') + '">' + ds.map(cap).join('') + '</div>';
       root.scrollTop = keep; requestAnimationFrame(fitCaps); setTimeout(fitCaps, 350);
     }
-    function closeCm() { const e = wrap && wrap.querySelector('.cm'); if (e) e.remove(); }
+    function closeCm() { cmTk++; const e = wrap && wrap.querySelector('.cm'); if (e) e.remove(); }
     function openCm(key, n) {
-      closeCm(); const t = tt(), d = REG[key]; if (!d) return; const on = !d.noear && earOn(key), list = LISTS[key] || [];
+      closeCm(); const t = tt(), d = REG[key]; if (!d) return; const on = !d.noear && earOn(key), list = LISTS[key] || [], my = cmTk;
+      /* the voice notes of this trainee, grouped by scope ('<date>|<key>'); if they are not loaded yet the entry opens plain and gets its blue areas a moment later */
+      const tid = on && !d.body && !window.ThabitRich ? recTid(D && D.profile) : null;
+      if (on && !d.body && !window.ThabitRich && !tid) { try { console.warn('[lists-core] trainee id not found (profile.id / trainee_id): voice notes cannot be marked'); } catch (e) { } }
+      const had = tid && REC.tid === tid ? REC.by : null;
+      const ce = by => list.map((x, i) => {
+        let h; const raw = String(x.text == null ? '' : x.text);
+        if (d.body) h = d.body(x, esc);
+        else {
+          const rows = tid && by ? by.get(String(x.date || '').slice(0, 10) + '|' + key) : null;
+          if (rows && rows.length) { const p = place(raw, rows); h = mark(rich(p.text, on), p.recs); } else h = rich(raw, on);
+        }
+        return '<div class="ce" data-n="' + i + '"><div class="dt">' + esc(x.date) + '</div>' + h + '</div>';
+      }).join('') || '<div class="sm">' + t.none + '</div>';
       const el = document.createElement('div'); el.className = 'ov2 cm';
-      el.innerHTML = '<div class="cmb"><button type="button" class="tdx cmx" aria-label="Close">×</button><h4 class="cmh">' + esc(ttl(d)) + '</h4><div class="cml">' + (list.map((x, i) => '<div class="ce" data-n="' + i + '"><div class="dt">' + esc(x.date) + '</div>' + (d.body ? d.body(x, esc) : rich(x.text, on)) + '</div>').join('') || '<div class="sm">' + t.none + '</div>') + '</div></div>';
+      el.innerHTML = '<div class="cmb"><button type="button" class="tdx cmx" aria-label="Close">×</button><h4 class="cmh">' + esc(ttl(d)) + '</h4><div class="cml">' + ce(had) + '</div></div>';
       wrap.appendChild(el);
       const l = el.querySelector('.cml'), c = l.querySelector('.ce[data-n="' + n + '"]'); if (c) l.scrollTop = c.offsetTop - 4;
+      if (tid) recGet(tid).then(by => {
+        if (by === had || my !== cmTk || !el.isConnected) return;
+        const cl = el.querySelector('.cml'), top = cl.scrollTop; cl.innerHTML = ce(by); cl.scrollTop = top;
+      }).catch(e => { try { console.warn('[lists-core] could not load voice notes', e); } catch (x) { } });
     }
     function say(msg) { if (root) root.innerHTML = '<div class="card msg">' + esc(msg) + '</div>'; }
     async function load(silent) {
@@ -105,7 +189,7 @@
       d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0')));
       for (const k of keys) { const x = REG[k]; if (x && x.list) { try { EXTRA[k] = await x.list(d, { rpc: rpc, tok: tok }); } catch (e) { EXTRA[k] = []; } } }
       if (id !== loadId) return;
-      D = d; paint();
+      D = d; paint(); preloadRec();
     }
 
     /* ---- the pronouncer (tap a word -> its recording from words_table) ---- */
@@ -150,14 +234,14 @@
       const parts = wpParts(text); if (parts.length < 2) return null;
       const us = await Promise.all(parts.map(wpLookup)); return us.every(Boolean) ? us : null;
     }
-    async function wpOpen(word) {
+    async function wpOpen(word, url) {   /* url given (a marked area) = play exactly that row's recording; no url = look the word up by its text */
       word = String(word == null ? '' : word).trim(); if (!word || !wrap) return;
       wpClose();
       const my = ++WP.tk; WP.word = word; WP.urls = []; WP.i = 0;
       const el = document.createElement('div'); el.className = 'wp';
       el.innerHTML = '<div class="wpw" dir="auto">' + esc(word) + '</div><div class="wpr" dir="ltr"><button type="button" class="wpb wpp" aria-label="Play/Pause">' + PLAY + '</button><input type="range" min="0" max="1000" value="0" aria-label="Seek"><span class="wpt">0:00 / 0:00</span><span class="wpn"></span></div><div class="wpm" dir="auto" hidden></div>';
       wrap.appendChild(el);
-      let urls; try { urls = await wpResolve(word); } catch (e) { urls = undefined; }
+      let urls; if (url) urls = [url]; else { try { urls = await wpResolve(word); } catch (e) { urls = undefined; } }
       if (my !== WP.tk) return;
       if (!urls) { wpMsg(urls === null ? tt().wmiss : tt().wfail); return; }
       WP.urls = urls; wpLoad(true);
@@ -285,7 +369,7 @@
 .vsw .vx{cursor:pointer;border-radius:4px;color:#38bdf8}.vsw .vx:hover{background:rgba(56,189,248,.15)}.vsw .alk{color:#38bdf8}.vsw .vb{display:inline-block;width:1px;height:.9em;margin:0 8px;background:currentColor;opacity:.5;vertical-align:middle}
 .vsw>.wp{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(92%,360px);z-index:40;box-sizing:border-box;padding:12px 14px;border-radius:16px;background:rgba(15,23,42,.97);color:#e2e8f0;border:1px solid rgba(148,163,184,.3);box-shadow:0 12px 36px rgba(0,0,0,.45)}
 #W.light .vsw>.wp{background:#fff;color:#0f172a;border-color:rgba(15,23,42,.15)}
-.wpw{font-weight:700;margin-bottom:8px;text-align:center;overflow-wrap:anywhere}.wpr{display:flex;align-items:center;gap:8px}
+.wpw{font-weight:700;margin-bottom:8px;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.wpr{display:flex;align-items:center;gap:8px}
 .wpb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#34d399;color:#06281b;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .vsw .wp input[type=range]{flex:1;min-width:0;accent-color:#34d399}.wpt{flex:none;font-size:.68rem;opacity:.75;font-variant-numeric:tabular-nums}.wpn{flex:none;font-size:.68rem;opacity:.6}.wpm{font-size:.82rem;text-align:center;opacity:.85}
 .vsw .lists.one{max-width:560px}
@@ -335,10 +419,10 @@
         const q = s => (e.target.closest ? e.target.closest(s) : null);
         let x;
         if ((x = q('.ear'))) {   /* turn the pronunciation on (green + a little shake) or off */
-          e.stopPropagation(); const k = x.dataset.ear, on = !earOn(k); earSet(k, on);
+          e.stopPropagation(); const k = x.dataset.ear, on = !earOn(k); earSet(k, on); if (on) preloadRec();
           x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); x.classList.remove('shk', 'cls'); void x.offsetWidth; x.classList.add(on ? 'shk' : 'cls'); setTimeout(() => x.classList.remove('shk', 'cls'), 1100); return;
         }
-        if ((x = q('.vx'))) { e.preventDefault(); wpOpen(x.dataset.word); return; }
+        if ((x = q('.vx'))) { e.preventDefault(); wpOpen(x.dataset.word, x.dataset.url); return; }
         if ((x = q('.scrv'))) { x.classList.toggle('scrz'); return; }
         if (q('.cm')) { if (q('.cmx') || !q('.cmb')) closeCm(); else if (!q('.wp')) wpClose(); return; }
         if ((x = q('.earc'))) { const c = q('.cap'); openCm(x.dataset.key, c ? +c.dataset.n : 0); return; }
@@ -346,7 +430,7 @@
       });
       wrap.addEventListener('keydown', e => {
         if (e.key === 'Escape') { closeCm(); return; }
-        if (e.key !== 'Enter' && e.key !== ' ') return; const x = e.target.closest && e.target.closest('.vx'); if (x) { e.preventDefault(); wpOpen(x.dataset.word); }
+        if (e.key !== 'Enter' && e.key !== ' ') return; const x = e.target.closest && e.target.closest('.vx'); if (x) { e.preventDefault(); wpOpen(x.dataset.word, x.dataset.url); }
       });
       onResize = () => fitCaps(); window.addEventListener('resize', onResize);
       try { const W = ctx.W; if (W && window.MutationObserver) { mo = new MutationObserver(() => { if (lg() !== lastLang) { lastLang = lg(); paint(); } }); mo.observe(W, { attributes: true, attributeFilter: ['dir', 'class'] }); } } catch (e) { }
