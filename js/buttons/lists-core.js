@@ -15,8 +15,8 @@
   const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
   const TOKEN_KEY = 'thabit_trainee_token';
   const T = {
-    en: { none: 'No data yet', ear: 'Pronunciation', loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.', wmiss: 'No recording for this word yet', wfail: 'Could not load the recording' },
-    ar: { none: 'لا توجد بيانات بعد', ear: 'النطق', loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', wmiss: 'لا يوجد تسجيل لهذه الكلمة بعد', wfail: 'تعذر تحميل التسجيل' }
+    en: { none: 'No data yet', ear: 'Pronunciation', loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.', wmiss: 'No recording for this word yet', wfail: 'Could not load the recording', qPlus: 'Add words or sentences', qToday: 'Today:', qSess: 'Your session today should be number', qNoSess: "I couldn't determine today's session number. Add it by hand.", qLast: 'Your last session was number', qNum: 'Session number', qTip: 'It is best to put each sentence on its own, so reviewing and studying it is easier.', qAr: 'Arabic', qEn: 'English', qAdd: 'Add another', qRm: 'Remove', qSave: 'Save', qCancel: 'Cancel', qDone: 'Done', qSure: 'Are you sure this is everything for this session?', qYes: 'Yes, save it', qBack: 'Go back', qSaved: 'Saved', qFail: 'Could not save. Try again.' },
+    ar: { none: 'لا توجد بيانات بعد', ear: 'النطق', loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', wmiss: 'لا يوجد تسجيل لهذه الكلمة بعد', wfail: 'تعذر تحميل التسجيل', qPlus: 'إضافة كلمات أو جمل', qToday: 'اليوم:', qSess: 'جلستك اليوم المفروض تكون جلسة رقم', qNoSess: 'لم أستطع تحديد رقم جلسة اليوم، أضفه يدويًا.', qLast: 'آخر جلسة لك كانت رقم', qNum: 'رقم الجلسة', qTip: 'يُفضَّل أن تضع كل جملة على حدة حتى تكون مراجعتك ومذاكرتك لها أسهل.', qAr: 'عربي', qEn: 'English', qAdd: 'إضافة أخرى', qRm: 'حذف', qSave: 'حفظ', qCancel: 'إلغاء', qDone: 'تم', qSure: 'هل أنت متأكد أن هذا كل شيء لهذه الجلسة؟', qYes: 'نعم، احفظها', qBack: 'رجوع', qSaved: 'تم الحفظ', qFail: 'تعذّر الحفظ، حاول مرة أخرى.' }
   };
   const REG = {
     notes: { key: 'notes', col: 'notes', title: { en: 'Notes', ar: 'ملاحظات' } },
@@ -163,6 +163,92 @@
       WP.urls = urls; wpLoad(true);
     }
 
+
+    /* ---- "+" on Your Dictionary: add words / sentences for today's session (Arabic | English halves, numbered rows) ---- */
+    const QMAX = 9999;
+    const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const QK = () => 'thabit_qol_sess:' + String(tok() || 'x').slice(0, 16);
+    /* today's session number: the one already saved for today > a session already dated today > the last past session + 1. Nothing found = the person types it. */
+    function qInfo() {
+      const today = ymd(new Date()), rows = (D && Array.isArray(D.rows)) ? D.rows : [];
+      const num = r => { const n = parseInt(r && r.session_number, 10); return isFinite(n) && n >= 1 && n <= QMAX ? n : null; };
+      const dk = r => String(r.supply_date || '').slice(0, 10);
+      const ok = rows.filter(r => num(r) !== null && dk(r)), past = ok.filter(r => dk(r) < today), now = ok.filter(r => dk(r) === today);
+      const lastR = past.length ? past[past.length - 1] : null;   /* rows are sorted oldest -> newest */
+      let saved = null; try { const x = JSON.parse(localStorage.getItem(QK()) || 'null'); if (x && x.date === today && x.n >= 1) saved = x.n; } catch (e) { }
+      const n = saved || (now.length ? Math.max.apply(null, now.map(num)) : (lastR ? num(lastR) + 1 : null));
+      return { today: today, n: n, last: lastR ? { n: num(lastR), date: dk(lastR) } : null };
+    }
+    /* WHERE THE SESSION IS KEPT: not decided yet. Until it is, a copy waits in this device's storage (thabit_qol_drafts).
+       To plug the real destination later, define  window.ThabitQolSave = function (rec) { ... return a promise }   rec = { date, n, items: [{ ar, en }], at } */
+    const QSAVE = rec => typeof window.ThabitQolSave === 'function' ? Promise.resolve(window.ThabitQolSave(rec)).then(() => true) : new Promise(res => { try { const a = JSON.parse(localStorage.getItem('thabit_qol_drafts') || '[]'); a.push(rec); localStorage.setItem('thabit_qol_drafts', JSON.stringify(a)); } catch (e) { } res(true); });
+    function qolPlus() {
+      const t = tt(), p = document.createElement('button'); p.type = 'button'; p.className = 'qplus'; p.title = t.qPlus; p.setAttribute('aria-label', t.qPlus);
+      p.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; p.onclick = e => { e.stopPropagation(); qolOpen(); }; wrap.appendChild(p);
+    }
+    function qolOpen() {
+      if (!wrap || wrap.querySelector('.qs')) return;
+      const t = tt(), L = lg(), info = qInfo(), el = document.createElement('div'); el.className = 'ov2 qs';
+      const dtxt = new Date().toLocaleDateString(L === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), dir = L === 'ar' ? 'rtl' : 'ltr';
+      el.innerHTML = '<div class="qsb" dir="' + dir + '"><button type="button" class="tdx qx" aria-label="Close">×</button>' +
+        '<h4>' + esc(t.qPlus) + '</h4><div class="qd">' + esc(t.qToday) + ' ' + esc(dtxt) + '</div>' +
+        (info.n ? '<div class="qi">' + esc(t.qSess) + ' <b>#' + info.n + '</b></div>' : '<div class="qi warn">' + esc(t.qNoSess) + '</div>') +
+        (info.last ? '<div class="qi2">' + esc(t.qLast) + ' #' + info.last.n + ' · ' + esc(info.last.date) + '</div>' : '') +
+        '<label class="qn"><span>' + esc(t.qNum) + '</span><input type="number" inputmode="numeric" min="1" max="' + QMAX + '" step="1" value="' + (info.n || '') + '"></label>' +
+        '<p class="qtip">' + esc(t.qTip) + '</p><div class="qrows"></div>' +
+        '<button type="button" class="qadd">+ ' + esc(t.qAdd) + '</button>' +
+        '<div class="qact"><button type="button" class="qbtn qsv" disabled>' + esc(t.qSave) + '</button><button type="button" class="qbtn g qcn">' + esc(t.qCancel) + '</button></div></div>';
+      wrap.appendChild(el);
+      const q = s => el.querySelector(s), box = q('.qsb'), rows = q('.qrows'), inp = q('.qn input'), sv = q('.qsv'), items = [{ ar: '', en: '' }];
+      const numOK = () => { const v = inp.value.trim(); return /^\d{1,4}$/.test(v) && +v >= 1 && +v <= QMAX; };
+      const filled = () => items.filter(x => x.ar.trim() || x.en.trim());
+      const ready = () => { sv.disabled = !(numOK() && filled().length); };
+      const drawRows = () => {
+        rows.innerHTML = items.map((x, i) => '<div class="qr"><span class="qb">' + (i + 1) + '</span><div class="qf" dir="ltr">' +
+          '<button type="button" class="qp' + (x.en ? ' has' : '') + '" data-i="' + i + '" data-s="en" dir="ltr">' + esc(x.en || t.qEn) + '</button>' +
+          '<button type="button" class="qp' + (x.ar ? ' has' : '') + '" data-i="' + i + '" data-s="ar" dir="rtl">' + esc(x.ar || t.qAr) + '</button></div>' +
+          (items.length > 1 ? '<button type="button" class="qrm" data-rm="' + i + '" aria-label="' + esc(t.qRm) + '">×</button>' : '') + '</div>').join('');
+        ready();
+      };
+      /* a small pop-up on top of the big one (the keyboard opens here) */
+      function layer(html, wire) { const s = document.createElement('div'); s.className = 'qe'; s.innerHTML = '<div class="qeb" dir="' + dir + '">' + html + '</div>'; el.appendChild(s); wire(s, () => s.remove()); }
+      function edit(i, side) {
+        const ar = side === 'ar';
+        layer('<h5>' + esc(ar ? t.qAr : t.qEn) + '</h5><textarea dir="' + (ar ? 'rtl' : 'ltr') + '" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="' + esc(ar ? t.qAr : t.qEn) + '"></textarea>' +
+          '<div class="qact"><button type="button" class="qbtn qdn">' + esc(t.qDone) + '</button><button type="button" class="qbtn g qno">' + esc(t.qCancel) + '</button></div>', (s, rm) => {
+          const ta = s.querySelector('textarea'); ta.value = items[i][side];
+          const done = () => { items[i][side] = ta.value.replace(/\s*\n+\s*/g, ' ').trim(); rm(); drawRows(); };
+          s.querySelector('.qdn').onclick = done; s.querySelector('.qno').onclick = rm;
+          s.addEventListener('click', e => { if (e.target === s) rm(); });
+          ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); done(); } });
+          setTimeout(() => { ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { } }, 60);
+        });
+      }
+      function confirmSave() {
+        layer('<p>' + esc(t.qSure) + '</p><div class="qact"><button type="button" class="qbtn qyes">' + esc(t.qYes) + '</button><button type="button" class="qbtn g qbk">' + esc(t.qBack) + '</button></div><div class="qm"></div>', (s, rm) => {
+          s.querySelector('.qbk').onclick = rm; s.addEventListener('click', e => { if (e.target === s) rm(); });
+          s.querySelector('.qyes').onclick = async function () {
+            const yes = this; yes.disabled = true;
+            const n = +inp.value.trim(), rec = { date: info.today, n: n, items: filled().map(x => ({ ar: x.ar.trim(), en: x.en.trim() })), at: Date.now() };
+            try { await QSAVE(rec); } catch (e) { yes.disabled = false; s.querySelector('.qm').textContent = t.qFail; return; }
+            try { localStorage.setItem(QK(), JSON.stringify({ date: info.today, n: n })); } catch (e) { }   /* the number stays for today */
+            s.remove(); box.innerHTML = '<div class="qok">✓</div><h4>' + esc(t.qSaved) + '</h4>'; setTimeout(close, 1300);
+          };
+        });
+      }
+      function onKey(e) { if (e.key !== 'Escape') return; const s = el.querySelector('.qe'); if (s) s.remove(); else close(); }
+      function close() { document.removeEventListener('keydown', onKey); el.remove(); }
+      document.addEventListener('keydown', onKey);
+      el.addEventListener('click', e => { if (e.target === el) close(); });
+      q('.qx').onclick = close; q('.qcn').onclick = close;
+      q('.qadd').onclick = () => { items.push({ ar: '', en: '' }); drawRows(); const l = rows.lastElementChild; if (l && l.scrollIntoView) l.scrollIntoView({ block: 'nearest' }); };
+      rows.addEventListener('click', e => {
+        const p = e.target.closest('.qp'), r = e.target.closest('[data-rm]');
+        if (p) edit(+p.dataset.i, p.dataset.s); else if (r) { items.splice(+r.dataset.rm, 1); if (!items.length) items.push({ ar: '', en: '' }); drawRows(); }
+      });
+      inp.addEventListener('input', ready); sv.onclick = confirmSave; drawRows();
+    }
+
     /* ---- look (scoped to this screen only; colours follow the shell's theme variables) ---- */
     const CSS = `
 .vsw{position:relative;height:100%;color:var(--ink);font-family:Cairo,Inter,system-ui,sans-serif}
@@ -203,6 +289,38 @@
 .wpb{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#34d399;color:#06281b;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .vsw .wp input[type=range]{flex:1;min-width:0;accent-color:#34d399}.wpt{flex:none;font-size:.68rem;opacity:.75;font-variant-numeric:tabular-nums}.wpn{flex:none;font-size:.68rem;opacity:.6}.wpm{font-size:.82rem;text-align:center;opacity:.85}
 .vsw .lists.one{max-width:560px}
+.vsw>.qplus{position:absolute;top:14px;right:14px;z-index:6;width:34px;height:34px;padding:0;border-radius:50%;border:1px solid var(--gbd);background:var(--chip);color:var(--ink2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:scale .6s var(--ease),color .3s,border-color .3s,box-shadow .3s}
+.vsw>.qplus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;transition:rotate .6s var(--ease)}
+@media(hover:hover){.vsw>.qplus:hover{scale:1.1;color:#34d399;border-color:#34d399;box-shadow:0 0 14px rgba(52,211,153,.35)}.vsw>.qplus:hover svg{rotate:90deg}}
+.vsw>.qplus:active{scale:.92;transition:scale .3s ease-out}
+.vsw .qsb{position:relative;box-sizing:border-box;width:min(520px,100%);max-height:100%;overflow:auto;border-radius:24px;padding:20px 16px 16px;background:#17171a;color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.5);overscroll-behavior:contain;scrollbar-width:none;animation:vsPop .32s cubic-bezier(.2,.9,.3,1.15)}
+#W.light .vsw .qsb{background:rgba(255,255,255,.97);color:#0f172a}
+.vsw .qsb::-webkit-scrollbar{display:none}
+.vsw .qsb h4{margin:0 0 4px;font:800 16px Cairo,Inter,sans-serif;color:inherit;text-align:center}
+.vsw .qd{text-align:center;font:700 12.5px Cairo,Inter,sans-serif;opacity:.75;margin-bottom:10px}
+.vsw .qi{text-align:center;font:700 13.5px Cairo,Inter,sans-serif;margin-bottom:4px}.vsw .qi b{color:#34d399}.vsw .qi.warn{color:#fbbf24}
+.vsw .qi2{text-align:center;font:600 11.5px Cairo,Inter,sans-serif;opacity:.6;margin-bottom:10px}
+.vsw .qn{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0 10px;font:700 12.5px Cairo,Inter,sans-serif}
+.vsw .qn input{width:84px;height:38px;border-radius:12px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12);color:inherit;text-align:center;font:800 15px Inter,sans-serif;outline:0}.vsw .qn input:focus{border-color:#34d399}
+.vsw .qtip{margin:0 0 12px;padding:9px 12px;border-radius:14px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);font:600 12px/1.6 Cairo,Inter,sans-serif;text-align:center}
+.vsw .qr{display:flex;align-items:stretch;gap:8px;margin-bottom:8px}
+.vsw .qb{flex:none;align-self:center;width:26px;height:26px;border-radius:50%;border:1px solid rgba(52,211,153,.6);display:flex;align-items:center;justify-content:center;font:800 12px Inter,sans-serif;color:#34d399}
+.vsw .qf{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;border-radius:16px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);overflow:hidden}
+.vsw .qp{min-height:46px;padding:10px 12px;border:0;background:transparent;color:inherit;opacity:.55;font:600 13px/1.5 Cairo,Inter,sans-serif;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,opacity .3s}
+.vsw .qp.has{opacity:1;font-weight:700}.vsw .qp+.qp{border-left:1px solid rgba(148,163,184,.35)}
+@media(hover:hover){.vsw .qp:hover{background:rgba(148,163,184,.16)}}
+.vsw .qrm{flex:none;align-self:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:rgba(148,163,184,.18);color:inherit;cursor:pointer;font-size:15px;line-height:1}
+.vsw .qadd{display:block;width:100%;height:40px;margin:4px 0 12px;border-radius:14px;border:1.5px dashed rgba(148,163,184,.45);background:transparent;color:inherit;font:700 13px Cairo,Inter,sans-serif;cursor:pointer}
+.vsw .qact{display:flex;flex-direction:column;gap:8px}
+.vsw .qbtn{height:42px;border-radius:14px;border:0;font:800 13.5px Cairo,Inter,sans-serif;cursor:pointer;background:#34d399;color:#06281b}.vsw .qbtn.g{background:rgba(148,163,184,.18);color:inherit}.vsw .qbtn:disabled{opacity:.35;cursor:default}
+.vsw .qe{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:vsIn .2s ease-out}
+.vsw .qeb{width:min(420px,100%);box-sizing:border-box;padding:18px 16px 14px;border-radius:20px;background:#1f1f24;color:#e2e8f0;border:1px solid rgba(148,163,184,.25);box-shadow:0 16px 44px rgba(0,0,0,.5);animation:vsPop .3s cubic-bezier(.2,.9,.3,1.15)}
+#W.light .vsw .qeb{background:#fff;color:#0f172a}
+.vsw .qeb h5{margin:0 0 10px;font:800 13.5px Cairo,Inter,sans-serif;text-align:center}
+.vsw .qeb textarea{width:100%;box-sizing:border-box;min-height:84px;padding:11px 12px;border-radius:14px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font:600 15px/1.5 Cairo,Inter,sans-serif;outline:0;resize:none}.vsw .qeb textarea:focus{border-color:#34d399}
+.vsw .qeb p{margin:0 0 14px;text-align:center;font:700 14px/1.7 Cairo,Inter,sans-serif}.vsw .qeb .qact{margin-top:12px}.vsw .qeb p+.qact{margin-top:0}
+.vsw .qm{min-height:18px;margin-top:8px;text-align:center;color:#f87171;font:600 12px Cairo,Inter,sans-serif}
+.vsw .qok{width:54px;height:54px;margin:8px auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(52,211,153,.18);color:#34d399;font-size:28px}
 .vsw .lists.stack{display:flex;flex-direction:column;gap:20px;width:100%;max-width:560px;margin:auto}
 .vsw .lists.stack>.card{width:100%;margin:0}
 .vs:has(>.lists.stack){display:flex;flex-direction:column}
@@ -212,6 +330,7 @@
       stop();
       b.innerHTML = '<style>' + CSS + defs().map(d => d.css || '').join('') + '</style><div class="vsw"><div class="vs"></div></div>';
       wrap = b.querySelector('.vsw'); root = b.querySelector('.vs'); lastLang = lg();
+      if (keys.indexOf('qol') > -1) qolPlus();   /* the "+" exists only on Your Dictionary */
       wrap.addEventListener('click', e => {
         const q = s => (e.target.closest ? e.target.closest(s) : null);
         let x;
