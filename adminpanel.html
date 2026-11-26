@@ -46,6 +46,7 @@ textarea.in{min-height:96px;resize:vertical}
 .seg{display:flex;gap:4px;padding:4px;border-radius:20px;background:var(--gbg);border:1px solid var(--gbd)}
 .seg button{flex:1;height:34px;border:0;border-radius:16px;background:transparent;color:var(--ink2);font-weight:700;cursor:pointer}
 .seg button.on{background:var(--ink);color:var(--bg)}
+#ls_box .seg button{flex:1 1 45%}#ls_box [data-lsn]{margin:0 0 10px}
 .btn{height:44px;padding:0 20px;border-radius:22px;border:1px solid transparent;background:var(--ink);color:var(--bg);font-weight:700;cursor:pointer}
 .btn.ghost{background:var(--gbg);color:var(--ink);border-color:var(--gbd)}
 .btn.ac,.tbtn.done{background:var(--ac);color:var(--onac)}
@@ -889,11 +890,41 @@ function dashList(){
     return '<div class="tkg">'+esc(g[1])+' ('+rows.length+')</div>'+rows.map(x=>dashRow(x[0],x[1])).join('');
   }).join('')||'<div class="pcard">مفيش طلاب.</div>';
 }
+/* Rank + Level & Skills: what the student sees in his profile / behind the medal button and the Skills button (hidden there when empty) */
+const LVLS=[['wood','خشبي · Wooden'],['bronze','برونزي · Bronze'],['gold','ذهبي · Gold'],['diamond','ألماسي · Diamond']];
+const RNKS=[['trainee','Trainee'],['trainer','Trainer'],['admin','Admin']];
+const SKLS=[['creative','الملَكة الإبداعية · Creative Faculty'],['rasf','القدرة على الرصف · Ability to Arrange'],['tone','التلاعب بالنبرة · Tone Manipulation']];
+function lsCard(i){
+  const r=ST[i][2],sk=r.skills&&typeof r.skills==='object'?r.skills:{};
+  return '<div class="card" id="ls_box"><h4>الرتبة · Rank</h4><div class="seg">'+RNKS.map(x=>'<button type="button" data-lsr="'+x[0]+'" class="'+((r.rank||'trainee')===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>'
+    +'<input class="in" id="ls_rt" dir="auto" maxlength="120" placeholder="لقب تاني تحت الرتبة (اختياري) · مثلاً: من العيلة" value="'+esc(r.rank_title||'')+'" style="margin-top:10px">'
+    +'<h4 style="margin-top:14px">Level</h4><div class="seg" style="flex-wrap:wrap">'+LVLS.map(x=>'<button type="button" data-lsl="'+x[0]+'" class="'+(r.level===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div>'
+    +'<textarea class="in" id="ls_note" dir="auto" maxlength="1500" placeholder="ملاحظة تظهر للطالب تحت مستواه (اختياري)" style="margin-top:10px">'+esc(r.level_note||'')+'</textarea>'
+    +'<h4 style="margin-top:14px">Skills</h4>'+SKLS.map(x=>{const on=Object.prototype.hasOwnProperty.call(sk,x[0]);return '<button type="button" class="tkb'+(on?' on':'')+'" data-lss="'+x[0]+'">'+x[1]+'</button><input class="in" data-lsn="'+x[0]+'" dir="auto" maxlength="500" placeholder="ملاحظة على المهارة دي (اختياري)" value="'+esc(on?sk[x[0]]||'':'')+'"'+(on?'':' hidden')+'>'}).join('')
+    +'<div class="row" style="margin-top:12px"><button type="button" class="btn ac" data-lssave="'+i+'">احفظ</button></div><p id="ls_msg" class="hint" role="status"></p></div>'}
+function lsClick(e){
+  let b;
+  if(b=e.target.closest('[data-lsr]')){b.parentNode.querySelectorAll('[data-lsr]').forEach(x=>x.classList.toggle('on',x===b));return true}
+  if(b=e.target.closest('[data-lsl]')){const on=!b.classList.contains('on');b.parentNode.querySelectorAll('[data-lsl]').forEach(x=>x.classList.remove('on'));b.classList.toggle('on',on);return true}
+  if(b=e.target.closest('[data-lss]')){const on=b.classList.toggle('on');const n=document.querySelector('[data-lsn="'+b.dataset.lss+'"]');if(n)n.hidden=!on;return true}
+  if(b=e.target.closest('[data-lssave]')){lsSave(+b.dataset.lssave);return true}
+  return false}
+async function lsSave(i){
+  const r=ST[i]&&ST[i][2],box=$('ls_box');if(!r||!box||DB.busy)return;
+  const l=box.querySelector('[data-lsl].on'),sk={};
+  box.querySelectorAll('[data-lss].on').forEach(b=>{sk[b.dataset.lss]=box.querySelector('[data-lsn="'+b.dataset.lss+'"]').value.trim()});
+  const rk=box.querySelector('[data-lsr].on');
+  const row={rank:rk?rk.dataset.lsr:'trainee',rank_title:$('ls_rt').value.trim()||null,level:l?l.dataset.lsl:null,level_note:$('ls_note').value.trim()||null,skills:Object.keys(sk).length?sk:null};
+  if(!row.level&&row.level_note){$('ls_msg').textContent='اختار المستوى الأول، الملاحظة بتظهر تحته.';return}
+  DB.busy=true;$('ls_msg').textContent='جاري الحفظ…';
+  try{await write('basic_info?id=eq.'+encodeURIComponent(r.id),'PATCH',row);Object.assign(r,row);if($('ls_msg'))$('ls_msg').textContent='اتحفظ ✓'}
+  catch(e){if($('ls_msg'))$('ls_msg').textContent='❌ '+e.message}
+  DB.busy=false}
 const prow=(k,v)=>'<div style="padding:8px 0;border-bottom:1px solid var(--gbd)"><div class="hint" style="margin:0">'+esc(k.replace(/_/g,' '))+'</div><div dir="auto" style="white-space:pre-wrap;overflow-wrap:anywhere;font-weight:600">'+esc(v==null||v===''?'—':typeof v==='object'?JSON.stringify(v):v)+'</div></div>';
 function dashProfile(i){
-  const s=ST[i],r=s[2],ks=Object.keys(r).filter(k=>k!=='id'&&k!=='trainee');
+  const s=ST[i],r=s[2],ks=Object.keys(r).filter(k=>!['id','trainee','level','level_note','skills','rank','rank_title'].includes(k));
   return '<div class="wrap"><div class="card" style="text-align:center"><span class="av" style="margin:0 auto 8px;width:56px;height:56px;font-size:22px">'+esc(s[0].trim().charAt(0).toUpperCase())+'</span><b dir="auto" style="font-size:17px">'+esc(s[0])+'</b><div class="hint">'+esc(GROUPS[s[1]]?GROUPS[s[1]][1]:'')+'</div></div>'
-    +'<div class="card"><h4>Settings</h4>'+attSeg(i)+'<p id="dmsg" class="hint" role="status"></p></div>'
+    +'<div class="card"><h4>Settings</h4>'+attSeg(i)+'<p id="dmsg" class="hint" role="status"></p></div>'+lsCard(i)
     +'<div class="card"><h4>Profile</h4>'+prow('trainee',r.trainee)+ks.map(k=>prow(k,r[k])).join('')+'</div></div>';
 }
 function dashPaint(){
@@ -950,6 +981,7 @@ $('back').onclick=()=>{
 };
 $('lbody').onclick=e=>{
   if(page==='dash'){
+    if(DB.view==='profile'&&lsClick(e))return;
     const dt=e.target.closest('[data-dat]');if(dt){dbSetType(+dt.dataset.i,dt.dataset.dat);return}
     const da=e.target.closest('[data-dact]');if(da){dashAct(da.dataset.dact,+da.dataset.i);return}
     const dr=e.target.closest('[data-di]');if(dr){const k=+dr.dataset.di;DB.open=DB.open===k?null:k;DB.msg='';dashPaint();return}
