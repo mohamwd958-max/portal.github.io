@@ -68,12 +68,20 @@
     var s = document.createElement('style'); s.id = 'thCalCss'; s.textContent = CSS; root.appendChild(s);
   }
 
+  var ICON = '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>';
   var B = window.ThabitBtn = window.ThabitBtn || {};
   var orig = B.calendar;
   B.calendar = function (api) {
     var mod = (typeof orig === 'function' ? orig(api) : null) || {};
+    /* Self-sufficient: if btn-calendar.js is missing, this file supplies the icon, the names and the sidebar button itself. */
+    try {
+      api.IC.calendar = api.IC.calendar || ICON;
+      api.STR.en.i_calendar = api.STR.en.i_calendar || 'Calendar';
+      api.STR.ar.i_calendar = api.STR.ar.i_calendar || 'التقويم';
+    } catch (e) { }
     mod.maint = false;
-    if (typeof mod.button === 'string') mod.button = mod.button.replace(/\sdata-maint(=("[^"]*"|'[^']*'))?/g, '');
+    if (typeof mod.button === 'string' && mod.button) mod.button = mod.button.replace(/\sdata-maint(=("[^"]*"|'[^']*'))?/g, '');
+    else mod.button = '<button type="button" class="sdi st" data-k="calendar" data-title="i_calendar"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON + '</svg></button>';
     mod.full = function () { return false; };
     mod.plan = plan;
     mod.render = function (b) {
