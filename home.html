@@ -1556,5 +1556,99 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 })();
 </script>
 
+<script>
+/* ===== Thabit: Full-timer / Part-timer dot + tool tasks on the sidebar buttons ===== */
+(function () {
+  'use strict';
+  var URL_ = 'https://vkfexceitwjmxncwceqb.supabase.co';
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI';
+  var host = document.getElementById('thApp'), R = host && host.shadowRoot, token = null;
+  try { token = localStorage.getItem('thabit_trainee_token'); } catch (e) { }
+  if (!R || !token) return;
+  var tasks = [], busy = false;
+  var ar = function () { var w = R.getElementById('W'); return !!w && w.dir === 'rtl'; };
+  function rpc(name, body) {
+    return fetch(URL_ + '/rest/v1/rpc/' + name, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.status === 204 ? null : r.json(); });
+  }
+  var css = document.createElement('style');
+  css.textContent = '.ttw{position:relative;display:inline-flex}.ttdot{position:absolute;right:-2px;bottom:-1px;width:13px;height:13px;border-radius:50%;border:2px solid #121214;pointer-events:none;z-index:3}#W.light .ttdot{border-color:#fff}' +
+    '.sdi .ttb{margin-inline-start:auto;flex:0 0 auto!important;width:auto;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;display:inline-grid;place-items:center;background:#6b7280;color:#fff;font:800 11px Inter,sans-serif}.ttb.new{background:#ef4444;animation:ttp 1.6s ease-in-out infinite}@keyframes ttp{50%{scale:1.18}}@media(prefers-reduced-motion:reduce){.ttb.new{animation:none}}' +
+    '#ttov{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.5)}#ttov .bx{width:min(380px,100%);max-height:75dvh;overflow:auto;box-sizing:border-box;padding:18px;border-radius:24px;background:#1b1a16;color:#ece8df;border:1px solid rgba(255,255,255,.14);font:600 .9rem/1.7 Cairo,Inter,sans-serif}#W.light #ttov .bx{background:#fff;color:#1c1a16;border-color:rgba(28,26,22,.12)}' +
+    '#ttov h3{margin:0 0 10px;font-size:1.05rem;text-align:center}#ttov ol{margin:0;padding-inline-start:22px}#ttov li{margin-bottom:10px;white-space:pre-wrap;text-align:start;overflow-wrap:anywhere}#ttov small{display:block;opacity:.65}#ttov button{display:block;margin:12px auto 0;height:42px;min-width:140px;border:0;border-radius:999px;background:#f97316;color:#fff;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer}';
+  R.appendChild(css);
+
+  /* ---------- the dot beside the profile button ---------- */
+  function dot(type) {
+    var p = R.getElementById('prof'); if (!p) return;
+    var w = p.parentNode;
+    if (!w.classList.contains('ttw')) { w = document.createElement('span'); w.className = 'ttw'; p.parentNode.insertBefore(w, p); w.appendChild(p); }
+    var d = w.querySelector('.ttdot'), c = type === 'full' ? '#22c55e' : type === 'part' ? '#f97316' : '';
+    if (!c) { if (d) d.remove(); return; }
+    if (!d) { d = document.createElement('i'); d.className = 'ttdot'; w.appendChild(d); }
+    d.style.background = c; d.title = type === 'full' ? 'Full-timer' : 'Part-timer'; d.setAttribute('role', 'img'); d.setAttribute('aria-label', d.title);
+  }
+
+  /* ---------- badges ---------- */
+  /* reminders are spread evenly inside their period: 3 times over 7 days = after 1.75, 3.5 and 5.25 days */
+  function isNew(t) {
+    var A = Date.parse(t.created_at), seen = t.seen_at ? Date.parse(t.seen_at) : 0;
+    if (!seen) return true;
+    for (var i = 1; i <= (t.remind_count || 0); i++) { var due = A + i * t.remind_days * 864e5 / (t.remind_count + 1); if (due <= Date.now() && seen < due) return true; }
+    return false;
+  }
+  var active = function (t) { return !t.range_days || Date.now() < Date.parse(t.created_at) + t.range_days * 864e5; };
+  var of = function (k) { return tasks.filter(function (t) { return t.tool === k && active(t); }); };
+  function paint() {
+    var any = false;
+    R.querySelectorAll('#side .sdi[data-k]').forEach(function (b) {
+      var a = of(b.dataset.k), g = b.querySelector('.ttb'), fresh = a.some(isNew);
+      if (fresh) any = true;
+      if (!a.length) { if (g) g.remove(); return; }
+      if (!g) { g = document.createElement('span'); g.className = 'ttb'; b.appendChild(g); }
+      g.textContent = a.length; g.classList.toggle('new', fresh);
+    });
+    var m = R.getElementById('sbtn'); if (m) { if (any) m.classList.add('hasn', 'dotok'); else if (m.dataset.tt) m.classList.remove('hasn', 'dotok'); m.dataset.tt = any ? '1' : ''; }
+  }
+
+  /* ---------- the small pop-up ---------- */
+  function close() { var o = R.getElementById('ttov'); if (o) o.remove(); }
+  function show(k, label) {
+    var a = of(k); if (!a.length) return;
+    close();
+    var o = document.createElement('div'); o.id = 'ttov';
+    var bx = document.createElement('div'); bx.className = 'bx'; bx.dir = ar() ? 'rtl' : 'ltr'; bx.setAttribute('role', 'dialog');
+    var h = document.createElement('h3'); h.textContent = (ar() ? 'المطلوب منك · ' : 'Your tasks · ') + label; bx.appendChild(h);
+    var ol = document.createElement('ol');
+    a.forEach(function (t) {
+      var li = document.createElement('li'); li.dir = 'auto'; if (t.subject) { var hd = document.createElement('b'); hd.textContent = t.subject; li.appendChild(hd); } if (t.body) { var s = document.createElement(t.subject ? 'div' : 'span'); s.textContent = t.body; li.appendChild(s); }
+      if (t.range_days) { var left = Math.max(1, Math.ceil((Date.parse(t.created_at) + t.range_days * 864e5 - Date.now()) / 864e5)); var sm = document.createElement('small'); sm.textContent = ar() ? 'المدة: ' + t.range_days + ' يوم · باقي ' + left : t.range_days + '-day range · ' + left + ' left'; li.appendChild(sm); }
+      ol.appendChild(li);
+    });
+    bx.appendChild(ol);
+    var ok = document.createElement('button'); ok.type = 'button'; ok.textContent = ar() ? 'فهمت' : 'Got it'; ok.onclick = close; bx.appendChild(ok);
+    o.appendChild(bx); o.onclick = function (e) { if (e.target === o) close(); };
+    R.getElementById('W').appendChild(o);
+    var ids = a.map(function (t) { return t.id; }), now = new Date().toISOString();
+    a.forEach(function (t) { t.seen_at = now; }); paint();
+    rpc('trainee_tool_tasks_seen', { p_token: token, p_ids: ids }).catch(function () { });
+  }
+  var side = R.getElementById('side');
+  if (side) side.addEventListener('click', function (e) {
+    var b = e.target.closest('.sdi[data-k]'); if (!b) return;
+    var s = b.querySelector('[data-t]'); show(b.dataset.k, (s && s.textContent) || b.dataset.k);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+  function refresh() {
+    if (busy || document.hidden) return; busy = true;
+    var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) dot(p.attendance_type); }).catch(function () { });
+    var b = rpc('trainee_tool_tasks', { p_token: token }).then(function (r) { tasks = Array.isArray(r) ? r : []; paint(); }).catch(function () { });
+    Promise.all([a, b]).then(function () { busy = false; });
+  }
+  refresh(); setInterval(function () { paint(); refresh(); }, 60000);
+  document.addEventListener('visibilitychange', refresh);
+})();
+</script>
 </body>
 </html>
