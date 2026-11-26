@@ -1600,7 +1600,8 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
     return false;
   }
   var active = function (t) { return !t.range_days || Date.now() < Date.parse(t.created_at) + t.range_days * 864e5; };
-  var of = function (k) { return tasks.filter(function (t) { return t.tool === k && active(t); }); };
+  var vis = function (t) { return !t.seen_at || (active(t) && isNew(t)); };
+  var of = function (k) { return tasks.filter(function (t) { return t.tool === k && vis(t); }); };
   function paint() {
     var any = false;
     R.querySelectorAll('#side .sdi[data-k]').forEach(function (b) {
@@ -1628,12 +1629,9 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
       ol.appendChild(li);
     });
     bx.appendChild(ol);
-    var ok = document.createElement('button'); ok.type = 'button'; ok.textContent = ar() ? 'فهمت' : 'Got it'; ok.onclick = close; bx.appendChild(ok);
+    var ok = document.createElement('button'); ok.type = 'button'; ok.textContent = ar() ? 'فهمت' : 'Got it'; ok.onclick = function () { var ids = a.map(function (t) { return t.id; }), now = new Date().toISOString(); a.forEach(function (t) { t.seen_at = now; }); close(); paint(); rpc('trainee_tool_tasks_seen', { p_token: token, p_ids: ids }).catch(function () { }); }; bx.appendChild(ok);
     o.appendChild(bx); o.onclick = function (e) { if (e.target === o) close(); };
     R.getElementById('W').appendChild(o);
-    var ids = a.map(function (t) { return t.id; }), now = new Date().toISOString();
-    a.forEach(function (t) { t.seen_at = now; }); paint();
-    rpc('trainee_tool_tasks_seen', { p_token: token, p_ids: ids }).catch(function () { });
   }
   var side = R.getElementById('side');
   if (side) side.addEventListener('click', function (e) {
@@ -1642,13 +1640,84 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 
+
+  /* ===== Announcements from the admin: red "!" tag on a sidebar button + one small pop-up; feed notifications that need "Got it" ===== */
+  var anns = [], nots = [], shownN = {};
+  var acss = document.createElement('style');
+  acss.textContent = '#side .sdi{position:relative}#side .sdi .antag{position:absolute;top:-5px;left:-5px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;font:800 12px/18px Inter,sans-serif;text-align:center;pointer-events:none;z-index:2;animation:ttp 1.6s ease-in-out infinite}' +
+    '#anov,#nkov{position:fixed;inset:0;z-index:510;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.5)}' +
+    '.anbx{width:min(380px,100%);max-height:78dvh;overflow:auto;box-sizing:border-box;padding:18px;border-radius:24px;background:#1b1a16;color:#ece8df;border:1px solid rgba(255,255,255,.14);font:600 .92rem/1.7 Cairo,Inter,sans-serif}#W.light .anbx{background:#fff;color:#1c1a16;border-color:rgba(28,26,22,.12)}' +
+    '.anbx h3{margin:0 0 10px;font-size:1.05rem;text-align:center}.anbx .anit{padding:10px 0;border-top:1px solid rgba(128,128,128,.25)}.anbx .anit:first-of-type{border-top:0}' +
+    '.anbx .anl{display:flex;align-items:center;gap:10px;margin:8px 0}.anbx .anl i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(128,128,128,.2);font-style:normal;font-size:18px}.anbx .anl span{white-space:pre-wrap;overflow-wrap:anywhere;text-align:start}' +
+    '.anbx .anb{display:block;margin:12px auto 0;height:42px;min-width:140px;border:0;border-radius:999px;background:#f97316;color:#fff;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer}.anbx .anb.sm{height:34px;min-width:110px;margin-top:8px}.anbx p{margin:6px 0;white-space:pre-wrap;text-align:start}.anbx .anx{display:block;margin:10px auto 0;border:0;background:transparent;color:inherit;opacity:.65;font:700 .8rem Cairo,Inter,sans-serif;cursor:pointer}';
+  R.appendChild(acss);
+  var annFor = function (k) { return anns.filter(function (a) { return (a.buttons || []).indexOf(k) > -1 && (a.seen || []).indexOf(k) < 0 && (!a.ends_at || Date.parse(a.ends_at) > Date.now()); }); };
+  function paintAnn() {
+    R.querySelectorAll('#side .sdi[data-k]').forEach(function (b) {
+      var has = annFor(b.dataset.k).length > 0, g = b.querySelector('.antag');
+      if (!has) { if (g) g.remove(); return; }
+      if (!g) { g = document.createElement('span'); g.className = 'antag'; g.textContent = '!'; b.appendChild(g); }
+    });
+    var m = R.getElementById('sbtn'); if (m && anns.some(function (a) { return (a.buttons || []).some(function (k) { return annFor(k).indexOf(a) > -1; }); })) m.classList.add('hasn', 'dotok');
+  }
+  function annClose() { var o = R.getElementById('anov'); if (o) o.remove(); }
+  function markAnn(a, k) {
+    a.seen = (a.seen || []).concat([k]);
+    rpc('trainee_announcement_seen', { p_token: token, p_id: a.id, p_button: k }).catch(function () { });
+  }
+  function showAnn(k) {
+    var list = annFor(k); if (!list.length) return;
+    annClose();
+    var o = document.createElement('div'); o.id = 'anov';
+    var bx = document.createElement('div'); bx.className = 'anbx'; bx.dir = ar() ? 'rtl' : 'ltr'; bx.setAttribute('role', 'dialog');
+    list.forEach(function (a) {
+      var p = a.popup || {}, it = document.createElement('div'); it.className = 'anit';
+      if (p.title) { var h = document.createElement('h3'); h.dir = 'auto'; h.textContent = p.title; it.appendChild(h); }
+      (p.lines || []).forEach(function (l) {
+        var r = document.createElement('div'); r.className = 'anl'; var i = document.createElement('i'); i.textContent = l.icon || '📌';
+        var t = document.createElement('span'); t.dir = 'auto'; t.textContent = l.text || ''; r.appendChild(i); r.appendChild(t); it.appendChild(r);
+      });
+      bx.appendChild(it);
+      if (p.persist === 'open') markAnn(a, k);   /* "disappears once opened": gone as soon as it was shown */
+    });
+    var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'anb'; ok.textContent = ar() ? 'فهمت' : 'Got it';
+    ok.onclick = function () { list.forEach(function (a) { if (!a.popup || a.popup.persist !== 'open') markAnn(a, k); }); annClose(); paintAnn(); };
+    bx.appendChild(ok); o.appendChild(bx); o.onclick = function (e) { if (e.target === o) { annClose(); paintAnn(); } };
+    R.getElementById('W').appendChild(o); paintAnn();
+  }
+  if (side) side.addEventListener('click', function (e) { var b = e.target.closest('.sdi[data-k]'); if (b) showAnn(b.dataset.k); });
+
+  /* feed notifications marked "important": stay (and keep the unread count) until the student says Got it */
+  function nkClose() { var o = R.getElementById('nkov'); if (o) o.remove(); }
+  function showNots() {
+    var list = nots.filter(function (n) { return n.meta && n.meta.persist === 'ack' && !n.read_at; });
+    if (!list.length) { nkClose(); return; }
+    var fresh = list.filter(function (n) { return !shownN[n.id]; }); if (!fresh.length && !R.getElementById('nkov')) return;
+    nkClose(); list.forEach(function (n) { shownN[n.id] = 1; });
+    var o = document.createElement('div'); o.id = 'nkov';
+    var bx = document.createElement('div'); bx.className = 'anbx'; bx.dir = ar() ? 'rtl' : 'ltr'; bx.setAttribute('role', 'dialog');
+    var h = document.createElement('h3'); h.textContent = ar() ? 'مهم · لازم تقول فهمت' : 'Important · please confirm'; bx.appendChild(h);
+    list.forEach(function (n) {
+      var it = document.createElement('div'); it.className = 'anit';
+      if (n.title) { var b = document.createElement('b'); b.dir = 'auto'; b.textContent = n.title; it.appendChild(b); }
+      if (n.body) { var p = document.createElement('p'); p.dir = 'auto'; p.textContent = n.body; it.appendChild(p); }
+      var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'anb sm'; ok.textContent = ar() ? 'فهمت' : 'Got it';
+      ok.onclick = function () { n.read_at = new Date().toISOString(); it.remove(); if (!bx.querySelector('.anit')) nkClose(); rpc('trainee_notification_ack', { p_token: token, p_ids: [n.id] }).catch(function () { }); };
+      it.appendChild(ok); bx.appendChild(it);
+    });
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'anx'; x.textContent = ar() ? 'لاحقًا' : 'Later'; x.onclick = nkClose; bx.appendChild(x);
+    o.appendChild(bx); R.getElementById('W').appendChild(o);
+  }
+
   function refresh() {
     if (busy || document.hidden) return; busy = true;
     var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) { timer = p.attendance_type; paintTimer(); } }).catch(function () { });
     var b = rpc('trainee_tool_tasks', { p_token: token }).then(function (r) { tasks = Array.isArray(r) ? r : []; paint(); }).catch(function () { });
-    Promise.all([a, b]).then(function () { busy = false; });
+    var c = rpc('trainee_announcements', { p_token: token }).then(function (r) { anns = Array.isArray(r) ? r : []; paintAnn(); }).catch(function () { });
+    var d = rpc('trainee_notifications', { p_token: token }).then(function (r) { nots = Array.isArray(r) ? r : []; showNots(); }).catch(function () { });
+    Promise.all([a, b, c, d]).then(function () { busy = false; });
   }
-  refresh(); setInterval(function () { paint(); refresh(); }, 60000);
+  refresh(); setInterval(function () { paint(); paintAnn(); refresh(); }, 60000);
   document.addEventListener('visibilitychange', refresh);
 })();
 </script>
