@@ -443,6 +443,41 @@ function annClick(e){
   else if(q('[data-ansave]'))annSave();
   else if(q('[data-anfeed]'))annFeedSend();
 }
+/* ===== Monthly obligations = bills, payment claims, receipts, confirmation ===== */
+const MO={rows:null,err:'',busy:false,msg:''};
+const MOS={open:'مستنية الدفع',receipt_sent:'وصل إيصال — محتاج تأكيد',paid:'مدفوعة'};
+async function moLoad(){MO.err='';try{MO.rows=await getJ('bills?select=*,basic_info(trainee)&order=period.desc,issued_on.desc')}catch(e){MO.err=e.message}moPaint()}
+function moStats(rows){
+  const p=rows.filter(r=>r.status==='paid'),ot=p.filter(r=>String(r.paid_at||'').slice(0,10)<=r.due_on).length,sh=p.filter(r=>Number(r.paid_amount)<Number(r.amount)).length;
+  return 'مدفوعة '+p.length+' من '+rows.length+' · في الميعاد '+ot+' · متأخرة '+(p.length-ot)+' · أقل من المطلوب '+sh}
+function moPaint(){
+  const b=$('mo_ui');if(!b)return;
+  if(MO.err){b.innerHTML='<div class="wrap"><p class="hint">❌ '+esc(MO.err)+'</p><button type="button" class="tksm" data-moretry="1">حاول تاني</button></div>';return}
+  if(!MO.rows){b.innerHTML='<div class="wrap"><p class="hint">جاري التحميل…</p></div>';return}
+  const per=[...new Set(MO.rows.map(r=>r.period))];
+  b.innerHTML='<div class="wrap"><p id="mo_msg" class="hint" role="status">'+esc(MO.msg)+'</p>'+(per.length?per.map(p=>{const rs=MO.rows.filter(r=>r.period===p);
+    return '<div class="tkg">'+esc(p)+' · '+esc(moStats(rs))+'</div>'+rs.map(r=>{const nm=(r.basic_info&&r.basic_info.trainee)||'?',late=r.status!=='paid'&&cairoDate()>r.due_on;
+      return '<div class="ttrow"><div dir="auto" style="width:100%"><b>'+esc(nm)+' · '+esc(String(Number(r.amount)))+' ج</b><small>'+esc([MOS[r.status]+(late?' (متأخرة)':''),'آخر ميعاد '+r.due_on,r.claim==='paid'?'قال: دفعت':r.claim==='pay'?'قال: عايز أدفع':'',r.status==='paid'?'اتدفع '+Number(r.paid_amount)+' يوم '+String(r.paid_at).slice(0,10):''].filter(Boolean).join(' · '))+'</small>'
+        +'<div class="row" style="margin-top:8px">'+(r.receipt_path?'<button type="button" class="tksm" data-morec="'+esc(r.receipt_path)+'">عرض الإيصال</button>':'')
+        +(r.status!=='paid'?'<input type="number" class="in" style="width:110px" id="mo_a'+r.id+'" value="'+Number(r.amount)+'" min="0"><button type="button" class="tksm" data-moconf="'+r.id+'">تأكيد الدفع</button>':'')+'</div></div></div>'}).join('')}).join(''):'<p class="hint">مفيش فواتير لسه.</p>')+'</div>'}
+async function moConfirm(id){
+  if(MO.busy)return;const r=MO.rows.find(x=>x.id===id),a=$('mo_a'+id);if(!r||!a)return;const amt=Number(a.value);
+  if(!(amt>=0)||!confirm('تأكد إنك استلمت '+amt+' جنيه من '+((r.basic_info&&r.basic_info.trainee)||'')+'؟'))return;
+  MO.busy=true;const now=new Date().toISOString();
+  try{const row=(await write('bills?id=eq.'+id,'PATCH',{status:'paid',paid_at:now,paid_amount:amt}))[0];Object.assign(r,row);
+    try{await write('basic_info?id=eq.'+r.trainee_id,'PATCH',{paid_month:r.period,paid_amount:amt,paid_at:now})}catch(e){}
+    MO.msg='اتسجّل الدفع ✓'}
+  catch(e){MO.msg='❌ '+e.message}
+  MO.busy=false;moPaint()}
+async function moReceipt(path){
+  const w=window.open('','_blank');
+  try{const t=await token(),r=await fetch(SB_URL+'/storage/v1/object/sign/receipts/'+path,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:300})});
+    if(!r.ok)throw new Error(r.status);const j=await r.json();if(w)w.location=SB_URL+'/storage/v1'+j.signedURL;else MO.msg='افتح النوافذ المنبثقة وجرّب تاني.'}
+  catch(e){if(w)w.close();MO.msg='❌ تعذّر فتح الإيصال';moPaint()}}
+function moClick(e){
+  let b;if(b=e.target.closest('[data-moconf]'))moConfirm(+b.dataset.moconf);
+  else if(b=e.target.closest('[data-morec]'))moReceipt(b.dataset.morec);
+  else if(e.target.closest('[data-moretry]'))moLoad()}
 function cairoDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'})}
 /* ===== Daily supply (daily_supply + daily_supply_parts + supply_items) ===== */
 let D=null,dsSeq=0;
@@ -625,8 +660,8 @@ function openPage(p){
   page=p;side(false);renderSide();
   const t=TOOLS.find(x=>x[0]===p);
   $('lt').textContent=p==='ds'?'Daily supply · '+ST[cur][0]:p==='cal'?'Calendar · '+ST[cur][0]:p==='task'&&tkStu()!==null?'Tasks · '+ST[cur][0]:t[1];
-  TK.key=null;$('lbody').innerHTML=p==='ds'?dsView():p==='cal'?'<div id="ac_ui"></div>':p==='rep'?'<div id="ib_ui"></div>':p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='task'?taskView():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
-  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='ds'||p==='task')tkLoad();if(p==='stat')statInit();if(p==='cal')acInit();if(p==='rep')ibInit();
+  TK.key=null;$('lbody').innerHTML=p==='ds'?dsView():p==='cal'?'<div id="ac_ui"></div>':p==='rep'?'<div id="ib_ui"></div>':p==='mo'?'<div id="mo_ui"></div>':p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='task'?taskView():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
+  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='ds'||p==='task')tkLoad();if(p==='stat')statInit();if(p==='cal')acInit();if(p==='rep')ibInit();if(p==='mo')moLoad();
 }
 function closePage(){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;MG.open=null;page=null;$('layer').classList.remove('on');renderSide()}
 
@@ -918,6 +953,7 @@ $('lbody').onclick=e=>{
     const q=e.target.closest('[data-sst]');if(q){STS.sel=q.dataset.sst||null;STS.open=false;statPaint();return}
     if(e.target.closest('[data-sretry]')){statInit();return}
   }
+  if(page==='mo'){moClick(e);return}
   if(e.target.closest('[data-tkpick]')){e.stopPropagation();students();return}
   if(e.target.closest('#tk_ui')){tkClick(e);return}
   if(page==='ann'){annClick(e);return}
