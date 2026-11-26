@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /* Trainer view: the admin panel opens dashboard.html#vt=<temporary token>. Read-only, never touches the trainee's real login. */
 const VT = ((location.hash || '').match(/vt=([A-Za-z0-9]+)/) || [])[1] || null, VIEW = !!VT;
-const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_msg_mark', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
+const VIEW_BLOCK = ['trainee_check_item', 'trainee_set_item_time', 'trainee_set_task', 'trainee_raise_hand', 'trainee_send_request', 'trainee_day_request', 'trainee_msg_mark', 'trainee_submit_report', 'trainee_notifications_read', 'trainee_mark_notifs_read', 'trainee_notification_ack', 'trainee_msg_send', 'trainee_msg_mark_read', 'trainee_logout'];
 const tok = () => VIEW ? VT : (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
 const rpc = (fn, body) => (VIEW && VIEW_BLOCK.includes(fn)) ? Promise.resolve(null) : fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 let USER_TZ = 'Africa/Cairo';
@@ -114,7 +114,9 @@ const WORD_KINDS = ['assistant_words', 'word_ready'];
 const NK = 'thabit_local_notes';
 window.thLocalNotes = () => { try { return (JSON.parse(localStorage.getItem(NK) || '[]') || []).filter(n => n && Date.now() - Date.parse(n.created_at) < 864e5); } catch (e) { return []; } };
 const thn_opened = () => { try { return JSON.parse(localStorage.getItem(thn_OPNK) || '{}') || {}; } catch (e) { return {}; } };
-const thn_isRead = n => !!n.read_at || thn_isAcked(thn_nKey(n)) || (thn_nKey(n) in thn_opened());
+/* notifications the trainer marked "important" stay unread until the student presses Got it (server read_at), whatever else happens */
+const isAckN = n => !!(n && n.meta && n.meta.persist === 'ack' && n.id != null);
+const thn_isRead = n => isAckN(n) ? !!n.read_at : (!!n.read_at || thn_isAcked(thn_nKey(n)) || (thn_nKey(n) in thn_opened()));
 function thn_noteList() {
   const now = Date.now();
   return (((D && D.notes) || []).concat(window.thLocalNotes ? thLocalNotes() : [])).filter(n => !WORD_KINDS.includes(n.kind))
@@ -123,7 +125,12 @@ function thn_noteList() {
 function thn_noteCardN(n) {
   const loc = lang === 'en' ? 'en-GB' : 'ar-EG', x = noteText(n); let dt = '';
   try { dt = new Date(n.created_at).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) {}
-  return thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt, thn_isRead(n), Date.parse(n.created_at) || 0);
+  const card = thn_nCard(thn_nKey(n), noteCat(n), x.h, x.b, dt, thn_isRead(n), Date.parse(n.created_at) || 0);
+  if (isAckN(n) && !n.read_at) {
+    card.cls += ' ackn';
+    card.html = card.html.replace(/<\/div><\/div>$/, '</div><button type="button" class="ackb" data-ack="' + n.id + '" style="display:block;margin:10px auto 0;height:38px;padding:0 22px;border:0;border-radius:999px;background:#f97316;color:#fff;font:800 .85rem Cairo,Inter,sans-serif;cursor:pointer">' + (lang === 'en' ? 'Got it' : 'فهمت') + '</button></div>');
+  }
+  return card;
 }
 const escv0 = s => (window.ThabitRich ? ThabitRich.inline(esc(s)) : esc(s)).replace(/(<[^>]+>)|\s*\|\s*/g, (m, tag) => tag ? tag : '<i class="vb"></i>');   // markers first, then "|" -> divider (never inside a tag)
 /* [text](https://link) = a real link the student can tap, inside any rich text */
@@ -227,7 +234,12 @@ function toggleNf(pc) {
   const list = $('feedList');
   if (!pc.classList.contains('open')) list.querySelectorAll('.pc.nf.open').forEach(o => { if (o !== pc) { o.classList.remove('open'); const b = o.querySelector('.nfb'); if (b) b.hidden = true; } });   // one at a time
   const on = !pc.classList.contains('open'); pc.classList.toggle('open', on); pc.querySelector('.nfb').hidden = !on;
-  if (on) { thn_openedSet(pc.dataset.cid.slice(2)); pc.classList.remove('unread'); pc.classList.add('read'); lastSig = sigOf(); postBadge(); }
+  if (on) { const nn = (D.notes || []).find(x => x.id != null && 'n' + x.id === pc.dataset.cid.slice(2)); if (nn && nn.meta && nn.meta.persist === 'open' && !nn.read_at) { nn.read_at = new Date().toISOString(); rpc('trainee_mark_notifs_read', { p_token: tok(), p_ids: [nn.id] }).catch(() => { }); } }
+  if (on && !pc.classList.contains('ackn')) { thn_openedSet(pc.dataset.cid.slice(2)); pc.classList.remove('unread'); pc.classList.add('read'); lastSig = sigOf(); postBadge(); }
+}
+function ackNote(id) {
+  const n = (D.notes || []).find(x => x.id === id); if (!n) return;
+  n.read_at = new Date().toISOString(); rpc('trainee_notification_ack', { p_token: tok(), p_ids: [id] }).catch(() => { }); paint(false);
 }
 function paint(animate) {
   const t = FX(), list = $('feedList'), all = feedCards(), cards = visibleCards(all);
@@ -243,6 +255,7 @@ function paint(animate) {
     const nb = pc.querySelector('.nfb'); if (nb) nb.insertBefore(optBar(), null);
     if (keep.has(pc.dataset.cid)) { pc.classList.add('open'); nb.hidden = false; }
     pc.addEventListener('click', e => {
+      const ab = e.target.closest && e.target.closest('.ackb'); if (ab) { e.preventDefault(); ackNote(+ab.dataset.ack); return; }
       const o = e.target.closest && e.target.closest('.opx-i'); if (o) { e.preventDefault(); optAct(o.dataset.id, pc); return; }
       if (!pc.classList.contains('open') || e.target.closest('.nfh')) toggleNf(pc);
     });
