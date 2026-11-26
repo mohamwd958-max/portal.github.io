@@ -1557,7 +1557,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 </script>
 
 <script>
-/* ===== Thabit: Full-timer / Part-timer dot + tool tasks on the sidebar buttons ===== */
+/* ===== Thabit: Full-timer / Part-timer in the profile + tool tasks on the sidebar buttons ===== */
 (function () {
   'use strict';
   var URL_ = 'https://vkfexceitwjmxncwceqb.supabase.co';
@@ -1572,22 +1572,24 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.status === 204 ? null : r.json(); });
   }
   var css = document.createElement('style');
-  css.textContent = '.ttw{position:relative;display:inline-flex}.ttdot{position:absolute;right:-2px;bottom:-1px;width:13px;height:13px;border-radius:50%;border:2px solid #121214;pointer-events:none;z-index:3}#W.light .ttdot{border-color:#fff}' +
-    '.sdi .ttb{margin-inline-start:auto;flex:0 0 auto!important;width:auto;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;display:inline-grid;place-items:center;background:#6b7280;color:#fff;font:800 11px Inter,sans-serif}.ttb.new{background:#ef4444;animation:ttp 1.6s ease-in-out infinite}@keyframes ttp{50%{scale:1.18}}@media(prefers-reduced-motion:reduce){.ttb.new{animation:none}}' +
+  css.textContent = '.sdi .ttb{margin-inline-start:auto;flex:0 0 auto!important;width:auto;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;display:inline-grid;place-items:center;background:#6b7280;color:#fff;font:800 11px Inter,sans-serif}.ttb.new{background:#ef4444;animation:ttp 1.6s ease-in-out infinite}@keyframes ttp{50%{scale:1.18}}@media(prefers-reduced-motion:reduce){.ttb.new{animation:none}}' +
     '#ttov{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.5)}#ttov .bx{width:min(380px,100%);max-height:75dvh;overflow:auto;box-sizing:border-box;padding:18px;border-radius:24px;background:#1b1a16;color:#ece8df;border:1px solid rgba(255,255,255,.14);font:600 .9rem/1.7 Cairo,Inter,sans-serif}#W.light #ttov .bx{background:#fff;color:#1c1a16;border-color:rgba(28,26,22,.12)}' +
     '#ttov h3{margin:0 0 10px;font-size:1.05rem;text-align:center}#ttov ol{margin:0;padding-inline-start:22px}#ttov li{margin-bottom:10px;white-space:pre-wrap;text-align:start;overflow-wrap:anywhere}#ttov small{display:block;opacity:.65}#ttov button{display:block;margin:12px auto 0;height:42px;min-width:140px;border:0;border-radius:999px;background:#f97316;color:#fff;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer}';
   R.appendChild(css);
 
-  /* ---------- the dot beside the profile button ---------- */
-  function dot(type) {
-    var p = R.getElementById('prof'); if (!p) return;
-    var w = p.parentNode;
-    if (!w.classList.contains('ttw')) { w = document.createElement('span'); w.className = 'ttw'; p.parentNode.insertBefore(w, p); w.appendChild(p); }
-    var d = w.querySelector('.ttdot'), c = type === 'full' ? '#22c55e' : type === 'part' ? '#f97316' : '';
-    if (!c) { if (d) d.remove(); return; }
-    if (!d) { d = document.createElement('i'); d.className = 'ttdot'; w.appendChild(d); }
-    d.style.background = c; d.title = type === 'full' ? 'Full-timer' : 'Part-timer'; d.setAttribute('role', 'img'); d.setAttribute('aria-label', d.title);
+  /* ---------- Full-timer / Part-timer: a row inside the profile pop-up ---------- */
+  var timer = '';
+  function paintTimer() {
+    var first = R.getElementById('rN'); if (!first) return;
+    var row = R.getElementById('rTimer');
+    if (timer !== 'full' && timer !== 'part') { if (row) row.remove(); return; }
+    if (!row) { row = document.createElement('div'); row.className = 'prow'; row.id = 'rTimer'; row.appendChild(document.createElement('b')); row.appendChild(document.createElement('span')); first.parentNode.insertBefore(row, first); }
+    row.firstChild.textContent = ar() ? 'نوع المتابعة' : 'Timer type';
+    row.lastChild.textContent = timer === 'full' ? 'Full-timer' : 'Part-timer';
+    row.lastChild.style.cssText = 'font-weight:800;color:' + (timer === 'full' ? '#22c55e' : '#f97316');
   }
+  var prof = R.getElementById('prof');
+  if (prof) prof.addEventListener('click', function () { paintTimer(); refresh(); });
 
   /* ---------- badges ---------- */
   /* reminders are spread evenly inside their period: 3 times over 7 days = after 1.75, 3.5 and 5.25 days */
@@ -1642,7 +1644,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 
   function refresh() {
     if (busy || document.hidden) return; busy = true;
-    var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) dot(p.attendance_type); }).catch(function () { });
+    var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) { timer = p.attendance_type; paintTimer(); } }).catch(function () { });
     var b = rpc('trainee_tool_tasks', { p_token: token }).then(function (r) { tasks = Array.isArray(r) ? r : []; paint(); }).catch(function () { });
     Promise.all([a, b]).then(function () { busy = false; });
   }
