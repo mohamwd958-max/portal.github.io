@@ -1,6 +1,6 @@
 /* =====================================================================
    SIDEBAR BUTTON: home
-   الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + الصفحة الرئيسية كلها (البحث، الكروت، السلايدز) + الشاشة بتاعته.
+   الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + الصفحة الرئيسية كلها (التحية، البحث، واقتراحات الطالب) + الشاشة بتاعته.
    لو عايز تعدّل في الزرار ده، ابعت الملف ده بس.
 
    لازم يتحط في فولدر js/ (جنب index.html)، وبيتحمّل قبل الـscript الرئيسي:  <script src="js/btn-home.js"></script>
@@ -16,7 +16,7 @@
 
     /* ---- the screen: الكود اتنقل من index.html زي ما هو (الصفحة الرئيسية) ---- */
 /* there is no main page any more: "back" lands on the dashboard */
-  /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
+  /* ================= Home page (main page): welcome, smart search bar, the student's own most-opened buttons ================= */
   /* placeholder questions about the buttons students use most; each button is asked about in several ways.
      [Arabic, English, button it opens]. Kept short so one question fits the bar on a phone. Tapping the question opens that button. */
   const HQ = [
@@ -37,49 +37,21 @@
     ['هل نطقك سليم؟ اسمع نفسك', 'Is your accent right? Listen', 'mirror'],
     ['أضف كلمة جديدة لقاموسك', 'Add a word to your dictionary', 'ydict']
   ];
-/* Drawn picture of the dashboard (numbers, charts) used as the background of the Digital Solutions card */
-  const DASH_ART = (() => {
-    const bars = [38, 62, 48, 80, 66, 92, 74].map((h, i) => '<rect x="' + (324 + i * 34) + '" y="' + (388 - h * 1.5) + '" width="20" height="' + (h * 1.5) + '" rx="5" fill="' + (i === 5 ? '#34d399' : '#2b8f6e') + '"/>').join('');
-    const card = (x, v, l, c) => '<rect x="' + x + '" y="92" width="150" height="82" rx="14" fill="#18202a" stroke="#263241"/><text x="' + (x + 16) + '" y="126" font-size="13" fill="#8a97a8">' + l + '</text><text x="' + (x + 16) + '" y="158" font-size="30" font-weight="800" fill="' + c + '">' + v + '</text>';
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Inter,Arial,sans-serif">' +
-      '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".45"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>' +
-      '<rect width="800" height="500" fill="#0e1319"/>' +
-      '<rect x="0" y="0" width="86" height="500" fill="#121920"/><rect x="22" y="26" width="42" height="42" rx="12" fill="#34d399"/>' +
-      [0, 1, 2, 3, 4].map(i => '<rect x="26" y="' + (100 + i * 52) + '" width="34" height="34" rx="10" fill="' + (i === 0 ? '#1f2c38' : '#161e27') + '"/>').join('') +
-      '<text x="114" y="56" font-size="22" font-weight="800" fill="#e8eef5">Dashboard</text><rect x="620" y="34" width="150" height="30" rx="15" fill="#18202a"/><circle cx="748" cy="49" r="9" fill="#34d399"/>' +
-      card(114, '87%', 'Progress', '#34d399') + card(280, '1,284', 'Words', '#e8eef5') + card(446, '36 h', 'Practice', '#60a5fa') + card(612, '12', 'Tasks', '#fbbf24') +
-      '<rect x="114" y="196" width="190" height="196" rx="16" fill="#18202a" stroke="#263241"/><circle cx="209" cy="294" r="52" fill="none" stroke="#263241" stroke-width="16"/><circle cx="209" cy="294" r="52" fill="none" stroke="#34d399" stroke-width="16" stroke-linecap="round" stroke-dasharray="285 327" transform="rotate(-90 209 294)"/><text x="209" y="302" text-anchor="middle" font-size="24" font-weight="800" fill="#e8eef5">87%</text>' +
-      '<rect x="320" y="196" width="450" height="196" rx="16" fill="#18202a" stroke="#263241"/>' + bars +
-      '<path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216 L740 380 L334 380 Z" fill="url(#g)" opacity=".7"/><path d="M334 340 L376 320 L418 332 L460 290 L502 304 L544 262 L586 276 L628 238 L670 250 L740 216" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<rect x="114" y="408" width="656" height="60" rx="14" fill="#18202a" stroke="#263241"/>' + [0, 1, 2, 3].map(i => '<rect x="136" y="' + (424 + 0) + '" width="0" height="0"/>').join('') +
-      '<rect x="136" y="428" width="120" height="10" rx="5" fill="#2b3949"/><rect x="136" y="446" width="80" height="8" rx="4" fill="#223040"/><rect x="560" y="428" width="190" height="14" rx="7" fill="#263241"/><rect x="560" y="428" width="150" height="14" rx="7" fill="#34d399"/>' +
-      '</svg>';
-    return 'data:image/svg+xml,' + encodeURIComponent(svg);
-  })();
-const HS = [   /* slides: key = the page it opens; picture = assets/home/<key>.jpg (put the real screenshot there) */
-    ['dash', 'لوحة التحكم', 'Dashboard', 'تابع تقدمك ومهامك ونتائجك في مكان واحد', 'Track your progress, tasks and results in one place'],
-    ['translate', 'الترجمة', 'Translation', 'ترجمة دقيقة وسريعة بين اللغات التي تحتاجها', 'Accurate, fast translation between the languages you need'],
-    ['voice', 'التعليق الصوتي', 'Voice Over', 'أصوات احترافية تمنح مشروعك حضورًا حقيقيًا', 'Professional voices that give your project real presence'],
-    ['digital', 'الحلول الرقمية', 'Digital Solutions', 'أدوات وحلول رقمية مصممة حول احتياجك', 'Digital tools and solutions built around your needs'],
-    ['consult', 'الاستشارة الشخصية', 'Personal Consultation', 'جلسة مباشرة لتحديد الخطوة التالية المناسبة لك', 'A one-to-one session to find your right next step'],
-    ['store', 'متجرنا', 'Our Store', 'منتجات وموارد جاهزة لدعم رحلتك', 'Ready-made products and resources to support your journey']
-  ];
 const HKW = {   /* words that lead the search to a page */
-    dash: 'لوحة تحكم تقدم متابعة dashboard progress', translate: 'ترجم ترجمة لغات ملف translat language file', voice: 'صوت تعليق voice',
-    digital: 'رقمي رقمية حلول موقع تطبيق digital website app', consult: 'استشار حجز موعد consult book', store: 'متجر سعر أسعار اسعار store price shop',
-    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا mirror', space: 'مساحة space', library: 'مكتبة وسائط media library', support: 'دعم مساعدة سياسات support help policy', ydict: 'قاموس كلماتي your dictionary', passist: 'نطق مساعد pronunciation assistant', train: 'تدريب دورة مبتدئ train course'
+    dash: 'لوحة تحكم تقدم متابعة dashboard progress', translate: 'ترجم ترجمة لغات ملف translat language file', store: 'متجر سعر أسعار اسعار store price shop',
+    dict: 'إملاء املاء dictation', mirror: 'مماراة مرآة مرايا صوتي صدى mirror echo voice', space: 'مساحة space', library: 'مكتبة وسائط media library', support: 'دعم مساعدة سياسات support help policy', ydict: 'قاموس كلماتي your dictionary', passist: 'نطق مساعد pronunciation assistant'
   };
 const HT = {
     ar: { hi: 'مرحبًا بك', hiG: 'مرحبًا بك ضيفنا', how: 'كيف أستطيع مساعدتك اليوم؟', ask: 'اسأل أو ابحث…', plus: 'إضافة', img: 'صورة', shot: 'لقطة شاشة', link: 'رابط', code: 'نص أو كود', mic: 'تسجيل صوتي', stop: 'إيقاف',
-      send: 'بحث', add: 'إضافة', linkPh: 'الصق الرابط هنا', codePh: 'الصق النص أو الكود هنا', b1: 'استعرض خدماتنا', b2: 'افتح لوحة التحكم', b3: 'احجز استشارة',
+      send: 'بحث', add: 'إضافة', linkPh: 'الصق الرابط هنا', codePh: 'الصق النص أو الكود هنا',
       noMic: 'التسجيل الصوتي غير مدعوم في هذا المتصفح. جرّب Chrome أو Edge أو Safari.', noAudio: 'لم أجد ميكروفونًا يعمل. تأكد من توصيله ومن اختياره في إعدادات الجهاز.', netErr: 'تعذّر الاتصال بخدمة التعرف على الصوت. تحقق من الإنترنت وحاول مرة أخرى.', srErr: 'تعذّر التعرف على الكلام', noSpeech: 'لم أسمع شيئًا. اضغط الميكروفون وتحدّث.', micDenied: 'لم يُسمح باستخدام الميكروفون.', noShot: 'التقاط الشاشة غير مدعوم هنا، اختر صورة بدلًا منها.',
       found: 'قد يساعدك هذا:', none: 'لم أجد خدمة مطابقة. جرّب كلمات أخرى أو تصفّح الخدمات بالأسفل.', att: 'مرفق', rm: 'إزالة', listening: 'جارٍ الاستماع…' },
     en: { hi: 'Welcome', hiG: 'Hello guest', how: 'How can I help you today?', ask: 'Ask or search…', plus: 'Add', img: 'Image', shot: 'Screenshot', link: 'Link', code: 'Text or code', mic: 'Record voice', stop: 'Stop',
-      send: 'Search', add: 'Add', linkPh: 'Paste the link here', codePh: 'Paste text or code here', b1: 'Explore our services', b2: 'Open the dashboard', b3: 'Book a consultation',
+      send: 'Search', add: 'Add', linkPh: 'Paste the link here', codePh: 'Paste text or code here',
       noMic: 'Voice recording is not supported in this browser. Try Chrome, Edge or Safari.', noAudio: 'No working microphone found. Check it is connected and selected in your device settings.', netErr: 'Could not reach the speech service. Check your internet and try again.', srErr: 'Speech recognition problem', noSpeech: 'I did not hear anything. Press the microphone and speak.', micDenied: 'Microphone access was not allowed.', noShot: 'Screen capture is not supported here, choose an image instead.',
       found: 'This may help:', none: 'No matching service found. Try other words or browse the services below.', att: 'Attachment', rm: 'Remove', listening: 'Listening…' }
   };
-let homeStop = () => { };   /* stops the typing loop, the slide timer and the microphone of the page that is leaving */
+let homeStop = () => { };   /* stops the typing loop and the microphone of the page that is leaving */
 
   function homeCss() {
     if (thx.R.getElementById('thHomeCss')) return;
@@ -87,7 +59,7 @@ let homeStop = () => { };   /* stops the typing loop, the slide timer and the mi
     st.textContent = `
       .sdi.hm{width:auto;display:inline-flex;height:38px;margin:0 4px 12px;padding:0 18px 0 14px;border-radius:999px;background:var(--chip);border:1px solid var(--sbd);gap:10px;font-weight:800}.sdi.hm span{flex:none}.sdi.hm svg{width:19px;height:19px}.sdi.hm.on{background:var(--btn);color:var(--onbtn)}
       .hm-w{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 40px}
-      .hm-hero{width:100%;max-width:760px;min-height:min(62vh,560px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:48px 14px 30px;text-align:center}
+      .hm-hero{width:100%;max-width:760px;min-height:min(78vh,640px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:48px 14px 30px;text-align:center}
       .hm-hi{font:800 clamp(26px,4.6vw,40px)/1.3 Cairo,Inter,sans-serif;color:var(--ink);letter-spacing:.005em}
       .hm-hi small{display:block;margin-top:6px;font:600 clamp(15px,2.3vw,20px) Cairo,Inter,sans-serif;color:var(--ink2)}
       .hm-bar{position:relative;width:100%;direction:ltr;display:flex;align-items:flex-end;gap:6px;padding:8px;border-radius:30px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);box-shadow:0 10px 34px rgba(0,0,0,.14);transition:box-shadow .5s var(--ease),border-color .4s ease}
@@ -124,24 +96,16 @@ let homeStop = () => { };   /* stops the typing loop, the slide timer and the mi
       .hm-pop textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
       .hm-pop .btn{height:38px;border-radius:12px;font-size:12.5px}
       .hm-note{min-height:20px;font:600 13px Cairo,Inter,sans-serif;color:var(--ink2);text-align:center}
-      .hm-qb{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
-      .hm-qb button{height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--sbd);background:var(--chip);color:var(--ink);font:700 13px Cairo,Inter,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .8s var(--ease)}
-      @media(hover:hover){.hm-qb button:hover{background:var(--gbg);scale:1.04}}
-      .hm-qb button:active{scale:.95;transition:scale .3s ease-out}
       .hm-res{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
       .hm-res button{height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--gbd);background:var(--btn);color:var(--onbtn);font:800 12.5px Cairo,Inter,sans-serif;cursor:pointer}
-      .hm-sl{width:100%;max-width:1100px;display:flex;flex-direction:column;gap:14px;align-items:center}
-      .hm-row{width:100%;direction:ltr;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 6px}
-      .hm-row::-webkit-scrollbar{display:none}
-      .hm-s{position:relative;flex:0 0 min(88%,560px);aspect-ratio:16/10;scroll-snap-align:center;border-radius:26px;overflow:hidden;border:1px solid var(--sbd);cursor:pointer;text-align:start;color:#fff;display:flex;align-items:flex-end;padding:0;-webkit-tap-highlight-color:transparent;background-color:#1f1f24;background-size:cover;background-position:center;transition:scale .9s var(--ease)}
-      @media(hover:hover){.hm-s:hover{scale:1.015}}
-      .hm-s:active{scale:.985;transition:scale .4s ease-out}
-      .hm-s div{width:100%;padding:44px 22px 20px;background:linear-gradient(0deg,rgba(8,10,16,.88) 0%,rgba(8,10,16,.55) 55%,rgba(8,10,16,0) 100%)}
-      .hm-s b{display:block;font:800 clamp(19px,3vw,26px) Cairo,Inter,sans-serif;margin-bottom:4px}
-      .hm-s span{display:block;font:600 clamp(13px,1.9vw,15.5px)/1.55 Cairo,Inter,sans-serif;color:rgba(255,255,255,.86)}
-      .hm-dots{display:flex;gap:8px}
-      .hm-dots i{width:7px;height:7px;border-radius:50%;background:var(--ink2);opacity:.35;transition:opacity .4s ease,width .5s var(--ease),border-radius .5s var(--ease)}
-      .hm-dots i.on{opacity:.95;width:22px;border-radius:6px}
+      .hm-top{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
+      .hm-top:empty{display:none}
+      .hm-top button{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--sbd);background:var(--chip);color:var(--ink);font:700 13px Cairo,Inter,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;translate:0 6px;animation:hmTopIn .5s var(--ease) forwards;transition:background .3s,scale .8s var(--ease)}
+      .hm-top button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+      @media(hover:hover){.hm-top button:hover{background:var(--gbg);scale:1.04}}
+      .hm-top button:active{scale:.95;transition:scale .3s ease-out}
+      @keyframes hmTopIn{to{opacity:1;translate:0 0}}
+      @media(prefers-reduced-motion:reduce){.hm-top button{animation:none;opacity:1;translate:0 0}}
     `;
     thx.R.appendChild(st);
   }
@@ -197,15 +161,13 @@ function renderHome(b) {
         '<div class="hm-att" id="hmAtt"></div>' +
         '<div class="hm-note" id="hmNote"></div>' +
         '<div class="hm-res" id="hmRes"></div>' +
-        '<div class="hm-qb"><button type="button" data-q="svc">' + thx.esc(T.b1) + '</button><button type="button" data-q="dash">' + thx.esc(T.b2) + '</button><button type="button" data-q="consult">' + thx.esc(T.b3) + '</button></div>' +
-      '</div>' +
-      '<div class="hm-sl" id="hmSl"><div class="hm-row" id="hmRow">' +
-        HS.map(s => '<button type="button" class="hm-s" data-k="' + s[0] + '" dir="' + (ar ? 'rtl' : 'ltr') + '" style="background-image:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,0)),url(' + (s[0] === 'digital' ? '"' + DASH_ART + '"' : 'assets/home/' + s[0] + '.jpg') + '),linear-gradient(150deg,#2a2a31,#17171b)"><div><b>' + thx.esc(ar ? s[1] : s[2]) + '</b><span>' + thx.esc(ar ? s[3] : s[4]) + '</span></div></button>').join('') +
-      '</div><div class="hm-dots" id="hmDots">' + HS.map(() => '<i></i>').join('') + '</div></div></div>';
+        '<div class="hm-top" id="hmTop"></div>' +
+      '</div></div>';
+
 
     const q = id => b.querySelector('#' + id), bar = q('hmBar'), ta = q('hmTa'), ph = q('hmPh').firstChild, note = q('hmNote'), res = q('hmRes'), att = q('hmAtt'),
-      menu = q('hmMenu'), pop = q('hmPop'), file = q('hmFile'), mic = q('hmMic'), row = q('hmRow'), dots = [...q('hmDots').children];
-    let alive = true, rec = null, base = '', files = [], timer = 0;
+      menu = q('hmMenu'), pop = q('hmPop'), file = q('hmFile'), mic = q('hmMic'), top = q('hmTop');
+    let alive = true, rec = null, base = '', files = [];
     const say = m => { note.textContent = m || ''; };
     const sync = () => { bar.classList.toggle('has', !!ta.value.trim() || files.length > 0); };
     const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'; };
@@ -213,7 +175,7 @@ function renderHome(b) {
 
     /* ----- placeholder questions: typed fast, held two seconds, then gone; only the selected language. Tapping one opens its button ----- */
     let hqKey = '';
-    q('hmPh').firstChild.addEventListener('click', e => { e.stopPropagation(); if (hqKey && ph.textContent) thx.openLayer(hqKey); });
+    q('hmPh').firstChild.addEventListener('click', e => { e.stopPropagation(); if (hqKey && ph.textContent) { if (window.thHit) window.thHit(hqKey); thx.openLayer(hqKey); } });
     (async () => {
       let i = 0; const box = q('hmPh');
       while (alive && b.isConnected) {
@@ -309,24 +271,20 @@ function renderHome(b) {
     q('hmGo').onclick = search;
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); search(); } });
 
-    /* ----- three quick buttons ----- */
-    b.querySelector('.hm-qb').addEventListener('click', e => {
-      const x = e.target.closest('[data-q]'); if (!x) return;
-      if (x.dataset.q === 'svc') q('hmSl').scrollIntoView({ behavior: 'smooth', block: 'start' }); else thx.openLayer(x.dataset.q);
-    });
+    /* ----- the student's own suggestions: the buttons he opens most (counted in Supabase, trainee_button_usage), straight under the bar ----- */
+    const openTop = k => { if (window.thHit) window.thHit(k); thx.openLayer(k); };
+    top.addEventListener('click', e => { const x = e.target.closest('[data-k]'); if (x) openTop(x.dataset.k); });
+    res.addEventListener('click', e => { const x = e.target.closest('[data-k]'); if (x && window.thHit) window.thHit(x.dataset.k); }, true);
+    (async () => {
+      for (let n = 0; n < 20 && !window.thTopButtons; n++) await sleep(250);   /* the session script of home.html loads after this file */
+      if (!window.thTopButtons || !alive || !b.isConnected) return;
+      let keys = []; try { keys = await window.thTopButtons(4); } catch (e) { return; }
+      if (!alive || !b.isConnected) return;
+      top.innerHTML = (keys || []).filter(k => k !== 'home' && thx.IC[k] && thx.STR[thx.L]['i_' + k] && thx.R.querySelector('#side .sdi[data-k="' + k + '"]')).slice(0, 4)
+        .map((k, i) => '<button type="button" data-k="' + k + '" style="animation-delay:' + (i * 70) + 'ms"><svg viewBox="0 0 24 24" aria-hidden="true">' + thx.IC[k] + '</svg><span>' + thx.esc(thx.STR[thx.L]['i_' + k]) + '</span></button>').join('');
+    })();
 
-    /* ----- service slides ----- */
-    row.addEventListener('click', e => { const s = e.target.closest('.hm-s'); if (s) thx.openLayer(s.dataset.k); });
-    const slides = [...row.children];
-    const cur2 = () => { const mid = row.scrollLeft + row.clientWidth / 2; let bi = 0, bd = 1e9; slides.forEach((s, i) => { const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid); if (d < bd) { bd = d; bi = i; } }); return bi; };
-    const mark = () => { const c = cur2(); dots.forEach((d, i) => d.classList.toggle('on', i === c)); };
-    const go2 = i => { const s = slides[i]; if (s) row.scrollTo({ left: s.offsetLeft - (row.clientWidth - s.offsetWidth) / 2, behavior: 'smooth' }); };
-    row.addEventListener('scroll', mark, { passive: true }); mark();
-    let held = false; ['pointerenter', 'pointerdown', 'touchstart'].forEach(ev => row.addEventListener(ev, () => { held = true; }, { passive: true }));
-    ['pointerleave', 'touchend'].forEach(ev => row.addEventListener(ev, () => { held = false; }, { passive: true }));
-    timer = setInterval(() => { if (!alive || !b.isConnected) { clearInterval(timer); return; } if (held || document.hidden) return; go2((cur2() + 1) % slides.length); }, 5200);
-
-    homeStop = () => { alive = false; clearInterval(timer); micStop(); files.forEach(f => { if (f.img) { try { URL.revokeObjectURL(f.img); } catch (e) { } } }); homeStop = () => { }; };
+    homeStop = () => { alive = false; micStop(); files.forEach(f => { if (f.img) { try { URL.revokeObjectURL(f.img); } catch (e) { } } }); homeStop = () => { }; };
   }
 
     /* ---- اللي index.html والملفات التانية بتستخدمه من الزرار ده ---- */
