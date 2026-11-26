@@ -87,9 +87,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 .ttrow{display:flex;align-items:center;gap:8px;padding:8px 4px;border-top:1px solid var(--gbd);text-align:start}.ttrow>div{flex:1;min-width:0;overflow-wrap:anywhere}.ttrow small{display:block;color:var(--ink2)}.ttbody{white-space:pre-wrap}
 .tkb.on{border-color:var(--ac);color:var(--ac);background:transparent}
 .anrow{display:flex;align-items:center;gap:8px;margin-bottom:10px}.anrow .in{margin:0}
-.anic{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--gbd);background:var(--gbg);font-size:20px;cursor:pointer}
-.anig{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin:0 0 12px;padding:10px;border-radius:16px;border:1px solid var(--gbd);background:var(--gbg)}
-.anig button{height:42px;border:0;border-radius:12px;background:transparent;font-size:21px;cursor:pointer}.anig button:hover{background:var(--gbd)}
+.antg{display:inline-block;padding:1px 9px;border-radius:999px;background:#22c55e;color:#fff;font:800 11px/18px Inter,Cairo,sans-serif;letter-spacing:.3px;vertical-align:middle}
 .anst{max-height:230px;overflow:auto;margin-top:6px}.anst .tkb small{color:var(--ink2);font-weight:500}.anseg .tksm{flex:1;margin:0}.tkb.on small{color:inherit}
 .tkb:hover{border-color:var(--ac)}
 .tkw{text-align:center}
@@ -136,7 +134,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 const IC={menu:'M4 7h16M4 12h16M4 17h16',x:'M6 6l12 12M18 6L6 18',user:'M12 4a3.6 3.6 0 1 0 0 7.2A3.6 3.6 0 0 0 12 4zM5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2',back:'M15 5l-7 7 7 7',theme:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 3v18',pen:'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',chat:'M4 5h16v11H9l-5 4z',bell:'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',task:'M5 6l2 2 3-3M13 7h7M5 14l2 2 3-3M13 15h7',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',up:'M12 16V4M7 9l5-5 5 5M5 20h14',flag:'M6 21V4M6 5h11l-2 4 2 4H6',box:'M4 5h16v4H4zM6 9v11h12V9M10 13h4',star:'M12 4l2.5 5 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z',key:'M8 15a4 4 0 1 1 3-3l9 9M17 18l2-2',chart:'M4 20V11M10 20V4M16 20v-6M3 20h18',sq:'M4 4h16v16H4zM4 12h16M12 4v16',bot:'M5 8h14v10H5zM12 4v4M9 13h.01M15 13h.01',send:'M4 12l16-8-6 16-3-7z'};
 const svg=n=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+IC[n]+'"/></svg>';
 const $=id=>document.getElementById(id);
-const TOOLS=[['dash','Dashboard','grid'],['msg','Messenger','chat'],['ann','Announcements','bell'],['task','Tasks','task'],['mo','Monthly obligations','cal'],['voi','Upload voices','up'],['rep','Inbound','flag'],['arc','Archive','box'],['hl','Highlights','star'],['gen','Generator','key'],['stat','Statistics','chart'],['space','Space','sq'],['ai','Assistant','bot']];
+const TOOLS=[['dash','Dashboard','grid'],['msg','Messenger','chat'],['ann','Updates','bell'],['task','Tasks','task'],['mo','Monthly obligations','cal'],['voi','Upload voices','up'],['rep','Inbound','flag'],['arc','Archive','box'],['hl','Highlights','star'],['gen','Generator','key'],['stat','Statistics','chart'],['space','Space','sq'],['ai','Assistant','bot']];
 const SB_URL='https://vkfexceitwjmxncwceqb.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI',SKEY='thabit_admin_session';
 const ctx={email:'',uid:'',role:'—'};let ST=[],GROUPS=[];
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -285,7 +283,7 @@ setInterval(async()=>{
   if(document.hidden||page!=='msg'||MG.sending||MG.busy)return;
   try{await mgLoad();if(page!=='msg')return;
     if(MG.open){await mgRead(MG.open);mgPaint(true)}else $('lbody').innerHTML=mgList()}catch(e){}},10000);
-/* ===== Tasks box (inside Daily supply) = Training Program buttons -> small "add task" widget; Announcements = pick any sidebar button. Layout only, no functionality yet ===== */
+/* ===== Tasks box (inside Daily supply) = Training Program buttons -> small "add task" widget; Updates · Pop-up = green New tag on any sidebar button. Layout only, no functionality yet ===== */
 const SBN=[['Home',[['home','Home'],['store','Store'],['feed','Feed'],['messenger','Messenger'],['calendar','Calendar'],['support','Support'],['view','Platform View'],['finance','Finance']]],
 ['Training Program',[['compass','Compass'],['dash','Dashboard'],['ydict','Your Dictionary'],['res','Resources'],['dict','Dictionary'],['mirror','Mirror'],['space','Space'],['library','Library'],['passist','Pronunciation Assistant']]],
 ['General Linguistic Services',[['translate','Translate']]],['Production',[['voice','Voice']]],['Smart Services',[['digital','Digital']]],['Personal Services',[['consult','Consult']]]];
@@ -364,45 +362,54 @@ function tkClick(e){
   else if(q('[data-tkretry]'))tkLoad();
 }
 const taskView=()=>'<div class="wrap">'+(tkStu()===null?'<div class="pcard">اختار طالب علشان تضيف له مهمة.<br><button type="button" class="btn ac" data-tkpick="1" style="margin-top:12px">اختار طالب</button></div>':'<div id="tk_ui">'+tkList()+'</div>')+'</div>';
-const AN={step:'home',sel:[],lines:[],busy:false,aud:{mode:'active',ids:[]},persist:'ack',title:''};
-const ANI=['⏰','⏳','📅','💰','💳','📌','⭐','🔥','🎯','🏆','🎁','📢','🔔','✅','❗','❓','💡','📚','📖','✏️','📝','🎧','🎤','🔊','🗣️','🧠','💬','📞','✉️','🔗','🔒','🔑','⚙️','🛠️','📊','📈','🎉','👏','👍','❤️','🚀','🌟','🧩','🕌','🏠','🛒','🎓','🌍','🧭','🪞'];
+const AN={step:'home',sel:[],lines:[],busy:false,aud:{mode:'active',ids:[]},persist:'ack',title:'',tag:'new',days:7};
 const PERS={ack:'مهم · يفضل لحد ما يقول "فهمت"',['24h']:'عادي · يختفي بعد 24 ساعة',open:'يختفي أول ما الطالب يفتحه'};
+/* Pop-up (the green New tag): how long it stays on the button */
+const PPERS={forever:'يفضل طول المدة (حتى لو فتح)',open:'لحد ما الطالب يفتح الزرار',ack:'لحد ما يفتح ويدوس "فهمت"'};
+const ANT={new:'New',ar:'جديد'};
 const annSay=m=>{if($('an_msg'))$('an_msg').textContent=m};
 const annIsActive=i=>{const g=GROUPS[ST[i][1]];return !!g&&g[0]==='active'};
 function annReset(){AN.aud={mode:cur!==null?'ids':'active',ids:cur!==null?[cur]:[]};AN.persist='ack'}
 function annOpts(){
+  const pop=AN.step==='editor',P=pop?PPERS:PERS;
   const seg=(k,l)=>'<button type="button" class="tksm'+(AN.aud.mode===k?' on':'')+'" data-anaud="'+k+'">'+l+'</button>';
-  const per=Object.keys(PERS).map(k=>'<button type="button" class="tkb'+(AN.persist===k?' on':'')+'" data-anper="'+k+'">'+esc(PERS[k])+'</button>').join('');
+  const per=Object.keys(P).map(k=>'<button type="button" class="tkb'+(AN.persist===k?' on':'')+'" data-anper="'+k+'">'+esc(P[k])+'</button>').join('');
   const list=AN.aud.mode==='ids'?'<div class="anst">'+ST.map((x,i)=>'<button type="button" class="tkb'+(AN.aud.ids.includes(i)?' on':'')+'" data-anst="'+i+'"><span>'+esc(x[0])+'</span><small>'+esc((GROUPS[x[1]]||[,''])[1].split(' · ')[0])+'</small></button>').join('')+'</div>':'';
   const n=annTargets().length;
-  return '<div class="tkg">يتبعت لمين؟</div><div class="row anseg">'+seg('ids','طالب / مجموعة')+seg('active','Active بس')+seg('all','الجميع')+'</div>'+list+'<p class="hint" style="margin:4px 4px 0">هيوصل لـ '+n+' طالب</p><div class="tkg">النوع</div>'+per}
+  return '<div class="tkg">يتبعت لمين؟</div><div class="row anseg">'+(pop?seg('ids','طالب واحد / أكتر')+seg('all','كل الشباب'):seg('ids','طالب / مجموعة')+seg('active','Active بس')+seg('all','الجميع'))+'</div>'+list+'<p class="hint" style="margin:4px 4px 0">هيوصل لـ '+n+' طالب</p><div class="tkg">'+(pop?'التاج يفضل لحد إمتى؟':'النوع')+'</div>'+per}
 function annTargets(){
   if(AN.aud.mode==='all')return ST.map((x,i)=>i);
   if(AN.aud.mode==='active')return ST.map((x,i)=>i).filter(annIsActive);
   return AN.aud.ids.filter(i=>ST[i])}
 const annTids=()=>annTargets().map(i=>ST[i][2]&&ST[i][2].id).filter(Boolean);
-const annAudLabel=()=>AN.aud.mode==='all'?'الجميع':AN.aud.mode==='active'?'Active بس':annTargets().map(i=>ST[i][0]).join('، ');
 function annOptsPaint(){const o=$('an_opts');if(o)o.innerHTML=annOpts()}
 function annList(){AN.step='home';setTimeout(annLoadAct,0);
-  return '<div class="wrap"><div class="tkg">Announcements</div><button type="button" class="tkb" data-ann="feed">Feed</button><button type="button" class="tkb" data-ann="popup">Pop-up</button><div class="tkg">الـ Pop-ups الشغالة دلوقتي</div><div id="an_act"><p class="hint">جاري التحميل…</p></div></div>'}
+  return '<div class="wrap"><div class="tkg">Updates</div><button type="button" class="tkb" data-ann="feed">Feed</button><button type="button" class="tkb" data-ann="popup">Pop-up</button><div class="tkg">تاجات New الشغالة دلوقتي</div><div id="an_act"><p class="hint">جاري التحميل…</p></div></div>'}
 async function annLoadAct(){
   const box=$('an_act');if(!box)return;
   try{const r=await getJ('announcements?select=id,buttons,popup,created_at,ends_at&order=created_at.desc&limit=40');
     const l=r.filter(x=>!x.ends_at||Date.parse(x.ends_at)>Date.now());if(!$('an_act'))return;
-    $('an_act').innerHTML=l.length?l.map(x=>{const p=x.popup||{};return '<div class="ttrow"><div dir="auto"><b>'+esc(p.title||(p.lines&&p.lines[0]&&p.lines[0].text)||'—')+'</b><small>'+esc([x.buttons.map(tkName).join('، '),PERS[p.persist]||'',p.aud?(p.aud.mode==='all'?'الجميع':'محددين'):''].filter(Boolean).join(' · '))+'</small></div><button type="button" class="cb" data-andel="'+x.id+'" aria-label="حذف">'+svg('x')+'</button></div>'}).join(''):'<p class="hint">مفيش.</p>'}
+    $('an_act').innerHTML=l.length?l.map(x=>{const p=x.popup||{};return '<div class="ttrow"><div dir="auto"><b><span class="antg">'+(ANT[p.tag]||'New')+'</span> '+esc(x.buttons.map(tkName).join('، '))+'</b><small>'+esc([(p.lines&&p.lines[0])||'',PPERS[p.persist]||'',x.ends_at?'لحد '+cDay(x.ends_at):'',p.aud?(p.aud.mode==='all'?'كل الشباب':(p.aud.ids||[]).length+' طالب'):''].filter(Boolean).join(' · '))+'</small></div><button type="button" class="cb" data-andel="'+x.id+'" aria-label="حذف">'+svg('x')+'</button></div>'}).join(''):'<p class="hint">مفيش.</p>'}
   catch(e){if($('an_act'))$('an_act').innerHTML='<p class="hint">❌ '+esc(e.message)+'</p>'}}
 async function annDel(id){
-  if(AN.busy||!confirm('تمسح الـ pop-up ده؟'))return;AN.busy=true;
+  if(AN.busy||!confirm('تشيل التاج ده؟'))return;AN.busy=true;
   try{await write('announcements?id=eq.'+id,'DELETE');await annLoadAct()}catch(e){alert('❌ '+e.message)}
   AN.busy=false}
 const annFeed=()=>'<div class="wrap"><div class="tkf"><input class="in" id="an_ft" dir="auto" maxlength="200" placeholder="Title · العنوان" value="'+esc(AN.title)+'"><textarea class="in" id="an_fc" dir="auto" maxlength="1000" placeholder="Content · المحتوى">'+esc(AN.body||'')+'</textarea><div id="an_opts">'+annOpts()+'</div><div class="row" style="margin-top:12px"><button type="button" class="btn ac" data-anfeed="1">ابعت على الـ Feed</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
 const annPick=()=>'<div class="wrap"><p class="hint" style="margin:0 4px 6px">اختار الزرار (أو أكتر) اللي هيظهر عليه التاج</p>'+SBN.map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(x=>'<button type="button" class="tkb'+(AN.sel.includes(x[0])?' on':'')+'" data-ansel="'+x[0]+'">'+esc(x[1])+'</button>').join('')).join('')+'<div class="row" style="margin-top:14px"><button type="button" class="btn ac" data-annext="1">التالي</button></div><p id="an_msg" class="hint" role="status"></p></div>';
-const annLines=()=>AN.lines.map((l,i)=>'<div class="anrow"><button type="button" class="anic" data-anic="'+i+'" aria-label="Icon">'+l.icon+'</button><input class="in an-tx" dir="auto" maxlength="200" data-i="'+i+'" value="'+esc(l.text)+'" placeholder="السطر '+(i+1)+'">'+(AN.lines.length>1?'<button type="button" class="cb" data-anrm="'+i+'" aria-label="حذف">'+svg('x')+'</button>':'')+'</div>').join('');
-const annEditor=()=>'<div class="wrap"><div class="tkf"><p class="hint" style="margin:0 4px 8px">التاج على: '+esc(AN.sel.map(tkName).join('، '))+'</p><input class="in" id="an_t" dir="auto" maxlength="120" value="'+esc(AN.title||'')+'" placeholder="إيه الجديد؟ · What\'s new"><div id="an_lines">'+annLines()+'</div><div id="an_ipick" hidden></div><button type="button" class="tksm" data-anadd="1">+ Add more</button><div id="an_opts">'+annOpts()+'</div><div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-anback="1">رجوع</button><button type="button" class="btn ac" data-ansave="1">انشر</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
+const annTags=()=>Object.keys(ANT).map(k=>'<button type="button" class="tksm'+(AN.tag===k?' on':'')+'" data-antag="'+k+'"><span class="antg">'+ANT[k]+'</span></button>').join('');
+const annLines=()=>AN.lines.map((l,i)=>'<div class="anrow"><input class="in an-tx" dir="auto" maxlength="200" data-i="'+i+'" value="'+esc(l)+'" placeholder="السطر '+(i+1)+'">'+(AN.lines.length>1?'<button type="button" class="cb" data-anrm="'+i+'" aria-label="حذف">'+svg('x')+'</button>':'')+'</div>').join('');
+const annEditor=()=>'<div class="wrap"><div class="tkf"><p class="hint" style="margin:0 4px 8px">التاج على: '+esc(AN.sel.map(tkName).join('، '))+'</p>'
+  +'<div class="tkg">شكل التاج</div><div class="row anseg" id="an_tags">'+annTags()+'</div>'
+  +'<label class="ttl">يفضل على الزرار كام يوم؟<input type="number" class="in" id="an_days" min="1" max="365" step="1" value="'+AN.days+'"></label>'
+  +'<div id="an_opts">'+annOpts()+'</div>'
+  +'<div class="tkg">البوب أب اللي هتطلع للطالب</div><input class="in" id="an_t" dir="auto" maxlength="120" value="'+esc(AN.title)+'" placeholder="إيه الجديد">'
+  +'<div id="an_lines">'+annLines()+'</div><button type="button" class="tksm" data-anadd="1">+ سطر جديد</button>'
+  +'<div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-anback="1">رجوع</button><button type="button" class="btn ac" data-ansave="1">انشر</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
 function annSync(){
-  if($('an_t')){AN.title=$('an_t').value;document.querySelectorAll('.an-tx').forEach(i=>{if(AN.lines[+i.dataset.i])AN.lines[+i.dataset.i].text=i.value})}
+  if($('an_t')){AN.title=$('an_t').value;AN.days=$('an_days').value;document.querySelectorAll('.an-tx').forEach(i=>{if(+i.dataset.i<AN.lines.length)AN.lines[+i.dataset.i]=i.value})}
   if($('an_ft')){AN.title=$('an_ft').value;AN.body=$('an_fc').value}}
-function annGo(step){AN.step=step;const T={feed:'Announcements · Feed',pick:'Announcements · Pop-up',editor:'Announcements · Pop-up',home:'Announcements'};
+function annGo(step){AN.step=step;const T={feed:'Updates · Feed',pick:'Updates · Pop-up',editor:'Updates · Pop-up',home:'Updates'};
   $('lt').textContent=T[step];$('lbody').innerHTML=step==='feed'?annFeed():step==='pick'?annPick():step==='editor'?annEditor():annList()}
 async function annFeedSend(){
   if(AN.busy)return;annSync();const t=(AN.title||'').trim(),c=(AN.body||'').trim();
@@ -416,13 +423,14 @@ async function annFeedSend(){
   AN.busy=false}
 async function annSave(){
   if(AN.busy)return;annSync();
-  const lines=AN.lines.map(l=>({icon:l.icon,text:l.text.trim()})).filter(l=>l.text);
-  const title=(AN.title||'').trim();
-  if(!title&&!lines.length)return annSay('اكتب العنوان أو سطر واحد على الأقل.');
+  const lines=AN.lines.map(l=>l.trim()).filter(Boolean);
+  const title=AN.title.trim()||'إيه الجديد';
+  if(!lines.length)return annSay('اكتب سطر واحد على الأقل.');
+  const days=Number(AN.days);if(!Number.isInteger(days)||days<1||days>365)return annSay('عدد الأيام لازم يكون من 1 لـ 365.');
   const ids=annTids();if(!ids.length)return annSay('اختار طالب واحد على الأقل.');
   const aud=AN.aud.mode==='all'?{mode:'all'}:{mode:'ids',ids};
   AN.busy=true;annSay('جاري النشر…');
-  try{await write('announcements','POST',{buttons:AN.sel,tag:'auto',popup:{title,lines,aud,persist:AN.persist},ends_at:AN.persist==='24h'?new Date(Date.now()+864e5).toISOString():null});
+  try{await write('announcements','POST',{buttons:AN.sel,tag:'auto',popup:{tag:AN.tag,title,lines,aud,persist:AN.persist},ends_at:new Date(Date.now()+days*864e5).toISOString()});
     AN.sel=[];AN.lines=[];AN.title='';annGo('home')}
   catch(e){annSay('❌ '+e.message)}
   AN.busy=false}
@@ -430,11 +438,10 @@ function annClick(e){
   const q=s=>e.target.closest(s);let b;
   if(b=q('[data-ann]')){annReset();AN.title='';AN.body='';if(b.dataset.ann==='feed')annGo('feed');else{AN.sel=[];annGo('pick')}}
   else if(b=q('[data-ansel]')){const k=b.dataset.ansel,i=AN.sel.indexOf(k);if(i<0)AN.sel.push(k);else AN.sel.splice(i,1);b.classList.toggle('on',i<0)}
-  else if(q('[data-annext]')){if(!AN.sel.length)return annSay('اختار زرار واحد على الأقل.');AN.lines=[0,1,2].map(()=>({icon:'📌',text:''}));AN.title='';annGo('editor')}
-  else if(q('[data-anadd]')){annSync();if(AN.lines.length>=10)return annSay('أقصى عدد 10 سطور.');AN.lines.push({icon:'📌',text:''});$('an_lines').innerHTML=annLines()}
+  else if(q('[data-annext]')){if(!AN.sel.length)return annSay('اختار زرار واحد على الأقل.');if(AN.aud.mode==='active')AN.aud.mode='all';AN.lines=['','',''];AN.title='إيه الجديد';AN.tag='new';AN.days=7;annGo('editor')}
+  else if(b=q('[data-antag]')){AN.tag=b.dataset.antag;$('an_tags').innerHTML=annTags()}
+  else if(q('[data-anadd]')){annSync();if(AN.lines.length>=10)return annSay('أقصى عدد 10 سطور.');AN.lines.push('');$('an_lines').innerHTML=annLines()}
   else if(b=q('[data-anrm]')){annSync();AN.lines.splice(+b.dataset.anrm,1);$('an_lines').innerHTML=annLines()}
-  else if(b=q('[data-anic]')){annSync();const p=$('an_ipick');AN.ic=+b.dataset.anic;p.hidden=false;p.innerHTML='<div class="anig">'+ANI.map(x=>'<button type="button" data-anpick="'+x+'">'+x+'</button>').join('')+'</div>'}
-  else if(b=q('[data-anpick]')){AN.lines[AN.ic].icon=b.dataset.anpick;$('an_ipick').hidden=true;$('an_lines').innerHTML=annLines()}
   else if(b=q('[data-anaud]')){AN.aud.mode=b.dataset.anaud;annOptsPaint()}
   else if(b=q('[data-anst]')){const i=+b.dataset.anst,k=AN.aud.ids.indexOf(i);if(k<0)AN.aud.ids.push(i);else AN.aud.ids.splice(k,1);annOptsPaint()}
   else if(b=q('[data-anper]')){AN.persist=b.dataset.anper;annOptsPaint()}
