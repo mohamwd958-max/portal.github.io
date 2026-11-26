@@ -83,6 +83,8 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 #flt .dot{background:var(--gbd)}
 .tkg{margin:14px 4px 6px;font:700 10px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
 .tkb{display:flex;align-items:center;width:100%;height:46px;padding:0 14px;margin-bottom:6px;border:1px solid var(--gbd);border-radius:14px;background:var(--gbg);font:600 14px Cairo,Inter,sans-serif;text-align:start;cursor:pointer}
+.tkb{justify-content:space-between;gap:8px}.tkb .bdg{margin:0}.tksm.on{border-color:var(--ac);color:var(--ac)}.tkf [hidden]{display:none}.ttl{display:block;font-size:12px;color:var(--ink2);text-align:start}
+.ttrow{display:flex;align-items:center;gap:8px;padding:8px 4px;border-top:1px solid var(--gbd);text-align:start}.ttrow>div{flex:1;min-width:0;overflow-wrap:anywhere}.ttrow small{display:block;color:var(--ink2)}.ttbody{white-space:pre-wrap}
 .tkb:hover{border-color:var(--ac)}
 .tkw{text-align:center}
 .tkw h3{margin:6px 0 16px;font:700 16px Cairo,Inter,sans-serif}
@@ -174,7 +176,7 @@ async function boot(){
 async function logout(){
   if(dsBusy()||!canLeave())return;D=null;
   try{const t=await token();if(t)await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+t}})}catch(e){}
-  sess.clear();ST=[];STS.rows=null;STS.g=null;STS.sel=null;MG.msgs=new Map();MG.open=null;cur=null;page=null;$('layer').classList.remove('on');side(false);renderAcc();renderSide();showLogin('')}
+  sess.clear();ST=[];TK.id=null;TK.list=[];TK.ok=false;TK.seq++;STS.rows=null;STS.g=null;STS.sel=null;MG.msgs=new Map();MG.open=null;cur=null;page=null;$('layer').classList.remove('on');side(false);renderAcc();renderSide();showLogin('')}
 $('lgo').onclick=async()=>{
   const e=$('lge').value.trim(),p=$('lgp').value;if(!e||!p){$('lgerr').textContent='Enter email and password';return}
   $('lgo').disabled=true;
@@ -270,14 +272,80 @@ const SBN=[['Home',[['home','Home'],['store','Store'],['feed','Feed'],['messenge
 ['Training Program',[['compass','Compass'],['dash','Dashboard'],['ydict','Your Dictionary'],['res','Resources'],['dict','Dictionary'],['mirror','Mirror'],['space','Space'],['library','Library'],['passist','Pronunciation Assistant']]],
 ['General Linguistic Services',[['translate','Translate']]],['Production',[['voice','Voice']]],['Smart Services',[['digital','Digital']]],['Personal Services',[['consult','Consult']]]];
 const TRAIN=SBN[1][1];
-const tkList=()=>TRAIN.map(b=>'<button class="tkb" data-tk="'+b[0]+'">'+esc(b[1])+'</button>').join('');
-const tkWidget=name=>'<div class="tkw"><button class="tksm" data-tkback="1">‹ Training Program</button><h3>'+esc(name)+'</h3><div id="tkbox"><button class="tkadd" data-addtask="1">أضف مهمة</button></div></div>';
-function taskForm(){
-  const n=Math.floor(Math.random()*900)+100;   /* temporary random number; later: last number from the database + 1 */
-  return '<div class="tkf"><div class="tkmeta"><span>#'+n+'</span><span dir="ltr">'+cairoDate()+'</span></div>'
-   +'<input class="in" id="tk_sub" dir="auto" placeholder="Subject · الموضوع"><textarea class="in" id="tk_con" dir="auto" placeholder="Content · المحتوى"></textarea>'
-   +'<button class="tksm" type="button" data-tkrange="1">Range</button><button class="tksm" type="button" data-tkrep="1">Distance repetition</button></div>';
+/* tasks are saved in tool_tasks; the same widget is used inside Daily supply and in the Tasks tool */
+const TK={id:null,list:[],ok:false,err:'',key:null,seq:0,busy:false};
+const tkStu=()=>cur!==null&&ST[cur]?ST[cur][2].id:null;
+const tkActive=t=>!t.range_days||Date.now()<Date.parse(t.created_at)+t.range_days*864e5;
+const tkOf=k=>TK.id===tkStu()?TK.list.filter(t=>t.tool===k&&tkActive(t)):[];
+const tkName=k=>{for(const g of SBN)for(const b of g[1])if(b[0]===k)return b[1];return k};
+const tkErr=e=>e.message;
+const tkBtn=b=>{const n=tkOf(b[0]).length;return '<button type="button" class="tkb" data-tk="'+b[0]+'"><span>'+esc(b[1])+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>'};
+const tkList=()=>(TK.err?'<p class="hint">❌ '+esc(TK.err)+'</p><button type="button" class="tksm" data-tkretry="1">حاول تاني</button>':'')
+  +(page==='task'?SBN.slice(1).map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(tkBtn).join('')).join(''):TRAIN.map(tkBtn).join(''));
+function tkPaint(){
+  const box=$('tk_ui');if(!box)return;
+  if(!TK.key){box.innerHTML=tkList();return}
+  const l=$('tk_cur');if(l)l.innerHTML=tkItems();
 }
+function tkItems(){
+  if(TK.err)return '<p class="hint">❌ '+esc(TK.err)+'</p><button type="button" class="tksm" data-tkretry="1">حاول تاني</button>';
+  if(!TK.ok)return '<p class="hint">جاري التحميل…</p>';
+  return tkOf(TK.key).map(t=>'<div class="ttrow"><div dir="auto"><b>#'+t.task_no+(t.subject?' · '+esc(t.subject):'')+'</b>'+(t.body?'<div class="ttbody">'+esc(t.body)+'</div>':'')
+    +'<small>'+[cDay(t.created_at),t.range_days?'المدة: '+t.range_days+' يوم':'',t.remind_count?'تذكير '+t.remind_count+' مرات على '+t.remind_days+' يوم':'',t.seen_at?'اتفتحت ✓':''].filter(Boolean).join(' · ')+'</small></div><button type="button" class="cb" data-tkdel="'+t.id+'" aria-label="حذف المهمة">'+svg('x')+'</button></div>').join('');
+}
+const tkWidget=k=>'<div class="tkw"><button type="button" class="tksm" data-tkback="1">‹ '+(page==='task'?'كل الزراير':'Training Program')+'</button><h3>'+esc(tkName(k))+'</h3><div id="tkbox">'+tkAddBtn+'</div><p id="tk_msg" class="hint" role="status"></p><div id="tk_cur">'+tkItems()+'</div></div>';
+const tkAddBtn='<button type="button" class="tkadd" data-addtask="1">أضف مهمة</button>';
+function taskForm(){
+  const n=TK.list.reduce((m,t)=>Math.max(m,t.task_no),0)+1;
+  const num=(id,l,v,max)=>'<label class="ttl">'+l+'<input type="number" class="in" id="'+id+'" min="1" max="'+max+'" step="1" value="'+v+'"></label>';
+  return '<div class="tkf"><div class="tkmeta"><span>#'+n+'</span><span dir="ltr">'+cairoDate()+'</span></div>'
+   +'<input class="in" id="tk_sub" dir="auto" maxlength="200" placeholder="Subject · الموضوع"><textarea class="in" id="tk_con" dir="auto" maxlength="1000" placeholder="Content · المحتوى"></textarea>'
+   +'<button type="button" class="tksm" data-tktog="tk_rbox" aria-pressed="false">Range</button><div id="tk_rbox" hidden>'+num('tk_range','المدة بالأيام',7,365)+'</div>'
+   +'<button type="button" class="tksm" data-tktog="tk_mbox" aria-pressed="false">Distance repetition</button><div id="tk_mbox" class="g2" hidden>'+num('tk_rc','كام مرة؟ (1–10)',3,10)+num('tk_rd','على مدى كام يوم؟',7,365)+'</div>'
+   +'<div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-tkcancel="1">إلغاء</button><button type="button" class="btn ac" data-tksave="1">ضيف المهمة</button></div></div>';
+}
+async function tkLoad(){
+  const id=tkStu();if(id===null)return;const seq=++TK.seq;
+  if(TK.id!==id){TK.list=[];TK.ok=false}TK.id=id;TK.err='';
+  try{const r=await getJ('tool_tasks?select=*&trainee_id=eq.'+encodeURIComponent(id)+'&order=task_no.asc');if(seq!==TK.seq)return;TK.list=r;TK.ok=true}
+  catch(e){if(seq!==TK.seq)return;TK.err=tkErr(e)}
+  tkPaint();
+}
+const tkSay=m=>{if($('tk_msg'))$('tk_msg').textContent=m};
+async function tkSave(){
+  if(TK.busy)return;
+  if(!TK.ok||TK.id!==tkStu())return tkSay('استنى المهام تتحمّل.');
+  const int=(id,max)=>{const v=Number($(id).value);return Number.isInteger(v)&&v>=1&&v<=max?v:null};
+  const row={trainee_id:TK.id,tool:TK.key,subject:$('tk_sub').value.trim(),body:$('tk_con').value.trim(),range_days:null,remind_count:null,remind_days:null};
+  if(!row.subject&&!row.body)return tkSay('اكتب الموضوع أو المحتوى الأول.');
+  if(!$('tk_rbox').hidden&&!(row.range_days=int('tk_range',365)))return tkSay('المدة لازم تكون من 1 لـ 365 يوم.');
+  if(!$('tk_mbox').hidden){row.remind_count=int('tk_rc',10);row.remind_days=int('tk_rd',365);
+    if(!row.remind_count||!row.remind_days)return tkSay('راجع أرقام التذكير.');
+    if(row.range_days&&row.remind_days>row.range_days)return tkSay('مدة التذكير أطول من مدة المهمة.')}
+  const box=$('tkbox'),btn=box.querySelector('[data-tksave]');TK.busy=true;btn.disabled=true;tkSay('جاري الحفظ…');
+  try{const r=(await write('tool_tasks','POST',row))[0];if(TK.id===r.trainee_id)TK.list.push(r);
+    if(box.isConnected){box.innerHTML=tkAddBtn;tkPaint();tkSay('اتضافت المهمة #'+r.task_no+' ✓')}}
+  catch(e){btn.disabled=false;tkSay('❌ '+tkErr(e))}
+  TK.busy=false;
+}
+async function tkDel(id){
+  if(TK.busy||!confirm('تحذف المهمة دي؟'))return;TK.busy=true;
+  try{await write('tool_tasks?id=eq.'+id,'DELETE');TK.list=TK.list.filter(t=>t.id!==id);tkPaint();tkSay('اتمسحت ✓')}
+  catch(e){tkSay('❌ '+tkErr(e))}
+  TK.busy=false;
+}
+function tkClick(e){
+  const q=s=>e.target.closest(s);let b;
+  if(b=q('[data-tk]')){TK.key=b.dataset.tk;$('tk_ui').innerHTML=tkWidget(TK.key)}
+  else if(q('[data-tkback]')){TK.key=null;tkPaint()}
+  else if(q('[data-addtask]')){if(!TK.ok)tkSay('استنى المهام تتحمّل.');else{$('tkbox').innerHTML=taskForm();tkSay('')}}
+  else if(b=q('[data-tktog]')){const x=$(b.dataset.tktog);x.hidden=!x.hidden;b.setAttribute('aria-pressed',String(!x.hidden));b.classList.toggle('on',!x.hidden)}
+  else if(q('[data-tkcancel]')){$('tkbox').innerHTML=tkAddBtn;tkSay('')}
+  else if(q('[data-tksave]'))tkSave();
+  else if(b=q('[data-tkdel]'))tkDel(+b.dataset.tkdel);
+  else if(q('[data-tkretry]'))tkLoad();
+}
+const taskView=()=>'<div class="wrap">'+(tkStu()===null?'<div class="pcard">اختار طالب علشان تضيف له مهمة.<br><button type="button" class="btn ac" data-tkpick="1" style="margin-top:12px">اختار طالب</button></div>':'<div id="tk_ui">'+tkList()+'</div>')+'</div>';
 function annList(){
   return '<div class="wrap"><p class="hint" style="margin:0 4px 6px">اختار الحاجة اللي عايز تعمل عليها announcement</p>'+SBN.map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(b=>'<button class="tkb" data-an="'+b[0]+'">'+esc(b[1])+'</button>').join('')).join('')+'</div>';
 }
@@ -463,9 +531,9 @@ function openPage(p){
   if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;
   page=p;side(false);renderSide();
   const t=TOOLS.find(x=>x[0]===p);
-  $('lt').textContent=p==='ds'?'Daily supply · '+ST[cur][0]:t[1];
-  $('lbody').innerHTML=p==='ds'?dsView():p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
-  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='stat')statInit();
+  $('lt').textContent=p==='ds'?'Daily supply · '+ST[cur][0]:p==='task'&&tkStu()!==null?'Tasks · '+ST[cur][0]:t[1];
+  TK.key=null;$('lbody').innerHTML=p==='ds'?dsView():p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='task'?taskView():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
+  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='ds'||p==='task')tkLoad();if(p==='stat')statInit();
 }
 function closePage(){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;MG.open=null;page=null;$('layer').classList.remove('on');renderSide()}
 
@@ -632,7 +700,7 @@ $('side').onclick=e=>{const b=e.target.closest('[data-p]');if(b){if(b.dataset.p=
 $('acc').onclick=students;
 $('pov').onclick=e=>{
   const s=e.target.closest('[data-s]');
-  if(s){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;page=null;cur=+s.dataset.s;renderAcc();$('pov').classList.remove('on');openPage('ds')}
+  if(s){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;const to=page==='task'?'task':'ds';page=null;cur=+s.dataset.s;renderAcc();$('pov').classList.remove('on');openPage(to)}
   else if(e.target===$('pov'))$('pov').classList.remove('on');
 };
 $('pop').oninput=e=>{if(e.target.id!=='q')return;const v=e.target.value.trim();$('pop').querySelectorAll('.st').forEach(b=>b.style.display=b.textContent.includes(v)?'':'none')};
@@ -654,15 +722,14 @@ $('lbody').onclick=e=>{
     const q=e.target.closest('[data-sst]');if(q){STS.sel=q.dataset.sst||null;STS.open=false;statPaint();return}
     if(e.target.closest('[data-sretry]')){statInit();return}
   }
-  const tk=e.target.closest('[data-tk]');if(tk&&$('tk_ui')){$('tk_ui').innerHTML=tkWidget(tk.textContent);return}
-  if(e.target.closest('[data-tkback]')&&$('tk_ui')){$('tk_ui').innerHTML=tkList();return}
-  if(e.target.closest('[data-addtask]')&&$('tkbox')){$('tkbox').innerHTML=taskForm();return}
+  if(e.target.closest('[data-tkpick]')){e.stopPropagation();students();return}
+  if(e.target.closest('#tk_ui')){tkClick(e);return}
   const an=e.target.closest('[data-an]');if(an&&page==='ann'){$('lbody').dataset.an=an.dataset.an;$('lt').textContent='Announcement · '+an.textContent;$('lbody').innerHTML=annView(an.textContent);return}
   const mc=e.target.closest('[data-mc]');if(mc&&page==='msg'){mgOpen(MG.cells[+mc.dataset.mc].name);return}
   if(e.target.closest('[data-mgsend]')&&page==='msg'){mgSend();return}
   if(page==='ds'&&D)dsClick(e);
 };
-$('lbody').oninput=e=>{if(page==='dash'&&e.target.id==='dq'){DB.q=e.target.value;dashPaint();return}if(page==='ds'&&D&&!['ds_date','ds_range','ds_rep','tk_sub','tk_con'].includes(e.target.id)){markDirty();if(e.target.type==='time')paintDs()}};
+$('lbody').oninput=e=>{if(page==='dash'&&e.target.id==='dq'){DB.q=e.target.value;dashPaint();return}if(page==='ds'&&D&&!['ds_date','ds_range','ds_rep'].includes(e.target.id)&&!e.target.closest('#tk_ui')){markDirty();if(e.target.type==='time')paintDs()}};
 $('lbody').onchange=e=>{if(e.target.id!=='ds_date'||!D)return;const v=e.target.value;if(!v||!canLeave()){e.target.value=D.date;return}dsInit(v)};
 $('lbody').addEventListener('keydown',e=>{if(e.target.id==='mgin'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();mgSend()}});
 window.addEventListener('beforeunload',e=>{if(D&&(D.dirty||D.busy)){e.preventDefault();e.returnValue=''}});
@@ -675,4 +742,3 @@ paintFlt();renderAcc();renderSide();if(sess.get())boot();
 </script>
 </body>
 </html>
-
