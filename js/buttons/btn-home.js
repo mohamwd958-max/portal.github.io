@@ -17,25 +17,25 @@
     /* ---- the screen: الكود اتنقل من index.html زي ما هو (الصفحة الرئيسية) ---- */
 /* there is no main page any more: "back" lands on the dashboard */
   /* ================= Home page (main page): welcome, smart search bar, quick buttons, service slides ================= */
-  const HQ = window.THHomeQuestions || [
-    ['ما الذي تقدمونه؟', 'What do you offer?'],
-    ['كيف أبدأ معكم؟', 'How do I get started?'],
-    ['ما هي خدمات الترجمة المتاحة؟', 'Which translation services are available?'],
-    ['هل تقدمون تعليقًا صوتيًا؟', 'Do you provide voice over?'],
-    ['ما اللغات التي تترجمون منها وإليها؟', 'Which languages do you translate?'],
-    ['كم تستغرق الترجمة؟', 'How long does a translation take?'],
-    ['ما هي الحلول الرقمية؟', 'What are your digital solutions?'],
-    ['كيف أحجز استشارة شخصية؟', 'How do I book a personal consultation?'],
-    ['ماذا تعرض لوحة التحكم؟', 'What does the dashboard show?'],
-    ['كيف أتابع تقدمي؟', 'How can I track my progress?'],
-    ['ما هو رفيق الإملاء؟', 'What is Dictation Pal?'],
-    ['كيف تعمل غرفة المماراة؟', 'How does the Mirroring Room work?'],
-    ['ما أسعار خدماتكم؟', 'What are your prices?'],
-    ['هل يمكنني رفع ملف للترجمة؟', 'Can I upload a file for translation?'],
-    ['ماذا يوجد في متجركم؟', 'What is in your store?'],
-    ['كيف أتواصل مع فريق الدعم؟', 'How do I contact support?'],
-    ['هل توجد دورات للمبتدئين؟', 'Are there courses for beginners?'],
-    ['كيف أختار الخدمة المناسبة لي؟', 'How do I choose the right service?']
+  /* placeholder questions about the buttons students use most; each button is asked about in several ways.
+     [Arabic, English, button it opens]. Kept short so one question fits the bar on a phone. Tapping the question opens that button. */
+  const HQ = [
+    ['هل تريد سماع صوتك؟', 'Want to hear your own voice?', 'mirror'],
+    ['كيف تُنطق هذه الكلمة؟', 'How is this word said?', 'passist'],
+    ['أين كلماتي المحفوظة؟', 'Where are my saved words?', 'ydict'],
+    ['تريد تدريبًا على الإملاء؟', 'Want dictation practice?', 'dict'],
+    ['أين نصوص اليوم؟', "Where are today's texts?", 'res'],
+    ['احكم على نفسك بصدى صوتك', 'Judge yourself by your echo', 'mirror'],
+    ['تريد تحسين نطقك؟', 'Want better pronunciation?', 'passist'],
+    ['تريد مراجعة كلماتك؟', 'Review your words?', 'ydict'],
+    ['اكتب ما تسمعه', 'Write what you hear', 'dict'],
+    ['تريد مساحة للرسم والكتابة؟', 'Want a board to draw on?', 'space'],
+    ['سجّل صوتك واستمع إليه', 'Record yourself, listen back', 'mirror'],
+    ['تريد قطعة للقراءة؟', 'Want a passage to read?', 'res'],
+    ['أين الفيديوهات والصوتيات؟', 'Where are the videos?', 'library'],
+    ['كيف أتابع تقدمي؟', 'How am I progressing?', 'dash'],
+    ['هل نطقك سليم؟ اسمع نفسك', 'Is your accent right? Listen', 'mirror'],
+    ['أضف كلمة جديدة لقاموسك', 'Add a word to your dictionary', 'ydict']
   ];
 /* Drawn picture of the dashboard (numbers, charts) used as the background of the Digital Solutions card */
   const DASH_ART = (() => {
@@ -95,7 +95,8 @@ let homeStop = () => { };   /* stops the typing loop, the slide timer and the mi
       .hm-ib{position:relative;flex:1;min-width:0;min-height:44px;display:flex;align-items:center}
       .hm-ta{width:100%;max-height:150px;min-height:44px;padding:11px 4px;border:0;outline:0;resize:none;background:transparent;color:var(--ink);font:600 15.5px/1.5 Cairo,Inter,sans-serif;text-align:start;unicode-bidi:plaintext}
       .hm-ph{position:absolute;inset:0 4px;display:flex;align-items:center;pointer-events:none;color:var(--ink2);font:600 15.5px Cairo,Inter,sans-serif;white-space:nowrap;overflow:hidden;opacity:0;transition:opacity .3s ease}
-      .hm-ph span{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+      .hm-ph span{overflow:hidden;text-overflow:ellipsis;max-width:100%;pointer-events:auto;cursor:pointer;border-radius:8px;transition:color .25s}
+      @media(hover:hover){.hm-ph span:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}}
       .hm-bar.has .hm-ph,.hm-bar:focus-within .hm-ph,.hm-bar.rec .hm-ph{display:none}
       .hm-ib2{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,scale .7s var(--ease)}
       @media(hover:hover){.hm-ib2:hover{background:var(--chip)}}
@@ -210,16 +211,17 @@ function renderHome(b) {
     const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'; };
     ta.addEventListener('input', () => { grow(); sync(); });
 
-    /* ----- placeholder questions: typed fast, held two seconds, then gone; Arabic then its English twin ----- */
+    /* ----- placeholder questions: typed fast, held two seconds, then gone; only the selected language. Tapping one opens its button ----- */
+    let hqKey = '';
+    q('hmPh').firstChild.addEventListener('click', e => { e.stopPropagation(); if (hqKey && ph.textContent) thx.openLayer(hqKey); });
     (async () => {
-      const list = HQ.map(p => ar ? p[0] : p[1]);   /* only the language that is selected */
       let i = 0; const box = q('hmPh');
       while (alive && b.isConnected) {
         if (document.hidden) { await sleep(500); continue; }
-        const s = list[i++ % list.length]; box.dir = /[\u0600-\u06FF]/.test(s) ? 'rtl' : 'ltr';
+        const it = HQ[i++ % HQ.length], s = ar ? it[0] : it[1]; hqKey = it[2]; box.dir = ar ? 'rtl' : 'ltr';
         box.style.opacity = 1;
         for (let c = 1; c <= s.length && alive; c++) { ph.textContent = s.slice(0, c); await sleep(24); }
-        await sleep(2000); box.style.opacity = 0; await sleep(350); ph.textContent = ''; await sleep(120);
+        await sleep(2000); box.style.opacity = 0; await sleep(350); ph.textContent = ''; hqKey = ''; await sleep(120);
       }
     })();
 
