@@ -90,6 +90,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 .anic{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--gbd);background:var(--gbg);font-size:20px;cursor:pointer}
 .anig{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin:0 0 12px;padding:10px;border-radius:16px;border:1px solid var(--gbd);background:var(--gbg)}
 .anig button{height:42px;border:0;border-radius:12px;background:transparent;font-size:21px;cursor:pointer}.anig button:hover{background:var(--gbd)}
+.anst{max-height:230px;overflow:auto;margin-top:6px}.anst .tkb small{color:var(--ink2);font-weight:500}.anseg .tksm{flex:1;margin:0}.tkb.on small{color:inherit}
 .tkb:hover{border-color:var(--ac)}
 .tkw{text-align:center}
 .tkw h3{margin:6px 0 16px;font:700 16px Cairo,Inter,sans-serif}
@@ -292,7 +293,7 @@ const TRAIN=SBN[1][1];
 /* tasks are saved in tool_tasks; the same widget is used inside Daily supply and in the Tasks tool */
 const TK={id:null,list:[],ok:false,err:'',key:null,seq:0,busy:false};
 const tkStu=()=>cur!==null&&ST[cur]?ST[cur][2].id:null;
-const tkActive=t=>!t.range_days||Date.now()<Date.parse(t.created_at)+t.range_days*864e5;
+const tkActive=t=>!t.seen_at||!t.range_days||Date.now()<Date.parse(t.created_at)+t.range_days*864e5;
 const tkOf=k=>TK.id===tkStu()?TK.list.filter(t=>t.tool===k&&tkActive(t)):[];
 const tkName=k=>{for(const g of SBN)for(const b of g[1])if(b[0]===k)return b[1];return k};
 const tkErr=e=>e.message;
@@ -308,7 +309,7 @@ function tkItems(){
   if(TK.err)return '<p class="hint">❌ '+esc(TK.err)+'</p><button type="button" class="tksm" data-tkretry="1">حاول تاني</button>';
   if(!TK.ok)return '<p class="hint">جاري التحميل…</p>';
   return tkOf(TK.key).map(t=>'<div class="ttrow"><div dir="auto"><b>#'+t.task_no+(t.subject?' · '+esc(t.subject):'')+'</b>'+(t.body?'<div class="ttbody">'+esc(t.body)+'</div>':'')
-    +'<small>'+[cDay(t.created_at),t.range_days?'المدة: '+t.range_days+' يوم':'',t.remind_count?'تذكير '+t.remind_count+' مرات على '+t.remind_days+' يوم':'',t.seen_at?'اتفتحت ✓':''].filter(Boolean).join(' · ')+'</small></div><button type="button" class="cb" data-tkdel="'+t.id+'" aria-label="حذف المهمة">'+svg('x')+'</button></div>').join('');
+    +'<small>'+[cDay(t.created_at),t.range_days?'المدة: '+t.range_days+' يوم':'',t.remind_count?'تذكير '+t.remind_count+' مرات على '+t.remind_days+' يوم':'',t.seen_at?'قال فهمت ✓':'لسه ما قالش فهمت'].filter(Boolean).join(' · ')+'</small></div><button type="button" class="cb" data-tkdel="'+t.id+'" aria-label="حذف المهمة">'+svg('x')+'</button></div>').join('');
 }
 const tkWidget=k=>'<div class="tkw"><button type="button" class="tksm" data-tkback="1">‹ '+(page==='task'?'كل الزراير':'Training Program')+'</button><h3>'+esc(tkName(k))+'</h3><div id="tkbox">'+tkAddBtn+'</div><p id="tk_msg" class="hint" role="status"></p><div id="tk_cur">'+tkItems()+'</div></div>';
 const tkAddBtn='<button type="button" class="tkadd" data-addtask="1">أضف مهمة</button>';
@@ -363,48 +364,81 @@ function tkClick(e){
   else if(q('[data-tkretry]'))tkLoad();
 }
 const taskView=()=>'<div class="wrap">'+(tkStu()===null?'<div class="pcard">اختار طالب علشان تضيف له مهمة.<br><button type="button" class="btn ac" data-tkpick="1" style="margin-top:12px">اختار طالب</button></div>':'<div id="tk_ui">'+tkList()+'</div>')+'</div>';
-const AN={step:'home',sel:[],lines:[],busy:false};
+const AN={step:'home',sel:[],lines:[],busy:false,aud:{mode:'active',ids:[]},persist:'ack',title:''};
 const ANI=['⏰','⏳','📅','💰','💳','📌','⭐','🔥','🎯','🏆','🎁','📢','🔔','✅','❗','❓','💡','📚','📖','✏️','📝','🎧','🎤','🔊','🗣️','🧠','💬','📞','✉️','🔗','🔒','🔑','⚙️','🛠️','📊','📈','🎉','👏','👍','❤️','🚀','🌟','🧩','🕌','🏠','🛒','🎓','🌍','🧭','🪞'];
+const PERS={ack:'مهم · يفضل لحد ما يقول "فهمت"',['24h']:'عادي · يختفي بعد 24 ساعة',open:'يختفي أول ما الطالب يفتحه'};
 const annSay=m=>{if($('an_msg'))$('an_msg').textContent=m};
-function annList(){AN.step='home';
-  return '<div class="wrap"><div class="tkg">Announcements</div><button type="button" class="tkb" data-ann="feed">Feed</button><button type="button" class="tkb" data-ann="popup">Pop-up</button></div>'}
-const annFeed=()=>'<div class="wrap"><div class="tkf"><input class="in" id="an_ft" dir="auto" maxlength="200" placeholder="Title · العنوان"><textarea class="in" id="an_fc" dir="auto" maxlength="1000" placeholder="Content · المحتوى"></textarea><div class="row"><button type="button" class="btn ac" data-anfeed="1">ابعت على الـ Feed</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
+const annIsActive=i=>{const g=GROUPS[ST[i][1]];return !!g&&g[0]==='active'};
+function annReset(){AN.aud={mode:cur!==null?'ids':'active',ids:cur!==null?[cur]:[]};AN.persist='ack'}
+function annOpts(){
+  const seg=(k,l)=>'<button type="button" class="tksm'+(AN.aud.mode===k?' on':'')+'" data-anaud="'+k+'">'+l+'</button>';
+  const per=Object.keys(PERS).map(k=>'<button type="button" class="tkb'+(AN.persist===k?' on':'')+'" data-anper="'+k+'">'+esc(PERS[k])+'</button>').join('');
+  const list=AN.aud.mode==='ids'?'<div class="anst">'+ST.map((x,i)=>'<button type="button" class="tkb'+(AN.aud.ids.includes(i)?' on':'')+'" data-anst="'+i+'"><span>'+esc(x[0])+'</span><small>'+esc((GROUPS[x[1]]||[,''])[1].split(' · ')[0])+'</small></button>').join('')+'</div>':'';
+  const n=annTargets().length;
+  return '<div class="tkg">يتبعت لمين؟</div><div class="row anseg">'+seg('ids','طالب / مجموعة')+seg('active','Active بس')+seg('all','الجميع')+'</div>'+list+'<p class="hint" style="margin:4px 4px 0">هيوصل لـ '+n+' طالب</p><div class="tkg">النوع</div>'+per}
+function annTargets(){
+  if(AN.aud.mode==='all')return ST.map((x,i)=>i);
+  if(AN.aud.mode==='active')return ST.map((x,i)=>i).filter(annIsActive);
+  return AN.aud.ids.filter(i=>ST[i])}
+const annTids=()=>annTargets().map(i=>ST[i][2]&&ST[i][2].id).filter(Boolean);
+const annAudLabel=()=>AN.aud.mode==='all'?'الجميع':AN.aud.mode==='active'?'Active بس':annTargets().map(i=>ST[i][0]).join('، ');
+function annOptsPaint(){const o=$('an_opts');if(o)o.innerHTML=annOpts()}
+function annList(){AN.step='home';setTimeout(annLoadAct,0);
+  return '<div class="wrap"><div class="tkg">Announcements</div><button type="button" class="tkb" data-ann="feed">Feed</button><button type="button" class="tkb" data-ann="popup">Pop-up</button><div class="tkg">الـ Pop-ups الشغالة دلوقتي</div><div id="an_act"><p class="hint">جاري التحميل…</p></div></div>'}
+async function annLoadAct(){
+  const box=$('an_act');if(!box)return;
+  try{const r=await getJ('announcements?select=id,buttons,popup,created_at,ends_at&order=created_at.desc&limit=40');
+    const l=r.filter(x=>!x.ends_at||Date.parse(x.ends_at)>Date.now());if(!$('an_act'))return;
+    $('an_act').innerHTML=l.length?l.map(x=>{const p=x.popup||{};return '<div class="ttrow"><div dir="auto"><b>'+esc(p.title||(p.lines&&p.lines[0]&&p.lines[0].text)||'—')+'</b><small>'+esc([x.buttons.map(tkName).join('، '),PERS[p.persist]||'',p.aud?(p.aud.mode==='all'?'الجميع':'محددين'):''].filter(Boolean).join(' · '))+'</small></div><button type="button" class="cb" data-andel="'+x.id+'" aria-label="حذف">'+svg('x')+'</button></div>'}).join(''):'<p class="hint">مفيش.</p>'}
+  catch(e){if($('an_act'))$('an_act').innerHTML='<p class="hint">❌ '+esc(e.message)+'</p>'}}
+async function annDel(id){
+  if(AN.busy||!confirm('تمسح الـ pop-up ده؟'))return;AN.busy=true;
+  try{await write('announcements?id=eq.'+id,'DELETE');await annLoadAct()}catch(e){alert('❌ '+e.message)}
+  AN.busy=false}
+const annFeed=()=>'<div class="wrap"><div class="tkf"><input class="in" id="an_ft" dir="auto" maxlength="200" placeholder="Title · العنوان" value="'+esc(AN.title)+'"><textarea class="in" id="an_fc" dir="auto" maxlength="1000" placeholder="Content · المحتوى">'+esc(AN.body||'')+'</textarea><div id="an_opts">'+annOpts()+'</div><div class="row" style="margin-top:12px"><button type="button" class="btn ac" data-anfeed="1">ابعت على الـ Feed</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
 const annPick=()=>'<div class="wrap"><p class="hint" style="margin:0 4px 6px">اختار الزرار (أو أكتر) اللي هيظهر عليه التاج</p>'+SBN.map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(x=>'<button type="button" class="tkb'+(AN.sel.includes(x[0])?' on':'')+'" data-ansel="'+x[0]+'">'+esc(x[1])+'</button>').join('')).join('')+'<div class="row" style="margin-top:14px"><button type="button" class="btn ac" data-annext="1">التالي</button></div><p id="an_msg" class="hint" role="status"></p></div>';
 const annLines=()=>AN.lines.map((l,i)=>'<div class="anrow"><button type="button" class="anic" data-anic="'+i+'" aria-label="Icon">'+l.icon+'</button><input class="in an-tx" dir="auto" maxlength="200" data-i="'+i+'" value="'+esc(l.text)+'" placeholder="السطر '+(i+1)+'">'+(AN.lines.length>1?'<button type="button" class="cb" data-anrm="'+i+'" aria-label="حذف">'+svg('x')+'</button>':'')+'</div>').join('');
-const annEditor=()=>'<div class="wrap"><div class="tkf"><p class="hint" style="margin:0 4px 8px">التاج على: '+esc(AN.sel.map(tkName).join('، '))+'</p><input class="in" id="an_t" dir="auto" maxlength="120" value="'+esc(AN.title||'')+'" placeholder="إيه الجديد؟ · What\'s new"><div id="an_lines">'+annLines()+'</div><div id="an_ipick" hidden></div><button type="button" class="tksm" data-anadd="1">+ Add more</button><label class="ttl">يفضل يظهر كام يوم؟<input type="number" class="in" id="an_days" min="1" max="365" step="1" value="'+(AN.days||7)+'"></label><div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-anback="1">رجوع</button><button type="button" class="btn ac" data-ansave="1">انشر</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
-function annSync(){const t=$('an_t');if(!t)return;AN.title=t.value;AN.days=$('an_days').value;document.querySelectorAll('.an-tx').forEach(i=>{if(AN.lines[+i.dataset.i])AN.lines[+i.dataset.i].text=i.value})}
+const annEditor=()=>'<div class="wrap"><div class="tkf"><p class="hint" style="margin:0 4px 8px">التاج على: '+esc(AN.sel.map(tkName).join('، '))+'</p><input class="in" id="an_t" dir="auto" maxlength="120" value="'+esc(AN.title||'')+'" placeholder="إيه الجديد؟ · What\'s new"><div id="an_lines">'+annLines()+'</div><div id="an_ipick" hidden></div><button type="button" class="tksm" data-anadd="1">+ Add more</button><div id="an_opts">'+annOpts()+'</div><div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-anback="1">رجوع</button><button type="button" class="btn ac" data-ansave="1">انشر</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
+function annSync(){
+  if($('an_t')){AN.title=$('an_t').value;document.querySelectorAll('.an-tx').forEach(i=>{if(AN.lines[+i.dataset.i])AN.lines[+i.dataset.i].text=i.value})}
+  if($('an_ft')){AN.title=$('an_ft').value;AN.body=$('an_fc').value}}
 function annGo(step){AN.step=step;const T={feed:'Announcements · Feed',pick:'Announcements · Pop-up',editor:'Announcements · Pop-up',home:'Announcements'};
   $('lt').textContent=T[step];$('lbody').innerHTML=step==='feed'?annFeed():step==='pick'?annPick():step==='editor'?annEditor():annList()}
 async function annFeedSend(){
-  if(AN.busy)return;const t=$('an_ft').value.trim(),c=$('an_fc').value.trim();
+  if(AN.busy)return;annSync();const t=(AN.title||'').trim(),c=(AN.body||'').trim();
   if(!t&&!c)return annSay('اكتب العنوان أو المحتوى الأول.');
-  const ids=ST.map(x=>x[2]&&x[2].id).filter(Boolean);if(!ids.length)return annSay('مفيش طلاب.');
+  const ids=annTids();if(!ids.length)return annSay('اختار طالب واحد على الأقل.');
   if(!confirm('تبعت الإشعار ده لـ '+ids.length+' طالب؟'))return;
   AN.busy=true;annSay('جاري الإرسال…');
-  try{await write('notifications','POST',ids.map(id=>({trainee_id:id,kind:'message',title:t,body:c,meta:{category:'general'}})));
-    $('an_ft').value='';$('an_fc').value='';annSay('اتبعت على الـ Feed ✓ ('+ids.length+')')}
+  try{await write('notifications','POST',ids.map(id=>({trainee_id:id,kind:'message',title:t,body:c,meta:{category:'general',persist:AN.persist}})));
+    AN.title='';AN.body='';$('an_ft').value='';$('an_fc').value='';annSay('اتبعت على الـ Feed ✓ ('+ids.length+')')}
   catch(e){annSay('❌ '+e.message)}
   AN.busy=false}
 async function annSave(){
   if(AN.busy)return;annSync();
   const lines=AN.lines.map(l=>({icon:l.icon,text:l.text.trim()})).filter(l=>l.text);
-  const title=(AN.title||'').trim(),d=Number(AN.days);
+  const title=(AN.title||'').trim();
   if(!title&&!lines.length)return annSay('اكتب العنوان أو سطر واحد على الأقل.');
-  if(!Number.isInteger(d)||d<1||d>365)return annSay('المدة لازم تكون من 1 لـ 365 يوم.');
+  const ids=annTids();if(!ids.length)return annSay('اختار طالب واحد على الأقل.');
+  const aud=AN.aud.mode==='all'?{mode:'all'}:{mode:'ids',ids};
   AN.busy=true;annSay('جاري النشر…');
-  try{await write('announcements','POST',{buttons:AN.sel,tag:'auto',popup:{title,lines},ends_at:new Date(Date.now()+d*864e5).toISOString()});
-    AN.sel=[];AN.lines=[];AN.title='';AN.days=7;annGo('home');}
+  try{await write('announcements','POST',{buttons:AN.sel,tag:'auto',popup:{title,lines,aud,persist:AN.persist},ends_at:AN.persist==='24h'?new Date(Date.now()+864e5).toISOString():null});
+    AN.sel=[];AN.lines=[];AN.title='';annGo('home')}
   catch(e){annSay('❌ '+e.message)}
   AN.busy=false}
 function annClick(e){
   const q=s=>e.target.closest(s);let b;
-  if(b=q('[data-ann]')){if(b.dataset.ann==='feed')annGo('feed');else{AN.sel=[];annGo('pick')}}
+  if(b=q('[data-ann]')){annReset();AN.title='';AN.body='';if(b.dataset.ann==='feed')annGo('feed');else{AN.sel=[];annGo('pick')}}
   else if(b=q('[data-ansel]')){const k=b.dataset.ansel,i=AN.sel.indexOf(k);if(i<0)AN.sel.push(k);else AN.sel.splice(i,1);b.classList.toggle('on',i<0)}
-  else if(q('[data-annext]')){if(!AN.sel.length)return annSay('اختار زرار واحد على الأقل.');AN.lines=[0,1,2].map(()=>({icon:'📌',text:''}));AN.title='';AN.days=7;annGo('editor')}
+  else if(q('[data-annext]')){if(!AN.sel.length)return annSay('اختار زرار واحد على الأقل.');AN.lines=[0,1,2].map(()=>({icon:'📌',text:''}));AN.title='';annGo('editor')}
   else if(q('[data-anadd]')){annSync();if(AN.lines.length>=10)return annSay('أقصى عدد 10 سطور.');AN.lines.push({icon:'📌',text:''});$('an_lines').innerHTML=annLines()}
   else if(b=q('[data-anrm]')){annSync();AN.lines.splice(+b.dataset.anrm,1);$('an_lines').innerHTML=annLines()}
   else if(b=q('[data-anic]')){annSync();const p=$('an_ipick');AN.ic=+b.dataset.anic;p.hidden=false;p.innerHTML='<div class="anig">'+ANI.map(x=>'<button type="button" data-anpick="'+x+'">'+x+'</button>').join('')+'</div>'}
   else if(b=q('[data-anpick]')){AN.lines[AN.ic].icon=b.dataset.anpick;$('an_ipick').hidden=true;$('an_lines').innerHTML=annLines()}
+  else if(b=q('[data-anaud]')){AN.aud.mode=b.dataset.anaud;annOptsPaint()}
+  else if(b=q('[data-anst]')){const i=+b.dataset.anst,k=AN.aud.ids.indexOf(i);if(k<0)AN.aud.ids.push(i);else AN.aud.ids.splice(k,1);annOptsPaint()}
+  else if(b=q('[data-anper]')){AN.persist=b.dataset.anper;annOptsPaint()}
+  else if(b=q('[data-andel]'))annDel(+b.dataset.andel);
   else if(q('[data-anback]')){annSync();annGo('pick')}
   else if(q('[data-ansave]'))annSave();
   else if(q('[data-anfeed]'))annFeedSend();
