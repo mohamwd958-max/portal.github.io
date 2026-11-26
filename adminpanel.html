@@ -93,6 +93,18 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 .tkf .in{margin-bottom:10px}
 .mgbar{position:sticky;bottom:0;padding:10px 0 2px;background:var(--bg)}
 .tksm{display:block;height:34px;padding:0 16px;margin:0 auto 8px;border-radius:17px;border:1px solid var(--gbd);background:var(--gbg);font:700 12px Inter,Cairo,sans-serif;cursor:pointer}
+.ibc{text-align:start}.ibc h4{display:flex;justify-content:space-between;gap:8px;margin:0 0 4px;font:800 15px Cairo,Inter,sans-serif;text-transform:none;letter-spacing:0;color:var(--ink)}.ibc small{color:var(--ink2)}.ibtx{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chips span{padding:3px 10px;border-radius:999px;border:1px solid var(--gbd);font:700 12px Inter,Cairo,sans-serif}
+.ibn{margin:0 0 0 auto!important}
+.acnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.acnav b{font:800 15px Inter,Cairo,sans-serif}.acnav .btn{width:44px;padding:0}
+.acg{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;direction:ltr}.acg i{font:700 10px Inter,sans-serif;font-style:normal;text-align:center;color:var(--ink2)}
+.acd{position:relative;height:46px;padding:0;border-radius:12px;border:1px solid var(--gbd);background:var(--gbg);color:var(--ink);font:700 14px Inter,sans-serif;cursor:pointer}
+.acd small{display:block;font:700 9px Inter,sans-serif;opacity:.85}
+.acd.att,.ack.att{background:#16a34a;color:#fff}.acd.abs,.ack.abs{background:#dc2626;color:#fff}.acd.lv,.ack.lv{background:#2563eb;color:#fff}.acd.pnd,.ack.pnd{border:2px dashed #2563eb}.acd.off,.ack.off{background:#f59e0b;color:#111}
+.acd.hol::after,.ack.hol::after{content:"";position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:#f59e0b}
+.acd.today{outline:2px solid var(--ac);outline-offset:1px}.acd.sel{box-shadow:0 0 0 3px var(--ink)}
+.acleg{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font:600 12px Cairo,Inter,sans-serif}.acleg span{display:flex;align-items:center;gap:5px}.ack{position:relative;display:inline-block;width:16px;height:16px;border-radius:5px;border:1px solid var(--gbd)}
+.acs{padding:8px 0;border-top:1px solid var(--gbd)}.acchk{display:flex;align-items:center;gap:8px;margin:8px 0}
 </style>
 </head>
 <body>
@@ -118,7 +130,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 const IC={menu:'M4 7h16M4 12h16M4 17h16',x:'M6 6l12 12M18 6L6 18',user:'M12 4a3.6 3.6 0 1 0 0 7.2A3.6 3.6 0 0 0 12 4zM5 20c.8-3.6 3.6-5.2 7-5.2s6.2 1.6 7 5.2',back:'M15 5l-7 7 7 7',theme:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 3v18',pen:'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',chat:'M4 5h16v11H9l-5 4z',bell:'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',task:'M5 6l2 2 3-3M13 7h7M5 14l2 2 3-3M13 15h7',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',up:'M12 16V4M7 9l5-5 5 5M5 20h14',flag:'M6 21V4M6 5h11l-2 4 2 4H6',box:'M4 5h16v4H4zM6 9v11h12V9M10 13h4',star:'M12 4l2.5 5 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z',key:'M8 15a4 4 0 1 1 3-3l9 9M17 18l2-2',chart:'M4 20V11M10 20V4M16 20v-6M3 20h18',sq:'M4 4h16v16H4zM4 12h16M12 4v16',bot:'M5 8h14v10H5zM12 4v4M9 13h.01M15 13h.01',send:'M4 12l16-8-6 16-3-7z'};
 const svg=n=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+IC[n]+'"/></svg>';
 const $=id=>document.getElementById(id);
-const TOOLS=[['dash','Dashboard','grid'],['msg','Messenger','chat'],['ann','Announcements','bell'],['task','Tasks','task'],['mo','Monthly obligations','cal'],['voi','Upload voices','up'],['rep','Reports','flag'],['arc','Archive','box'],['hl','Highlights','star'],['gen','Generator','key'],['stat','Statistics','chart'],['space','Space','sq'],['ai','Assistant','bot']];
+const TOOLS=[['dash','Dashboard','grid'],['msg','Messenger','chat'],['ann','Announcements','bell'],['task','Tasks','task'],['mo','Monthly obligations','cal'],['voi','Upload voices','up'],['rep','Inbound','flag'],['arc','Archive','box'],['hl','Highlights','star'],['gen','Generator','key'],['stat','Statistics','chart'],['space','Space','sq'],['ai','Assistant','bot']];
 const SB_URL='https://vkfexceitwjmxncwceqb.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI',SKEY='thabit_admin_session';
 const ctx={email:'',uid:'',role:'—'};let ST=[],GROUPS=[];
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -169,14 +181,14 @@ async function boot(){
     await loadStudents();cur=null;renderAcc();
     try{const r=await(await sb('staff_roles?select=*&user_id=eq.'+ctx.uid)).json(),x=r&&r[0];
       ctx.role=x?(x.role||Object.values(x).find(v=>typeof v==='string'&&/admin|trainer/i.test(v))||'?'):'no staff_roles row'}catch(e){ctx.role='role lookup failed'}
-    renderSide();
+    renderSide();ibCount();
     const nf=ST.filter(s=>s[3]==='full').length,np=ST.filter(s=>s[3]==='part').length;
     $('home').innerHTML='✅ '+ST.length+' طالب اتحمّلوا من Supabase<br>Full-timer: '+nf+' · Part-timer: '+np+' · غير محدد: '+(ST.length-nf-np)+'<br>اختار طالب من زرار الحساب فوق، أو افتح أداة من القايمة.'
   }catch(e){$('home').textContent='Error: '+e.message}}
 async function logout(){
   if(dsBusy()||!canLeave())return;D=null;
   try{const t=await token();if(t)await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+t}})}catch(e){}
-  sess.clear();ST=[];TK.id=null;TK.list=[];TK.ok=false;TK.seq++;STS.rows=null;STS.g=null;STS.sel=null;MG.msgs=new Map();MG.open=null;cur=null;page=null;$('layer').classList.remove('on');side(false);renderAcc();renderSide();showLogin('')}
+  sess.clear();ST=[];IB.list=null;AC.data=null;AC.seq++;TK.id=null;TK.list=[];TK.ok=false;TK.seq++;STS.rows=null;STS.g=null;STS.sel=null;MG.msgs=new Map();MG.open=null;cur=null;page=null;$('layer').classList.remove('on');side(false);renderAcc();renderSide();showLogin('')}
 $('lgo').onclick=async()=>{
   const e=$('lge').value.trim(),p=$('lgp').value;if(!e||!p){$('lgerr').textContent='Enter email and password';return}
   $('lgo').disabled=true;
@@ -195,8 +207,8 @@ function paintLt(){if(page==='ds'&&ST[cur])$('lt').parentNode.querySelectorAll('
 function renderAcc(){$('acc').innerHTML=svg('user')+(cur!==null&&ST[cur]?'<span dir="auto">'+esc(ST[cur][0])+'</span>':'')+pdot()}
 function renderSide(){
   let h='';
-  if(cur!==null&&ST[cur])h+='<div class="sh">Student</div><button class="sdi stu" data-p="ds">'+svg('pen')+'Daily supply</button>';
-  h+='<div class="sh">Tools</div>'+TOOLS.map(t=>'<button class="sdi'+(page===t[0]?' on':'')+'" data-p="'+t[0]+'">'+svg(t[2])+t[1]+'</button>').join('');
+  if(cur!==null&&ST[cur])h+='<div class="sh">Student</div><button class="sdi stu" data-p="ds">'+svg('pen')+'Daily supply</button><button class="sdi stu'+(page==='cal'?' on':'')+'" data-p="cal">'+svg('cal')+'Calendar</button>';
+  h+='<div class="sh">Tools</div>'+TOOLS.map(t=>'<button class="sdi'+(page===t[0]?' on':'')+'" data-p="'+t[0]+'">'+svg(t[2])+t[1]+(t[0]==='rep'&&ibOpen()?'<span class="bdg ibn">'+ibOpen()+'</span>':'')+'</button>').join('');
   h+='<div class="sh" style="text-transform:none;letter-spacing:0">'+esc(ctx.email)+' · '+esc(ctx.role)+'</div><div class="sh" id="conn" style="text-transform:none;letter-spacing:0">'+connTxt()+'</div><button class="sdi" data-p="__out">'+svg('x')+'Sign out</button>';$('side').innerHTML=h;
 }
 function side(on){$('side').classList.toggle('on',on);$('scrim').classList.toggle('on',on);$('sbtn').innerHTML=svg(on?'x':'menu')}
@@ -531,11 +543,114 @@ function openPage(p){
   if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;
   page=p;side(false);renderSide();
   const t=TOOLS.find(x=>x[0]===p);
-  $('lt').textContent=p==='ds'?'Daily supply · '+ST[cur][0]:p==='task'&&tkStu()!==null?'Tasks · '+ST[cur][0]:t[1];
-  TK.key=null;$('lbody').innerHTML=p==='ds'?dsView():p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='task'?taskView():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
-  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='ds'||p==='task')tkLoad();if(p==='stat')statInit();
+  $('lt').textContent=p==='ds'?'Daily supply · '+ST[cur][0]:p==='cal'?'Calendar · '+ST[cur][0]:p==='task'&&tkStu()!==null?'Tasks · '+ST[cur][0]:t[1];
+  TK.key=null;$('lbody').innerHTML=p==='ds'?dsView():p==='cal'?'<div id="ac_ui"></div>':p==='rep'?'<div id="ib_ui"></div>':p==='msg'?'<div class="pcard">جاري التحميل…</div>':p==='ann'?annList():p==='task'?taskView():p==='stat'?statView():p==='dash'?(dashReset(),dashView()):'<div class="pcard">'+t[1]+'<br>الشكل الداخلي بتاع الأداة دي هييجي في الخطوة الجاية.</div>';
+  $('layer').classList.add('on');paintLt();if(p==='ds')dsInit();if(p==='msg')mgInit();if(p==='ds'||p==='task')tkLoad();if(p==='stat')statInit();if(p==='cal')acInit();if(p==='rep')ibInit();
 }
 function closePage(){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;MG.open=null;page=null;$('layer').classList.remove('on');renderSide()}
+
+/* ===== Inbound: students' reports (rpc admin_reports / admin_report_decide, admin only) ===== */
+const IB={list:null,tab:'open',err:'',msg:'',busy:0,draft:{},seq:0};
+const ibOpen=()=>(IB.list||[]).filter(r=>r.status==='open').length;
+const ibWhen=v=>v?new Date(v).toLocaleString('en-GB',{timeZone:'Africa/Cairo',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+const dayLbl=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+const IBT={leave:'إجازة · Leave',session:'Session',financial:'Financial',other:'Other'},IBS={open:'مستني قرارك',accepted:'Accepted ✓',rejected:'Rejected ✕',closed:'Closed',resolved:'Resolved'};
+async function ibFetch(){const seq=++IB.seq;const l=await rpcA('admin_reports');if(seq!==IB.seq)return;IB.list=Array.isArray(l)?l:[];IB.err=''}
+async function ibCount(){try{await ibFetch();renderSide()}catch(e){}}
+async function ibInit(){IB.msg='';ibPaint();try{await ibFetch()}catch(e){IB.err=e.message}ibPaint();renderSide()}
+function ibCard(r){
+  let x='';
+  if(r.type==='leave')x='<div class="chips">'+(r.dates||[]).map(d=>'<span>'+dayLbl(d)+'</span>').join('')+'</div>';
+  if(r.payment_date)x+='<small>Payment date: '+dayLbl(r.payment_date)+'</small>';
+  if(r.expected_duration)x+='<small>Expected: '+esc(r.expected_duration)+'</small>';
+  const act=r.status==='open'?'<textarea class="in" data-ibr="'+r.id+'" dir="auto" maxlength="1500" placeholder="رد للطالب (اختياري)" style="min-height:44px;margin:8px 0">'+esc(IB.draft[r.id]||'')+'</textarea><div class="row"><button class="btn ac" data-ib="1" data-id="'+r.id+'"'+(IB.busy?' disabled':'')+'>Accept</button><button class="btn ghost" data-ib="0" data-id="'+r.id+'"'+(IB.busy?' disabled':'')+'>Reject</button></div>'
+    :'<small>'+(r.replied_at?'القرار: '+ibWhen(r.replied_at):'')+(r.admin_reply?' · '+esc(r.admin_reply):'')+'</small>';
+  return '<div class="card ibc"><h4><span dir="auto">'+esc(r.trainee)+'</span><small>'+(IBT[r.type]||esc(r.type))+'</small></h4><small>اتبعت: '+ibWhen(r.created_at)+' · '+(IBS[r.status]||esc(r.status))+'</small><div class="ibtx" dir="auto"><b>'+esc(r.title)+'</b>\n'+esc(r.details)+'</div>'+x+act+'</div>';
+}
+function ibPaint(){
+  const e=$('ib_ui');if(!e)return;
+  if(IB.err){e.innerHTML='<div class="pcard">'+esc(IB.err)+'<br><button class="btn ghost" data-ibretry>حاول تاني</button></div>';return}
+  if(!IB.list){e.innerHTML='<div class="pcard">جاري التحميل…</div>';return}
+  const l=IB.list.filter(r=>(r.status==='open')===(IB.tab==='open'));
+  e.innerHTML='<div class="wrap"><div class="tkg">Reports</div><div class="seg" style="margin-bottom:12px"><button data-ibtab="open" class="'+(IB.tab==='open'?'on':'')+'">Open · '+ibOpen()+'</button><button data-ibtab="done" class="'+(IB.tab==='done'?'on':'')+'">Decided · '+(IB.list.length-ibOpen())+'</button></div><p class="hint" role="status" dir="auto">'+esc(IB.msg)+'</p>'+(l.length?l.map(ibCard).join(''):'<div class="pcard">مفيش حاجة هنا.</div>')+'</div>';
+}
+async function ibClick(e){
+  const t=e.target.closest('[data-ibtab]');if(t){IB.tab=t.dataset.ibtab;IB.msg='';ibPaint();return}
+  if(e.target.closest('[data-ibretry]')){IB.err='';IB.list=null;ibInit();return}
+  const b=e.target.closest('[data-ib]');if(!b||IB.busy)return;
+  const id=+b.dataset.id,yes=b.dataset.ib==='1',r=IB.list.find(x=>x.id===id);if(!r)return;
+  if(!confirm((yes?'Accept':'Reject')+' — '+r.trainee+'؟\nالقرار مش هيتغير من هنا بعد كده، وهيتسجل إشعار للطالب.'))return;
+  IB.busy=1;IB.msg='جاري الحفظ…';ibPaint();
+  try{
+    const res=await rpcA('admin_report_decide',{p_id:id,p_accept:yes,p_reply:IB.draft[id]||null});
+    delete IB.draft[id];IB.msg=(res.status==='accepted'?'اتقبل ✓':'اترفض ✓')+(res.notified?' · الإشعار اتسجل للطالب':' · مقدرتش أحدد الطالب، فمفيش إشعار');
+  }catch(x){IB.msg='ما اتحفظش: '+x.message}
+  try{await ibFetch()}catch(x){IB.err=x.message}
+  IB.busy=0;ibPaint();renderSide();
+}
+/* ===== Student calendar (rpc admin_calendar; writes: trainee_absences, holidays) ===== */
+const AC={id:null,ym:'',data:null,sel:null,msg:'',busy:0,seq:0};
+const pad=n=>String(n).padStart(2,'0');
+const acBounds=ym=>{const [y,m]=ym.split('-').map(Number);return[ym+'-01',ym+'-'+pad(new Date(Date.UTC(y,m,0)).getUTCDate())]};
+function acInit(){const id=ST[cur][2].id;if(AC.id!==id||!AC.ym){AC.id=id;AC.ym=cairoDate().slice(0,7);AC.sel=cairoDate()}AC.data=null;AC.msg='';acLoad()}
+async function acLoad(){
+  const seq=++AC.seq,[a,b]=acBounds(AC.ym);acPaint();
+  try{const d=await rpcA('admin_calendar',{p_tid:AC.id,p_from:a,p_to:b});if(seq!==AC.seq)return;AC.data=d}
+  catch(x){if(seq!==AC.seq)return;AC.data={err:x.message}}
+  acPaint();
+}
+function acDay(d){
+  const x=AC.data,ses=x.sessions.filter(s=>s.day===d);
+  return{ses,att:ses.some(s=>s.attended),abs:x.absent.includes(d),lv:x.leave.includes(d),pnd:x.pending.includes(d),hol:x.holidays.find(h=>h.day===d)||null};
+}
+function acPaint(){
+  const e=$('ac_ui');if(!e||page!=='cal')return;
+  const [a,b]=acBounds(AC.ym),title=new Date(a+'T12:00:00Z').toLocaleDateString('en-GB',{timeZone:'UTC',month:'long',year:'numeric'});
+  const nav='<div class="acnav"><button class="btn ghost" data-acm="-1" aria-label="Previous month">‹</button><b>'+title+'</b><button class="btn ghost" data-acm="1" aria-label="Next month">›</button></div>';
+  if(!AC.data){e.innerHTML='<div class="wrap"><div class="card">'+nav+'<p class="hint">جاري التحميل…</p></div></div>';return}
+  if(AC.data.err){e.innerHTML='<div class="wrap"><div class="card">'+nav+'<p class="hint">'+esc(AC.data.err)+'</p><button class="btn ghost" data-acretry>حاول تاني</button></div></div>';return}
+  const n=+b.slice(8),first=(new Date(a+'T12:00:00Z').getUTCDay()+1)%7;let na=0,nx=0,cells=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'].map(w=>'<i>'+w+'</i>').join('')+'<span></span>'.repeat(first);
+  for(let k=1;k<=n;k++){
+    const d=AC.ym+'-'+pad(k),q=acDay(d);if(q.abs)nx++;else if(q.att)na++;
+    const c=q.abs?' abs':q.att?' att':q.lv?' lv':q.hol&&q.hol.definite_off?' off':'';
+    const nos=q.ses.filter(s=>s.attended&&s.no!=null).map(s=>s.no);
+    cells+='<button class="acd'+c+(q.pnd?' pnd':'')+(q.hol?' hol':'')+(d===AC.data.today?' today':'')+(d===AC.sel?' sel':'')+'" data-acd="'+d+'">'+k+(nos.length?'<small>#'+nos.join(' #')+'</small>':'')+'</button>';
+  }
+  const leg=[['att','حضر'],['abs','ما جاش'],['lv','Planned leave'],['pnd','طلب مستني'],['off','إجازة أكيدة'],['hol','أجازة رسمية']].map(x=>'<span><i class="ack '+x[0]+'"></i>'+x[1]+'</span>').join('');
+  e.innerHTML='<div class="wrap"><div class="card">'+nav+'<div class="acg">'+cells+'</div><div class="acleg" dir="rtl">'+leg+'</div><p class="hint">الشهر ده: حضر '+na+' · ما جاش '+nx+'</p></div>'+acPanel()+'</div>';
+}
+function acPanel(){
+  const d=AC.sel;if(!d||d.slice(0,7)!==AC.ym)return'';
+  const q=acDay(d),past=d<=AC.data.today,dis=AC.busy?' disabled':'';
+  let h='<div class="card ibc"><h4><span>'+dayLbl(d)+'</span></h4><p class="hint" role="status" dir="auto">'+esc(AC.msg)+'</p>';
+  const tags=[q.abs&&'❌ ما جاش',!q.abs&&q.att&&'✅ حضر',q.lv&&'🔵 Planned leave',q.pnd&&'⏳ طلب إجازة مستني قرارك (Inbound)'].filter(Boolean);
+  if(tags.length)h+='<div class="chips">'+tags.map(x=>'<span>'+x+'</span>').join('')+'</div>';
+  h+=q.ses.map(s=>'<div class="acs" dir="auto"><b>'+(s.no!=null?'Session #'+esc(s.no):'Session')+'</b> '+esc(s.title||'')+(s.sub?' · '+esc(s.sub):'')+'<br><small>'+(s.start?t5(s.start)+(s.end?' – '+t5(s.end):''):s.attended?'':'مفيش وقت بداية متسجل')+'</small></div>').join('');
+  if(q.ses.length)h+='<button class="btn ghost" data-acds style="width:100%;margin-top:6px">تفاصيل اليوم في Daily supply</button>';
+  if(past)h+='<button class="btn '+(q.abs?'ghost':'ac')+'" data-acabs dir="rtl" style="width:100%;margin-top:10px"'+dis+'>'+(q.abs?'إلغاء علامة «ما جاش»':'❌ ما جاش اليوم ده')+'</button>';
+  const o=q.hol;
+  h+='<details class="acs" style="margin-top:12px"'+(o?' open':'')+'><summary>'+(o?'🎌 أجازة رسمية':'+ أضف أجازة رسمية')+' <small>(لكل الطلاب)</small></summary><input class="in" id="ac_hn" dir="auto" maxlength="120" placeholder="اسم الأجازة" value="'+esc(o?o.name:'')+'" style="margin-top:8px"><label class="acchk"><input type="checkbox" id="ac_hd"'+(o&&o.definite_off?' checked':'')+'> إجازة أكيدة (هناخدها)</label>'+(o&&o.tentative?'<small>التاريخ متوقع، ولسه مستني الإعلان الرسمي.</small>':'')+'<div class="row"><button class="btn ghost" data-achs'+dis+'>حفظ</button>'+(o?'<button class="btn ghost" data-achx'+dis+'>مسح الأجازة</button>':'')+'</div></details>';
+  return h+'</div>';
+}
+async function acWrite(fn){
+  if(AC.busy)return;AC.busy=1;AC.msg='جاري الحفظ…';const id=AC.id;
+  let m='اتحفظ ✓';try{await fn()}catch(x){m='ما اتحفظش: '+x.message}
+  AC.busy=0;if(AC.id!==id)return;AC.msg=m;await acLoad();
+}
+function acClick(e){
+  const t=s=>e.target.closest(s);let b;
+  if(b=t('[data-acm]')){const [y,m]=AC.ym.split('-').map(Number),x=new Date(Date.UTC(y,m-1+ +b.dataset.acm,1));AC.ym=x.getUTCFullYear()+'-'+pad(x.getUTCMonth()+1);AC.sel=null;AC.data=null;AC.msg='';acLoad();return}
+  if(t('[data-acretry]')){AC.data=null;acLoad();return}
+  if(!AC.data||AC.data.err||AC.busy)return;
+  if(b=t('[data-acd]')){AC.sel=b.dataset.acd;AC.msg='';acPaint();return}
+  const d=AC.sel;if(!d)return;
+  if(t('[data-acds]')){openPage('ds');dsInit(d);return}
+  if(t('[data-acabs]')){const has=acDay(d).abs,id=AC.id;acWrite(()=>has?write('trainee_absences?trainee_id=eq.'+encodeURIComponent(id)+'&day=eq.'+d,'DELETE'):write('trainee_absences','POST',{trainee_id:id,day:d}));return}
+  const old=acDay(d).hol;
+  if(t('[data-achs]')){const name=$('ac_hn').value.trim(),off=$('ac_hd').checked;if(!name){AC.msg='اكتب اسم الأجازة';acPaint();return}
+    acWrite(()=>old?write('holidays?day=eq.'+d,'PATCH',{name,definite_off:off}):write('holidays','POST',{day:d,name,definite_off:off}));return}
+  if(t('[data-achx]')&&old&&confirm('تمسح «'+old.name+'» من كاليندر كل الطلاب؟'))acWrite(()=>write('holidays?day=eq.'+d,'DELETE'));
+}
 
 /* ===== Statistics (replaces Database): Trainers (empty) / Students / General. Data from rpc admin_stats + admin_stats_detail (admin only) ===== */
 const fB=n=>{n=+n||0;const u=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<4){n/=1024;i++}return(i?n.toFixed(n<10?2:1):Math.round(n))+' '+u[i]};
@@ -700,7 +815,7 @@ $('side').onclick=e=>{const b=e.target.closest('[data-p]');if(b){if(b.dataset.p=
 $('acc').onclick=students;
 $('pov').onclick=e=>{
   const s=e.target.closest('[data-s]');
-  if(s){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;const to=page==='task'?'task':'ds';page=null;cur=+s.dataset.s;renderAcc();$('pov').classList.remove('on');openPage(to)}
+  if(s){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;const to=page==='task'?'task':page==='cal'?'cal':'ds';page=null;cur=+s.dataset.s;renderAcc();$('pov').classList.remove('on');openPage(to)}
   else if(e.target===$('pov'))$('pov').classList.remove('on');
 };
 $('pop').oninput=e=>{if(e.target.id!=='q')return;const v=e.target.value.trim();$('pop').querySelectorAll('.st').forEach(b=>b.style.display=b.textContent.includes(v)?'':'none')};
@@ -727,9 +842,11 @@ $('lbody').onclick=e=>{
   const an=e.target.closest('[data-an]');if(an&&page==='ann'){$('lbody').dataset.an=an.dataset.an;$('lt').textContent='Announcement · '+an.textContent;$('lbody').innerHTML=annView(an.textContent);return}
   const mc=e.target.closest('[data-mc]');if(mc&&page==='msg'){mgOpen(MG.cells[+mc.dataset.mc].name);return}
   if(e.target.closest('[data-mgsend]')&&page==='msg'){mgSend();return}
+  if(page==='cal'){acClick(e);return}
+  if(page==='rep'){ibClick(e);return}
   if(page==='ds'&&D)dsClick(e);
 };
-$('lbody').oninput=e=>{if(page==='dash'&&e.target.id==='dq'){DB.q=e.target.value;dashPaint();return}if(page==='ds'&&D&&!['ds_date','ds_range','ds_rep'].includes(e.target.id)&&!e.target.closest('#tk_ui')){markDirty();if(e.target.type==='time')paintDs()}};
+$('lbody').oninput=e=>{if(page==='rep'){const k=e.target.dataset&&e.target.dataset.ibr;if(k)IB.draft[k]=e.target.value;return}if(page==='dash'&&e.target.id==='dq'){DB.q=e.target.value;dashPaint();return}if(page==='ds'&&D&&!['ds_date','ds_range','ds_rep'].includes(e.target.id)&&!e.target.closest('#tk_ui')){markDirty();if(e.target.type==='time')paintDs()}};
 $('lbody').onchange=e=>{if(e.target.id!=='ds_date'||!D)return;const v=e.target.value;if(!v||!canLeave()){e.target.value=D.date;return}dsInit(v)};
 $('lbody').addEventListener('keydown',e=>{if(e.target.id==='mgin'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();mgSend()}});
 window.addEventListener('beforeunload',e=>{if(D&&(D.dirty||D.busy)){e.preventDefault();e.returnValue=''}});
