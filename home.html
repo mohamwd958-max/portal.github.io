@@ -639,17 +639,17 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Personal Skills', skT: 'Personal Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Onliner', stMsg: 'Your status is green, meaning that you are an Onliner. If you want to know more, you can talk to your trainer.', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_train: 'Language Training', 
+    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Skills', skT: 'Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Onliner', stMsg: 'Your status is green, meaning that you are an Onliner. If you want to know more, you can talk to your trainer.', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_train: 'Language Training', 
       
       
       uc: 'Under construction', ucDev: 'This option is still under development and will be ready as soon as possible. Please wait until further notice.', intUc: 'Under development', newT: 'New', intT: 'Before you start', intA: 'This section is still under development, and not every feature is ready yet.', intB: 'A section that was recently opened or added.', intOk: 'Got it', sec_train: 'Training Program', sec_gen: 'General Linguistic Services', sec_prod: 'Production', sec_smart: 'Smart Services', sec_pers: 'Personal Services',
-      soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
+      soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pRank: 'Rank', pRankT: 'Title', rk_trainee: 'Trainee', rk_trainer: 'Trainer', rk_admin: 'Admin', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات الشخصية', skT: 'المهارات الشخصية', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'Onliner', stMsg: 'حالة ملفك هي Onliner، أي متابعة كاملة. إن أردت أن تعرف أكثر، تواصل مع مدربك.', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_train: 'التدريب اللغوي', 
+    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات', skT: 'المهارات', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'Onliner', stMsg: 'حالة ملفك هي Onliner، أي متابعة كاملة. إن أردت أن تعرف أكثر، تواصل مع مدربك.', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_train: 'التدريب اللغوي', 
       
       
       uc: 'تحت الإنشاء', ucDev: 'هذا الاختيار لا زال تحت التطوير، سيكون جاهزًا في أقرب وقت ممكن. انتظر حتى إشعار آخر.', intUc: 'تحت التطوير', newT: 'جديد', intT: 'قبل ما تبدأ', intA: 'القسم ده لسه تحت التطوير، ومش كل مميزاته جاهزة.', intB: 'قسم اتفتح أو اتضاف مؤخرًا.', intOk: 'فهمت', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة', sec_prod: 'إنتاج', sec_smart: 'الخدمات الذكية', sec_pers: 'خدمات شخصية',
-      soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
+      soonc: 'ستُعرض معلومات الصفحة هنا.', lvl: 'المستوى', pName: 'الاسم', pRank: 'الرتبة', pRankT: 'اللقب', rk_trainee: 'متدرب', rk_trainer: 'مدرب', rk_admin: 'أدمن', pUser: 'اسم المستخدم', pPhone: 'الهاتف', pEmail: 'البريد الإلكتروني', logout: 'تسجيل الخروج',
       gT: 'هل أنت متأكد أنك تريد الخروج من وضع الضيف؟', gP: 'أنت تتصفح كضيف. ستنتهي جلستك ولن تُحفظ أي تعديلات عند الخروج، لكننا سنظل نتذكرك إن عدت.', gStay: 'البقاء كضيف', gLeave: 'الخروج من وضع الضيف' }
   };
   let L = cfg.lang === 'ar' ? 'ar' : 'en', cur = null;
@@ -1244,6 +1244,7 @@ function THApp(cfg) {
       .stdot i{width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2);transition:background .3s ease,box-shadow .3s ease,scale .4s var(--ease)}
       .stdot:active i{scale:.8}
       .stdot.off i{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.2)}
+      .stdot.part i{background:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.2)}
       .lrow{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--gbd);text-align:start}
       .lrow:last-child{border-bottom:0}
       .lrow>svg{width:36px;height:36px;flex:none}
@@ -1292,7 +1293,7 @@ function THApp(cfg) {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') setLv(false); });
     const lb = $('lvlBtn'); if (lb) lb.onclick = e => { e.stopPropagation(); setSide(false); setLv(true); };
 
-    /* ---- Personal Skills pop-up (same look as the Level pop-up; rows have icons with no border) ---- */
+    /* ---- Skills pop-up (same look as the Level pop-up; rows have icons with no border) ---- */
     const SK_ICON = [
       '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:#f7c948"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
       '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:#5fd4f0"><rect x="3" y="4" width="8" height="4" rx="1"/><rect x="13" y="4" width="8" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="9" y="10" width="12" height="4" rx="1"/><rect x="3" y="16" width="10" height="4" rx="1"/><rect x="15" y="16" width="6" height="4" rx="1"/></svg>',
@@ -1307,19 +1308,61 @@ function THApp(cfg) {
     sov.addEventListener('click', e => { if (e.target === sov) setSk(false); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') setSk(false); });
     const kb = $('skillsBtn'); if (kb) kb.onclick = e => { e.stopPropagation(); setSide(false); setSk(true); };
-    /* ---- status dot: green = Onliner (default for everyone). Users cannot change it; tapping it only opens an info pop-up.
-       The colour will later be set from settings: window.thSetStatus('green' | 'red') ---- */
+    /* ---- the student's own Rank / Level / Skills from basic_info (set in the admin panel). Empty = the button or row is not shown.
+       Called with the trainee_session profile: window.thSetProfile({ rank, rank_title, level, level_note, skills }) ---- */
+    const LV_KEYS = ['wood', 'bronze', 'gold', 'diamond'], SK_KEYS = ['creative', 'rasf', 'tone'];
+    let thProf = null;
+    if (lb) lb.style.display = 'none';
+    if (kb) kb.style.display = 'none';
+    const txt = (tag, cls, v, isT) => { const e = document.createElement(tag); if (cls) e.className = cls; if (isT) { e.dataset.t = v; e.textContent = STR[L][v]; } else { e.dir = 'auto'; e.textContent = v; } return e; };
+    window.thSetProfile = p => {
+      thProf = p || {};
+      /* Level: only the student's own level, with the note under it */
+      const li = LV_KEYS.indexOf(thProf.level), lr = lov.querySelector('.lrows'), lp = lov.querySelector('[data-t="lvP"]');
+      if (lp) lp.remove();
+      lr.innerHTML = '';
+      if (li > -1) {
+        const row = document.createElement('div'); row.className = 'lrow'; row.innerHTML = LV_ICON[li];
+        const d = document.createElement('div'); d.appendChild(txt('b', '', 'lvn' + (li + 1), true)); d.appendChild(txt('span', '', 'lvd' + (li + 1), true));
+        row.appendChild(d); lr.appendChild(row);
+        if (thProf.level_note) { const n = txt('p', 'lnote', thProf.level_note); n.style.cssText = 'margin:14px 2px 0;white-space:pre-wrap;line-height:1.8;text-align:start'; lr.appendChild(n); }
+      }
+      if (lb) lb.style.display = li > -1 ? '' : 'none';
+      if (li < 0 && lov.classList.contains('on')) setLv(false);
+      /* Skills: only the ones ticked for this student, each with its note */
+      const sk = thProf.skills && typeof thProf.skills === 'object' ? thProf.skills : {}, sr = sov.querySelector('.lrows');
+      const have = SK_KEYS.filter(k => Object.prototype.hasOwnProperty.call(sk, k));
+      sr.innerHTML = '';
+      have.forEach(k => {
+        const i = SK_KEYS.indexOf(k), row = document.createElement('div'); row.className = 'lrow'; row.innerHTML = SK_ICON[i];
+        const d = document.createElement('div'); d.appendChild(txt('b', '', 'sk' + (i + 1), true)); if (sk[k]) d.appendChild(txt('span', '', sk[k]));
+        row.appendChild(d); sr.appendChild(row);
+      });
+      if (kb) kb.style.display = have.length ? '' : 'none';
+      if (!have.length && sov.classList.contains('on')) setSk(false);
+      /* Rank + title: two rows at the top of the profile pop-up */
+      const first = $('rN');
+      if (first) {
+        const mk = (id, lab) => { let r = $(id); if (!r) { r = document.createElement('div'); r.className = 'prow'; r.id = id; r.appendChild(txt('b', '', lab, true)); r.appendChild(document.createElement('span')); first.parentNode.insertBefore(r, first); } return r; };
+        const rk = ['trainee', 'trainer', 'admin'].indexOf(thProf.rank) > -1 ? thProf.rank : 'trainee';
+        const r1 = mk('rRank', 'pRank'); r1.lastChild.dataset.t = 'rk_' + rk; r1.lastChild.textContent = STR[L]['rk_' + rk]; r1.lastChild.style.fontWeight = '800';
+        const r2 = mk('rRankT', 'pRankT'); r2.lastChild.dir = 'auto'; r2.lastChild.style.direction = 'auto'; r2.lastChild.textContent = thProf.rank_title || ''; r2.style.display = thProf.rank_title ? '' : 'none';
+        if (r1.nextSibling !== r2) first.parentNode.insertBefore(r2, first);
+      }
+    };
+    /* ---- status dot next to the profile icon = Full-timer (green) / Part-timer (orange); set by window.thSetTimer('full' | 'part').
+       Users cannot change it; tapping it only opens an info pop-up ---- */
     const sd = $('stDot');
     ['support', 'finance'].forEach(k => { const b = R.querySelector('#side .sdi[data-k="' + k + '"]'); if (b) { const n = STR[L]['i_' + k]; if (n) { b.setAttribute('aria-label', n); b.title = n; } } });
     if (sd) {
-      sd.classList.remove('off'); sd.title = STR[L].stOn; sd.setAttribute('aria-label', sd.title);
-      window.thSetStatus = s => { sd.classList.toggle('off', s === 'red'); sd.dataset.status = s === 'red' ? 'red' : 'green'; };
-      window.thSetStatus('green');
+      const tMsg = t => t === 'part' ? (L === 'ar' ? 'أنت <b>Part-timer</b>' : 'You are a <b>Part-timer</b>') : t === 'full' ? (L === 'ar' ? 'أنت <b>Full-timer</b>' : 'You are a <b>Full-timer</b>') : STR[L].stMsg;
+      window.thSetTimer = t => { sd.classList.toggle('part', t === 'part'); sd.dataset.timer = t || ''; sd.title = t === 'part' ? 'Part-timer' : t === 'full' ? 'Full-timer' : STR[L].stOn; sd.setAttribute('aria-label', sd.title); };
+      sd.classList.remove('off'); window.thSetTimer('');
       sd.onclick = e => {
         e.stopPropagation();
         if (W.querySelector('.intro.stp')) return;
         const o = document.createElement('div'); o.className = 'intro stp';
-        o.innerHTML = '<div class="ib"><div class="ir" style="margin:0 0 6px"><div class="ico"><span class="stdot" style="width:auto;height:auto;cursor:default"><i></i></span></div><div><span class="d" style="color:var(--ink);font-size:.88rem">' + STR[L].stMsg + '</span></div></div>' +
+        o.innerHTML = '<div class="ib"><div class="ir" style="margin:0 0 6px"><div class="ico"><span class="stdot' + (sd.dataset.timer === 'part' ? ' part' : '') + '" style="width:auto;height:auto;cursor:default"><i></i></span></div><div><span class="d" style="color:var(--ink);font-size:.88rem">' + tMsg(sd.dataset.timer) + '</span></div></div>' +
           '<button type="button" class="ok"><span class="lb">' + STR[L].intOk + '</span></button></div>';
         const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 350); };
         o.querySelector('.ok').onclick = close;
@@ -1557,7 +1600,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 </script>
 
 <script>
-/* ===== Thabit: Full-timer / Part-timer in the profile + tool tasks on the sidebar buttons ===== */
+/* ===== Thabit: Full-timer / Part-timer dot + tool tasks on the sidebar buttons ===== */
 (function () {
   'use strict';
   var URL_ = 'https://vkfexceitwjmxncwceqb.supabase.co';
@@ -1577,17 +1620,9 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
     '#ttov h3{margin:0 0 10px;font-size:1.05rem;text-align:center}#ttov ol{margin:0;padding-inline-start:22px}#ttov li{margin-bottom:10px;white-space:pre-wrap;text-align:start;overflow-wrap:anywhere}#ttov small{display:block;opacity:.65}#ttov button{display:block;margin:12px auto 0;height:42px;min-width:140px;border:0;border-radius:999px;background:#f97316;color:#fff;font:800 .9rem Cairo,Inter,sans-serif;cursor:pointer}';
   R.appendChild(css);
 
-  /* ---------- Full-timer / Part-timer: a row inside the profile pop-up ---------- */
+  /* ---------- Full-timer / Part-timer: shown only by the dot next to the profile icon ---------- */
   var timer = '';
-  function paintTimer() {
-    var first = R.getElementById('rN'); if (!first) return;
-    var row = R.getElementById('rTimer');
-    if (timer !== 'full' && timer !== 'part') { if (row) row.remove(); return; }
-    if (!row) { row = document.createElement('div'); row.className = 'prow'; row.id = 'rTimer'; row.appendChild(document.createElement('b')); row.appendChild(document.createElement('span')); first.parentNode.insertBefore(row, first); }
-    row.firstChild.textContent = ar() ? 'نوع المتابعة' : 'Timer type';
-    row.lastChild.textContent = timer === 'full' ? 'Full-timer' : 'Part-timer';
-    row.lastChild.style.cssText = 'font-weight:800;color:' + (timer === 'full' ? '#22c55e' : '#f97316');
-  }
+  function paintTimer() { if (window.thSetTimer) window.thSetTimer(timer === 'full' || timer === 'part' ? timer : ''); }
   var prof = R.getElementById('prof');
   if (prof) prof.addEventListener('click', function () { paintTimer(); refresh(); });
 
@@ -1720,7 +1755,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 
   function refresh() {
     if (busy || document.hidden) return; busy = true;
-    var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) { timer = p.attendance_type; paintTimer(); } }).catch(function () { });
+    var a = rpc('trainee_session', { p_token: token }).then(function (p) { if (p) { timer = p.attendance_type; paintTimer(); if (window.thSetProfile) window.thSetProfile(p); } }).catch(function () { });
     var b = rpc('trainee_tool_tasks', { p_token: token }).then(function (r) { tasks = Array.isArray(r) ? r : []; paint(); }).catch(function () { });
     var c = rpc('trainee_announcements', { p_token: token }).then(function (r) { anns = Array.isArray(r) ? r : []; paintAnn(); }).catch(function () { });
     var d = rpc('trainee_notifications', { p_token: token }).then(function (r) { nots = Array.isArray(r) ? r : []; showNots(); }).catch(function () { });
