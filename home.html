@@ -824,7 +824,7 @@ function THApp(cfg) {
      It sits on top of everything with the display area's own background and hides whatever the page would show.
      Inside it: a big rectangle with the button's name + a "still under development" note, and the kit's hammer (js/ui-kit.js, effect: under-construction, same look and CSS)
      scaled to the screen, striking the rectangle's top corner. One function, used for every button in MAINT. */
-  const MAINT = ['store', 'support', 'view', 'compass', 'space', 'passist', 'finance'];
+  const MAINT = ['store', 'support', 'view', 'compass', 'space', 'passist'];
   const isMaint = k => !!k && (MAINT.indexOf(k) > -1 || !!R.querySelector('#side .sdi[data-k="' + k + '"][data-maint]'));
   function clearHm() { R.querySelectorAll('.hmov').forEach(e => { e._dead = true; e.remove(); }); }
   /* Hammer rhythm: 1 heavy strike (more sparks) -> 2 normal strikes back to back -> 1 last strike that stays down on the rectangle. Change the numbers here. */
