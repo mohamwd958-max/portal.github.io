@@ -85,6 +85,11 @@ fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.5}
 .tkb{display:flex;align-items:center;width:100%;height:46px;padding:0 14px;margin-bottom:6px;border:1px solid var(--gbd);border-radius:14px;background:var(--gbg);font:600 14px Cairo,Inter,sans-serif;text-align:start;cursor:pointer}
 .tkb{justify-content:space-between;gap:8px}.tkb .bdg{margin:0}.tksm.on{border-color:var(--ac);color:var(--ac)}.tkf [hidden]{display:none}.ttl{display:block;font-size:12px;color:var(--ink2);text-align:start}
 .ttrow{display:flex;align-items:center;gap:8px;padding:8px 4px;border-top:1px solid var(--gbd);text-align:start}.ttrow>div{flex:1;min-width:0;overflow-wrap:anywhere}.ttrow small{display:block;color:var(--ink2)}.ttbody{white-space:pre-wrap}
+.tkb.on{border-color:var(--ac);color:var(--ac);background:transparent}
+.anrow{display:flex;align-items:center;gap:8px;margin-bottom:10px}.anrow .in{margin:0}
+.anic{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--gbd);background:var(--gbg);font-size:20px;cursor:pointer}
+.anig{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin:0 0 12px;padding:10px;border-radius:16px;border:1px solid var(--gbd);background:var(--gbg)}
+.anig button{height:42px;border:0;border-radius:12px;background:transparent;font-size:21px;cursor:pointer}.anig button:hover{background:var(--gbd)}
 .tkb:hover{border-color:var(--ac)}
 .tkw{text-align:center}
 .tkw h3{margin:6px 0 16px;font:700 16px Cairo,Inter,sans-serif}
@@ -358,10 +363,52 @@ function tkClick(e){
   else if(q('[data-tkretry]'))tkLoad();
 }
 const taskView=()=>'<div class="wrap">'+(tkStu()===null?'<div class="pcard">اختار طالب علشان تضيف له مهمة.<br><button type="button" class="btn ac" data-tkpick="1" style="margin-top:12px">اختار طالب</button></div>':'<div id="tk_ui">'+tkList()+'</div>')+'</div>';
-function annList(){
-  return '<div class="wrap"><p class="hint" style="margin:0 4px 6px">اختار الحاجة اللي عايز تعمل عليها announcement</p>'+SBN.map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(b=>'<button class="tkb" data-an="'+b[0]+'">'+esc(b[1])+'</button>').join('')).join('')+'</div>';
+const AN={step:'home',sel:[],lines:[],busy:false};
+const ANI=['⏰','⏳','📅','💰','💳','📌','⭐','🔥','🎯','🏆','🎁','📢','🔔','✅','❗','❓','💡','📚','📖','✏️','📝','🎧','🎤','🔊','🗣️','🧠','💬','📞','✉️','🔗','🔒','🔑','⚙️','🛠️','📊','📈','🎉','👏','👍','❤️','🚀','🌟','🧩','🕌','🏠','🛒','🎓','🌍','🧭','🪞'];
+const annSay=m=>{if($('an_msg'))$('an_msg').textContent=m};
+function annList(){AN.step='home';
+  return '<div class="wrap"><div class="tkg">Announcements</div><button type="button" class="tkb" data-ann="feed">Feed</button><button type="button" class="tkb" data-ann="popup">Pop-up</button></div>'}
+const annFeed=()=>'<div class="wrap"><div class="tkf"><input class="in" id="an_ft" dir="auto" maxlength="200" placeholder="Title · العنوان"><textarea class="in" id="an_fc" dir="auto" maxlength="1000" placeholder="Content · المحتوى"></textarea><div class="row"><button type="button" class="btn ac" data-anfeed="1">ابعت على الـ Feed</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
+const annPick=()=>'<div class="wrap"><p class="hint" style="margin:0 4px 6px">اختار الزرار (أو أكتر) اللي هيظهر عليه التاج</p>'+SBN.map(g=>'<div class="tkg">'+esc(g[0])+'</div>'+g[1].map(x=>'<button type="button" class="tkb'+(AN.sel.includes(x[0])?' on':'')+'" data-ansel="'+x[0]+'">'+esc(x[1])+'</button>').join('')).join('')+'<div class="row" style="margin-top:14px"><button type="button" class="btn ac" data-annext="1">التالي</button></div><p id="an_msg" class="hint" role="status"></p></div>';
+const annLines=()=>AN.lines.map((l,i)=>'<div class="anrow"><button type="button" class="anic" data-anic="'+i+'" aria-label="Icon">'+l.icon+'</button><input class="in an-tx" dir="auto" maxlength="200" data-i="'+i+'" value="'+esc(l.text)+'" placeholder="السطر '+(i+1)+'">'+(AN.lines.length>1?'<button type="button" class="cb" data-anrm="'+i+'" aria-label="حذف">'+svg('x')+'</button>':'')+'</div>').join('');
+const annEditor=()=>'<div class="wrap"><div class="tkf"><p class="hint" style="margin:0 4px 8px">التاج على: '+esc(AN.sel.map(tkName).join('، '))+'</p><input class="in" id="an_t" dir="auto" maxlength="120" value="'+esc(AN.title||'')+'" placeholder="إيه الجديد؟ · What\'s new"><div id="an_lines">'+annLines()+'</div><div id="an_ipick" hidden></div><button type="button" class="tksm" data-anadd="1">+ Add more</button><label class="ttl">يفضل يظهر كام يوم؟<input type="number" class="in" id="an_days" min="1" max="365" step="1" value="'+(AN.days||7)+'"></label><div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-anback="1">رجوع</button><button type="button" class="btn ac" data-ansave="1">انشر</button></div><p id="an_msg" class="hint" role="status"></p></div></div>';
+function annSync(){const t=$('an_t');if(!t)return;AN.title=t.value;AN.days=$('an_days').value;document.querySelectorAll('.an-tx').forEach(i=>{if(AN.lines[+i.dataset.i])AN.lines[+i.dataset.i].text=i.value})}
+function annGo(step){AN.step=step;const T={feed:'Announcements · Feed',pick:'Announcements · Pop-up',editor:'Announcements · Pop-up',home:'Announcements'};
+  $('lt').textContent=T[step];$('lbody').innerHTML=step==='feed'?annFeed():step==='pick'?annPick():step==='editor'?annEditor():annList()}
+async function annFeedSend(){
+  if(AN.busy)return;const t=$('an_ft').value.trim(),c=$('an_fc').value.trim();
+  if(!t&&!c)return annSay('اكتب العنوان أو المحتوى الأول.');
+  const ids=ST.map(x=>x[2]&&x[2].id).filter(Boolean);if(!ids.length)return annSay('مفيش طلاب.');
+  if(!confirm('تبعت الإشعار ده لـ '+ids.length+' طالب؟'))return;
+  AN.busy=true;annSay('جاري الإرسال…');
+  try{await write('notifications','POST',ids.map(id=>({trainee_id:id,kind:'message',title:t,body:c,meta:{category:'general'}})));
+    $('an_ft').value='';$('an_fc').value='';annSay('اتبعت على الـ Feed ✓ ('+ids.length+')')}
+  catch(e){annSay('❌ '+e.message)}
+  AN.busy=false}
+async function annSave(){
+  if(AN.busy)return;annSync();
+  const lines=AN.lines.map(l=>({icon:l.icon,text:l.text.trim()})).filter(l=>l.text);
+  const title=(AN.title||'').trim(),d=Number(AN.days);
+  if(!title&&!lines.length)return annSay('اكتب العنوان أو سطر واحد على الأقل.');
+  if(!Number.isInteger(d)||d<1||d>365)return annSay('المدة لازم تكون من 1 لـ 365 يوم.');
+  AN.busy=true;annSay('جاري النشر…');
+  try{await write('announcements','POST',{buttons:AN.sel,tag:'auto',popup:{title,lines},ends_at:new Date(Date.now()+d*864e5).toISOString()});
+    AN.sel=[];AN.lines=[];AN.title='';AN.days=7;annGo('home');}
+  catch(e){annSay('❌ '+e.message)}
+  AN.busy=false}
+function annClick(e){
+  const q=s=>e.target.closest(s);let b;
+  if(b=q('[data-ann]')){if(b.dataset.ann==='feed')annGo('feed');else{AN.sel=[];annGo('pick')}}
+  else if(b=q('[data-ansel]')){const k=b.dataset.ansel,i=AN.sel.indexOf(k);if(i<0)AN.sel.push(k);else AN.sel.splice(i,1);b.classList.toggle('on',i<0)}
+  else if(q('[data-annext]')){if(!AN.sel.length)return annSay('اختار زرار واحد على الأقل.');AN.lines=[0,1,2].map(()=>({icon:'📌',text:''}));AN.title='';AN.days=7;annGo('editor')}
+  else if(q('[data-anadd]')){annSync();if(AN.lines.length>=10)return annSay('أقصى عدد 10 سطور.');AN.lines.push({icon:'📌',text:''});$('an_lines').innerHTML=annLines()}
+  else if(b=q('[data-anrm]')){annSync();AN.lines.splice(+b.dataset.anrm,1);$('an_lines').innerHTML=annLines()}
+  else if(b=q('[data-anic]')){annSync();const p=$('an_ipick');AN.ic=+b.dataset.anic;p.hidden=false;p.innerHTML='<div class="anig">'+ANI.map(x=>'<button type="button" data-anpick="'+x+'">'+x+'</button>').join('')+'</div>'}
+  else if(b=q('[data-anpick]')){AN.lines[AN.ic].icon=b.dataset.anpick;$('an_ipick').hidden=true;$('an_lines').innerHTML=annLines()}
+  else if(q('[data-anback]')){annSync();annGo('pick')}
+  else if(q('[data-ansave]'))annSave();
+  else if(q('[data-anfeed]'))annFeedSend();
 }
-const annView=name=>'<div class="wrap"><div class="pcard">Announcement · '+esc(name)+'<br>شكل الـ announcement هييجي في الخطوة الجاية.</div></div>';
 function cairoDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'})}
 /* ===== Daily supply (daily_supply + daily_supply_parts + supply_items) ===== */
 let D=null,dsSeq=0;
@@ -822,7 +869,7 @@ $('pop').oninput=e=>{if(e.target.id!=='q')return;const v=e.target.value.trim();$
 $('back').onclick=()=>{
   if(page==='dash'&&DB.view==='profile'){DB.view='list';DB.msg='';dashPaint();return}
   if(page==='msg'&&MG.open){MG.open=null;$('lt').textContent='Messenger';$('lbody').innerHTML=mgList();return}
-  if(page==='ann'&&$('lbody').dataset.an){delete $('lbody').dataset.an;$('lt').textContent='Announcements';$('lbody').innerHTML=annList();return}
+  if(page==='ann'&&AN.step!=='home'){annSync();annGo(AN.step==='editor'?'pick':'home');return}
   closePage();
 };
 $('lbody').onclick=e=>{
@@ -839,7 +886,7 @@ $('lbody').onclick=e=>{
   }
   if(e.target.closest('[data-tkpick]')){e.stopPropagation();students();return}
   if(e.target.closest('#tk_ui')){tkClick(e);return}
-  const an=e.target.closest('[data-an]');if(an&&page==='ann'){$('lbody').dataset.an=an.dataset.an;$('lt').textContent='Announcement · '+an.textContent;$('lbody').innerHTML=annView(an.textContent);return}
+  if(page==='ann'){annClick(e);return}
   const mc=e.target.closest('[data-mc]');if(mc&&page==='msg'){mgOpen(MG.cells[+mc.dataset.mc].name);return}
   if(e.target.closest('[data-mgsend]')&&page==='msg'){mgSend();return}
   if(page==='cal'){acClick(e);return}
