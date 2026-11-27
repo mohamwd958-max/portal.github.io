@@ -40,9 +40,9 @@
         overall: 'العلامات الحيوية كلها', total: 'المجموع', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
         loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', h: 'س', m: 'د' }
     };
-    Object.assign(T.en, { total: 'Total', overall: 'All vital signs', stats: 'Insights', strong: 'Strong points', weak: 'Weak points', topbtn: 'Most used', missed: 'Sessions missed', tasks: 'Tasks',
+    Object.assign(T.en, { storage: 'Storage', stUsed: 'Your files', stShare: 'Your share', stFiles: 'files', stPass: 'passages', total: 'Total', overall: 'All vital signs', stats: 'Insights', strong: 'Strong points', weak: 'Weak points', topbtn: 'Most used', missed: 'Sessions missed', tasks: 'Tasks',
       ontime: 'On time', late: 'Late', miss: 'Not done', open: 'Open', good: 'On track', warn: 'Needs attention', risk: 'At risk', noTasks: 'No tasks in this period', none2: 'Not enough data', last2: 'Last: ', noMiss: 'No missed sessions' });
-    Object.assign(T.ar, { total: 'المجموع', overall: 'العلامات الحيوية كلها', stats: 'إحصائيات', strong: 'نقاط القوة', weak: 'نقاط الضعف', topbtn: 'الأكثر استخدامًا', missed: 'جلسات فائتة', tasks: 'المهام',
+    Object.assign(T.ar, { storage: 'المساحة', stUsed: 'ملفاتك', stShare: 'نصيبك', stFiles: 'ملف', stPass: 'قطعة', total: 'المجموع', overall: 'العلامات الحيوية كلها', stats: 'إحصائيات', strong: 'نقاط القوة', weak: 'نقاط الضعف', topbtn: 'الأكثر استخدامًا', missed: 'جلسات فائتة', tasks: 'المهام',
       ontime: 'في وقتها', late: 'متأخرة', miss: 'لم تتم', open: 'مفتوحة', good: 'ماشي كويس', warn: 'محتاج انتباه', risk: 'في خطر', noTasks: 'لا توجد مهام في هذه الفترة', none2: 'بيانات غير كافية', last2: 'آخرها: ', noMiss: 'لا توجد جلسات فائتة' });
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
     const tt = () => T[lg()];
@@ -157,7 +157,8 @@
     }
 
     /* ---- insights under the cards ---- */
-    let BTN = [];
+    let BTN = [], STO = null;
+    const mb = b => (b / 1048576 >= 10 ? Math.round(b / 1048576) : +(b / 1048576).toFixed(1)) + ' MB';
     function taskStats() {
       const now = D.now + (Date.now() - (D.t0 || Date.now())), c = { ok: 0, late: 0, miss: 0, open: 0 };
       (D.items || []).filter(i => i.kind === 'task' && inRange({ supply_date: i.date })).forEach(i => {
@@ -178,6 +179,8 @@
       h += '<div class="card"><h4>' + t.weak + '</h4>' + (weak.length ? weak.map(x => chip(x, 'r')).join('') : cm) + (wp ? '<div class="sm" dir="auto" style="margin-top:8px">' + esc(wp.length > 160 ? wp.slice(0, 160) + '…' : wp) + '</div>' : '') + '</div>';
       const tb = BTN.filter(b => b !== 'dash').slice(0, 5);
       h += '<div class="card"><h4>' + t.topbtn + '</h4>' + (tb.length ? tb.map((b, i) => '<div class="chip"><span>' + (i + 1) + '. ' + esc((ctx.STR[L] && ctx.STR[L]['i_' + b]) || b) + '</span></div>').join('') : cm) + '</div>';
+      if (STO) { const pc = STO.share_bytes ? Math.min(100, STO.library_bytes / STO.share_bytes * 100) : 0;
+        h += '<div class="card"><h4>' + t.storage + '</h4><div class="big">' + mb(STO.library_bytes) + ' <span class="sm">/ ' + mb(STO.share_bytes) + '</span></div><div class="sm">' + t.stUsed + ': ' + STO.files + ' ' + t.stFiles + ' · ' + STO.passages + ' ' + t.stPass + '</div><div class="bar"><i style="width:' + pc.toFixed(1) + '%"></i></div><div class="sm">' + pc.toFixed(1) + '% · ' + t.stShare + '</div></div>'; }
       const ms = rows.filter(r => r.attendance != null && r.attendance !== '' && Number(r.attendance) === 0);
       h += '<div class="card"><h4>' + t.missed + '</h4><div class="big">' + ms.length + '</div>' + (ms.length ? '<div class="sm">' + t.last2 + esc(ms[ms.length - 1].supply_date) + '</div>' : '<div class="sm">' + t.noMiss + '</div>') + '</div>';
       const k = taskStats(), fin = k.ok + k.late + k.miss, ratio = fin ? k.ok / fin : null;
@@ -235,6 +238,7 @@
       if (!d || !d.profile) { if (!silent) say(t.login); return; }
       d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0')));
       d.t0 = Date.now(); try { BTN = await rpc('trainee_top_buttons', { p_token: tok(), p_limit: 8 }); } catch (e) { }
+      try { STO = await rpc('trainee_storage_stats', { p_token: tok() }); } catch (e) { }
       if (id !== loadId) return;
       TZ = tzFromProfile(d.profile); D = d; if (!silent) manual = false; paint();
     }
@@ -296,6 +300,7 @@
 .vsw .sh{font-size:18px;color:var(--ink);max-width:1100px;margin:56px auto 20px;display:block}.vsw .ins{margin-top:0}
 .vsw .chip{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 11px;margin-top:6px;border-radius:12px;background:rgba(127,127,127,.12);font:600 12.5px Cairo,Inter,sans-serif}
 .vsw .chip b{font:800 13px Inter,sans-serif}.vsw .chip.g b{color:#22c55e}.vsw .chip.r b{color:#ef4444}.vsw .chip.w b{color:#f59e0b}.vsw .warn{color:#f59e0b;font:700 12px Cairo,Inter,sans-serif;margin-top:8px}.vsw .ins .up,.vsw .ins .down{margin-top:8px;font-family:Cairo,Inter,sans-serif}
+.vsw .bar{height:7px;border-radius:99px;background:rgba(127,127,127,.2);margin:10px 0 6px;overflow:hidden}.vsw .bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#22d3a6,#4c8dff)}
 .vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}`;
 
     function render(b) {
