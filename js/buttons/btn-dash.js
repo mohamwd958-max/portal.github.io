@@ -25,7 +25,8 @@
     const SB = "https://vkfexceitwjmxncwceqb.supabase.co";
     const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI";
     const TOKEN_KEY = 'thabit_trainee_token';
-    const MET = ['performance', 'attitude', 'soft_skills', 'compliance', 'attendance'];
+    /* الالتزام مخفي مؤقتًا: عشان يرجع ضيفه تاني بين performance و attendance */
+    const MET = ['performance', 'attitude', 'soft_skills', 'attendance'];
     const DAYS = { week: 7, month: 30, year: 365 };
 
     /* ---- small texts ---- */
@@ -39,6 +40,10 @@
         overall: 'العلامات الحيوية كلها', total: 'المجموع', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
         loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', h: 'س', m: 'د' }
     };
+    Object.assign(T.en, { total: 'Average', overall: 'Overall average', stats: 'Insights', strong: 'Strong points', weak: 'Weak points', topbtn: 'Most used', missed: 'Sessions missed', tasks: 'Tasks',
+      ontime: 'On time', late: 'Late', miss: 'Not done', open: 'Open', good: 'On track', warn: 'Needs attention', risk: 'At risk', noTasks: 'No tasks in this period', none2: 'Not enough data', last2: 'Last: ', noMiss: 'No missed sessions' });
+    Object.assign(T.ar, { total: 'المتوسط', overall: 'المتوسط العام', stats: 'إحصائيات', strong: 'نقاط القوة', weak: 'نقاط الضعف', topbtn: 'الأكثر استخدامًا', missed: 'جلسات فائتة', tasks: 'المهام',
+      ontime: 'في وقتها', late: 'متأخرة', miss: 'لم تتم', open: 'مفتوحة', good: 'ماشي كويس', warn: 'محتاج انتباه', risk: 'في خطر', noTasks: 'لا توجد مهام في هذه الفترة', none2: 'بيانات غير كافية', last2: 'آخرها: ', noMiss: 'لا توجد جلسات فائتة' });
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
     const tt = () => T[lg()];
     const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -88,7 +93,7 @@
     const mins = r => { if (r.total_minutes != null) return Number(r.total_minutes) || 0; const a = hm(r.start_time), b = hm(r.end_time); return a == null || b == null ? 0 : (b >= a ? b - a : b + 1440 - a); };
     const fmtDur = m => { const t = tt(); return m < 60 ? m + ' ' + t.m : Math.floor(m / 60) + t.h + (m % 60 ? ' ' + (m % 60) + t.m : ''); };
     const delta = d => '<div class="' + (d > 0 ? 'up' : d < 0 ? 'down' : 'flat') + '">' + (d > 0 ? '▲ +' : d < 0 ? '▼ ' : '■ ') + d + '</div>';
-    const sumOf = r => { const v = MET.map(m => r[m]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? +v.reduce((a, b) => a + b, 0).toFixed(1) : null; };
+    const avgOf = r => { const v = MET.map(m => r[m]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };   /* متوسط الدرجات (من 10) */
 
     /* ---- the chart: cumulative series, days (<=31) or months; y max = 10 x days ---- */
     function series(rows) {
@@ -104,7 +109,7 @@
       rows.forEach(r => { const i = idx[monthly ? r.supply_date.slice(0, 7) : r.supply_date]; if (i != null) bk[i].rows.push(r); });
       const cum = {};
       MET.forEach(k => { let s = 0; cum[k] = bk.map(b => { b.rows.forEach(r => s += Number(r[k]) || 0); return s; }); });
-      cum.total = bk.map((_, i) => +MET.reduce((a, k) => a + cum[k][i], 0).toFixed(1));
+      { let s2 = 0; cum.total = bk.map(b => { b.rows.forEach(r => { const a = avgOf(r); if (a != null) s2 += a; }); return +s2.toFixed(1); }); }
       return { bk, cum, max: 10 * days };
     }
     function smooth(p) {
@@ -121,13 +126,13 @@
       const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab), MX = S.max * (o.mul || 1);
       const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / MX) * (H - Tp - B);
       let s = '<svg class="c2' + (played ? '' : ' ci') + '" viewBox="0 0 ' + W + ' ' + H + '" data-l="' + L + '" data-b="' + (H - B) + '">';
-      if (o.grad) s += '<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="' + L + '" y1="0" x2="' + (W - R) + '" y2="0"><stop offset="0" stop-color="#ff5d55"/><stop offset=".34" stop-color="#ffc247"/><stop offset=".67" stop-color="#22d3a6"/><stop offset="1" stop-color="#4c8dff"/></linearGradient></defs>';
+      if (o.grad) s += '<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="' + L + '" y1="0" x2="' + (W - R) + '" y2="0"><stop offset="0.0" stop-color="#ff3b6b"/><stop offset="0.167" stop-color="#ff9f1c"/><stop offset="0.333" stop-color="#ffe14d"/><stop offset="0.5" stop-color="#2ee59d"/><stop offset="0.667" stop-color="#35c4ff"/><stop offset="0.833" stop-color="#5b7cff"/><stop offset="1.0" stop-color="#b45cff"/></linearGradient></defs>';
       let tx = ''; [0, MX / 2, MX].forEach(g => tx += '<text class="tx" x="' + (L - 6) + '" y="' + (y(g) + o.f / 3) + '" text-anchor="end" font-size="' + o.f + '">' + Math.round(g) + '</text>');
       S.bk.forEach((b, i) => { if (i % step === 0) tx += '<text class="tx" x="' + x(i) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="' + o.f + '">' + b.label + '</text>'; });
       keys.forEach(k => {
         const li = keys.indexOf(k);
         s += '<path class="ln ' + k + '" pathLength="1" style="--li:' + li + (o.grad && k === 'total' ? ';stroke:url(#thOvG)' : '') + '" fill="none" stroke-width="' + o.w + '" d="' + smooth(S.cum[k].map((v, i) => [x(i), y(v)])) + '"/>';
-        S.bk.forEach((b, i) => { if (k === 'total' ? b.rows.some(r => sumOf(r) != null) : b.rows.some(r => r[k] != null && r[k] !== '')) {
+        S.bk.forEach((b, i) => { if (k === 'total' ? b.rows.some(r => avgOf(r) != null) : b.rows.some(r => r[k] != null && r[k] !== '')) {
           const cx = x(i), cy = y(S.cum[k][i]), at = 'data-k="' + k + '" data-i="' + i + '" data-cx="' + cx + '" data-cy="' + cy + '"';
           s += '<circle class="dot ' + k + '" style="--d:' + (n < 2 ? 0 : i / (n - 1)).toFixed(3) + ';--li:' + li + '" cx="' + cx + '" cy="' + cy + '" r="' + o.r + '" ' + at + '/><circle class="dot hit" cx="' + cx + '" cy="' + cy + '" r="' + o.hit + '" ' + at + '/>'; } });
       });
@@ -143,12 +148,42 @@
       const base = before.length ? before[before.length - 1] : vals[0];
       return h + '<div class="big">' + cur + ' <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(2)) + ch + '<div class="sm why" data-why="' + key + '">' + t.tap + '</div></div>';
     }
-    /* the box on top: the five scores added together (out of 50 a day), drawn in the colours of the spectrum; follows the same filter */
+    /* the box on top: the average of the scores (out of 10), drawn in the colours of the spectrum; follows the same filter */
     function overall(rows, S) {
-      const t = tt(), vals = rows.map(sumOf).filter(v => v != null), h = '<h4 class="rb">' + t.overall + '</h4>';
+      const t = tt(), vals = rows.map(avgOf).filter(v => v != null), h = '<h4 class="rb">' + t.overall + '</h4>';
       if (!vals.length) return h + '<div class="sm">' + t.none + '</div>';
       const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-      return h + '<div class="big"><span class="rb">' + cur + '</span> <span class="sm">/ 50</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['total'], { W: 700, H: 300, L: 44, f: 13, w: 3.4, r: 3.4, hit: 20, lab: 10, grad: true, mul: MET.length });
+      return h + '<div class="big"><span class="rb">' + cur + '</span> <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['total'], { W: 700, H: 280, L: 40, f: 11, w: 1.6, r: 2.4, hit: 16, lab: 10, grad: true });
+    }
+
+    /* ---- insights under the cards ---- */
+    let BTN = [];
+    function taskStats() {
+      const now = D.now + (Date.now() - (D.t0 || Date.now())), c = { ok: 0, late: 0, miss: 0, open: 0 };
+      (D.items || []).filter(i => i.kind === 'task' && inRange({ supply_date: i.date })).forEach(i => {
+        const p = i.plan, n = p && p.n_eff, ch = i.checks || []; if (!p || !n) return;
+        const done = ch.length >= n, ontime = ch.length > 0 && ch.every(x => { const o = p.opens && p.opens[x.no - 1]; return o != null && x.at - o <= 3600000; });
+        if (done) c[ontime ? 'ok' : 'late']++; else if (now > p.deadline) c[ch.length ? 'late' : 'miss']++; else c.open++;
+      });
+      return c;
+    }
+    function stats(rows) {
+      const t = tt(), L = lg(), cm = '<div class="sm">' + t.none2 + '</div>';
+      const av = MET.map(k => { const v = rows.map(r => r[k]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? { k, a: +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) } : null; }).filter(Boolean).sort((a, b) => b.a - a.a);
+      const strong = av.slice(0, Math.min(2, Math.ceil(av.length / 2))), weak = av.length > 1 ? av.slice(-Math.min(2, Math.floor(av.length / 2))).reverse() : [];
+      const chip = (x, cls) => '<div class="chip ' + cls + '"><span>' + t[x.k] + '</span><b>' + x.a + '</b></div>';
+      const wp = rows.slice().reverse().map(r => String(r.weak_points || '').trim()).find(Boolean);
+      let h = '<h4 class="rb sh">' + t.stats + '</h4><div class="grid ins">';
+      h += '<div class="card"><h4>' + t.strong + '</h4>' + (strong.length ? strong.map(x => chip(x, 'g')).join('') : cm) + '</div>';
+      h += '<div class="card"><h4>' + t.weak + '</h4>' + (weak.length ? weak.map(x => chip(x, 'r')).join('') : cm) + (wp ? '<div class="sm" dir="auto" style="margin-top:8px">' + esc(wp.length > 160 ? wp.slice(0, 160) + '…' : wp) + '</div>' : '') + '</div>';
+      const tb = BTN.filter(b => b !== 'dash').slice(0, 5);
+      h += '<div class="card"><h4>' + t.topbtn + '</h4>' + (tb.length ? tb.map((b, i) => '<div class="chip"><span>' + (i + 1) + '. ' + esc((ctx.STR[L] && ctx.STR[L]['i_' + b]) || b) + '</span></div>').join('') : cm) + '</div>';
+      const ms = rows.filter(r => r.attendance != null && r.attendance !== '' && Number(r.attendance) === 0);
+      h += '<div class="card"><h4>' + t.missed + '</h4><div class="big">' + ms.length + '</div>' + (ms.length ? '<div class="sm">' + t.last2 + esc(ms[ms.length - 1].supply_date) + '</div>' : '<div class="sm">' + t.noMiss + '</div>') + '</div>';
+      const k = taskStats(), fin = k.ok + k.late + k.miss, ratio = fin ? k.ok / fin : null;
+      const v = ratio == null ? '' : ratio >= .75 ? '<div class="up">● ' + t.good + '</div>' : ratio >= .5 ? '<div class="warn">● ' + t.warn + '</div>' : '<div class="down">● ' + t.risk + '</div>';
+      h += '<div class="card"><h4>' + t.tasks + '</h4>' + (fin + k.open ? '<div class="chip g"><span>' + t.ontime + '</span><b>' + k.ok + '</b></div><div class="chip w"><span>' + t.late + '</span><b>' + k.late + '</b></div><div class="chip r"><span>' + t.miss + '</span><b>' + k.miss + '</b></div><div class="chip"><span>' + t.open + '</span><b>' + k.open + '</b></div>' + v : '<div class="sm">' + t.noTasks + '</div>') + '</div>';
+      return h + '</div>';
     }
 
     /* ---- the screen ---- */
@@ -160,7 +195,7 @@
       let h = '<div class="rrow"><div class="sm note">' + (range !== 'today' && last ? t.last + esc(last) : '') + '</div><div class="rng"><button type="button" class="thrb' + (range === 'lmonth' ? ' lm' : '') + '" aria-haspopup="true" aria-label="' + esc(t[range]) + '"><span>' + esc(t[range]) + '</span></button></div></div>';
       h += '<div class="card ov">' + overall(rows, S) + '</div>';
       h += '<div class="card two"><div><h4>' + t.sessions + '</h4><div class="big">' + rows.length + '</div></div><div class="sep"><h4>' + t.duration + '</h4><div class="big">' + fmtDur(rows.reduce((a, r) => a + mins(r), 0)) + '</div></div></div>';
-      h += '<div class="grid">' + MET.map(k => kpi(k, rows, all, S)).join('') + '</div>';
+      h += '<div class="grid">' + MET.map(k => kpi(k, rows, all, S)).join('') + '</div>' + stats(rows);
       root.innerHTML = h; root.scrollTop = keep;
       if (!played) { played = true; setTimeout(() => { if (root) root.querySelectorAll('svg.c2.ci').forEach(e => e.classList.add('go')); }, 60); }
     }
@@ -199,6 +234,8 @@
       if (id !== loadId) return;
       if (!d || !d.profile) { if (!silent) say(t.login); return; }
       d.rows = (d.rows || []).slice().sort((a, b) => (a.supply_date + String(a.session_number).padStart(5, '0')).localeCompare(b.supply_date + String(b.session_number).padStart(5, '0')));
+      d.t0 = Date.now(); try { BTN = await rpc('trainee_top_buttons', { p_token: tok(), p_limit: 8 }); } catch (e) { }
+      if (id !== loadId) return;
       TZ = tzFromProfile(d.profile); D = d; if (!silent) manual = false; paint();
     }
 
@@ -206,7 +243,7 @@
       const t = tt(), sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
       if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
       const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
-      const sc = b.rows.reduce((a, x) => a + (k === 'total' ? (sumOf(x) || 0) : (Number(x[k]) || 0)), 0);
+      const sc = b.rows.reduce((a, x) => a + (k === 'total' ? (avgOf(x) || 0) : (Number(x[k]) || 0)), 0);
       const host = root; let tip = host.querySelector('.tip'); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip); }
       const rr = host.getBoundingClientRect(), bx = d.getBoundingClientRect();
       tip.textContent = b.label + ' · ' + t[k] + ' ' + v + ' (+' + sc + ')';
@@ -252,10 +289,13 @@
 @media(prefers-reduced-motion:reduce){.vsw svg.c2.ci .ln{stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}.vsw svg.c2.ci .dot:not(.hit){opacity:1;animation:none!important}}
 .vsw .why{margin-top:6px;min-height:18px}
 .vsw .ov{position:relative;border-color:transparent}
-.vsw .ov::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:linear-gradient(90deg,#ff5d55,#ffc247,#22d3a6,#4c8dff,#a855f7);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
-.vsw .rb{background:linear-gradient(90deg,#ff5d55,#ffc247,#22d3a6,#4c8dff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.vsw .dot.total{fill:#fff}#W.light .vsw .dot.total{fill:#111}
+.vsw .ov::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:linear-gradient(90deg,#ff3b6b,#ff9f1c,#ffe14d,#2ee59d,#35c4ff,#5b7cff,#b45cff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.vsw .rb{background:linear-gradient(90deg,#ff3b6b,#ff9f1c,#ffe14d,#2ee59d,#35c4ff,#5b7cff,#b45cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.vsw .dot.total{fill:url(#thOvG)}
 .vsw .ov h4.rb{display:inline-block;font-size:15px}
+.vsw .sh{font-size:15px;max-width:1100px;margin:0 auto 12px;display:block}.vsw .ins{margin-top:0}
+.vsw .chip{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 11px;margin-top:6px;border-radius:12px;background:rgba(127,127,127,.12);font:600 12.5px Cairo,Inter,sans-serif}
+.vsw .chip b{font:800 13px Inter,sans-serif}.vsw .chip.g b{color:#22c55e}.vsw .chip.r b{color:#ef4444}.vsw .chip.w b{color:#f59e0b}.vsw .warn{color:#f59e0b;font:700 12px Cairo,Inter,sans-serif;margin-top:8px}.vsw .ins .up,.vsw .ins .down{margin-top:8px;font-family:Cairo,Inter,sans-serif}
 .vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}`;
 
     function render(b) {
