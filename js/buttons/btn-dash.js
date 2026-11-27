@@ -40,9 +40,9 @@
         overall: 'العلامات الحيوية كلها', total: 'المجموع', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
         loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', h: 'س', m: 'د' }
     };
-    Object.assign(T.en, { total: 'Average', overall: 'Overall average', stats: 'Insights', strong: 'Strong points', weak: 'Weak points', topbtn: 'Most used', missed: 'Sessions missed', tasks: 'Tasks',
+    Object.assign(T.en, { total: 'Total', overall: 'All vital signs', stats: 'Insights', strong: 'Strong points', weak: 'Weak points', topbtn: 'Most used', missed: 'Sessions missed', tasks: 'Tasks',
       ontime: 'On time', late: 'Late', miss: 'Not done', open: 'Open', good: 'On track', warn: 'Needs attention', risk: 'At risk', noTasks: 'No tasks in this period', none2: 'Not enough data', last2: 'Last: ', noMiss: 'No missed sessions' });
-    Object.assign(T.ar, { total: 'المتوسط', overall: 'المتوسط العام', stats: 'إحصائيات', strong: 'نقاط القوة', weak: 'نقاط الضعف', topbtn: 'الأكثر استخدامًا', missed: 'جلسات فائتة', tasks: 'المهام',
+    Object.assign(T.ar, { total: 'المجموع', overall: 'العلامات الحيوية كلها', stats: 'إحصائيات', strong: 'نقاط القوة', weak: 'نقاط الضعف', topbtn: 'الأكثر استخدامًا', missed: 'جلسات فائتة', tasks: 'المهام',
       ontime: 'في وقتها', late: 'متأخرة', miss: 'لم تتم', open: 'مفتوحة', good: 'ماشي كويس', warn: 'محتاج انتباه', risk: 'في خطر', noTasks: 'لا توجد مهام في هذه الفترة', none2: 'بيانات غير كافية', last2: 'آخرها: ', noMiss: 'لا توجد جلسات فائتة' });
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
     const tt = () => T[lg()];
@@ -93,7 +93,7 @@
     const mins = r => { if (r.total_minutes != null) return Number(r.total_minutes) || 0; const a = hm(r.start_time), b = hm(r.end_time); return a == null || b == null ? 0 : (b >= a ? b - a : b + 1440 - a); };
     const fmtDur = m => { const t = tt(); return m < 60 ? m + ' ' + t.m : Math.floor(m / 60) + t.h + (m % 60 ? ' ' + (m % 60) + t.m : ''); };
     const delta = d => '<div class="' + (d > 0 ? 'up' : d < 0 ? 'down' : 'flat') + '">' + (d > 0 ? '▲ +' : d < 0 ? '▼ ' : '■ ') + d + '</div>';
-    const avgOf = r => { const v = MET.map(m => r[m]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };   /* متوسط الدرجات (من 10) */
+    const sumOf = r => { const v = MET.map(m => r[m]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? +v.reduce((a, b) => a + b, 0).toFixed(1) : null; };   /* مجموع الدرجات (من 10 × عدد البنود) */
 
     /* ---- the chart: cumulative series, days (<=31) or months; y max = 10 x days ---- */
     function series(rows) {
@@ -109,7 +109,7 @@
       rows.forEach(r => { const i = idx[monthly ? r.supply_date.slice(0, 7) : r.supply_date]; if (i != null) bk[i].rows.push(r); });
       const cum = {};
       MET.forEach(k => { let s = 0; cum[k] = bk.map(b => { b.rows.forEach(r => s += Number(r[k]) || 0); return s; }); });
-      { let s2 = 0; cum.total = bk.map(b => { b.rows.forEach(r => { const a = avgOf(r); if (a != null) s2 += a; }); return +s2.toFixed(1); }); }
+      { let s2 = 0; cum.total = bk.map(b => { b.rows.forEach(r => { const a = sumOf(r); if (a != null) s2 += a; }); return +s2.toFixed(1); }); }
       return { bk, cum, max: 10 * days };
     }
     function smooth(p) {
@@ -125,14 +125,14 @@
     function chart(S, keys, o) {
       const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab), MX = S.max * (o.mul || 1);
       const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / MX) * (H - Tp - B);
-      let s = '<svg class="c2' + (played ? '' : ' ci') + '" viewBox="0 0 ' + W + ' ' + H + '" data-l="' + L + '" data-b="' + (H - B) + '">';
+      let s = '<svg class="c2' + (o.anim && !played ? ' ci' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" data-l="' + L + '" data-b="' + (H - B) + '">';
       if (o.grad) s += '<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="' + L + '" y1="0" x2="' + (W - R) + '" y2="0"><stop offset="0.0" stop-color="#ff3b6b"/><stop offset="0.167" stop-color="#ff9f1c"/><stop offset="0.333" stop-color="#ffe14d"/><stop offset="0.5" stop-color="#2ee59d"/><stop offset="0.667" stop-color="#35c4ff"/><stop offset="0.833" stop-color="#5b7cff"/><stop offset="1.0" stop-color="#b45cff"/></linearGradient></defs>';
       let tx = ''; [0, MX / 2, MX].forEach(g => tx += '<text class="tx" x="' + (L - 6) + '" y="' + (y(g) + o.f / 3) + '" text-anchor="end" font-size="' + o.f + '">' + Math.round(g) + '</text>');
       S.bk.forEach((b, i) => { if (i % step === 0) tx += '<text class="tx" x="' + x(i) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="' + o.f + '">' + b.label + '</text>'; });
       keys.forEach(k => {
         const li = keys.indexOf(k);
         s += '<path class="ln ' + k + '" pathLength="1" style="--li:' + li + (o.grad && k === 'total' ? ';stroke:url(#thOvG)' : '') + '" fill="none" stroke-width="' + o.w + '" d="' + smooth(S.cum[k].map((v, i) => [x(i), y(v)])) + '"/>';
-        S.bk.forEach((b, i) => { if (k === 'total' ? b.rows.some(r => avgOf(r) != null) : b.rows.some(r => r[k] != null && r[k] !== '')) {
+        S.bk.forEach((b, i) => { if (k === 'total' ? b.rows.some(r => sumOf(r) != null) : b.rows.some(r => r[k] != null && r[k] !== '')) {
           const cx = x(i), cy = y(S.cum[k][i]), at = 'data-k="' + k + '" data-i="' + i + '" data-cx="' + cx + '" data-cy="' + cy + '"';
           s += '<circle class="dot ' + k + '" style="--d:' + (n < 2 ? 0 : i / (n - 1)).toFixed(3) + ';--li:' + li + '" cx="' + cx + '" cy="' + cy + '" r="' + o.r + '" ' + at + '/><circle class="dot hit" cx="' + cx + '" cy="' + cy + '" r="' + o.hit + '" ' + at + '/>'; } });
       });
@@ -150,10 +150,10 @@
     }
     /* the box on top: the average of the scores (out of 10), drawn in the colours of the spectrum; follows the same filter */
     function overall(rows, S) {
-      const t = tt(), vals = rows.map(avgOf).filter(v => v != null), h = '<h4 class="rb">' + t.overall + '</h4>';
+      const t = tt(), vals = rows.map(sumOf).filter(v => v != null), h = '<h4 class="rb">' + t.overall + '</h4>';
       if (!vals.length) return h + '<div class="sm">' + t.none + '</div>';
       const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-      return h + '<div class="big"><span class="rb">' + cur + '</span> <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['total'], { W: 700, H: 280, L: 40, f: 11, w: 1.6, r: 2.4, hit: 16, lab: 10, grad: true });
+      return h + '<div class="big"><span class="rb">' + cur + '</span> <span class="sm">/ ' + 10 * MET.length + '</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['total'], { W: 700, H: 280, L: 40, f: 11, w: 1.6, r: 2.4, hit: 16, lab: 10, grad: true, mul: MET.length, anim: true });
     }
 
     /* ---- insights under the cards ---- */
@@ -173,7 +173,7 @@
       const strong = av.slice(0, Math.min(2, Math.ceil(av.length / 2))), weak = av.length > 1 ? av.slice(-Math.min(2, Math.floor(av.length / 2))).reverse() : [];
       const chip = (x, cls) => '<div class="chip ' + cls + '"><span>' + t[x.k] + '</span><b>' + x.a + '</b></div>';
       const wp = rows.slice().reverse().map(r => String(r.weak_points || '').trim()).find(Boolean);
-      let h = '<h4 class="rb sh">' + t.stats + '</h4><div class="grid ins">';
+      let h = '<h4 class="sh">' + t.stats + '</h4><div class="grid ins">';
       h += '<div class="card"><h4>' + t.strong + '</h4>' + (strong.length ? strong.map(x => chip(x, 'g')).join('') : cm) + '</div>';
       h += '<div class="card"><h4>' + t.weak + '</h4>' + (weak.length ? weak.map(x => chip(x, 'r')).join('') : cm) + (wp ? '<div class="sm" dir="auto" style="margin-top:8px">' + esc(wp.length > 160 ? wp.slice(0, 160) + '…' : wp) + '</div>' : '') + '</div>';
       const tb = BTN.filter(b => b !== 'dash').slice(0, 5);
@@ -243,7 +243,7 @@
       const t = tt(), sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
       if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
       const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
-      const sc = b.rows.reduce((a, x) => a + (k === 'total' ? (avgOf(x) || 0) : (Number(x[k]) || 0)), 0);
+      const sc = b.rows.reduce((a, x) => a + (k === 'total' ? (sumOf(x) || 0) : (Number(x[k]) || 0)), 0);
       const host = root; let tip = host.querySelector('.tip'); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip); }
       const rr = host.getBoundingClientRect(), bx = d.getBoundingClientRect();
       tip.textContent = b.label + ' · ' + t[k] + ' ' + v + ' (+' + sc + ')';
@@ -257,7 +257,7 @@
 .vsw{position:relative;height:100%;color:var(--ink);font-family:Cairo,Inter,system-ui,sans-serif}
 .vs{position:relative;height:100%;overflow:auto;padding:16px 16px 48px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .vs::-webkit-scrollbar{display:none}
-.vsw .card{max-width:1100px;margin:0 auto 32px;padding:18px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.vsw .card{max-width:1100px;margin:0 auto 40px;padding:18px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
 .vsw .card.msg{text-align:center;color:var(--ink2);padding:36px 16px}
 .vsw h4{margin:0 0 6px;font:800 13.5px Cairo,Inter,sans-serif;color:var(--ink)}
 .vsw .big{font:800 26px/1.15 Inter,Cairo,sans-serif}.vsw .sm{font:500 12px/1.5 Cairo,Inter,sans-serif;color:var(--ink2)}.vsw .big .sm{font-size:13px}
@@ -276,7 +276,7 @@
 .vsw .thro:active{transform:scale(.92)}#W.light .vsw .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 @keyframes vsIn{from{opacity:0}to{opacity:1}}
 .vsw .two{display:flex;gap:14px}.vsw .two>div{flex:1}.vsw .sep{border-inline-start:1px solid var(--sbd);padding-inline-start:14px}
-.vsw .grid{max-width:1100px;margin:0 auto 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),340px));justify-content:center;gap:32px 28px}.vsw .grid .card{margin:0}
+.vsw .grid{max-width:1100px;margin:0 auto 56px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),340px));justify-content:center;gap:44px 28px}.vsw .grid .card{margin:0}
 .vsw svg.c2{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}.vsw .ov svg.c2{max-height:min(40vh,380px)}
 .vsw svg.c2 .tx{fill:var(--ink2);pointer-events:none}.vsw svg.c2 .xh{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
 .vsw svg.c2 .ln{stroke-linecap:round;stroke-linejoin:round}.vsw svg.c2 .dot{stroke:none;cursor:pointer}.vsw svg.c2 .dot.hit{fill:transparent}
@@ -293,7 +293,7 @@
 .vsw .rb{background:linear-gradient(90deg,#ff3b6b,#ff9f1c,#ffe14d,#2ee59d,#35c4ff,#5b7cff,#b45cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .vsw .dot.total{fill:url(#thOvG)}
 .vsw .ov h4.rb{display:inline-block;font-size:15px}
-.vsw .sh{font-size:15px;max-width:1100px;margin:0 auto 12px;display:block}.vsw .ins{margin-top:0}
+.vsw .sh{font-size:18px;color:var(--ink);max-width:1100px;margin:56px auto 20px;display:block}.vsw .ins{margin-top:0}
 .vsw .chip{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 11px;margin-top:6px;border-radius:12px;background:rgba(127,127,127,.12);font:600 12.5px Cairo,Inter,sans-serif}
 .vsw .chip b{font:800 13px Inter,sans-serif}.vsw .chip.g b{color:#22c55e}.vsw .chip.r b{color:#ef4444}.vsw .chip.w b{color:#f59e0b}.vsw .warn{color:#f59e0b;font:700 12px Cairo,Inter,sans-serif;margin-top:8px}.vsw .ins .up,.vsw .ins .down{margin-top:8px;font-family:Cairo,Inter,sans-serif}
 .vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}`;
