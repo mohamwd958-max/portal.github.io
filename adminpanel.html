@@ -674,12 +674,14 @@ function openPage(p){
 function closePage(){if(dsBusy()||(page==='ds'&&!canLeave()))return;D=null;MG.open=null;page=null;$('layer').classList.remove('on');renderSide()}
 
 /* ===== Inbound: students' reports (rpc admin_reports / admin_report_decide, admin only) ===== */
-const IB={list:null,tab:'open',err:'',msg:'',busy:0,draft:{},seq:0};
-const ibOpen=()=>(IB.list||[]).filter(r=>r.status==='open').length;
+const IB={list:null,revs:[],tab:'open',err:'',msg:'',busy:0,draft:{},seq:0};
+const ibRepOpen=()=>(IB.list||[]).filter(r=>r.status==='open').length;
+const ibRevOpen=()=>IB.revs.filter(r=>r.status==='pending').length;
+const ibOpen=()=>ibRepOpen()+ibRevOpen();
 const ibWhen=v=>v?new Date(v).toLocaleString('en-GB',{timeZone:'Africa/Cairo',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
 const dayLbl=d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{timeZone:'UTC',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
 const IBT={leave:'إجازة · Leave',session:'Session',financial:'Financial',other:'Other'},IBS={open:'مستني قرارك',accepted:'Accepted ✓',rejected:'Rejected ✕',closed:'Closed',resolved:'Resolved'};
-async function ibFetch(){const seq=++IB.seq;const l=await rpcA('admin_reports');if(seq!==IB.seq)return;IB.list=Array.isArray(l)?l:[];IB.err=''}
+async function ibFetch(){const seq=++IB.seq;const[l,v]=await Promise.all([rpcA('admin_reports'),rpcA('admin_reviews').catch(()=>[])]);if(seq!==IB.seq)return;IB.list=Array.isArray(l)?l:[];IB.revs=Array.isArray(v)?v:[];IB.err=''}
 async function ibCount(){try{await ibFetch();renderSide()}catch(e){}}
 async function ibInit(){IB.msg='';ibPaint();try{await ibFetch()}catch(e){IB.err=e.message}ibPaint();renderSide()}
 function ibCard(r){
@@ -691,16 +693,30 @@ function ibCard(r){
     :'<small>'+(r.replied_at?'القرار: '+ibWhen(r.replied_at):'')+(r.admin_reply?' · '+esc(r.admin_reply):'')+'</small>';
   return '<div class="card ibc"><h4><span dir="auto">'+esc(r.trainee)+'</span><small>'+(IBT[r.type]||esc(r.type))+'</small></h4><small>اتبعت: '+ibWhen(r.created_at)+' · '+(IBS[r.status]||esc(r.status))+'</small><div class="ibtx" dir="auto"><b>'+esc(r.title)+'</b>\n'+esc(r.details)+'</div>'+x+act+'</div>';
 }
+/* reviews from "Your Viewpoint" (trainee_reviews): accepted ones show on the landing page */
+const RVS={pending:'مستني قرارك',accepted:'Accepted ✓ · ظاهر في الـlanding',rejected:'Rejected ✕'},RVR={trainee:'Trainee',trainer:'Trainer',admin:'Admin'};
+function revCard(r){
+  const st='<span style="color:#fbbf24;letter-spacing:1px">'+'★'.repeat(r.stars)+'</span><span style="opacity:.3;letter-spacing:1px">'+'★'.repeat(5-r.stars)+'</span>';
+  const act=r.status==='pending'?'<div class="row" style="margin-top:8px"><button class="btn ac" data-rv="1" data-id="'+r.id+'"'+(IB.busy?' disabled':'')+'>Accept</button><button class="btn ghost" data-rv="0" data-id="'+r.id+'"'+(IB.busy?' disabled':'')+'>Reject</button></div>':'<small>'+(r.decided_at?'القرار: '+ibWhen(r.decided_at):'')+'</small>';
+  return '<div class="card ibc"><h4><span dir="auto">'+esc(r.trainee)+'</span><small>'+(RVR[r.rank]||'Trainee')+' · '+esc(r.month)+'</small></h4><small>'+(r.edits?'اتعدّل: '+ibWhen(r.updated_at):'اتبعت: '+ibWhen(r.created_at))+' · '+(RVS[r.status]||esc(r.status))+'</small><div style="margin-top:6px">'+st+'</div><div class="ibtx" dir="auto">'+esc(r.body)+'</div>'+act+'</div>';
+}
 function ibPaint(){
   const e=$('ib_ui');if(!e)return;
   if(IB.err){e.innerHTML='<div class="pcard">'+esc(IB.err)+'<br><button class="btn ghost" data-ibretry>حاول تاني</button></div>';return}
   if(!IB.list){e.innerHTML='<div class="pcard">جاري التحميل…</div>';return}
-  const l=IB.list.filter(r=>(r.status==='open')===(IB.tab==='open'));
-  e.innerHTML='<div class="wrap"><div class="tkg">Reports</div><div class="seg" style="margin-bottom:12px"><button data-ibtab="open" class="'+(IB.tab==='open'?'on':'')+'">Open · '+ibOpen()+'</button><button data-ibtab="done" class="'+(IB.tab==='done'?'on':'')+'">Decided · '+(IB.list.length-ibOpen())+'</button></div><p class="hint" role="status" dir="auto">'+esc(IB.msg)+'</p>'+(l.length?l.map(ibCard).join(''):'<div class="pcard">مفيش حاجة هنا.</div>')+'</div>';
+  const rv=IB.tab==='rev',l=rv?IB.revs:IB.list.filter(r=>(r.status==='open')===(IB.tab==='open'));
+  e.innerHTML='<div class="wrap"><div class="tkg">Reports</div><div class="seg" style="margin-bottom:12px"><button data-ibtab="open" class="'+(IB.tab==='open'?'on':'')+'">Open · '+ibRepOpen()+'</button><button data-ibtab="done" class="'+(IB.tab==='done'?'on':'')+'">Decided · '+(IB.list.length-ibRepOpen())+'</button><button data-ibtab="rev" class="'+(rv?'on':'')+'">Reviews · '+ibRevOpen()+'</button></div><p class="hint" role="status" dir="auto">'+esc(IB.msg)+'</p>'+(l.length?l.map(rv?revCard:ibCard).join(''):'<div class="pcard">مفيش حاجة هنا.</div>')+'</div>';
 }
 async function ibClick(e){
   const t=e.target.closest('[data-ibtab]');if(t){IB.tab=t.dataset.ibtab;IB.msg='';ibPaint();return}
   if(e.target.closest('[data-ibretry]')){IB.err='';IB.list=null;ibInit();return}
+  const rb=e.target.closest('[data-rv]');
+  if(rb){if(IB.busy)return;const id=+rb.dataset.id,yes=rb.dataset.rv==='1',r=IB.revs.find(x=>x.id===id);if(!r)return;
+    if(!confirm((yes?'Accept — هيظهر في صفحة الـlanding':'Reject')+' — '+r.trainee+'؟'))return;
+    IB.busy=1;IB.msg='جاري الحفظ…';ibPaint();
+    try{const res=await rpcA('admin_review_decide',{p_id:id,p_accept:yes});IB.msg=res.status==='accepted'?'اتقبل ✓ وظاهر في الـlanding':'اترفض ✓'}catch(x){IB.msg='ما اتحفظش: '+x.message}
+    try{await ibFetch()}catch(x){IB.err=x.message}
+    IB.busy=0;ibPaint();renderSide();return}
   const b=e.target.closest('[data-ib]');if(!b||IB.busy)return;
   const id=+b.dataset.id,yes=b.dataset.ib==='1',r=IB.list.find(x=>x.id===id);if(!r)return;
   if(!confirm((yes?'Accept':'Reject')+' — '+r.trainee+'؟\nالقرار مش هيتغير من هنا بعد كده، وهيتسجل إشعار للطالب.'))return;
