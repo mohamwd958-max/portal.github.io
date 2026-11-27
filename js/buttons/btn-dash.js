@@ -3,7 +3,7 @@
    الملف ده هو الزرار كله: الأيقونة + الاسم (EN/AR) + الشاشة نفسها. مفيش iframe ولا dashboard.js.
 
    الشاشة = الأرقام بس:
-     فلتر الفترة (دايرة: النهارده / الأسبوع / الشهر / الشهر الماضي) + التقدم العام + الجلسات والوقت + كروت الدرجات الخمسة
+     فلتر الفترة (دايرة: النهارده / الأسبوع / الشهر / الشهر الماضي) + بوكس المجموع (الخمس درجات مع بعض، من 50، بألوان الطيف) + الجلسات والوقت + كروت الدرجات الخمسة
      (دوس على أي نقطة في الـchart تشوف السبب).
 
    اتنقلوا لأماكنهم الجديدة (وما بقاش ليهم وجود هنا):
@@ -32,11 +32,11 @@
     const T = {
       en: { today: 'Today', week: 'This week', month: 'This month', lmonth: 'Last month', sessions: 'Sessions', duration: 'Time in program',
         performance: 'Performance', attitude: 'Attitude', soft_skills: 'Soft skills', compliance: 'Compliance', attendance: 'Attendance',
-        overall: 'Overall progress', none: 'No data yet', tap: 'Tap a dot to see why', last: 'Last day counted: ',
+        overall: 'All vital signs', total: 'Total', none: 'No data yet', tap: 'Tap a dot to see why', last: 'Last day counted: ',
         loading: 'Loading…', login: 'Please log in again.', fail: 'Could not load your data. Try again.', h: 'h', m: 'min' },
       ar: { today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', lmonth: 'الشهر الماضي', sessions: 'الجلسات', duration: 'وقت البرنامج',
         performance: 'الأداء', attitude: 'السلوك', soft_skills: 'المهارات الشخصية', compliance: 'الالتزام', attendance: 'الحضور',
-        overall: 'التقدم العام', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
+        overall: 'العلامات الحيوية كلها', total: 'المجموع', none: 'لا توجد بيانات بعد', tap: 'اضغط على نقطة لمعرفة السبب', last: 'آخر يوم محسوب: ',
         loading: 'جاري التحميل…', login: 'سجّل دخول من جديد.', fail: 'تعذر تحميل بياناتك، حاول تاني.', h: 'س', m: 'د' }
     };
     const lg = () => (ctx.lang() === 'ar' ? 'ar' : 'en');
@@ -88,7 +88,7 @@
     const mins = r => { if (r.total_minutes != null) return Number(r.total_minutes) || 0; const a = hm(r.start_time), b = hm(r.end_time); return a == null || b == null ? 0 : (b >= a ? b - a : b + 1440 - a); };
     const fmtDur = m => { const t = tt(); return m < 60 ? m + ' ' + t.m : Math.floor(m / 60) + t.h + (m % 60 ? ' ' + (m % 60) + t.m : ''); };
     const delta = d => '<div class="' + (d > 0 ? 'up' : d < 0 ? 'down' : 'flat') + '">' + (d > 0 ? '▲ +' : d < 0 ? '▼ ' : '■ ') + d + '</div>';
-    const avgOf = r => { const v = MET.map(m => r[m]).filter(x => x != null).map(Number); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : null; };
+    const sumOf = r => { const v = MET.map(m => r[m]).filter(x => x != null && x !== '').map(Number).filter(Number.isFinite); return v.length ? +v.reduce((a, b) => a + b, 0).toFixed(1) : null; };
 
     /* ---- the chart: cumulative series, days (<=31) or months; y max = 10 x days ---- */
     function series(rows) {
@@ -104,7 +104,7 @@
       rows.forEach(r => { const i = idx[monthly ? r.supply_date.slice(0, 7) : r.supply_date]; if (i != null) bk[i].rows.push(r); });
       const cum = {};
       MET.forEach(k => { let s = 0; cum[k] = bk.map(b => { b.rows.forEach(r => s += Number(r[k]) || 0); return s; }); });
-      cum.avg = bk.map((_, i) => +(MET.reduce((a, k) => a + cum[k][i], 0) / MET.length).toFixed(1));
+      cum.total = bk.map((_, i) => +MET.reduce((a, k) => a + cum[k][i], 0).toFixed(1));
       return { bk, cum, max: 10 * days };
     }
     function smooth(p) {
@@ -118,16 +118,16 @@
       return d;
     }
     function chart(S, keys, o) {
-      const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab);
-      const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / S.max) * (H - Tp - B);
+      const W = o.W, H = o.H, L = o.L, R = 22, Tp = 12, B = o.f + 10, n = S.bk.length, step = Math.ceil(n / o.lab), MX = S.max * (o.mul || 1);
+      const x = i => n < 2 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (n - 1), y = v => Tp + (1 - v / MX) * (H - Tp - B);
       let s = '<svg class="c2' + (played ? '' : ' ci') + '" viewBox="0 0 ' + W + ' ' + H + '" data-l="' + L + '" data-b="' + (H - B) + '">';
       if (o.grad) s += '<defs><linearGradient id="thOvG" gradientUnits="userSpaceOnUse" x1="' + L + '" y1="0" x2="' + (W - R) + '" y2="0"><stop offset="0" stop-color="#ff5d55"/><stop offset=".34" stop-color="#ffc247"/><stop offset=".67" stop-color="#22d3a6"/><stop offset="1" stop-color="#4c8dff"/></linearGradient></defs>';
-      let tx = ''; [0, S.max / 2, S.max].forEach(g => tx += '<text class="tx" x="' + (L - 6) + '" y="' + (y(g) + o.f / 3) + '" text-anchor="end" font-size="' + o.f + '">' + Math.round(g) + '</text>');
+      let tx = ''; [0, MX / 2, MX].forEach(g => tx += '<text class="tx" x="' + (L - 6) + '" y="' + (y(g) + o.f / 3) + '" text-anchor="end" font-size="' + o.f + '">' + Math.round(g) + '</text>');
       S.bk.forEach((b, i) => { if (i % step === 0) tx += '<text class="tx" x="' + x(i) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="' + o.f + '">' + b.label + '</text>'; });
       keys.forEach(k => {
         const li = keys.indexOf(k);
-        s += '<path class="ln ' + k + '" pathLength="1" style="--li:' + li + (o.grad && k === 'avg' ? ';stroke:url(#thOvG)' : '') + '" fill="none" stroke-width="' + o.w + '" d="' + smooth(S.cum[k].map((v, i) => [x(i), y(v)])) + '"/>';
-        if (k !== 'avg') S.bk.forEach((b, i) => { if (b.rows.some(r => r[k] != null && r[k] !== '')) {
+        s += '<path class="ln ' + k + '" pathLength="1" style="--li:' + li + (o.grad && k === 'total' ? ';stroke:url(#thOvG)' : '') + '" fill="none" stroke-width="' + o.w + '" d="' + smooth(S.cum[k].map((v, i) => [x(i), y(v)])) + '"/>';
+        S.bk.forEach((b, i) => { if (k === 'total' ? b.rows.some(r => sumOf(r) != null) : b.rows.some(r => r[k] != null && r[k] !== '')) {
           const cx = x(i), cy = y(S.cum[k][i]), at = 'data-k="' + k + '" data-i="' + i + '" data-cx="' + cx + '" data-cy="' + cy + '"';
           s += '<circle class="dot ' + k + '" style="--d:' + (n < 2 ? 0 : i / (n - 1)).toFixed(3) + ';--li:' + li + '" cx="' + cx + '" cy="' + cy + '" r="' + o.r + '" ' + at + '/><circle class="dot hit" cx="' + cx + '" cy="' + cy + '" r="' + o.hit + '" ' + at + '/>'; } });
       });
@@ -143,11 +143,12 @@
       const base = before.length ? before[before.length - 1] : vals[0];
       return h + '<div class="big">' + cur + ' <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(2)) + ch + '<div class="sm why" data-why="' + key + '">' + t.tap + '</div></div>';
     }
+    /* the box on top: the five scores added together (out of 50 a day), drawn in the colours of the spectrum; follows the same filter */
     function overall(rows, S) {
-      const t = tt(), vals = rows.map(avgOf).filter(v => v != null);
-      if (!vals.length) return '<h4>' + t.overall + '</h4><div class="sm">' + t.none + '</div>';
+      const t = tt(), vals = rows.map(sumOf).filter(v => v != null), h = '<h4 class="rb">' + t.overall + '</h4>';
+      if (!vals.length) return h + '<div class="sm">' + t.none + '</div>';
       const cur = vals[vals.length - 1], base = vals.length > 1 ? vals[vals.length - 2] : cur;
-      return '<h4>' + t.overall + '</h4><div class="big">' + cur + ' <span class="sm">/ 10</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['avg'], { W: 700, H: 300, L: 40, f: 13, w: 3, r: 3.4, hit: 20, lab: 10, grad: true });
+      return h + '<div class="big"><span class="rb">' + cur + '</span> <span class="sm">/ 50</span></div>' + delta(+(cur - base).toFixed(1)) + chart(S, ['total'], { W: 700, H: 300, L: 44, f: 13, w: 3.4, r: 3.4, hit: 20, lab: 10, grad: true, mul: MET.length });
     }
 
     /* ---- the screen ---- */
@@ -205,7 +206,7 @@
       const t = tt(), sv = d.closest('svg'), cx = +d.dataset.cx, cy = +d.dataset.cy, gl = +sv.dataset.l, gb = +sv.dataset.b, xv = sv.querySelector('.xv'), xz = sv.querySelector('.xz');
       if (xv && xz && isFinite(cx) && isFinite(cy)) { xv.setAttribute('x1', cx); xv.setAttribute('x2', cx); xv.setAttribute('y1', cy); xv.setAttribute('y2', gb); xz.setAttribute('x1', gl); xz.setAttribute('x2', cx); xz.setAttribute('y1', cy); xz.setAttribute('y2', cy); xv.style.display = ''; xz.style.display = ''; }
       const i = +d.dataset.i, k = d.dataset.k, b = SER.bk[i], v = SER.cum[k][i], r = b.rows[b.rows.length - 1];
-      const sc = b.rows.reduce((a, x) => a + (Number(x[k]) || 0), 0);
+      const sc = b.rows.reduce((a, x) => a + (k === 'total' ? (sumOf(x) || 0) : (Number(x[k]) || 0)), 0);
       const host = root; let tip = host.querySelector('.tip'); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip); }
       const rr = host.getBoundingClientRect(), bx = d.getBoundingClientRect();
       tip.textContent = b.label + ' · ' + t[k] + ' ' + v + ' (+' + sc + ')';
@@ -217,14 +218,14 @@
     /* ---- look (scoped to this screen only; colours follow the shell's theme variables) ---- */
     const CSS = `
 .vsw{position:relative;height:100%;color:var(--ink);font-family:Cairo,Inter,system-ui,sans-serif}
-.vs{position:relative;height:100%;overflow:auto;padding:12px 12px 40px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.vs{position:relative;height:100%;overflow:auto;padding:16px 16px 48px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .vs::-webkit-scrollbar{display:none}
-.vsw .card{max-width:1100px;margin:0 auto 20px;padding:16px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.vsw .card{max-width:1100px;margin:0 auto 32px;padding:18px;border-radius:22px;background:var(--pcard);border:1px solid var(--sbd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
 .vsw .card.msg{text-align:center;color:var(--ink2);padding:36px 16px}
 .vsw h4{margin:0 0 6px;font:800 13.5px Cairo,Inter,sans-serif;color:var(--ink)}
 .vsw .big{font:800 26px/1.15 Inter,Cairo,sans-serif}.vsw .sm{font:500 12px/1.5 Cairo,Inter,sans-serif;color:var(--ink2)}.vsw .big .sm{font-size:13px}
 .vsw .up{color:#22c55e;font:700 12px Inter,sans-serif}.vsw .down{color:#ef4444;font:700 12px Inter,sans-serif}.vsw .flat{color:var(--ink2);font:700 12px Inter,sans-serif}
-.vsw .rrow{max-width:1100px;margin:0 auto 8px;display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center}.vsw .rrow .note{margin:0}
+.vsw .rrow{max-width:1100px;margin:0 auto 14px;display:grid;grid-template-columns:1fr auto;column-gap:10px;align-items:center}.vsw .rrow .note{margin:0}
 .vsw .thrb{box-sizing:border-box;width:48px;height:48px;padding:3px;margin:0;border-radius:50%;border:2px solid #fff;background:#000;color:#fff;display:grid;place-items:center;text-align:center;cursor:pointer;font:700 9.5px/1.15 Inter,Cairo,sans-serif;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .vsw .thrb span,.vsw .thro span{display:block;max-width:100%;overflow-wrap:anywhere;text-wrap:balance}.vsw .rng .thrb:active{transform:scale(.93)}
 #W.light .vsw .thrb{background:#fff;color:#000;border-color:#000;box-shadow:0 6px 18px rgba(15,23,42,.22)}
@@ -238,7 +239,7 @@
 .vsw .thro:active{transform:scale(.92)}#W.light .vsw .thro{background:#fff;color:#000;border-color:#000;box-shadow:0 10px 26px rgba(15,23,42,.25)}
 @keyframes vsIn{from{opacity:0}to{opacity:1}}
 .vsw .two{display:flex;gap:14px}.vsw .two>div{flex:1}.vsw .sep{border-inline-start:1px solid var(--sbd);padding-inline-start:14px}
-.vsw .grid{max-width:1100px;margin:0 auto 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px 10px}.vsw .grid .card{margin:0}
+.vsw .grid{max-width:1100px;margin:0 auto 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),340px));justify-content:center;gap:32px 28px}.vsw .grid .card{margin:0}
 .vsw svg.c2{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}.vsw .ov svg.c2{max-height:min(40vh,380px)}
 .vsw svg.c2 .tx{fill:var(--ink2);pointer-events:none}.vsw svg.c2 .xh{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
 .vsw svg.c2 .ln{stroke-linecap:round;stroke-linejoin:round}.vsw svg.c2 .dot{stroke:none;cursor:pointer}.vsw svg.c2 .dot.hit{fill:transparent}
@@ -250,6 +251,11 @@
 @keyframes vsLn{to{stroke-dashoffset:0}}@keyframes vsDot{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.vsw svg.c2.ci .ln{stroke-dasharray:none;stroke-dashoffset:0;animation:none!important}.vsw svg.c2.ci .dot:not(.hit){opacity:1;animation:none!important}}
 .vsw .why{margin-top:6px;min-height:18px}
+.vsw .ov{position:relative;border-color:transparent}
+.vsw .ov::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:linear-gradient(90deg,#ff5d55,#ffc247,#22d3a6,#4c8dff,#a855f7);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.vsw .rb{background:linear-gradient(90deg,#ff5d55,#ffc247,#22d3a6,#4c8dff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.vsw .dot.total{fill:#fff}#W.light .vsw .dot.total{fill:#111}
+.vsw .ov h4.rb{display:inline-block;font-size:15px}
 .vsw .tip{position:absolute;z-index:5;transform:translate(-50%,-100%);padding:4px 9px;border-radius:9px;background:var(--btn);color:var(--onbtn);font:700 11px Inter,Cairo,sans-serif;white-space:nowrap;pointer-events:none}`;
 
     function render(b) {
