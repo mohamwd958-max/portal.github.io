@@ -143,8 +143,7 @@ function savePhoto(file, meta) {
         const s = Math.min(1, 1000 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
         cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
         const d = cv.toDataURL('image/jpeg', .7);
-        try { const a = JSON.parse(localStorage.getItem(DICT.photos) || '[]'); a.unshift(Object.assign({ d, at: Date.now() }, meta || {})); a.length = Math.min(a.length, 12); for (;;) { try { localStorage.setItem(DICT.photos, JSON.stringify(a)); break; } catch (e) { if (!a.length) break; a.pop(); } } } catch (e) { }
-        res(true); }; im.onerror = () => res(false); im.src = fr.result; };
+        thx.MOD.library.photoAdd(d, meta).then(res); }; im.onerror = () => res(false); im.src = fr.result; };
       fr.onerror = () => res(false); fr.readAsDataURL(file);
     });
   }
