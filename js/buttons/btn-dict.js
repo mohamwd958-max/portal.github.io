@@ -54,10 +54,38 @@ async function dictWords() {
     } catch (e) { }
     return DFALL.map(w => ({ w, url: '' }));
   }
+/* how many words: the number the trainer typed in the admin panel for the Dictation task (latest active one), else the default */
+async function dictTaskCount() {
+    try {
+      const tk = localStorage.getItem('thabit_trainee_token'); if (!tk) return null;
+      const r = await fetch(REPORT_SUPABASE_URL + '/rest/v1/rpc/trainee_tool_tasks', { method: 'POST', headers: sbHeaders(), body: JSON.stringify({ p_token: tk }) });
+      const j = await r.json();
+      const l = (Array.isArray(j) ? j : []).filter(x => x && x.tool === 'dict' && x.words).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      return l.length ? Number(l[0].words) : null;
+    } catch (e) { return null; }
+  }
+/* the words come from the database (words_table): only entries that really have a recording */
+async function dictBank() {
+    try {
+      const r = await fetch(REPORT_SUPABASE_URL + '/rest/v1/words_table?select=word,audio_url&audio_url=not.is.null&limit=2000', { headers: sbHeaders() });
+      if (r.ok) { const j = await r.json(); return (j || []).filter(x => x && x.word && x.audio_url).map(x => ({ w: String(x.word).trim(), url: x.audio_url })); }
+    } catch (e) { }
+    return [];
+  }
 async function startTask(more) {
-    const all = await dictWords(), pick = [];
-    while (pick.length < DICT.count && all.length) pick.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
-    pick.forEach((x, n) => { x.p = n === pick.length - 1 ? '.' : ((n === 2 || n === 5) ? ',' : ''); });
+    const [rows, want] = await Promise.all([dictBank(), dictTaskCount()]), N = want || DICT.count;
+    const norm = s => String(s).toLowerCase().replace(/[^a-z0-9'’-]/g, ''), PU = /[.,;:!?]+$/;
+    const singles = rows.filter(x => !/\s/.test(x.w)), map = new Map(); singles.forEach(x => { const k = norm(x.w); if (k && !map.has(k)) map.set(k, x); });
+    /* first choice: a real sentence from the database with exactly N words, every word having its own recording */
+    const sent = rows.filter(x => /\s/.test(x.w)).map(x => { const ws = x.w.split(/\s+/), tk = ws.map(w => { const s = map.get(norm(w)); return s ? { w: w.replace(PU, ''), url: s.url, p: (w.match(PU) || [''])[0] } : null; }); return tk.length === N && tk.every(Boolean) ? tk : null; }).filter(Boolean);
+    let pick = [];
+    if (sent.length) { pick = sent[Math.floor(Math.random() * sent.length)]; if (!pick[pick.length - 1].p) pick[pick.length - 1].p = '.'; }
+    else {
+      const all = singles.slice();
+      while (pick.length < N && all.length) pick.push(Object.assign({}, all.splice(Math.floor(Math.random() * all.length), 1)[0]));
+      if (pick.length < N) { const f = DFALL.filter(w => !pick.some(x => x.w === w)); while (pick.length < N && f.length) pick.push({ w: f.shift(), url: '' }); }
+      pick.forEach((x, n) => { x.p = n === pick.length - 1 ? '.' : ((n === 2 || n === 5) ? ',' : ''); });
+    }
     prep(pick);
     dictSave({ n: thx.MOD.library.passNext(), tokens: pick, mode: 'passage', i: 0, stage: 'work', more: !!more, text: '', done: false });
   }
@@ -78,7 +106,7 @@ function drawDict(b, t) {
       }; return;
     }
     if (t.stage === 'thanks') {
-      const c = card('<div class="dmsg big">' + T.thanks + '</div><div class="dmsg">' + T.thanks2 + '</div><button class="btn dmore" type="button">' + T.more + '</button>');
+      const real = (t.tokens || []).map(x => x.w + (x.p || '')).join(' '), c = card('<div class="dmsg big">' + T.thanks + '</div>' + (real ? '<div class="dmsg" dir="ltr" style="font-weight:700;opacity:.9">' + thx.esc(real) + '</div>' : '') + '<div class="dmsg">' + T.thanks2 + '</div><button class="btn dmore" type="button">' + T.more + '</button>');
       c.querySelector('.dmore').onclick = async () => { await startTask(true); if (thx.cur === 'dict' && b.isConnected) drawDict(b, dictLoad()); }; return;
     }
     if (t.stage === 'nomind') { card('<div class="dmsg big">' + T.nomind + '</div>'); return; }
