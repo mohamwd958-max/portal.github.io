@@ -308,7 +308,7 @@ function tkItems(){
   if(TK.err)return '<p class="hint">❌ '+esc(TK.err)+'</p><button type="button" class="tksm" data-tkretry="1">حاول تاني</button>';
   if(!TK.ok)return '<p class="hint">جاري التحميل…</p>';
   return tkOf(TK.key).map(t=>'<div class="ttrow"><div dir="auto"><b>#'+t.task_no+(t.subject?' · '+esc(t.subject):'')+'</b>'+(t.body?'<div class="ttbody">'+esc(t.body)+'</div>':'')
-    +'<small>'+[cDay(t.created_at),t.range_days?'المدة: '+t.range_days+' يوم':'',t.remind_count?'تذكير '+t.remind_count+' مرات على '+t.remind_days+' يوم':'',t.seen_at?'قال فهمت ✓':'لسه ما قالش فهمت'].filter(Boolean).join(' · ')+'</small></div><button type="button" class="cb" data-tkdel="'+t.id+'" aria-label="حذف المهمة">'+svg('x')+'</button></div>').join('');
+    +'<small>'+[cDay(t.created_at),t.words?'القطعة: '+t.words+' كلمة':'',t.range_days?'المدة: '+t.range_days+' يوم':'',t.remind_count?'تذكير '+t.remind_count+' مرات على '+t.remind_days+' يوم':'',t.seen_at?'قال فهمت ✓':'لسه ما قالش فهمت'].filter(Boolean).join(' · ')+'</small></div><button type="button" class="cb" data-tkdel="'+t.id+'" aria-label="حذف المهمة">'+svg('x')+'</button></div>').join('');
 }
 const tkWidget=k=>'<div class="tkw"><button type="button" class="tksm" data-tkback="1">‹ '+(page==='task'?'كل الزراير':'Training Program')+'</button><h3>'+esc(tkName(k))+'</h3><div id="tkbox">'+tkAddBtn+'</div><p id="tk_msg" class="hint" role="status"></p><div id="tk_cur">'+tkItems()+'</div></div>';
 const tkAddBtn='<button type="button" class="tkadd" data-addtask="1">أضف مهمة</button>';
@@ -317,6 +317,7 @@ function taskForm(){
   const num=(id,l,v,max)=>'<label class="ttl">'+l+'<input type="number" class="in" id="'+id+'" min="1" max="'+max+'" step="1" value="'+v+'"></label>';
   return '<div class="tkf"><div class="tkmeta"><span>#'+n+'</span><span dir="ltr">'+cairoDate()+'</span></div>'
    +'<input class="in" id="tk_sub" dir="auto" maxlength="200" placeholder="Subject · الموضوع"><textarea class="in" id="tk_con" dir="auto" maxlength="1000" placeholder="Content · المحتوى"></textarea>'
+   +(TK.key==='dict'?'<div class="g2">'+num('tk_words','عدد كلمات القطعة (3–40)',10,40)+'</div>':'')
    +'<button type="button" class="tksm" data-tktog="tk_rbox" aria-pressed="false">Range</button><div id="tk_rbox" hidden>'+num('tk_range','المدة بالأيام',7,365)+'</div>'
    +'<button type="button" class="tksm" data-tktog="tk_mbox" aria-pressed="false">Distance repetition</button><div id="tk_mbox" class="g2" hidden>'+num('tk_rc','كام مرة؟ (1–10)',3,10)+num('tk_rd','على مدى كام يوم؟',7,365)+'</div>'
    +'<div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-tkcancel="1">إلغاء</button><button type="button" class="btn ac" data-tksave="1">ضيف المهمة</button></div></div>';
@@ -334,6 +335,7 @@ async function tkSave(){
   if(!TK.ok||TK.id!==tkStu())return tkSay('استنى المهام تتحمّل.');
   const int=(id,max)=>{const v=Number($(id).value);return Number.isInteger(v)&&v>=1&&v<=max?v:null};
   const row={trainee_id:TK.id,tool:TK.key,subject:$('tk_sub').value.trim(),body:$('tk_con').value.trim(),range_days:null,remind_count:null,remind_days:null};
+  if(TK.key==='dict'){const w=Number($('tk_words').value);if(!Number.isInteger(w)||w<3||w>40)return tkSay('عدد الكلمات لازم يكون من 3 لـ 40.');row.words=w}
   if(!row.subject&&!row.body)return tkSay('اكتب الموضوع أو المحتوى الأول.');
   if(!$('tk_rbox').hidden&&!(row.range_days=int('tk_range',365)))return tkSay('المدة لازم تكون من 1 لـ 365 يوم.');
   if(!$('tk_mbox').hidden){row.remind_count=int('tk_rc',10);row.remind_days=int('tk_rd',365);
