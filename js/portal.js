@@ -264,6 +264,16 @@ async function goIfExists(url) {
 
 async function resumeSession() {
     try {
+        /* loop guard: if the page we jump to sends us straight back here (3 times in 15 s), stop jumping and show the login */
+        let hops = []; const now = Date.now();
+        try { hops = JSON.parse(sessionStorage.getItem('thResumeHops') || '[]').filter(t => now - t < 15000); } catch (e) {}
+        hops.push(now); try { sessionStorage.setItem('thResumeHops', JSON.stringify(hops)); } catch (e) {}
+        if (hops.length > 3) {
+            console.error('[Thabit] Redirect loop detected: the staff page keeps returning here. Auto-redirect stopped.');
+            Object.values(STAFF_SESSION_KEYS).forEach(k => { try { sessionStorage.removeItem(k); } catch (e) {} });
+            try { sessionStorage.removeItem('thResumeHops'); } catch (e) {}
+            return;
+        }
         for (const role of ['admin', 'trainer']) {
             let s = null;
             try { s = JSON.parse(sessionStorage.getItem(STAFF_SESSION_KEYS[role]) || 'null'); } catch (e) {}
