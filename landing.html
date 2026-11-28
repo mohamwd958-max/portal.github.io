@@ -6,6 +6,10 @@
 <script src="js/thabit-loader.js"></script>
 <title>Welcome to Thabit</title>
 <link rel="icon" type="image/svg+xml" href="assets/thabit-favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="js/pwa.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,500&family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -410,7 +414,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
         </section>
 
     </div>
-    <section class="rev" id="rev" aria-label="Comments"><div class="dkhint" id="dkhint" data-t="dkHint"></div></section>
+    <section class="rev" id="rev" aria-label="Comments"></section>
   </div>
 <!-- invisible header: only shows (thin border + heavy blur) when cards pass under it -->
 <div class="hdr" id="hdr" aria-hidden="true"></div>
@@ -474,13 +478,11 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
 
   /* ============ language: automatic, then the visitor's own choice ============ */
   const STR = {
-    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In',
-      dkHint: 'Drag any card anywhere you like, or tap the card you want to see what is written on it.', notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
+    en: { gRem: 'Remember me next time', rT: 'Welcome back', rP: 'Are you {f} {l}?', rYes: 'Yes, that is me', rNo: 'No, not me', gTitle: 'Tell us about you', gFirst: 'First name', gLast: 'Last name', gPhone: 'Phone number', gEmail: 'Email', gGo: 'Continue', gReq: 'This field is required', gBadPh: 'Enter a valid phone number', gBadEm: 'Enter a valid email', ready: 'Ready', jTitle: 'Become one of us', jP: 'Account registration details will be here.', q1: 'Want to resume from where you stopped?', q2: 'Not one of us yet?', hello: 'Welcome to', brand: 'Thabit', tag: 'Your companion in success', loginT: 'Login', user: 'Username', pass: 'Password', getIn: 'Get In', notT: 'Not a Thabit yet?', join: 'Become one of us', or: 'or', guest: 'Take a look as a guest',
       soonT: 'Coming soon', soonP: 'We are still working on this page. It will be ready soon.', back: 'Back', name: 'English',
       userBad: "We couldn't find this username", pwBad: 'Wrong password', both: 'Wrong username or password', req: 'This field is required',
       rate: 'Too many attempts. Try again in 15 minutes.', conn: 'Connection problem. Check your internet and try again.', srv: 'Server error', na: 'Login service is not available right now.' },
-    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول',
-      dkHint: 'اسحب أي بطاقة إلى أي مكان تريده، أو اضغط على البطاقة التي تريدها لنعرض لك ما كُتب فيها.', notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
+    ar: { gRem: 'تذكّرني في المرة القادمة', rT: 'أهلًا بعودتك', rP: 'هل أنت {f} {l}؟', rYes: 'نعم، هذا أنا', rNo: 'لا، لست أنا', gTitle: 'عرّفنا بنفسك', gFirst: 'الاسم الأول', gLast: 'الاسم الأخير', gPhone: 'رقم الهاتف', gEmail: 'البريد الإلكتروني', gGo: 'متابعة', gReq: 'هذا الحقل مطلوب', gBadPh: 'أدخل رقم هاتف صحيحًا', gBadEm: 'أدخل بريدًا إلكترونيًا صحيحًا', ready: 'جاهز', jTitle: 'كن واحدًا منا', jP: 'هنا ستكون معلومات تسجيل أو إنشاء حساب.', q1: 'أتريد أن تكمل من حيث توقفت؟', q2: 'لست واحدًا منا بعد؟', hello: 'مرحبًا بك في', brand: 'ثابت', tag: 'رفيقك في النجاح', loginT: 'تسجيل الدخول', user: 'اسم المستخدم', pass: 'كلمة المرور', getIn: 'دخول', notT: 'لست من ثابت بعد؟', join: 'كن واحدًا منا', or: 'أو', guest: 'ألقِ نظرة كضيف',
       soonT: 'قريبًا', soonP: 'ما زلنا نعمل على هذه الصفحة. ستكون جاهزة قريبًا.', back: 'رجوع', name: 'العربية',
       userBad: 'لم نجد اسم المستخدم هذا', pwBad: 'كلمة المرور غير صحيحة', both: 'اسم المستخدم أو كلمة المرور غير صحيحة', req: 'هذا الحقل مطلوب',
       rate: 'محاولات كثيرة. حاول بعد 15 دقيقة.', conn: 'مشكلة في الاتصال. تأكد من الإنترنت وحاول مرة أخرى.', srv: 'خطأ في الخادم', na: 'خدمة الدخول غير متاحة الآن.' }
@@ -588,7 +590,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
   function closeCards() {
     cardsOpen = false; const m = $('main');
     hbEl.classList.remove('on'); hbEl.classList.add('out'); setTimeout(() => hbEl.classList.remove('out'), 400);
-    wrapEl.classList.add('hid'); wrapEl.classList.remove('on'); wrapEl.scrollTop = 0; hdrEl.classList.remove('on'); COMMENTS.stop();
+    wrapEl.classList.add('hid'); wrapEl.classList.remove('on'); wrapEl.scrollTop = 0; hdrEl.classList.remove('on'); COMMENTS.stop(); if (window.thInstallBar) window.thInstallBar(false);
     m.getAnimations().forEach(a => a.cancel()); m.style.display = ''; readyEl.style.pointerEvents = '';
     try { m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }); } catch (e) { }
   }
@@ -600,7 +602,7 @@ body .intro .brand{margin:0 0 clamp(16px,3.4vh,32px)}
     setTimeout(() => {   /* not tied to the animation finishing, so it always opens */
       if (!cardsOpen) return;
       m.style.display = 'none'; wrapEl.classList.remove('hid'); wrapEl.classList.add('on'); wrapEl.scrollTop = 0;
-      COMMENTS.start();
+      COMMENTS.start(); if (window.thInstallBar) window.thInstallBar(true);
     }, 360);
   };
   /* the invisible header shows only when cards are under it */
@@ -870,8 +872,9 @@ $('joinBtn').onclick = () => go('placement.html');
   async function attempt(u, p) {
     try {
       if (typeof REPORT_SUPABASE_URL === 'undefined' || typeof sbHeaders === 'undefined') return { ok: false, kind: 'net', msg: T().na };
-      if (u.includes('@')) {
-        const res = await staffSignIn(u, p);
+      /* staff (admin / trainer) first: the username alone works too (mohamedfedawy -> mohamedfedawy@thabit.com), then the trainee login */
+      {
+        const res = await staffSignIn(u.includes('@') ? u.toLowerCase() : u.toLowerCase() + '@thabit.com', p);
         if (res.ok) {
           const role = await fetchMyRole(res.session.access_token);
           if (role) { saveStaffSession(res.session, role); return { ok: true, staff: true, route: ROLE_ROUTES[role] }; }
@@ -920,6 +923,43 @@ $('joinBtn').onclick = () => go('placement.html');
     else { if (known === true) { uFl.classList.remove('bad'); uFl.classList.add('ok'); } markBad(pFl, 'P', known === true ? T().pwBad : T().both); }
   }
   btn.addEventListener('click', login);
+})();
+</script>
+
+<!-- ===== Install the app: a small bar at the bottom of the login page (after "Ready"). Shows only when the app is NOT installed on this device. ===== -->
+<style>
+#thInst{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;translate:-50% 20px;opacity:0;pointer-events:none;width:min(calc(100% - 24px),440px);box-sizing:border-box;
+  display:flex;align-items:center;gap:10px;padding:9px 9px 9px 14px;border-radius:18px;background:var(--gbg,rgba(20,20,24,.85));-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border:1px solid var(--gbd,rgba(255,255,255,.14));
+  color:var(--ink,#fff);font:600 12.5px/1.45 Inter,Cairo,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:opacity .45s ease,translate .5s cubic-bezier(.2,.9,.3,1.2)}
+#thInst.on{opacity:1;translate:-50% 0;pointer-events:auto}
+#thInst[dir=rtl]{font-family:Cairo,Inter,sans-serif;padding:9px 14px 9px 9px}
+#thInst p{flex:1;margin:0}
+#thInst .go{flex:none;height:34px;padding:0 16px;border:0;border-radius:12px;background:#22c55e;color:#fff;font:800 12.5px Inter,Cairo,sans-serif;cursor:pointer}
+#thInst .x{flex:none;width:28px;height:28px;border:0;background:transparent;color:inherit;opacity:.6;font-size:18px;line-height:1;cursor:pointer}
+</style>
+<div id="thInst" role="status"><p></p><button type="button" class="go"></button><button type="button" class="x" aria-label="Close">×</button></div>
+<script>
+(function () {
+  var el = document.getElementById('thInst'), ev = null, want = false, closed = false;
+  var standalone = function () { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; };
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var TX = { ar: { t: 'يمكنك تحميل تطبيق ثابت الآن لسهولة الوصول لاحقًا', b: 'تحميل', ios: 'اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»' },
+             en: { t: 'Get the Thabit app now for quick access later', b: 'Install', ios: 'Tap Share, then “Add to Home Screen”' } };
+  var tx = function () { return TX[document.documentElement.dir === 'rtl' ? 'ar' : 'en']; };
+  function paint() {
+    var t = tx(); el.dir = document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr';
+    el.querySelector('p').textContent = t.t; el.querySelector('.go').textContent = t.b;
+    el.classList.toggle('on', want && !closed && !standalone() && (!!ev || ios));
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); ev = e; paint(); });   /* the browser says: this device can install it */
+  window.addEventListener('appinstalled', function () { ev = null; closed = true; paint(); });
+  el.querySelector('.go').onclick = function () {
+    if (ev) { var p = ev; ev = null; p.prompt(); (p.userChoice || Promise.resolve()).then(function (r) { if (r && r.outcome === 'accepted') closed = true; paint(); }); return; }
+    if (ios) el.querySelector('p').textContent = tx().ios;
+  };
+  el.querySelector('.x').onclick = function () { closed = true; paint(); };
+  window.thInstallBar = function (on) { want = !!on; if (on) setTimeout(paint, 700); else paint(); };
+  new MutationObserver(function () { if (want) paint(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
 })();
 </script>
 </body>
