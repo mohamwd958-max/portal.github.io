@@ -678,6 +678,32 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
 .plan{border:0;flex-direction:column;gap:10px}
 .plan b{font-weight:900}
 .plan small{display:block;font-family:var(--font-ar);font-weight:700;font-size:clamp(.62rem,2.6vw,.8rem);line-height:1.6;opacity:.6;padding:0 4px}
+
+/* خارجي (للطالب): مقفول، عليه علامة تحذير صغيرة والجملة. والمعلم/المدرب: 3 كروت فاضية مقفولة + شريط عرضي (سيل) عليهم */
+.plan-lock,.plan-ph{cursor:not-allowed;pointer-events:none;user-select:none}
+.plan .wn{display:flex;flex-direction:column;align-items:center;gap:6px;color:#f5b301}
+.plan .wn small{opacity:.85;color:inherit}
+.wi{flex:none;color:#f5b301}
+.plans-sealed{position:relative}
+.plan-ph{opacity:.55}
+.seal{position:absolute;left:-6px;right:-6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 16px;border-radius:16px;background:rgba(18,18,22,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 8px 28px rgba(0,0,0,.35);color:#f5b301;font-family:var(--font-ar);font-weight:800;font-size:clamp(.74rem,3.1vw,.95rem);line-height:1.6;text-align:center}
+html[data-theme=light] .seal{background:rgba(255,255,255,.88);box-shadow:0 8px 28px rgba(0,0,0,.12);color:#a06b00}
+
+/* ===== الأنظمة والخطط (فوق): نفس كروت الصور القديمة، بس مضغوطة عشان الجزء يدخل في شاشة ===== */
+.grp .systems{margin:0;gap:clamp(14px,4vw,24px)}
+.grp .sys{height:clamp(176px,25vh,225px)}
+.grp .sys-front h4{font-size:clamp(1.25rem,5vw,1.9rem)}
+.grp .scr{padding-top:clamp(80px,12vh,104px);padding-bottom:clamp(40px,7vh,64px)}
+.sys-lock{pointer-events:none;cursor:default}
+.sys-warn{position:absolute;left:10px;right:10px;bottom:clamp(12px,3vw,20px);display:flex;flex-direction:column;align-items:center;gap:5px;color:#f5b301;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.sys-warn small{font-family:var(--font-ar);font-size:clamp(.68rem,2.6vw,.86rem);font-weight:800;line-height:1.5}
+/* المعلم/المدرب: 3 كروت فاضية بنفس شكل اللي فوق + شريط السيل عليهم، وتحتهم 3 كروت اشتراك المنصة */
+.sys-sealed{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 clamp(18px,3.4vh,30px);width:100%}
+.sys-sealed .sys:first-child{grid-column:auto;justify-self:stretch;width:auto}
+.sys-ph{pointer-events:none;opacity:.5;height:clamp(110px,15vh,140px)!important}
+.plans-pf{margin-top:0}
+.plans-pf .plan{min-height:clamp(88px,13vh,120px);gap:6px}
+.plans-pf .plan small{opacity:.6;font-size:clamp(.6rem,2.5vw,.78rem)}
 </style>
 </head>
 <body>
@@ -696,16 +722,18 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
 <!-- الشاشة الرئيسية للمرحلة 1 -->
 <div id="stage1-main">
 <!-- التفاصيل -->
+<div class="grp" id="plans-grp">
+<div class="grp-t" id="plans-t"><h2>الأنظمة والخطط</h2></div>
+
 <div class="scr"><section id="details">
-  <h3>الأنظمة</h3>
-  <p>في الحالتين التدريب يكون على الإنترنت، ليس لنا مكان فعلي على أرض الواقع.</p>
+  <h4 class="plans-sub plans-sub-first">لو أنت طالب</h4>
 
   <div class="systems">
-    <div class="sys" style="--i:0" tabindex="0" role="button" aria-pressed="false">
+    <div class="sys sys-lock" style="--i:0" aria-disabled="true">
       <div class="sys-in">
         <div class="sys-face sys-front ext">
           <h4>خارجي</h4>
-          <span class="sys-hint">اضغط على البطاقة لمعرفة التفاصيل</span>
+          <span class="sys-warn"><svg class="wi" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><small>هذا الاشتراك سيكون متاحًا في أقرب وقت ممكن</small></span>
         </div>
         <div class="sys-face sys-back">
           <ul>
@@ -720,7 +748,7 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
     <div class="sys" style="--i:1" tabindex="0" role="button" aria-pressed="false">
       <div class="sys-in">
         <div class="sys-face sys-front on">
-          <h4>Onliner</h4>
+          <h4>Full timer</h4>
           <span class="sys-hint">اضغط على البطاقة لمعرفة التفاصيل</span>
         </div>
         <div class="sys-face sys-back">
@@ -736,7 +764,7 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
     <div class="sys" style="--i:2" tabindex="0" role="button" aria-pressed="false">
       <div class="sys-in">
         <div class="sys-face sys-front off">
-          <h4>Offliner</h4>
+          <h4>Part timer</h4>
           <span class="sys-hint">اضغط على البطاقة لمعرفة التفاصيل</span>
         </div>
         <div class="sys-face sys-back">
@@ -751,6 +779,22 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
     </div>
   </div>
 </section></div>
+
+<div class="scr"><section class="xs" id="exp-plans-teacher">
+  <h4 class="plans-sub plans-sub-first">لو أنت مُعلِّم أو مدرِّب</h4>
+  <div class="sys-sealed">
+    <div class="sys sys-ph" aria-disabled="true"><div class="sys-in"><div class="sys-face sys-front ext"></div></div></div>
+    <div class="sys sys-ph" aria-disabled="true"><div class="sys-in"><div class="sys-face sys-front on"></div></div></div>
+    <div class="sys sys-ph" aria-disabled="true"><div class="sys-in"><div class="sys-face sys-front off"></div></div></div>
+    <div class="seal" role="note"><svg class="wi" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>هذه الاشتراكات ستكون متاحة في أقرب وقت ممكن</span></div>
+  </div>
+  <div class="plans plans-pf">
+    <div class="plan plan-ph" aria-disabled="true"><b>Basic</b><small>اشتراك المنصة</small></div>
+    <div class="plan plan-ph" aria-disabled="true"><b>Standard</b><small>اشتراك المنصة</small></div>
+    <div class="plan plan-ph" aria-disabled="true"><b>Premium</b><small>اشتراك المنصة</small></div>
+  </div>
+</section></div>
+</div>
 
 <!-- ما يجب أن تعرفه عنا -->
 <div class="scr"><section id="about-us">
@@ -877,29 +921,6 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
   <h4>الخصومات</h4>
   <p>الخصومات ليست شيئًا ثابتًا ولا نعد بها، ولا تُطبَّق طوال الوقت.</p>
 </section></div>
-
-<div class="grp" id="plans-grp">
-<div class="grp-t" id="plans-t"><h2>الأنظمة والخطط</h2></div>
-
-<div class="scr"><section class="xs" id="exp-plans">
-  <h4 class="plans-sub plans-sub-first">لو أنت طالب</h4>
-  <div class="plans">
-    <div class="plan"><b>خارجي</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
-    <div class="plan"><b>Part timer</b></div>
-    <div class="plan"><b>Full timer</b></div>
-  </div>
-</section></div>
-
-<div class="scr"><section class="xs" id="exp-plans-teacher">
-  <h4 class="plans-sub plans-sub-first">لو أنت مُعلِّم أو مدرِّب</h4>
-  <div class="plans">
-    <div class="plan"><b>خارجي</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
-    <div class="plan"><b>Part timer</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
-    <div class="plan"><b>Full timer</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
-  </div>
-</section></div>
-</div>
-
 <div class="scr"><section class="xs" id="exp-sessions">
   <h4>الجلسات</h4>
   <div class="ses-timer" id="ses-timer" aria-hidden="true">
@@ -1534,7 +1555,7 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
   document.getElementById('back-policies').onclick = closePolicies;
 
   // ---- اللغة والـtheme (موروثين من الصفحة اللي قبلها، وفيه زرار لكل واحد) ----
-  var EN = {"الأنظمة": "Systems", "خارجي": "External", "اشتراك شهري مستقل في المنصة بس.": "A separate monthly subscription to the platform only.", "بتدخل بحسابك وتستخدم أدوات المنصة بنفسك.": "You log in with your account and use the platform tools yourself.", "من غير جلسات ولا متابعة مني.": "No sessions and no follow-up from me.", "من غير أي مدفوعات ليّا، الاشتراك للمنصة بس.": "No payments to me, the subscription is for the platform only.", "ما يجب أن تعرفه عنا": "What You Should Know About Us", "اشتراكات المنصة": "Platform Subscriptions", "أنظمة المتابعة": "Follow-up Systems", "اختبار اللغة": "Language test", "اختبار تحديد الهوية النفسية": "Psychological identity test", "← رجوع": "← Back", "الخطط وأسعار الخطط": "Plans & Pricing", "في الحالتين التدريب يكون على الإنترنت، ليس لنا مكان فعلي على أرض الواقع.": "In both cases the training is online; we have no physical location.", "اضغط على البطاقة لمعرفة التفاصيل": "Tap the card to see the details", "برنامج ثابت": "THABIT Program", "للتدريب اللغوي": "Language Training", "التعريف بالبرنامج": "Program Introduction", "نظام التدريب": "Training System", "عندنا نظامين، اختار اللي يناسبك:": "We have two systems, choose the one that suits you:", "Onliner": "Onliner", "5 أيام في الأسبوع.": "5 days a week.", "متابعة يومية مني.": "Daily follow-up from me.", "لازم تحضر في ميعاد الجلسة.": "You must attend at the session time.", "مراجعة ومتابعة مستمرة.": "Continuous review and follow-up.", "Semi-automatic Offliner": "Semi-automatic Offliner", "بتاخد الـtasks بتاعتك أسبوعيًا.": "You get your tasks weekly.", "الـmaterial بتاعتك عندك، والسيستم بيبنيها معاك يوم بيوم، وتقدر ترجع لها في أي وقت.": "Your material is with you; the system builds it with you day by day, and you can return to it any time.", "السيستم بيساعدك في النطق.": "The system helps you with pronunciation.", "بادّيك tasks وبراجع معاك آخر الأسبوع.": "I give you tasks and review them with you at the end of the week.", "التوقعات": "Expectations", "المدة المتوقعة للوصول للمرحلة المطلوبة": "Expected time to reach the required level", "ليست هناك مدة معينة أستطيع أن أعدك بأنك ستصل فيها إلى ما تريد، ولكن ما أستطيع أن أؤكده أنني سأبذل قصارى جهدي معك.": "There is no fixed duration I can promise you will reach what you want in, but I can assure you I will do my best with you.", "الفلوس": "Money", "تختلف حسب الاشتراك، وستعرف تفاصيل أكثر في صفحة تفاصيل الباقات في الصفحة التالية.": "It varies by subscription, and you'll find more details on the packages details page next.", "الدفع مقدمًا خلال الأسبوع الأول من كل شهر.": "Payment is upfront during the first week of each month.", "الخصومات": "Discounts", "التكلفة الإجمالية": "Total cost", "قبل": "Before", "بعد": "After", "الخصومات ليست شيئًا ثابتًا ولا نعد بها، ولا تُطبَّق طوال الوقت.": "Discounts are not fixed, are not promised, and are not applied all the time.", "الجلسات": "Sessions", "تتراوح مدة الجلسة من 15 دقيقة فما أكثر، اعتمادًا على مدى استيعابك وكفاءة المراجعة لما سبق.": "A session lasts 15 minutes or more, depending on how well you absorb the material and how effective the review of what came before is.", "جلسة موحدة": "Single session", "جلسة واحدة في موعد معين.": "One session at a set time.", "جلسات متفرقة": "Split sessions", "نفس مدة الجلسة موزعة على أكثر من موعد خلال اليوم، قد تكون مرتين أو ثلاث.": "The same session time spread over more than one slot during the day, maybe two or three.", "ساعة": "Hours", "دقيقة": "Minutes", "أهلاً بيك، إن شاء الله تكون بخير. اكتب لي توقعاتك من البرنامج، وإيه اللي عايزه منه بالظبط.": "Hi, hope you are well. Write me what you expect from the program, and exactly what you want from it.", "لديك رسالة جديدة، اضغط هنا لتعرفها": "You have a new message, tap here to see it", "تم إرسال رسالتك": "Your message was sent", "الالتزام بالموعد الذي تم الاتفاق عليه.": "Keeping to the agreed time.", "القدرة على تحمل التكليفات المالية وسدادها في وقتها.": "Being able to bear the financial commitments and pay them on time.", "المرونة الكافية للتعامل مع الفترات الجيدة والفترات السيئة التي ستمر بها في مرحلة التعلم.": "Enough flexibility to handle the good periods and the bad ones you will go through during learning.", "لقد فهمت، وأتعهد بأنني سأكون قادرًا على الإيفاء بتلك المتطلبات.": "I understand, and I pledge that I will be able to meet these requirements.", "شكرًا لك على إتمام هذه الخطوة": "Thank you for completing this step", "موافق على السياسات والشروط": "I agree to the policies and terms", "وهناك نوعان من الجلسات:": "There are two types of sessions:", "المتوقع مني": "What to expect from me", "المتوقع منك": "What I expect from you", "السياسات والشروط": "Policies and Terms", "الموضوع حساس، فلازم تدخل عليها وتشوفها كاملة قبل ما تكمّل.": "This is sensitive, so you must open and read it in full before continuing.", "اعرض السياسات والشروط": "View policies and terms", "أنا مهتم، كمّل": "I'm interested, continue", "السياسات والشروط": "Policies and Terms", "اتفرج على الفيديو الأول، وبعدين اقرأ البنود.": "Watch the video first, then read the terms.", "الاسترجاع": "Refunds", "[نص السياسة]": "[Policy text]", "ضياع الجلسة": "Lost session", "التأخير": "Lateness", "الغياب": "Absence", "غياب متفق عليه: [..]": "Agreed absence: [..]", "غياب تعسفي: [..]": "Arbitrary absence: [..]", "عدم الدفع": "Non-payment", "[نص السياسة، مثلًا: ضياع شهر]": "[Policy text, e.g.: losing a month]", "(كل البنود دي هتتعدل من الـadmin panel وتظهر هنا على طول.)": "(All these items will be edited from the admin panel and appear here immediately.)", "خلصت، ارجع": "Done, go back", "الاختبار وتحديد المستوى": "Test and Level Placement", "سجّل حساب مبدئي": "Create a preliminary account", "عشان السيستم يفتكر إنت وصلت لفين.": "So the system remembers where you got to.", "سجّل وكمّل": "Register and continue", "الاختبارين": "The two tests", "خلّص الاختبارين دول، وبعدين ارجع هنا:": "Finish these two tests, then come back here:", "اختبار تحديد مستوى اللغة": "Language level placement test", "اختبار الشخصية (16 Personalities)": "Personality test (16 Personalities)", "نتيجة اختبار المستوى:": "Level test result:", "نتيجة اختبار الشخصية:": "Personality test result:", "خلّصت الاختبارين": "I finished both tests", "الدفع قبل إرسال النتايج": "Payment before sending the results", "ابعت": "Send", "500 جنيه": "EGP 500", "على:": "to:", "من غير الدفع مش هنكمل.": "Without payment we won't continue.", "الـ500 جنيه بتروح فين؟": "Where does the EGP 500 go?", "لو كمّلنا في البرنامج مع بعض: مبتخسرش حاجة، والمبلغ بيتحسب أتعاب جلسة تحديد المستوى.": "If we continue in the program together: you lose nothing, and the amount counts as the level placement session fee.", "لو ما كمّلتش: ممكن يرجعلك خصم 25% كحد أقصى (150 جنيه من 500)، أو ما يرجعش حاجة، وده أتعابي.": "If you don't continue: you may get a refund of at most 25% (EGP 150 of 500), or nothing, and that is my fee.", "رسالة بعد الضغط: Thank you so much, within 24 hours your progress will be continued.": "Message after clicking: Thank you so much, within 24 hours your progress will be continued.", "حالة الدفع": "Payment status", "قيد المراجعة...": "Under review...", "لو الدفع اتأكد: بتكمل لحجز الميعاد.": "If payment is confirmed: you continue to book your appointment.", "لو الدفع ما وصلش: \"المدفوعات ما وصلتناش، حاول تاني أو كلّم الـtrainer بتاعك.\"": "If payment didn't arrive: \"We didn't receive the payment, try again or talk to your trainer.\"", "تم تأكيد الدفع، كمّل": "Payment confirmed, continue", "الميعاد وبعد الجلسة": "Appointment and After the Session", "احجز ميعاد جلسة التعريف": "Book your introduction session", "اختار ميعاد من المواعيد المتاحة (هتتربط بالـcalendar والـdatabase بعدين).": "Pick a time from the available slots (will be linked to the calendar and database later).", "التاريخ:": "Date:", "الوقت:": "Time:", "[مكان الـcalendar]": "[Calendar placeholder]", "احجز": "Book", "الجلسة مفيهاش مدة ثابتة، ممكن تبقى ربع ساعة أو ساعة ونص. بنتكلم عن ليه عايز اللغة، هتستخدمها في إيه، وبعدها بنقرر مع بعض النظام الأنسب ليك: Onliner أو Offliner.": "The session has no fixed length, it may be a quarter of an hour or an hour and a half. We talk about why you want the language and what you'll use it for, then we decide together on the system that suits you best: Onliner or Offliner.", "بعد الجلسة": "After the session", "بنتفق على النظام المناسب (Onliner أو Offliner).": "We agree on the suitable system (Onliner or Offliner).", "بنعمل ملفك: ممكن ياخد يوم أو يومين.": "We build your file: it may take a day or two.", "بنجهز نظام الفواتير (Billing) والمتابعة.": "We set up the billing and follow-up system.", "بنبعتلك رسالة ترحيب.": "We send you a welcome message.", "بتاخد credentials خاصة بيك، وتدخل على التطبيق.": "You get your own credentials and enter the app."};
+  var EN = {"الأنظمة والخطط": "Systems & Plans", "لو أنت طالب": "If you are a student", "لو أنت مُعلِّم أو مدرِّب": "If you are a teacher or trainer", "هذا الاشتراك سيكون متاحًا في أقرب وقت ممكن": "This plan will be available as soon as possible.", "هذه الاشتراكات ستكون متاحة في أقرب وقت ممكن": "These plans will be available as soon as possible.", "اشتراك المنصة": "Platform subscription", "الأنظمة": "Systems", "خارجي": "External", "اشتراك شهري مستقل في المنصة بس.": "A separate monthly subscription to the platform only.", "بتدخل بحسابك وتستخدم أدوات المنصة بنفسك.": "You log in with your account and use the platform tools yourself.", "من غير جلسات ولا متابعة مني.": "No sessions and no follow-up from me.", "من غير أي مدفوعات ليّا، الاشتراك للمنصة بس.": "No payments to me, the subscription is for the platform only.", "ما يجب أن تعرفه عنا": "What You Should Know About Us", "اشتراكات المنصة": "Platform Subscriptions", "أنظمة المتابعة": "Follow-up Systems", "اختبار اللغة": "Language test", "اختبار تحديد الهوية النفسية": "Psychological identity test", "← رجوع": "← Back", "الخطط وأسعار الخطط": "Plans & Pricing", "في الحالتين التدريب يكون على الإنترنت، ليس لنا مكان فعلي على أرض الواقع.": "In both cases the training is online; we have no physical location.", "اضغط على البطاقة لمعرفة التفاصيل": "Tap the card to see the details", "برنامج ثابت": "THABIT Program", "للتدريب اللغوي": "Language Training", "التعريف بالبرنامج": "Program Introduction", "نظام التدريب": "Training System", "عندنا نظامين، اختار اللي يناسبك:": "We have two systems, choose the one that suits you:", "Onliner": "Onliner", "5 أيام في الأسبوع.": "5 days a week.", "متابعة يومية مني.": "Daily follow-up from me.", "لازم تحضر في ميعاد الجلسة.": "You must attend at the session time.", "مراجعة ومتابعة مستمرة.": "Continuous review and follow-up.", "Semi-automatic Offliner": "Semi-automatic Offliner", "بتاخد الـtasks بتاعتك أسبوعيًا.": "You get your tasks weekly.", "الـmaterial بتاعتك عندك، والسيستم بيبنيها معاك يوم بيوم، وتقدر ترجع لها في أي وقت.": "Your material is with you; the system builds it with you day by day, and you can return to it any time.", "السيستم بيساعدك في النطق.": "The system helps you with pronunciation.", "بادّيك tasks وبراجع معاك آخر الأسبوع.": "I give you tasks and review them with you at the end of the week.", "التوقعات": "Expectations", "المدة المتوقعة للوصول للمرحلة المطلوبة": "Expected time to reach the required level", "ليست هناك مدة معينة أستطيع أن أعدك بأنك ستصل فيها إلى ما تريد، ولكن ما أستطيع أن أؤكده أنني سأبذل قصارى جهدي معك.": "There is no fixed duration I can promise you will reach what you want in, but I can assure you I will do my best with you.", "الفلوس": "Money", "تختلف حسب الاشتراك، وستعرف تفاصيل أكثر في صفحة تفاصيل الباقات في الصفحة التالية.": "It varies by subscription, and you'll find more details on the packages details page next.", "الدفع مقدمًا خلال الأسبوع الأول من كل شهر.": "Payment is upfront during the first week of each month.", "الخصومات": "Discounts", "التكلفة الإجمالية": "Total cost", "قبل": "Before", "بعد": "After", "الخصومات ليست شيئًا ثابتًا ولا نعد بها، ولا تُطبَّق طوال الوقت.": "Discounts are not fixed, are not promised, and are not applied all the time.", "الجلسات": "Sessions", "تتراوح مدة الجلسة من 15 دقيقة فما أكثر، اعتمادًا على مدى استيعابك وكفاءة المراجعة لما سبق.": "A session lasts 15 minutes or more, depending on how well you absorb the material and how effective the review of what came before is.", "جلسة موحدة": "Single session", "جلسة واحدة في موعد معين.": "One session at a set time.", "جلسات متفرقة": "Split sessions", "نفس مدة الجلسة موزعة على أكثر من موعد خلال اليوم، قد تكون مرتين أو ثلاث.": "The same session time spread over more than one slot during the day, maybe two or three.", "ساعة": "Hours", "دقيقة": "Minutes", "أهلاً بيك، إن شاء الله تكون بخير. اكتب لي توقعاتك من البرنامج، وإيه اللي عايزه منه بالظبط.": "Hi, hope you are well. Write me what you expect from the program, and exactly what you want from it.", "لديك رسالة جديدة، اضغط هنا لتعرفها": "You have a new message, tap here to see it", "تم إرسال رسالتك": "Your message was sent", "الالتزام بالموعد الذي تم الاتفاق عليه.": "Keeping to the agreed time.", "القدرة على تحمل التكليفات المالية وسدادها في وقتها.": "Being able to bear the financial commitments and pay them on time.", "المرونة الكافية للتعامل مع الفترات الجيدة والفترات السيئة التي ستمر بها في مرحلة التعلم.": "Enough flexibility to handle the good periods and the bad ones you will go through during learning.", "لقد فهمت، وأتعهد بأنني سأكون قادرًا على الإيفاء بتلك المتطلبات.": "I understand, and I pledge that I will be able to meet these requirements.", "شكرًا لك على إتمام هذه الخطوة": "Thank you for completing this step", "موافق على السياسات والشروط": "I agree to the policies and terms", "وهناك نوعان من الجلسات:": "There are two types of sessions:", "المتوقع مني": "What to expect from me", "المتوقع منك": "What I expect from you", "السياسات والشروط": "Policies and Terms", "الموضوع حساس، فلازم تدخل عليها وتشوفها كاملة قبل ما تكمّل.": "This is sensitive, so you must open and read it in full before continuing.", "اعرض السياسات والشروط": "View policies and terms", "أنا مهتم، كمّل": "I'm interested, continue", "السياسات والشروط": "Policies and Terms", "اتفرج على الفيديو الأول، وبعدين اقرأ البنود.": "Watch the video first, then read the terms.", "الاسترجاع": "Refunds", "[نص السياسة]": "[Policy text]", "ضياع الجلسة": "Lost session", "التأخير": "Lateness", "الغياب": "Absence", "غياب متفق عليه: [..]": "Agreed absence: [..]", "غياب تعسفي: [..]": "Arbitrary absence: [..]", "عدم الدفع": "Non-payment", "[نص السياسة، مثلًا: ضياع شهر]": "[Policy text, e.g.: losing a month]", "(كل البنود دي هتتعدل من الـadmin panel وتظهر هنا على طول.)": "(All these items will be edited from the admin panel and appear here immediately.)", "خلصت، ارجع": "Done, go back", "الاختبار وتحديد المستوى": "Test and Level Placement", "سجّل حساب مبدئي": "Create a preliminary account", "عشان السيستم يفتكر إنت وصلت لفين.": "So the system remembers where you got to.", "سجّل وكمّل": "Register and continue", "الاختبارين": "The two tests", "خلّص الاختبارين دول، وبعدين ارجع هنا:": "Finish these two tests, then come back here:", "اختبار تحديد مستوى اللغة": "Language level placement test", "اختبار الشخصية (16 Personalities)": "Personality test (16 Personalities)", "نتيجة اختبار المستوى:": "Level test result:", "نتيجة اختبار الشخصية:": "Personality test result:", "خلّصت الاختبارين": "I finished both tests", "الدفع قبل إرسال النتايج": "Payment before sending the results", "ابعت": "Send", "500 جنيه": "EGP 500", "على:": "to:", "من غير الدفع مش هنكمل.": "Without payment we won't continue.", "الـ500 جنيه بتروح فين؟": "Where does the EGP 500 go?", "لو كمّلنا في البرنامج مع بعض: مبتخسرش حاجة، والمبلغ بيتحسب أتعاب جلسة تحديد المستوى.": "If we continue in the program together: you lose nothing, and the amount counts as the level placement session fee.", "لو ما كمّلتش: ممكن يرجعلك خصم 25% كحد أقصى (150 جنيه من 500)، أو ما يرجعش حاجة، وده أتعابي.": "If you don't continue: you may get a refund of at most 25% (EGP 150 of 500), or nothing, and that is my fee.", "رسالة بعد الضغط: Thank you so much, within 24 hours your progress will be continued.": "Message after clicking: Thank you so much, within 24 hours your progress will be continued.", "حالة الدفع": "Payment status", "قيد المراجعة...": "Under review...", "لو الدفع اتأكد: بتكمل لحجز الميعاد.": "If payment is confirmed: you continue to book your appointment.", "لو الدفع ما وصلش: \"المدفوعات ما وصلتناش، حاول تاني أو كلّم الـtrainer بتاعك.\"": "If payment didn't arrive: \"We didn't receive the payment, try again or talk to your trainer.\"", "تم تأكيد الدفع، كمّل": "Payment confirmed, continue", "الميعاد وبعد الجلسة": "Appointment and After the Session", "احجز ميعاد جلسة التعريف": "Book your introduction session", "اختار ميعاد من المواعيد المتاحة (هتتربط بالـcalendar والـdatabase بعدين).": "Pick a time from the available slots (will be linked to the calendar and database later).", "التاريخ:": "Date:", "الوقت:": "Time:", "[مكان الـcalendar]": "[Calendar placeholder]", "احجز": "Book", "الجلسة مفيهاش مدة ثابتة، ممكن تبقى ربع ساعة أو ساعة ونص. بنتكلم عن ليه عايز اللغة، هتستخدمها في إيه، وبعدها بنقرر مع بعض النظام الأنسب ليك: Onliner أو Offliner.": "The session has no fixed length, it may be a quarter of an hour or an hour and a half. We talk about why you want the language and what you'll use it for, then we decide together on the system that suits you best: Onliner or Offliner.", "بعد الجلسة": "After the session", "بنتفق على النظام المناسب (Onliner أو Offliner).": "We agree on the suitable system (Onliner or Offliner).", "بنعمل ملفك: ممكن ياخد يوم أو يومين.": "We build your file: it may take a day or two.", "بنجهز نظام الفواتير (Billing) والمتابعة.": "We set up the billing and follow-up system.", "بنبعتلك رسالة ترحيب.": "We send you a welcome message.", "بتاخد credentials خاصة بيك، وتدخل على التطبيق.": "You get your own credentials and enter the app."};
   var orig = new WeakMap(), root = document.getElementById('app');
   var btnLang = document.getElementById('btn-lang'), btnTheme = document.getElementById('btn-theme');
   function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
