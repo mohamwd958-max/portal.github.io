@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Thabit · مسار الطلبة</title>
+<style>
+body{margin:0;background:#0f1115;color:#ece8df;font:600 14px/1.7 Cairo,system-ui,sans-serif}main{max-width:760px;margin:auto;padding:16px}
+input,select,textarea,button{font:inherit;color:inherit;background:#1b1e26;border:1px solid #333844;border-radius:10px;padding:7px 10px;box-sizing:border-box;max-width:100%}
+button{cursor:pointer}button.p{background:#ece8df;color:#15130f}textarea,.w{width:100%}
+.card{background:#161920;border:1px solid #2a2f3a;border-radius:16px;padding:14px;margin:12px 0}
+.r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}.r>.g{flex:1;min-width:140px}small{opacity:.65}
+#msg{position:sticky;bottom:8px;text-align:center}#msg:not(:empty){background:#26402f;border-radius:10px;padding:6px}
+#print{display:none}
+@media print{body{background:#fff;color:#000}main{display:none}#print{display:block;white-space:pre-wrap;padding:20px;font-size:12pt}}
+</style></head><body>
+<main>
+<h2>مسار الطلبة والمنهج</h2>
+<div id="login" class="card" hidden><p>ادخل بحساب الأدمن.</p><div class="r"><input id="em" type="email" placeholder="Email" class="g"><input id="pw" type="password" placeholder="Password" class="g"><button class="p" id="go">دخول</button></div></div>
+<div id="app" hidden><div class="r"><button id="t1" class="p">الطالب فين</button><button id="t2">المنهج والنظام</button></div><div id="view"></div></div>
+<div id="msg" role="status"></div>
+</main>
+<pre id="print" dir="rtl"></pre>
+<script>
+const URL_='https://vkfexceitwjmxncwceqb.supabase.co', KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmV4Y2VpdHdqbXhuY3djZXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzY5MTEsImV4cCI6MjEwNTkxMjkxMX0.6ArXtykrZhdNInphpg_LQTIvULkpwnnlzHA3dKhrNoI', DEF={"version":1,"levels":[{"key":"wood","name":{"ar":"المستوى الخشبي","en":"Wooden Level"},"desc":{"ar":"الأساس: الحروف والأصوات، وتركيب الكلمة من أصواتها.","en":"Foundation: letters and sounds, and building a word from them."},"milestones":[{"id":"wood1","name":"أسماء الحروف","weight":10},{"id":"wood2","name":"حروف العلة","weight":20},{"id":"wood3","name":"الأصوات الساكنة والمقاطع","weight":30},{"id":"wood4","name":"Digraphs","weight":20},{"id":"wood5","name":"أنماط حروف العلة","weight":20}]},{"key":"bronze","name":{"ar":"المستوى البرونزي","en":"Bronze Level"},"desc":{"ar":"القراءة والكتابة: تقرا نص جديد بنطق مفهوم، وتكتب اللي بتسمعه.","en":"Reading and writing: read a new text clearly and write what you hear."},"milestones":[{"id":"bronze1","name":"القراءة التوقيفية","weight":20},{"id":"bronze2","name":"الجمل القصيرة","weight":15},{"id":"bronze3","name":"القطع","weight":20},{"id":"bronze4","name":"الكتابة والتهجي","weight":20},{"id":"bronze5","name":"الإملاء","weight":20},{"id":"bronze6","name":"القاموس الشخصي","weight":5}]},{"key":"gold","name":{"ar":"المستوى الذهبي","en":"Gold Level"},"desc":{"ar":"رصف الجمل: تكوّن جملتك بنفسك وتسأل وتنفي وتحكي.","en":"Sentence building: make your own sentences, ask, deny and tell."},"milestones":[{"id":"gold1","name":"خريطة اللغة والضماير","weight":15},{"id":"gold2","name":"جملة الوصف (be)","weight":15},{"id":"gold3","name":"جملة الفعل","weight":10},{"id":"gold4","name":"أول جملة كاملة","weight":15},{"id":"gold5","name":"النفي والسؤال","weight":15},{"id":"gold6","name":"الماضي والمستقبل","weight":20},{"id":"gold7","name":"حروف الجر والربط","weight":10}]},{"key":"diamond","name":{"ar":"المستوى الألماسي","en":"Diamond Level"},"desc":{"ar":"الكلمات والمحادثة: تتكلم في مواضيع حياتك وترد في المواقف.","en":"Vocabulary and conversation: talk about your life and respond in real situations."},"milestones":[{"id":"diamond1","name":"الأفعال","weight":25},{"id":"diamond2","name":"الأسماء","weight":20},{"id":"diamond3","name":"الصفات","weight":10},{"id":"diamond4","name":"أدوات الحياة اليومية","weight":10},{"id":"diamond5","name":"المواضيع","weight":15},{"id":"diamond6","name":"المحادثة","weight":20}]},{"key":"legend","name":{"ar":"مستوى الأسطورة","en":"Legend Level"},"desc":{"ar":"أداء الصوت: النبرة والمشاعر وتقمص الشخصية.","en":"Voice acting: tone, emotions and becoming a character."},"milestones":[{"id":"legend1","name":"أدوات الصوت","weight":20},{"id":"legend2","name":"المشاعر الأساسية","weight":25},{"id":"legend3","name":"طبقات المشاعر","weight":15},{"id":"legend4","name":"التقمص","weight":25},{"id":"legend5","name":"مشهد من تأليفك","weight":15}]}],"system":[{"title":"الفكرة","body":"المستوى = موقع الطالب في المنهج (خلّص إيه)، مش تقييم قدرته. النسبة والانتقال بقرار المدرب. مفيش نقاط ولا معادلات. الالتزام (حضور ومهام) بيتسجل في الملف لوحده."},{"title":"المسارات","body":"الكامل (الأساسي). جمل عملية: الخشبي والبرونزي إجباري وينتهي في الذهبي، بإقرار من الطالب. المتخصص: اختياري بعد الأسطورة."},{"title":"تعريف المحترف","body":"يرد في أي موقف، بأكتر من أسلوب يناسب اللي قدامه، من غير ما يقف، بنطق سليم، وفاهم اللغة بتتكون إزاي."},{"title":"الأسبوع والشهر","body":"3 أيام أساسية ويومين ورشة ويومين أجازة. آخر أسبوع في الشهر 3 أيام: مراجعة، اختبار مفاجئ، تسجيل."},{"title":"المراجعة","body":"آخر الحصة، الحصة الجاية، بعد 3 أيام، أسبوع، 3 أسابيع، شهرين. المَعلَم: خلصت مبدئيًا ثم ثبتت. الطالب مبيعرفش ميعاد المراجعة."},{"title":"السماع","body":"مقطع 30–90 ثانية، مهمة واحدة معروفة قبلها، 3 مشاهدات: يتفرج، يحل، يردد."},{"title":"خطوط مستمرة","body":"خط اليد، غرفة المماراة، الدندنة، القاموس الشخصي والعنقدة، المراجعة المتأخرة، جمل النجاة، تسجيل شهري."},{"title":"قواعد المدرب","body":"ممنوع الضرب والتهديد والإهانة مع أي طالب، ولأي سبب. ولي الأمر على علم في حالة الأطفال. المحتوى مناسب للسن. من غير تحميل زيادة."}]};
+let tok=null, cur=null, studs=[];
+const $=id=>document.getElementById(id);
+function el(t,p,props){const e=document.createElement(t);Object.assign(e,props||{});if(p)p.appendChild(e);return e}
+const say=m=>{$('msg').textContent=m;clearTimeout(say.t);say.t=setTimeout(()=>$('msg').textContent='',6000)};
+async function api(path,opt={}){const r=await fetch(URL_+path,{...opt,headers:{apikey:KEY,Authorization:'Bearer '+(tok||KEY),'Content-Type':'application/json',...(opt.headers||{})}});const t=await r.text();if(!r.ok)throw new Error(r.status+' '+t);return t?JSON.parse(t):null}
+const today=()=>new Date().toLocaleDateString('en-CA');
+const opts=(sel,list,val)=>{list.forEach(([v,n])=>el('option',sel,{value:v,textContent:n}));sel.value=val};
+
+/* ---------- login: reuse the admin panel session on the same site, else sign in ---------- */
+function stored(){try{const s=JSON.parse(localStorage.getItem('sb-vkfexceitwjmxncwceqb-auth-token'));return s&&s.expires_at*1000>Date.now()?s.access_token:null}catch(e){return null}}
+$('go').onclick=async()=>{try{const s=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('em').value.trim(),password:$('pw').value})});tok=s.access_token;$('pw').value='';start()}catch(e){say('الدخول منفعش: '+e.message)}};
+async function start(){
+  try{const c=await api('/rest/v1/thabit_curriculum?id=eq.1&select=data');cur=c[0]?c[0].data:structuredClone(DEF);
+    studs=await api('/rest/v1/basic_info?select=id,trainee,level,path&order=trainee')}
+  catch(e){$('login').hidden=false;say(/thabit_curriculum|path/.test(e.message)?'لازم تشغّل ملف thabit-path.sql الأول.':e.message);return}
+  $('login').hidden=true;$('app').hidden=false;students();
+}
+const tabs=n=>{$('t1').className=n==1?'p':'';$('t2').className=n==2?'p':''};
+$('t1').onclick=students;$('t2').onclick=system;
+
+/* ---------- where is the student ---------- */
+function students(){
+  tabs(1);const v=$('view');v.textContent='';
+  const pick=el('select',v,{className:'w'});opts(pick,[['','اختار طالب…'],...studs.map(s=>[s.id,s.trainee])],'');
+  const box=el('div',v);pick.onchange=()=>{box.textContent='';const s=studs.find(x=>x.id===pick.value);if(s)editor(box,s)};
+}
+function editor(box,s){
+  const p=structuredClone(s.path||{});p.milestones=p.milestones||{};p.history=p.history||[];
+  const was=s.level||'wood';let lv=was;
+  const c=el('div',box,{className:'card'});
+  function paint(){
+    c.textContent='';const L=cur.levels,at=L.findIndex(l=>l.key===lv),l=L[at];
+    let r=el('div',c,{className:'r'});el('span',r,{textContent:'المستوى'});const ls=el('select',r,{className:'g'});opts(ls,L.map(x=>[x.key,x.name.ar]),lv);
+    ls.onchange=()=>{lv=ls.value;p.percent=null;p.since=lv===was?(s.path||{}).since||null:today();paint()};
+    el('b',c,{textContent:'هو فين جوه المستوى'});
+    let auto;const calc=()=>l.milestones.reduce((a,m)=>a+(p.milestones[m.id]==='done'?+m.weight:0),0);
+    l.milestones.forEach(m=>{const r=el('div',c,{className:'r'});el('span',r,{className:'g',textContent:m.name+' ('+m.weight+'%)'});const sel=el('select',r);opts(sel,[['','لسه'],['doing','شغالين عليه'],['done','ثبتت ✓']],p.milestones[m.id]||'');sel.onchange=()=>{p.milestones[m.id]=sel.value;auto.placeholder=calc()}});
+    r=el('div',c,{className:'r'});el('span',r,{textContent:'النسبة اللي يشوفها %'});auto=el('input',r,{type:'number',min:0,max:100,value:p.manual??'',placeholder:calc()});auto.oninput=()=>p.manual=auto.value===''?null:+auto.value;
+    el('small',r,{textContent:'فاضية = مجموع اللي ثبت'});
+    r=el('div',c,{className:'r'});el('span',r,{textContent:'بدأ المستوى ده يوم'});const sn=el('input',r,{type:'date',value:p.since||''});sn.onchange=()=>p.since=sn.value||null;
+    if(at>0){el('b',c,{textContent:'اللي فات (التواريخ اختيارية)'});L.slice(0,at).forEach(x=>{let h=p.history.find(y=>y.level===x.key)||{};const r=el('div',c,{className:'r'});el('span',r,{className:'g',textContent:x.name.ar});['from','to'].forEach(k=>{el('small',r,{textContent:k==='from'?'من':'لحد'});const i=el('input',r,{type:'date',value:h[k]||(k==='to'&&x.key===was&&lv!==was?today():k==='from'&&x.key===was&&lv!==was?(s.path||{}).since||'':'')});i.dataset.lv=x.key;i.dataset.k=k})})}
+    const b=el('button',c,{className:'p',textContent:'حفظ'});
+    b.onclick=async()=>{
+      const hist={};c.querySelectorAll('input[data-lv]').forEach(i=>{if(i.value)(hist[i.dataset.lv]=hist[i.dataset.lv]||{level:i.dataset.lv})[i.dataset.k]=i.value});
+      const ms={};l.milestones.forEach(m=>{if(p.milestones[m.id])ms[m.id]=p.milestones[m.id]});
+      const path={milestones:ms,manual:p.manual??null,percent:Math.max(0,Math.min(100,p.manual??calc())),since:p.since||null,history:Object.values(hist)};
+      b.disabled=true;
+      try{const out=await api('/rest/v1/basic_info?id=eq.'+s.id,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({level:lv,path})});if(!out.length)throw new Error('مفيش صلاحية');s.level=lv;s.path=path;say('اتحفظ ✓ هيظهر عند الطالب خلال دقيقة')}catch(e){say('متحفظش: '+e.message)}
+      b.disabled=false};
+  }
+  paint();
+}
+
+/* ---------- the system: edit, copy, PDF, share, send back ---------- */
+function asText(){let t='# نظام ثابت\n';cur.system.forEach(s=>t+='\n## '+s.title+'\n'+s.body+'\n');cur.levels.forEach(l=>{t+='\n## '+l.name.ar+'\n'+l.desc.ar+'\n';l.milestones.forEach(m=>t+='- '+m.name+' ('+m.weight+'%)\n')});return t}
+async function copy(t){try{await navigator.clipboard.writeText(t);say('اتنسخ ✓')}catch(e){say('النسخ منفعش، نزّل الملف بداله')}}
+function system(){
+  tabs(2);const v=$('view');v.textContent='';
+  const bar=el('div',v,{className:'r'});const btn=(n,f)=>el('button',bar,{textContent:n,onclick:f});
+  btn('حفظ',save).className='p';btn('نسخ',()=>copy(asText()));
+  btn('PDF',()=>{$('print').textContent=asText();window.print()});
+  btn('مشاركة',async()=>{if(navigator.share){try{await navigator.share({title:'نظام ثابت',text:asText()})}catch(e){}}else copy(asText())});
+  btn('تنزيل ملف التعديل',()=>{const a=el('a',null,{href:URL.createObjectURL(new Blob([JSON.stringify(cur,null,2)],{type:'application/json'})),download:'thabit-system.json'});a.click()});
+  const f=el('input',null,{type:'file',accept:'.json'});btn('رفع ملف معدّل',()=>f.click());
+  f.onchange=async()=>{try{const d=JSON.parse(await f.files[0].text());if(!Array.isArray(d.system)||!Array.isArray(d.levels)||!d.levels.every(l=>l.key&&l.name&&l.desc&&Array.isArray(l.milestones)))throw 0;cur=d;system();say('اترفع. راجعه ودوس حفظ')}catch(e){say('الملف مش بالشكل الصحيح')}};
+  const field=(p,obj,k,area)=>{const i=el(area?'textarea':'input',p,{className:area?'w':'g',value:obj[k],dir:'auto'});if(area)i.rows=3;i.oninput=()=>obj[k]=i.value;return i};
+  el('h3',v,{textContent:'خلاصة النظام'});
+  cur.system.forEach((s,i)=>{const c=el('div',v,{className:'card'});const r=el('div',c,{className:'r'});field(r,s,'title');el('button',r,{textContent:'حذف',onclick:()=>{if(confirm('تحذف القسم ده؟')){cur.system.splice(i,1);system()}}});field(c,s,'body',true)});
+  el('button',v,{textContent:'+ قسم جديد',onclick:()=>{cur.system.push({title:'قسم جديد',body:''});system()}});
+  el('h3',v,{textContent:'المستويات'});
+  cur.levels.forEach(l=>{const c=el('div',v,{className:'card'});field(el('div',c,{className:'r'}),l.name,'ar');el('small',c,{textContent:'الوصف (عربي ثم إنجليزي)'});field(c,l.desc,'ar',true);field(c,l.desc,'en',true);
+    l.milestones.forEach((m,i)=>{const r=el('div',c,{className:'r'});field(r,m,'name');const w=el('input',r,{type:'number',value:m.weight,style:'width:80px'});w.oninput=()=>m.weight=+w.value;el('button',r,{textContent:'×',onclick:()=>{if(confirm('تحذف المَعلَم ده؟')){l.milestones.splice(i,1);system()}}})});
+    el('button',c,{textContent:'+ مَعلَم',onclick:()=>{l.milestones.push({id:l.key+'_'+Date.now(),name:'جديد',weight:0});system()}})});
+}
+async function save(){
+  const bad=cur.levels.filter(l=>l.milestones.reduce((a,m)=>a+(+m.weight||0),0)!==100).map(l=>l.name.ar);
+  try{await api('/rest/v1/thabit_curriculum?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:1,data:cur,updated_at:new Date().toISOString()})});say('اتحفظ ✓'+(bad.length?' — خد بالك: النسب مش 100 في '+bad.join('، '):''))}catch(e){say('متحفظش: '+e.message)}
+}
+tok=stored();if(tok)start();else $('login').hidden=false;
+</script></body></html>
