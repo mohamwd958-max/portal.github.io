@@ -667,6 +667,17 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
   .plans.plans-2{grid-template-columns:repeat(2,1fr)}
   .plan{min-height:clamp(124px,19vh,170px)}
 }
+
+/* ===== الأنظمة والخطط: العنوان ثابت فوق، وكل جزء في نص الشاشة، والعنوان بيفضل لحد ما تخرج من المجموعة ===== */
+.grp-t{position:sticky;top:18px;height:0;z-index:6;pointer-events:none;text-align:center}
+.grp-t h2{position:relative;display:inline-block;margin:0;padding:0 12px;font-weight:900;font-size:clamp(1.5rem,5.6vw,2.1rem);line-height:1.35;transition:opacity .25s ease}
+/* الهالة: خلفية بلون الصفحة ورا العنوان، أي حاجة بتعدّي تحته بتختفي ولا بتلمس الكلام. مخفية لحد ما العنوان يثبت */
+.grp-t h2::before{content:'';position:absolute;z-index:-1;left:-100vw;right:-100vw;top:-18px;bottom:-14px;background:var(--bg);opacity:0;transition:opacity .2s ease}
+.grp-t.on h2::before{opacity:1}
+.grp .scr{padding-top:clamp(88px,14vh,116px);padding-bottom:clamp(88px,14vh,116px)}
+.plan{border:0;flex-direction:column;gap:10px}
+.plan b{font-weight:900}
+.plan small{display:block;font-family:var(--font-ar);font-weight:700;font-size:clamp(.62rem,2.6vw,.8rem);line-height:1.6;opacity:.6;padding:0 4px}
 </style>
 </head>
 <body>
@@ -867,20 +878,27 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
   <p>الخصومات ليست شيئًا ثابتًا ولا نعد بها، ولا تُطبَّق طوال الوقت.</p>
 </section></div>
 
+<div class="grp" id="plans-grp">
+<div class="grp-t" id="plans-t"><h2>الأنظمة والخطط</h2></div>
+
 <div class="scr"><section class="xs" id="exp-plans">
-  <h2 class="plans-t">الخطط وأسعار الخطط</h2>
-  <h4 class="plans-sub plans-sub-first">اشتراكات المنصة</h4>
+  <h4 class="plans-sub plans-sub-first">لو أنت طالب</h4>
   <div class="plans">
-    <div class="plan">Basic</div>
-    <div class="plan">Advanced</div>
-    <div class="plan">Premium</div>
-  </div>
-  <h4 class="plans-sub">أنظمة المتابعة</h4>
-  <div class="plans plans-2">
-    <div class="plan">Onliner</div>
-    <div class="plan">Offliner</div>
+    <div class="plan"><b>خارجي</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
+    <div class="plan"><b>Part timer</b></div>
+    <div class="plan"><b>Full timer</b></div>
   </div>
 </section></div>
+
+<div class="scr"><section class="xs" id="exp-plans-teacher">
+  <h4 class="plans-sub plans-sub-first">لو أنت مُعلِّم أو مدرِّب</h4>
+  <div class="plans">
+    <div class="plan"><b>خارجي</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
+    <div class="plan"><b>Part timer</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
+    <div class="plan"><b>Full timer</b><small>غير متاح حاليًا، ونعمل عليه</small></div>
+  </div>
+</section></div>
+</div>
 
 <div class="scr"><section class="xs" id="exp-sessions">
   <h4>الجلسات</h4>
@@ -2354,6 +2372,20 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
       else if (e.intersectionRatio < 0.05) el.classList.remove('go');
     });
   }, { threshold: [0, 0.05, 0.5] }).observe(el);
+})();
+</script>
+<script>
+/* العنوان الثابت بتاع "الأنظمة والخطط": الهالة تشتغل لما يثبت فوق، ويتخفي بنعومة لما المجموعة تخلص */
+(function () {
+  var g = document.getElementById('plans-grp'), t = document.getElementById('plans-t');
+  if (!g || !t) return;
+  var st = g.closest('.stage'), h = t.firstElementChild;
+  function upd() {
+    var r = g.getBoundingClientRect(), s = st.getBoundingClientRect(), end = r.bottom - s.top;
+    t.classList.toggle('on', r.top <= s.top + 1 && end > 70);
+    h.style.opacity = end < 160 ? Math.max(0, (end - 40) / 120) : 1;
+  }
+  st.addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd); upd();
 })();
 </script>
 </body>
