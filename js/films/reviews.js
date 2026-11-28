@@ -5,7 +5,7 @@
    back image), the comments' texts (REV), and the animation itself
    (thrown -> flipped -> fanned -> read one by one; drag / tap a card).
 
-   The page only needs:   <section class="rev" id="rev"><div class="dkhint" id="dkhint" data-t="dkHint"></div></section>
+   The page only needs:   <section class="rev" id="rev"></section>
    and then, from the page's own script:
      ThabitComments.init(() => LANG)   // once, gives the deck the current language ('ar' | 'en')
      ThabitComments.start()            // when the cards screen opens
@@ -20,10 +20,6 @@ let LANG = 'en', getLang = () => 'en';
 /* ---------- style (injected once) ---------- */
 const CSS = `/* ===== comments: a deck of playing cards (thrown, flipped, fanned, read one by one) ===== */
 .rev{position:relative;width:100%;height:clamp(520px,calc(100vh - 330px),840px);height:clamp(520px,calc(100svh - 330px),840px);margin:18px 0 0;direction:ltr;touch-action:pan-y}
-.dkhint{position:absolute;left:50%;top:0;z-index:5000;translate:-50% -8px;opacity:0;pointer-events:none;width:max-content;max-width:min(92%,340px);box-sizing:border-box;padding:10px 16px;border-radius:16px;text-align:center;
-  background:var(--gbg);-webkit-backdrop-filter:var(--gblur);backdrop-filter:var(--gblur);border:1px solid var(--gbd);color:var(--ink);font:600 .84rem/1.55 Inter,Cairo,sans-serif;transition:opacity .5s ease,translate .5s ease}
-body.ar .dkhint{font-family:Cairo,Inter,sans-serif}
-.dkhint.on{opacity:1;translate:-50% 0}
 .dkp{position:absolute;left:0;top:0;visibility:hidden;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .dkp.drg{cursor:grabbing}
 .dkc{position:relative;width:100%;height:100%;perspective:1100px;border-radius:var(--dkr,18px);box-shadow:0 0 0 1px rgba(0,0,0,.16),0 10px 26px rgba(0,0,0,.4);transition:box-shadow .6s ease}
@@ -89,7 +85,7 @@ function revInner(x) {
 const dk = { cards: [], W: 0, H: 0, p: 0, cw: 0, ch: 0, fs: .8, sa: 1.2, ang: [], bcx: 0, bcy: 0 };
 const RV_RM = matchMedia('(prefers-reduced-motion:reduce)').matches, RV_ID = 'translate(0px,0px) rotate(0deg)', RV_SHOW = 10000;
 const rvMs = ms => RV_RM ? 1 : ms, rvSleep = ms => new Promise(r => setTimeout(r, rvMs(ms)));
-let rvTok = 0, rvArmed = false, rvArmAt = 0, rvVis = false, rvRunning = false, rvPhase = 'idle', rvTop = 0, rvRz = 0, rvHinted = false, rvHintT = 0, rvDown = null, rvDragRaf = 0, rvDragLast = 0;
+let rvTok = 0, rvArmed = false, rvArmAt = 0, rvVis = false, rvRunning = false, rvPhase = 'idle', rvTop = 0, rvRz = 0, rvDown = null, rvDragRaf = 0, rvDragLast = 0;
 const rvDrags = new Set();
 
 /* geometry: every pose is "translate rotate scale" around a pivot under the card, so a card can slide, turn and fan in one smooth move */
@@ -219,7 +215,6 @@ function rvClamp(x, y) {   /* the card stays on the screen (at least a good part
   const r = $('rev').getBoundingClientRect(), hw = dk.W * dk.sa * .3, top = 90 - r.top, bot = innerHeight - 40 - r.top;
   return [Math.max(hw, Math.min(dk.cw - hw, x)), Math.max(top, Math.min(bot, y))];
 }
-function rvHideHint() { clearTimeout(rvHintT); $('dkhint').classList.remove('on'); }
 function rvDragStart(c, e) {
   const el = c.el, m = new DOMMatrix(getComputedStyle(el).transform), rr = $('rev').getBoundingClientRect(), br = c.c.getBoundingClientRect(), pt = rvPtr(e);
   const cx = br.left + br.width / 2 - rr.left, cy = br.top + br.height / 2 - rr.top, rot = Math.atan2(m.b, m.a) * 180 / Math.PI, s = Math.hypot(m.a, m.b), fromDeck = c.st === 'deck';
@@ -227,7 +222,7 @@ function rvDragStart(c, e) {
   if (fromDeck) { c.st = 'shown'; c.auto = false; el.classList.add('act'); }
   c.off = fromDeck ? [0, 0] : [cx - pt[0], cy - pt[1]];   /* a card from the fan glides to the finger, a shown card keeps the spot you hold it by */
   c.disp = { x: cx, y: cy, rot, s }; c.tgt = { x: cx, y: cy, rot: 0 }; c.vx = 0; c.lx = e.clientX; c.lt = performance.now();
-  c.drag = true; c.released = false; clearTimeout(c.tmr); c.tmr = 0; el.style.zIndex = 1000 + (++rvTop); el.classList.add('drg'); rvHideHint();
+  c.drag = true; c.released = false; clearTimeout(c.tmr); c.tmr = 0; el.style.zIndex = 1000 + (++rvTop); el.classList.add('drg');
   rvDrags.add(c); if (!rvDragRaf) { rvDragLast = performance.now(); rvDragRaf = requestAnimationFrame(rvDragTick); }
 }
 function rvDragMove(c, e) {
@@ -251,7 +246,6 @@ function rvDragTick(now) {   /* the card follows the finger with a little give, 
   rvDragRaf = rvDrags.size ? requestAnimationFrame(rvDragTick) : 0;
 }
 function rvTap(c) {
-  rvHideHint();
   if (c.st === 'deck') rvThrow(c);
   else if (c.st === 'shown' && !c.drag) rvArm(c);   /* tapping a card that is shown gives it 10 s more */
 }
@@ -279,7 +273,6 @@ async function rvCycle(tok) {
     await rvFlip(tok); if (tok !== rvTok) return;
     await rvFan(tok); if (tok !== rvTok) return;
     rvPhase = 'ready';
-    if (!rvHinted) { rvHinted = true; $('dkhint').classList.add('on'); rvHintT = setTimeout(rvHideHint, 4200); await rvSleep(3200); if (tok !== rvTok) return; }   /* a small note before the first details */
     for (; ;) {
       const next = dk.cards.filter(c => c.st === 'deck').sort((a, b) => a.i - b.i)[0];   /* newest first; cards you took yourself are skipped */
       if (!next) break;
@@ -292,7 +285,7 @@ async function rvCycle(tok) {
   }
 }
 function rvHalt() {
-  rvTok++; rvRunning = false; rvPhase = 'idle'; rvDown = null; rvDrags.clear(); cancelAnimationFrame(rvDragRaf); rvDragRaf = 0; rvHideHint();
+  rvTok++; rvRunning = false; rvPhase = 'idle'; rvDown = null; rvDrags.clear(); cancelAnimationFrame(rvDragRaf); rvDragRaf = 0;
   const root = $('rev'); if (root.getAnimations) root.getAnimations({ subtree: true }).forEach(a => a.cancel());
   dk.cards.forEach(c => { clearTimeout(c.tmr); c.tmr = 0; c.drag = false; if (c.done) c.done(); c.el.style.visibility = 'hidden'; c.el.classList.remove('act', 'drg'); });
 }
