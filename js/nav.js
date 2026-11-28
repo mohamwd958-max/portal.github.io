@@ -40,7 +40,9 @@
   function guard() {
     var li = loggedIn(), guest = ss('thGuestSession') === '1';
     if (page === 'landing') {
-      if (li) { location.replace(ls('thLastPage') || HOME); return; }
+      /* only a trainee token leaves the landing here (index.html can route it). A leftover staff key used to send landing <-> index forever;
+         a real admin / trainer session is checked against the server by portal.js (resumeSession) and goes to its own page from there. */
+      if (ls('thabit_trainee_token')) { location.replace(HOME); return; }
       ss('thGuestSession', null); ss('thLanded', '1'); return;
     }
     if (li) { ss('thGuestSession', null); return; }
