@@ -1570,8 +1570,8 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
   }
   function logout() {
     try {
-      Object.keys(localStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thLastPage$|sb-)/i.test(k)) localStorage.removeItem(k); });
-      Object.keys(sessionStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thHops$|thGuestSession$|thLanded$|thFrameTry$)/i.test(k)) sessionStorage.removeItem(k); });
+      Object.keys(localStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thLastPage$|sb-)/i.test(k) || /staff/i.test(k)) localStorage.removeItem(k); });
+      Object.keys(sessionStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thHops$|thGuestSession$|thLanded$|thFrameTry$)/i.test(k) || /staff/i.test(k)) sessionStorage.removeItem(k); });
       if (typeof window.staffSignOut === 'function') window.staffSignOut();
     } catch (e) { }
     location.replace('landing.html');
