@@ -18,6 +18,8 @@
     hops.push(now); try { sessionStorage.setItem('thHops', JSON.stringify(hops)); } catch (e) { }
     if (hops.length > 4) {
       ['thabit_trainee_token', 'currentTrainee', 'thMember', 'thLastPage'].forEach(function (k) { localStorage.removeItem(k); });
+      for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/staff/i.test(k)) localStorage.removeItem(k); }
+      for (var j = sessionStorage.length - 1; j >= 0; j--) { var k2 = sessionStorage.key(j); if (/staff/i.test(k2)) sessionStorage.removeItem(k2); }
       try { sessionStorage.removeItem('thHops'); } catch (e) { }
       location.replace('landing.html'); return;
     }
