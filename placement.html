@@ -647,6 +647,27 @@ section#details{padding-left:clamp(12px,3vw,24px);padding-right:clamp(12px,3vw,2
   .sys{height:clamp(300px,46vh,380px)}
 }
 </style>
+<style id="mobile-parts">
+/* ===== Phone-first parts: every part sits in the middle of its own screen with room on all four sides ===== */
+.scr{padding:clamp(28px,7vh,64px) clamp(4px,2vw,12px)}
+.scr>section{width:100%}
+/* vertical breathing room between the texts inside a part */
+.xs h4,#details h4,#about-us h4{margin:0 0 clamp(14px,2.6vh,24px)}
+.xs h4:not(:first-child){margin-top:clamp(34px,7vh,56px)}
+.xs p,#details p,#about-us p{margin:0 0 clamp(14px,2.8vh,26px);line-height:1.9}
+.xs p:last-child,#details p:last-child,#about-us p:last-child{margin-bottom:0}
+/* plans / systems: full-width, roomy cards (never thin) */
+.plans-t{margin-bottom:clamp(26px,5vh,44px)}
+.plans{width:100%;max-width:560px;gap:clamp(10px,3vw,16px)}
+.plans-sub{margin:clamp(40px,8vh,64px) 0 clamp(14px,2.4vh,22px)}
+.plans-sub-first{margin-top:0}
+.plan{min-height:clamp(132px,20vh,190px);padding:22px 4px;border-radius:22px;font-size:clamp(.8rem,3.3vw,1.4rem);overflow-wrap:normal;word-break:keep-all}
+@media (max-width:600px){
+  .plans{grid-template-columns:repeat(3,1fr)}
+  .plans.plans-2{grid-template-columns:repeat(2,1fr)}
+  .plan{min-height:clamp(124px,19vh,170px)}
+}
+</style>
 </head>
 <body>
 
