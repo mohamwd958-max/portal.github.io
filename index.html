@@ -8,8 +8,20 @@
   try {
     if (window.top !== window.self) return;
     if (/[?&]login\b/.test(location.search)) return;
-    var m = null; if (localStorage.getItem('thabit_trainee_token')) m = JSON.parse(localStorage.getItem('thMember') || 'null');
-    location.replace(m ? 'home.html' : 'landing.html');
+    /* one session test everywhere: the trainee token. If 'thMember' is missing (it used to send index <-> home in a loop), it is made here. */
+    var tok = localStorage.getItem('thabit_trainee_token'), m = null;
+    try { m = JSON.parse(localStorage.getItem('thMember') || 'null'); } catch (e) { m = null; }
+    if (tok && !m) localStorage.setItem('thMember', JSON.stringify({ route: 'dashboard.html', username: '' }));
+    /* safety: more than 4 jumps in a few seconds = something is wrong -> clear the session and open the landing (no endless reload) */
+    var now = Date.now(), hops = [];
+    try { hops = JSON.parse(sessionStorage.getItem('thHops') || '[]').filter(function (t) { return now - t < 6000; }); } catch (e) { }
+    hops.push(now); try { sessionStorage.setItem('thHops', JSON.stringify(hops)); } catch (e) { }
+    if (hops.length > 4) {
+      ['thabit_trainee_token', 'currentTrainee', 'thMember', 'thLastPage'].forEach(function (k) { localStorage.removeItem(k); });
+      try { sessionStorage.removeItem('thHops'); } catch (e) { }
+      location.replace('landing.html'); return;
+    }
+    location.replace(tok ? 'home.html' : 'landing.html');
   } catch (e) { }
 })();
 </script>
@@ -942,7 +954,7 @@ html body:not(#zz):not(#zy) #thabitPortalLogo{margin-left:auto!important;margin-
 (function () {
   'use strict';
   var framed = window.top !== window.self;
-  function M() { try { if (!localStorage.getItem('thabit_trainee_token')) return null; return JSON.parse(localStorage.getItem('thMember') || 'null'); } catch (e) { return null; } }
+  function M() { try { if (!localStorage.getItem('thabit_trainee_token')) return null; return JSON.parse(localStorage.getItem('thMember') || 'null') || { route: 'dashboard.html', username: '' }; } catch (e) { return { route: 'dashboard.html', username: '' }; } }
   /* called by the login card after a successful trainee sign-in: the member page opens (home.html) */
   window.thEnterMember = function (route, uname) {
     try { localStorage.setItem('thMember', JSON.stringify({ route: route, username: uname })); } catch (e) { }
