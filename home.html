@@ -6,11 +6,8 @@
 (function () {
   try {
     if (window.top !== window.self) return;
-    /* same test as index.html: the trainee token. A missing 'thMember' is made here instead of bouncing back (that was the index <-> home loop). */
-    if (!localStorage.getItem('thabit_trainee_token')) { location.replace('index.html'); return; }
-    var m = null; try { m = JSON.parse(localStorage.getItem('thMember') || 'null'); } catch (e) { m = null; }
-    if (!m) localStorage.setItem('thMember', JSON.stringify({ route: 'dashboard.html', username: '' }));
-    try { sessionStorage.removeItem('thHops'); } catch (e) { }
+    var m = null; if (localStorage.getItem('thabit_trainee_token')) m = JSON.parse(localStorage.getItem('thMember') || 'null');
+    if (!m) location.replace('index.html');
   } catch (e) { }
 })();
 </script>
@@ -555,6 +552,7 @@ html body.th-member:not(#zz):not(#zy):not(#zq):not(#zp)>*:not(#thApp):not(#thld)
 <script src="js/buttons/btn-calendar.js"></script>
 <script src="js/buttons/btn-calendar-screen.js"></script>
 <script src="js/buttons/btn-compass.js"></script>
+<script src="js/thabit-path.js"></script>
 <script src="js/buttons/btn-store.js"></script>
 <script src="js/buttons/btn-support.js"></script>
 <script src="js/buttons/btn-ydict.js"></script>
@@ -639,13 +637,13 @@ function THApp(cfg) {
   })();
   const $ = id => R.getElementById(id), W = $('W'), isDk = () => window.matchMedia('(min-width:876px)').matches, KEY_L = 'thLandLang';
   const STR = {
-    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Skills', skT: 'Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Onliner', stMsg: 'Your status is green, meaning that you are an Onliner. If you want to know more, you can talk to your trainer.', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: 'You are weak in all four skills: speaking, listening, reading and writing.', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_train: 'Language Training', 
+    en: { sh: 'EN', plT: 'Subscription', pv: 'Platform View', pv1: 'Gets the job done', pv2: 'For the curious', pv3: 'Feast your eyes', plU: 'EGP', pl1s: 'Free', pl2s: 'Economy', pl3s: 'Pro', pl1: 'Free', pl2: 'Economy Plan', pl3: 'Professional Plan', plP1: '0 EGP', plP2: '500 EGP', plP3: '1000 EGP', plN1: 'These prices are subject to change, and you will be notified a good while before any change.', plN2: 'Platform subscription prices are separate from, and have nothing to do with, the language training program (Thabit) subscription.', plF1: 'Personal follow-up with the coach', plF2: 'Pronunciation Assistant', plF3: 'Your Dictionary', plF4: 'Media Library', plNo: 'Not available', plSes: 'During session times', plAny: 'Anytime', plLim: 'Limited', plUnl: 'Unlimited', skl: 'Skills', skT: 'Skills', sk1: 'Creative Faculty', sk2: 'Ability to Arrange (Rasf)', sk3: 'Tone Manipulation', stOn: 'Onliner', stMsg: 'Your status is green, meaning that you are an Onliner. If you want to know more, you can talk to your trainer.', stOff: 'Offline', lvT: 'Your Level', lvP: 'Your personal profile will be shown here. Your level is one of four:', lvn1: 'Wooden Level', lvn2: 'Bronze Level', lvn3: 'Gold Level', lvn4: 'Diamond Level', lvd1: '', lvd2: 'You are fair in all four skills.', lvd3: 'You are good in some of the four skills, or in all of them.', lvd4: 'You are good in all four skills, and you have extra abilities.', name: 'English', services: 'Services', grp: 'Linguistic Services', i_train: 'Language Training', 
       
       
       uc: 'Under construction', ucDev: 'This option is still under development and will be ready as soon as possible. Please wait until further notice.', intUc: 'Under development', newT: 'New', intT: 'Before you start', intA: 'This section is still under development, and not every feature is ready yet.', intB: 'A section that was recently opened or added.', intOk: 'Got it', sec_train: 'Training Program', sec_gen: 'General Linguistic Services',
       soonc: 'Page information will be shown here.', lvl: 'Level', pName: 'Name', pRank: 'Rank', pRankT: 'Title', rk_trainee: 'Trainee', rk_trainer: 'Trainer', rk_admin: 'Admin', pUser: 'Username', pPhone: 'Phone', pEmail: 'Email', logout: 'Log out',
       gT: 'Leave guest mode?', gP: 'You are browsing as a guest. Your session and any changes you make will not be saved when you leave, but we will still remember you if you come back.', gStay: 'Stay as guest', gLeave: 'Leave guest mode' },
-    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات', skT: 'المهارات', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'Onliner', stMsg: 'حالة ملفك هي Onliner، أي متابعة كاملة. إن أردت أن تعرف أكثر، تواصل مع مدربك.', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: 'مستواك ضعيف في المهارات الأربعة: التحدث والاستماع والقراءة والكتابة.', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_train: 'التدريب اللغوي', 
+    ar: { sh: 'ع', plT: 'الاشتراك', pv: 'عرض المنصة', pv1: 'يؤدي الغرض', pv2: 'للناس الفضولية', pv3: 'ملي عينك', plU: 'جنيه مصري', pl1s: 'مجاني', pl2s: 'اقتصادي', pl3s: 'احترافي', pl1: 'مجاني', pl2: 'اشتراك اقتصادي', pl3: 'اشتراك احترافي', plP1: '0 جنيه مصري', plP2: '500 جنيه مصري', plP3: '1000 جنيه مصري', plN1: 'هذه الأسعار قابلة للتغيير، وسيتم إنذاركم قبل أي تغيير بمدة جيدة.', plN2: 'أسعار الاشتراك في المنصة منفصلة تمامًا ولا علاقة لها بالاشتراك في التدريب اللغوي أو في برنامج ثابت اللغوي.', plF1: 'المتابعة الشخصية مع المدرب', plF2: 'مساعد النطق', plF3: 'قاموسك', plF4: 'مكتبة الوسائط', plNo: 'غير متاح', plSes: 'في أوقات الجلسات', plAny: 'في أي وقت', plLim: 'بحدود', plUnl: 'بدون حدود', skl: 'المهارات', skT: 'المهارات', sk1: 'الملَكة الإبداعية', sk2: 'القدرة على الرصف', sk3: 'القدرة على التلاعب بالنبرة', stOn: 'Onliner', stMsg: 'حالة ملفك هي Onliner، أي متابعة كاملة. إن أردت أن تعرف أكثر، تواصل مع مدربك.', stOff: 'أوفلاين', lvT: 'مستواك', lvP: 'هنا سيُعرض الملف الخاص بك. مستواك واحد من أربعة مستويات:', lvn1: 'المستوى الخشبي', lvn2: 'المستوى البرونزي', lvn3: 'المستوى الذهبي', lvn4: 'المستوى الألماسي', lvd1: '', lvd2: 'مستواك مقبول في المهارات الأربعة.', lvd3: 'مستواك جيد في بعض المهارات الأربعة، أو في جميعها.', lvd4: 'مستواك جيد في المهارات الأربعة جميعها، ولديك قدرات إضافية.', name: 'العربية', services: 'الخدمات', grp: 'الخدمات اللغوية', i_train: 'التدريب اللغوي', 
       
       
       uc: 'تحت الإنشاء', ucDev: 'هذا الاختيار لا زال تحت التطوير، سيكون جاهزًا في أقرب وقت ممكن. انتظر حتى إشعار آخر.', intUc: 'تحت التطوير', newT: 'جديد', intT: 'قبل ما تبدأ', intA: 'القسم ده لسه تحت التطوير، ومش كل مميزاته جاهزة.', intB: 'قسم اتفتح أو اتضاف مؤخرًا.', intOk: 'فهمت', sec_train: 'البرنامج التدريبي', sec_gen: 'خدمات لغوية عامة',
@@ -822,7 +820,7 @@ function THApp(cfg) {
      It sits on top of everything with the display area's own background and hides whatever the page would show.
      Inside it: a big rectangle with the button's name + a "still under development" note, and the kit's hammer (js/ui-kit.js, effect: under-construction, same look and CSS)
      scaled to the screen, striking the rectangle's top corner. One function, used for every button in MAINT. */
-  const MAINT = ['store', 'support', 'compass', 'space', 'passist'];
+  const MAINT = ['store', 'support', 'space', 'passist'];
   const isMaint = k => !!k && (MAINT.indexOf(k) > -1 || !!R.querySelector('#side .sdi[data-k="' + k + '"][data-maint]'));
   function clearHm() { R.querySelectorAll('.hmov').forEach(e => { e._dead = true; e.remove(); }); }
   /* Hammer rhythm: 1 heavy strike (more sparks) -> 2 normal strikes back to back -> 1 last strike that stays down on the rectangle. Change the numbers here. */
@@ -926,6 +924,7 @@ function THApp(cfg) {
     setSide(false); W.classList.add('lay'); $('layer').setAttribute('aria-hidden', 'false');
     document.body.style.overflow = isDk() ? '' : 'hidden'; hb();
     if (!nopush) { try { history.pushState({ th: k }, ''); } catch (e) { } }
+    try { sessionStorage.setItem('thabit_lastpage', k); } catch (e) { }   /* so a refresh on a computer returns to this same page */
   }
   /* ---------- Feed + Messenger: each is its own page shown in the display area (both are built from js/buttons/btn-feed.js and btn-messenger.js, no separate html files).
                  Two hidden copies (?badge) only report the unread numbers; the pages talk to the portal with postMessage ---------- */
@@ -1289,7 +1288,7 @@ function THApp(cfg) {
     const setLv = on => { lov.classList.toggle('on', on); document.documentElement.style.overflow = on ? 'hidden' : ''; document.body.style.overflow = on ? 'hidden' : (isDk() ? '' : (W.classList.contains('lay') ? 'hidden' : '')); };
     lov.addEventListener('click', e => { if (e.target === lov) setLv(false); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') setLv(false); });
-    const lb = $('lvlBtn'); if (lb) lb.onclick = e => { e.stopPropagation(); setSide(false); setLv(true); };
+    const lb = $('lvlBtn'); if (lb) lb.onclick = e => { e.stopPropagation(); setSide(false); if (window.ThabitPath) window.ThabitPath.openInfo(); else setLv(true); };
 
     /* ---- Skills pop-up (same look as the Level pop-up; rows have icons with no border) ---- */
     const SK_ICON = [
@@ -1305,7 +1304,7 @@ function THApp(cfg) {
     const setSk = on => { sov.classList.toggle('on', on); document.documentElement.style.overflow = on ? 'hidden' : ''; document.body.style.overflow = on ? 'hidden' : (isDk() ? '' : (W.classList.contains('lay') ? 'hidden' : '')); };
     sov.addEventListener('click', e => { if (e.target === sov) setSk(false); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') setSk(false); });
-    const kb = $('skillsBtn'); if (kb) kb.onclick = e => { e.stopPropagation(); setSide(false); setSk(true); };
+    const kb = $('skillsBtn'); if (kb) kb.onclick = e => { e.stopPropagation(); setSide(false); if (window.ThabitPath) window.ThabitPath.openInfo(); else setSk(true); };
     /* ---- the student's own Rank / Level / Skills from basic_info (set in the admin panel). Empty = the button or row is not shown.
        Called with the trainee_session profile: window.thSetProfile({ rank, rank_title, level, level_note, skills }) ---- */
     const LV_KEYS = ['wood', 'bronze', 'gold', 'diamond'], SK_KEYS = ['creative', 'rasf', 'tone'];
@@ -1321,7 +1320,7 @@ function THApp(cfg) {
       lr.innerHTML = '';
       if (li > -1) {
         const row = document.createElement('div'); row.className = 'lrow'; row.innerHTML = LV_ICON[li];
-        const d = document.createElement('div'); d.appendChild(txt('b', '', 'lvn' + (li + 1), true)); d.appendChild(txt('span', '', 'lvd' + (li + 1), true));
+        const d = document.createElement('div'); d.appendChild(txt('b', '', 'lvn' + (li + 1), true)); if (li > 0) d.appendChild(txt('span', '', 'lvd' + (li + 1), true));
         row.appendChild(d); lr.appendChild(row);
         if (thProf.level_note) { const n = txt('p', 'lnote', thProf.level_note); n.style.cssText = 'margin:14px 2px 0;white-space:pre-wrap;line-height:1.8;text-align:start'; lr.appendChild(n); }
       }
@@ -1338,6 +1337,8 @@ function THApp(cfg) {
       });
       if (kb) kb.style.display = have.length ? '' : 'none';
       if (!have.length && sov.classList.contains('on')) setSk(false);
+      /* one window for both buttons: show them together for every signed-in student */
+      if (window.ThabitPath) { if (lb) lb.style.display = ''; if (kb) kb.style.display = ''; }
       /* Rank + title: two rows at the top of the profile pop-up */
       const first = $('rN');
       if (first) {
@@ -1541,6 +1542,22 @@ function THApp(cfg) {
   function start() {
     const bg = () => W.classList.contains('light') ? '#e4e6ec' : '#000';
     const go = () => { W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: 'home' }, ''); } catch (e) { } openLayer('home', true); };
+    /* refresh on a computer: stay on the same page, cover it with a quiet "ثابت" skeleton (two light sweeps), then show the page */
+    let last = null, rl = false;
+    try {
+      last = sessionStorage.getItem('thabit_lastpage');
+      const nv = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+      rl = nv ? nv.type === 'reload' : !!(performance.navigation && performance.navigation.type === 1);
+    } catch (e) { }
+    if (rl && isDk() && last && last !== 'home' && IC[last]) {
+      const st = document.createElement('style');
+      st.textContent = '.thsk{position:fixed;inset:0;z-index:350;display:flex;align-items:center;justify-content:center;transition:opacity .3s}.thsk.out{opacity:0}.thsk b{font:800 34px/1.2 Cairo,Inter,sans-serif;color:rgba(255,255,255,.28);background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%) 130% 0/250% 100% no-repeat,rgba(255,255,255,.28);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:thsk 1.1s ease-in-out 2 both}.thsk.lt b{color:rgba(0,0,0,.3);background:linear-gradient(100deg,transparent 35%,rgba(0,0,0,.85) 50%,transparent 65%) 130% 0/250% 100% no-repeat,rgba(0,0,0,.3);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}@keyframes thsk{from{background-position:130% 0,0 0}to{background-position:-30% 0,0 0}}';
+      const ov = document.createElement('div'); ov.className = 'thsk' + (W.classList.contains('light') ? ' lt' : ''); ov.style.background = bg();
+      ov.innerHTML = '<b>' + (L === 'ar' ? 'ثابت' : 'Thabit') + '</b>';
+      document.head.appendChild(st); document.body.appendChild(ov);
+      W.classList.remove('hid'); W.classList.add('shown'); try { history.replaceState({ th: last }, ''); } catch (e) { } openLayer(last, true);   /* the page loads behind the cover */
+      return new Promise(res => setTimeout(() => { ov.classList.add('out'); setTimeout(() => { ov.remove(); st.remove(); res(); }, 320); }, 2300));
+    }
     if (window.thLoader && thLoader.intro) return thLoader.intro({ bg: bg }).then(go, go);
     go(); return Promise.resolve();
   }
@@ -1562,7 +1579,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
 (function () {
   'use strict';
   var framed = window.top !== window.self, app = null;
-  function M() { try { if (!localStorage.getItem('thabit_trainee_token')) return null; return JSON.parse(localStorage.getItem('thMember') || 'null') || { route: 'dashboard.html', username: '' }; } catch (e) { return { route: 'dashboard.html', username: '' }; } }
+  function M() { try { if (!localStorage.getItem('thabit_trainee_token')) return null; return JSON.parse(localStorage.getItem('thMember') || 'null'); } catch (e) { return null; } }
   function user() {
     var m = M() || {}, p = {}; try { p = JSON.parse(localStorage.getItem('currentTrainee') || '{}') || {}; } catch (e) { }
     var name = p.full_name || p.name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim() || '';
@@ -1570,8 +1587,8 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
   }
   function logout() {
     try {
-      Object.keys(localStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thLastPage$|sb-)/i.test(k) || /staff/i.test(k)) localStorage.removeItem(k); });
-      Object.keys(sessionStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|thHops$|thGuestSession$|thLanded$|thFrameTry$)/i.test(k) || /staff/i.test(k)) sessionStorage.removeItem(k); });
+      Object.keys(localStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$|sb-)/i.test(k)) localStorage.removeItem(k); });
+      Object.keys(sessionStorage).forEach(function (k) { if (/^(thabit_|currentTrainee$|thMember$)/i.test(k)) sessionStorage.removeItem(k); });
       if (typeof window.staffSignOut === 'function') window.staffSignOut();
     } catch (e) { }
     location.replace('landing.html');
@@ -1612,6 +1629,7 @@ function thDetectLang(){try{var v=localStorage.getItem('thLandLang');if(v==='ar'
     return fetch(URL_ + '/rest/v1/rpc/' + name, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.status === 204 ? null : r.json(); });
   }
+  window.thPath = function () { return rpc('trainee_path', { p_token: token }); };
   var css = document.createElement('style');
   css.textContent = '.sdi .ttb{margin-inline-start:auto;flex:0 0 auto!important;width:auto;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;display:inline-grid;place-items:center;background:#6b7280;color:#fff;font:800 11px Inter,sans-serif}.ttb.new{background:#ef4444;animation:ttp 1.6s ease-in-out infinite}@keyframes ttp{50%{scale:1.18}}@media(prefers-reduced-motion:reduce){.ttb.new{animation:none}}' +
     '#ttov{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.5)}#ttov .bx{width:min(380px,100%);max-height:75dvh;overflow:auto;box-sizing:border-box;padding:18px;border-radius:24px;background:#1b1a16;color:#ece8df;border:1px solid rgba(255,255,255,.14);font:600 .9rem/1.7 Cairo,Inter,sans-serif}#W.light #ttov .bx{background:#fff;color:#1c1a16;border-color:rgba(28,26,22,.12)}' +
